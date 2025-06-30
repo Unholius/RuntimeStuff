@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	  <TargetFrameworks>netstandard2.0</TargetFrameworks>
+	  <Version>$(VersionPrefix)$([System.DateTime]::Now.ToString("yyyy")).$([System.DateTime]::Now.ToString("MMdd")).$([System.DateTime]::Now.ToString("HHmm"))</Version>
+	  <OutputType>Library</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+</Project>
