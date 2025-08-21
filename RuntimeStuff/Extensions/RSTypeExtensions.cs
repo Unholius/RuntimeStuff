@@ -12,7 +12,7 @@ namespace RuntimeStuff.Extensions
     /// Расширения для работы с типами (System.Type), упрощающие проверку,
     /// создание экземпляров, получение информации и метаданных о типах.
     /// </summary>
-    public static class TypeExtensions
+    public static class RSTypeExtensions
     {
 
         /// <summary>
@@ -93,8 +93,7 @@ namespace RuntimeStuff.Extensions
             if (ctorArgs == null)
                 ctorArgs = Array.Empty<object>();
 
-            var typeInfo = type.GetMemberInfoEx();
-
+            var typeInfo = type.GetMemberInfoEx() ?? throw new NullReferenceException(nameof(RSTypeExtensions) + "." + nameof(Create) + ": type is null!");
             if (typeInfo.DefaultConstructor != null && ctorArgs.Length == 0)
                 return typeInfo.DefaultConstructor();
 
@@ -169,7 +168,7 @@ namespace RuntimeStuff.Extensions
         /// <returns>Значение по умолчанию для указанного типа.</returns>
         public static object Default(this Type type)
         {
-            return type != null && type.IsValueType ? Activator.CreateInstance(type) : null;
+            return type?.IsValueType == true ? Activator.CreateInstance(type) : null;
         }
 
         /// <summary>

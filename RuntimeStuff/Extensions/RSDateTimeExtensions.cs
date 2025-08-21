@@ -9,7 +9,7 @@ namespace RuntimeStuff.Extensions
     /// <summary>
     /// Расширения для работы с датой и временем
     /// </summary>
-    public static class DateTimeExtensions
+    public static class RSDateTimeExtensions
     {
         /// <summary>
         /// Проверяет, содержит ли DateTime компонент времени (не равно 00:00:00)
@@ -34,8 +34,8 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Парсит строку в массив TimeSpan. Пример: "1d -12m +3M -100s +6y"
         /// </summary>
-        /// <param name="s">Строка для парсинга. Поддерживаемые форматы: 
-        /// Yy - год (365 дней), M - месяц (30 дней), Ww - недели, Dd - день, 
+        /// <param name="s">Строка для парсинга. Поддерживаемые форматы:
+        /// Yy - год (365 дней), M - месяц (30 дней), Ww - недели, Dd - день,
         /// Hh - час, m - минуты, Ss - секунды, Ff - миллисекунды</param>
         /// <returns>Массив TimeSpan</returns>
         public static TimeSpan[] ParseTimeSpan(this string s)

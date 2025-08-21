@@ -1,20 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using RuntimeStuff.Extensions;
+using System.Data;
+using System.Diagnostics;
 
 namespace RuntimeStuff.MSTests.Extensions
 {
     [TestClass]
-    public class DataTableSimpleExtensionsTests
+    public class RSDataTableExtensionsTests
     {
         // Вспомогательный класс для тестирования ImportData
         private class SampleItem
         {
             public int Id { get; set; }
-            public string Name { get; set; }
+            public string Name { get; set; } = "";
         }
 
         [TestMethod]
@@ -111,7 +109,6 @@ namespace RuntimeStuff.MSTests.Extensions
             dt.Columns.Add("X", typeof(string));
 
             dt.AddRow(out DataRow row, "value");
-            Assert.IsNotNull(row);
             Assert.AreSame(row, dt.Rows[0]);
             Assert.AreEqual("value", row["X"]);
         }
@@ -123,7 +120,7 @@ namespace RuntimeStuff.MSTests.Extensions
             dt.Columns.Add("Col1", typeof(int));
             dt.Columns.Add("Col2", typeof(string));
 
-            dt.AddRow(new[] { "Col2", "Col1" }, new object[] { "abc", 99 });
+            dt.AddRow(["Col2", "Col1"], ["abc", 99]);
 
             Assert.AreEqual(1, dt.Rows.Count);
             Assert.AreEqual("abc", dt.Rows[0]["Col2"]);
@@ -136,9 +133,8 @@ namespace RuntimeStuff.MSTests.Extensions
             var dt = new DataTable();
             dt.Columns.Add("F", typeof(double));
 
-            dt.AddRow(new[] { "F" }, new object[] { 3.14 }, out DataRow row);
+            dt.AddRow(["F"], [3.14], out DataRow row);
 
-            Assert.IsNotNull(row);
             Assert.AreSame(row, dt.Rows[0]);
             Assert.AreEqual(3.14, row["F"]);
         }
@@ -148,8 +144,8 @@ namespace RuntimeStuff.MSTests.Extensions
         {
             var items = new List<SampleItem>
             {
-                new SampleItem { Id = 1, Name = "One" },
-                new SampleItem { Id = 2, Name = "Two" }
+                new() { Id = 1, Name = "One" },
+                new() { Id = 2, Name = "Two" }
             };
 
             var dt = new DataTable();
@@ -170,20 +166,123 @@ namespace RuntimeStuff.MSTests.Extensions
         [TestMethod]
         public void ImportData_ShouldHandleNullItemsGracefully()
         {
-            var items = new List<SampleItem>
+            var items = new List<SampleItem?>
             {
-                new SampleItem { Id = 1, Name = "First" },
-                null,
-                new SampleItem { Id = 3, Name = "Third" }
+                new() { Id = 1, Name = "First" },
+                (SampleItem?)null,
+                new() { Id = 3, Name = "Third" }
             };
 
             var dt = new DataTable();
             dt.ImportData(items);
 
-            // После null-элемента импорт останавливается
-            Assert.AreEqual(1, dt.Rows.Count);
+            Assert.AreEqual(2, dt.Rows.Count);
             Assert.AreEqual(1, dt.Rows[0]["Id"]);
+            Assert.AreEqual(3, dt.Rows[1]["Id"]);
             Assert.AreEqual("First", dt.Rows[0]["Name"]);
+            Assert.AreEqual("Third", dt.Rows[1]["Name"]);
+        }
+
+        public class TestClass
+        {
+            public string Name { get; set; } = "";
+            public int Age { get; set; }
+        }
+
+        public class TestClass2
+        {
+            [Column("Имя")] public string Name { get; set; } = "";
+
+            [Column("Возраст")]
+            public int Age { get; set; }
+        }
+
+        [TestMethod]
+        public void ToList_ReturnsCorrectObjects_WhenDefaultMapping()
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("Name", typeof(string));
+            dt.Columns.Add("Age", typeof(int));
+            dt.Rows.Add("Alice", 30);
+            dt.Rows.Add("Bob", 25);
+
+            var result = dt.ToList<TestClass>();
+
+            Assert.AreEqual(2, result.Count);
+            Assert.AreEqual("Alice", result[0].Name);
+            Assert.AreEqual(30, result[0].Age);
+            Assert.AreEqual("Bob", result[1].Name);
+            Assert.AreEqual(25, result[1].Age);
+        }
+
+        [TestMethod]
+        public void ToList_UsesCustomMapper()
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("Имя", typeof(string));
+            dt.Columns.Add("Возраст", typeof(int));
+            dt.Rows.Add("Ivan", 40);
+
+            var mapper = new Dictionary<string, string>
+            {
+                { "Имя", "Name" },
+                { "Возраст", "Age" }
+            };
+
+            var result = dt.ToList<TestClass>(mapper);
+
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual("Ivan", result[0].Name);
+            Assert.AreEqual(40, result[0].Age);
+        }
+
+        [TestMethod]
+        public void ToList_ReturnsEmptyList_WhenNoRows()
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("Name", typeof(string));
+            dt.Columns.Add("Age", typeof(int));
+
+            var result = dt.ToList<TestClass>();
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual(0, result.Count);
+        }
+
+        [TestMethod]
+        public void ToList_AutoColumnMappingViaAttributes()
+        {
+            var dt = new DataTable();
+            dt.Columns.Add("Имя", typeof(string));
+            dt.Columns.Add("Возраст", typeof(int));
+            dt.AddRow(["Имя", "Возраст"], ["Алиса", 30]);
+            dt.AddRow(["Имя", "Возраст"], ["Боб", 25]);
+
+            var result = dt.ToList<TestClass>();
+
+            Assert.IsNotNull(result);
+            Assert.AreEqual(dt.Rows.Count, result.Count);
+        }
+
+        [TestMethod]
+        public void ToList_FastSet_WorksWithoutException()
+        {
+            var dt = new DataTable();
+            const int count = 100_000;
+            dt.Columns.Add("Name", typeof(string));
+            dt.Columns.Add("Age", typeof(int));
+            dt.Columns.Add("Sex", typeof(bool));
+
+            for (int i = 0; i < count; i++)
+            {
+                dt.Rows.Add($"Name{i}", i, i % 2 == 0);
+            }
+
+            var sw = Stopwatch.StartNew();
+            var result = dt.ToList<TestClass>(fastSet: true);
+            sw.Stop();
+
+            Assert.AreEqual(count, result.Count);
         }
     }
 }

@@ -4,18 +4,38 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 
 namespace RuntimeStuff
 {
     /// <summary>
-    /// Статический класс для работы с объектами, включая преобразование типов, доступ к членам объектов, копирование значений и другие операции
+    /// Статический вспомогательный класс для расширенной работы с объектами, их свойствами, полями, методами и типами в .NET с использованием рефлексии.
+    /// <para>
+    /// <b>Основные возможности:</b>
+    /// <list type="bullet">
+    /// <item>— Универсальный доступ к значениям свойств и полей по имени или пути (в том числе вложенным и индексированным), с возможностью преобразования типов.</item>
+    /// <item>— Гибкое преобразование типов, поддержка пользовательских конвертеров, безопасные и fallback-преобразования.</item>
+    /// <item>— Копирование и слияние свойств между объектами, включая глубокое копирование, работу с коллекциями и словарями, а также правила перезаписи значений.</item>
+    /// <item>— Динамический вызов методов по имени, получение и установка значений через <see cref="MemberInfoEx"/>.</item>
+    /// <item>— Получение атрибутов для объектов и их членов, расширенная работа с метаданными .NET.</item>
+    /// <item>— Универсальное создание экземпляров объектов, поддержка DataRow/DataRowView, кортежей, перечислений и других специальных случаев.</item>
+    /// <item>— Сжатие и распаковка массивов байт с помощью GZip, копирование потоков.</item>
+    /// <item>— Кэширование результатов операций Split и рефлексии для повышения производительности при повторных вызовах.</item>
+    /// </list>
+    /// <b>Типовые сценарии использования:</b>
+    /// <list type="bullet">
+    /// <item>— Маппинг и преобразование данных между различными объектными моделями (DTO, ORM, сериализация/десериализация).</item>
+    /// <item>— Динамическое связывание данных в UI, редакторы свойств, построение универсальных инспекторов объектов.</item>
+    /// <item>— ETL, интеграция, обработка данных, где требуется универсальный доступ к структурам объектов.</item>
+    /// <item>— Генерация кода, скриптовые движки, плагин-системы, где необходима работа с объектами на этапе выполнения.</item>
+    /// </list>
+    /// <b>Потокобезопасность:</b> Все статические члены класса потокобезопасны. Для кэширования и пользовательских конвертеров используются concurrent-коллекции.<br/>
+    /// <b>Производительность:</b> Класс оптимизирован для частого использования в динамических сценариях за счёт кэширования и эффективных паттернов работы с рефлексией.
+    /// </para>
     /// </summary>
     public static class Obj
     {
@@ -26,44 +46,77 @@ namespace RuntimeStuff
             new ConcurrentDictionary<Type, ConcurrentDictionary<Type, Func<object, object>>>();
 
         /// <summary>
-        /// Получить расширенную информацию о свойстве/поле/методе/конструкторе объекта по имени или пути
+        /// Получает расширенную информацию о свойстве, поле, методе или конструкторе объекта по имени или пути.
         /// </summary>
-        /// <typeparam name="T">Тип объекта</typeparam>
-        /// <param name="obj">Объект</param>
-        /// <param name="memberName">Имя члена или путь через точку</param>
-        /// <returns>Информация о члене или null если не найден</returns>
-        public static MemberInfoEx GetMember<T>(T obj, string memberName)
+        /// <typeparam name="T">Тип объекта.</typeparam>
+        /// <param name="obj">Экземпляр объекта.</param>
+        /// <param name="memberName">Имя члена или путь через точку.</param>
+        /// <param name="memberNameType">Тип имени члена для поиска.</param>
+        /// <returns>Экземпляр <see cref="MemberInfoEx"/> или null, если член не найден.</returns>
+        public static MemberInfoEx GetMember<T>(T obj, string memberName, MemberNameType memberNameType = MemberNameType.Any)
         {
             var objType = obj?.GetType() ?? typeof(T);
+
+            return GetMember(objType, memberName, memberNameType);
+        }
+
+        /// <summary>
+        /// Получает расширенную информацию о свойстве, поле, методе или конструкторе типа по имени или пути.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="memberName">Имя или путь до свойства, поля или метода</param>
+        /// <param name="memberNameType">Тип имени члена для поиска.</param>
+        /// <returns></returns>
+        public static MemberInfoEx GetMember<T>(string memberName, MemberNameType memberNameType = MemberNameType.Any)
+        {
+            return GetMember(typeof(T), memberName, memberNameType);
+        }
+
+        /// <summary>
+        /// Получает расширенную информацию о свойстве, поле, методе или конструкторе типа по имени или пути.
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="memberName">Имя или путь до свойства, поля или метода</param>
+        /// <param name="memberNameType">Тип имени члена для поиска.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static MemberInfoEx GetMember(Type type, string memberName, MemberNameType memberNameType = MemberNameType.Any)
+        {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
             var memberNames = SplitCache.Get(memberName);
-            var ti = objType.GetMemberInfoEx();
+            var memberInfoEx = type.GetMemberInfoEx();
+            if (memberInfoEx == null)
+                return null;
 
             for (var i = 0; i < memberNames.Length; i++)
             {
                 var name = memberNames[i];
-                var mi = ti.GetMember(name);
+                var mi = memberInfoEx.GetMember(name, memberNameType);
                 if (mi == null)
                     return null;
 
                 mi = mi.IsCollection && i < memberNames.Length - 1 && !memberNames[i + 1].Equals("Item", StringComparison.OrdinalIgnoreCase)
                     ? mi.ElementType.GetMemberInfoEx()
                     : mi.GetMemberInfoEx();
-                ti = mi;
+                memberInfoEx = mi;
             }
-            return ti;
+
+            return memberInfoEx;
         }
 
         /// <summary>
-        /// Увеличить значение переменной на указанный шаг
+        /// Увеличивает значение переменной на указанный шаг.
         /// </summary>
-        /// <param name="value">Значение для увеличения (передается по ссылке)</param>
-        /// <param name="step">Шаг увеличения (по умолчанию 1)</param>
-        /// <exception cref="ArgumentNullException">Если значение null</exception>
-        /// <exception cref="NotImplementedException">Если тип значения не поддерживается</exception>
+        /// <param name="value">Значение для увеличения (передается по ссылке).</param>
+        /// <param name="step">Шаг увеличения (по умолчанию 1).</param>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="value"/> равен null.</exception>
+        /// <exception cref="NotImplementedException">Выбрасывается, если тип значения не поддерживается для увеличения.</exception>
         public static void Increase(ref object value, int step = 1)
         {
             if (value == null)
-                throw new ArgumentNullException("Obj.Increase: value is null!");
+                throw new ArgumentNullException(nameof(value));
 
             var valueType = value.GetType();
 
@@ -73,7 +126,7 @@ namespace RuntimeStuff
                 return;
             }
 
-            if (valueType.IsNumeric(true))
+            if (valueType.IsNumeric())
             {
                 value = ChangeType(ChangeType<decimal>(value) + step, valueType);
                 return;
@@ -83,16 +136,19 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Преобразовать значение в указанный тип
+        /// Преобразует значение к указанному типу.
         /// </summary>
-        /// <param name="value">Значение для преобразования</param>
-        /// <param name="toType">Тип, в который нужно преобразовать</param>
-        /// <param name="formatProvider">Формат преобразования (по умолчанию CultureInfo.InvariantCulture)</param>
-        /// <returns>Преобразованное значение</returns>
+        /// <param name="value">Значение для преобразования.</param>
+        /// <param name="toType">Тип, в который нужно преобразовать.</param>
+        /// <param name="formatProvider">Провайдер формата (по умолчанию <see cref="CultureInfo.InvariantCulture"/>).</param>
+        /// <returns>Преобразованное значение.</returns>
+        /// <exception cref="InvalidCastException">Если преобразование невозможно.</exception>
+        /// <exception cref="FormatException">Если формат значения некорректен.</exception>
+        /// <exception cref="ArgumentNullException">Если <paramref name="toType"/> равен null.</exception>
         public static object ChangeType(object value, Type toType, IFormatProvider formatProvider = null)
         {
-            if (value == null || value.Equals(DBNull.Value))
-                return TypeExtensions.Default(toType);
+            if (value?.Equals(DBNull.Value) != false)
+                return toType.Default();
 
             toType = Nullable.GetUnderlyingType(toType) ?? toType;
             var fromType = value.GetType();
@@ -126,7 +182,7 @@ namespace RuntimeStuff
 
             // Обработка кортежей
             if (typeof(Tuple).IsAssignableFrom(toType))
-                return TypeExtensions.Create(toType, GetValues(value).ToArray());
+                return toType.Create(GetValues(value).ToArray());
 
             // Обработка строковых значений
             if (value is string s)
@@ -136,7 +192,7 @@ namespace RuntimeStuff
                 if (toType.IsEnum)
                     return Enum.Parse(toType, s, true);
                 if (toType == typeof(DateTime))
-                    return Converters.StringToDateTimeConverter(s);
+                    return Converters.RSConverters.StringToDateTimeConverter(s);
             }
 
             // Стандартное преобразование
@@ -144,11 +200,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получить пользовательский преобразователь типов
+        /// Получает пользовательский преобразователь типов между двумя типами, если он зарегистрирован.
         /// </summary>
-        /// <param name="typeFrom">Исходный тип</param>
-        /// <param name="typeTo">Целевой тип</param>
-        /// <returns>Функция преобразования или null</returns>
+        /// <param name="typeFrom">Исходный тип.</param>
+        /// <param name="typeTo">Целевой тип.</param>
+        /// <returns>Функция преобразования или null, если не найдено.</returns>
         public static Func<object, object> GetCustomTypeConverter(Type typeFrom, Type typeTo)
         {
             if (!CustomTypeConverters.TryGetValue(typeFrom, out var typeConverters) || typeConverters == null)
@@ -161,11 +217,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Добавить пользовательский преобразователь типов
+        /// Регистрирует пользовательский преобразователь типов между двумя типами.
         /// </summary>
-        /// <typeparam name="TFrom">Исходный тип</typeparam>
-        /// <typeparam name="TTo">Целевой тип</typeparam>
-        /// <param name="converter">Функция преобразования</param>
+        /// <typeparam name="TFrom">Исходный тип.</typeparam>
+        /// <typeparam name="TTo">Целевой тип.</typeparam>
+        /// <param name="converter">Функция преобразования.</param>
         public static void AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, TTo> converter)
         {
             if (!CustomTypeConverters.TryGetValue(typeof(TFrom), out var typeConverters) || typeConverters == null)
@@ -177,12 +233,12 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Преобразовать значение в указанный тип
+        /// Преобразует значение к указанному типу.
         /// </summary>
-        /// <typeparam name="T">Целевой тип</typeparam>
-        /// <param name="value">Значение для преобразования</param>
-        /// <param name="formatProvider">Формат преобразования</param>
-        /// <returns>Преобразованное значение</returns>
+        /// <typeparam name="T">Целевой тип.</typeparam>
+        /// <param name="value">Значение для преобразования.</param>
+        /// <param name="formatProvider">Провайдер формата.</param>
+        /// <returns>Преобразованное значение типа <typeparamref name="T"/>.</returns>
         public static T ChangeType<T>(object value, IFormatProvider formatProvider = null)
         {
             var toType = typeof(T);
@@ -190,13 +246,13 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Попытаться преобразовать значение в указанный тип
+        /// Пытается преобразовать значение к указанному типу.
         /// </summary>
-        /// <typeparam name="T">Целевой тип</typeparam>
-        /// <param name="value">Значение для преобразования</param>
-        /// <param name="convert">Результат преобразования</param>
-        /// <param name="formatProvider">Формат преобразования</param>
-        /// <returns>Успешно ли выполнено преобразование</returns>
+        /// <typeparam name="T">Целевой тип.</typeparam>
+        /// <param name="value">Значение для преобразования.</param>
+        /// <param name="convert">Результат преобразования.</param>
+        /// <param name="formatProvider">Провайдер формата.</param>
+        /// <returns>True, если преобразование успешно; иначе false.</returns>
         public static bool TryChangeType<T>(object value, out T convert, IFormatProvider formatProvider = null)
         {
             convert = default;
@@ -206,17 +262,19 @@ namespace RuntimeStuff
                 return true;
             }
             else
+            {
                 return false;
+            }
         }
 
         /// <summary>
-        /// Попытаться преобразовать значение в один из указанных типов
+        /// Пытается преобразовать значение к одному из указанных типов.
         /// </summary>
-        /// <param name="value">Значение для преобразования</param>
-        /// <param name="toTypes">Возможные целевые типы</param>
-        /// <param name="convert">Результат преобразования</param>
-        /// <param name="formatProvider">Формат преобразования</param>
-        /// <returns>Успешно ли выполнено преобразование</returns>
+        /// <param name="value">Значение для преобразования.</param>
+        /// <param name="toTypes">Массив возможных целевых типов.</param>
+        /// <param name="convert">Результат преобразования.</param>
+        /// <param name="formatProvider">Провайдер формата.</param>
+        /// <returns>True, если преобразование успешно; иначе false.</returns>
         public static bool TryChangeType(object value, Type[] toTypes, out object convert, IFormatProvider formatProvider = null)
         {
             foreach (var t in toTypes)
@@ -229,13 +287,13 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Попытаться преобразовать значение в указанный тип
+        /// Пытается преобразовать значение к указанному типу.
         /// </summary>
-        /// <param name="value">Значение для преобразования</param>
-        /// <param name="toType">Целевой тип</param>
-        /// <param name="convert">Результат преобразования</param>
-        /// <param name="formatProvider">Формат преобразования</param>
-        /// <returns>Успешно ли выполнено преобразование</returns>
+        /// <param name="value">Значение для преобразования.</param>
+        /// <param name="toType">Целевой тип.</param>
+        /// <param name="convert">Результат преобразования.</param>
+        /// <param name="formatProvider">Провайдер формата.</param>
+        /// <returns>True, если преобразование успешно; иначе false.</returns>
         public static bool TryChangeType(object value, Type toType, out object convert, IFormatProvider formatProvider = null)
         {
             try
@@ -251,10 +309,10 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Сжать массив байт с использованием GZip
+        /// Сжимает массив байт с использованием GZip.
         /// </summary>
-        /// <param name="bytes">Исходные данные</param>
-        /// <returns>Сжатые данные</returns>
+        /// <param name="bytes">Исходные данные.</param>
+        /// <returns>Сжатый массив байт.</returns>
         public static byte[] Zip(byte[] bytes)
         {
             using (var msi = new MemoryStream(bytes))
@@ -270,10 +328,10 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Распаковать массив байт, сжатый GZip
+        /// Распаковывает массив байт, сжатый с помощью GZip.
         /// </summary>
-        /// <param name="bytes">Сжатые данные</param>
-        /// <returns>Распакованные данные</returns>
+        /// <param name="bytes">Сжатые данные.</param>
+        /// <returns>Распакованный массив байт.</returns>
         public static byte[] UnZip(byte[] bytes)
         {
             using (var msi = new MemoryStream(bytes))
@@ -289,17 +347,17 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Копировать данные из одного потока в другой
+        /// Копирует данные из одного потока в другой.
         /// </summary>
-        /// <param name="src">Исходный поток</param>
-        /// <param name="dest">Целевой поток</param>
-        public static void CopyTo(Stream src, Stream dest)
+        /// <param name="src">Исходный поток.</param>
+        /// <param name="target">Целевой поток.</param>
+        public static void CopyTo(Stream src, Stream target)
         {
             byte[] bytes = new byte[4096];
             int cnt;
             while ((cnt = src.Read(bytes, 0, bytes.Length)) != 0)
             {
-                dest.Write(bytes, 0, cnt);
+                target.Write(bytes, 0, cnt);
             }
         }
 
@@ -309,46 +367,30 @@ namespace RuntimeStuff
         public static readonly Cache<string, string[]> SplitCache =
             new Cache<string, string[]>(x => x.Split(new[] { '.', '\\', '/', '[', ']', '(', ')' }, StringSplitOptions.RemoveEmptyEntries));
 
-        // Остальные методы класса с аналогичными комментариями...
-        // (Продолжение комментариев для всех оставшихся методов)
-
         /// <summary>
-        /// Получить значение свойства объекта по пути с преобразованием в указанный тип
+        /// Получает значение свойства объекта по имени с преобразованием в указанный тип.
         /// </summary>
-        /// <typeparam name="T">Тип результата</typeparam>
-        /// <param name="obj">Объект</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        /// <param name="propNames">Путь к свойству (массив имен)</param>
-        /// <returns>Значение свойства или default(T)</returns>
-        public static T Get<T>(object obj, StringComparison nameComparison, string[] propNames)
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="obj">Объект.</param>
+        /// <param name="propName">Имя свойства или путь через точки.</param>
+        /// <param name="memberNameType">Тип имени члена для поиска.</param>
+        /// <returns>Значение свойства или значение по умолчанию для типа <typeparamref name="T"/>.</returns>
+        public static T Get<T>(object obj, string propName, MemberNameType memberNameType = MemberNameType.Any)
         {
-            return ChangeType<T>(Get(obj, nameComparison, propNames));
+            return (T)Get(obj, propName, typeof(T), memberNameType);
         }
 
         /// <summary>
-        /// Получить значение свойства объекта по имени с преобразованием в указанный тип
+        /// Получает значение свойства объекта по имени.
         /// </summary>
-        /// <typeparam name="T">Тип результата</typeparam>
-        /// <param name="obj">Объект</param>
-        /// <param name="propName">Имя свойства или путь через точки</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        /// <returns>Значение свойства или default(T)</returns>
-        public static T Get<T>(object obj, string propName, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
+        /// <param name="obj">Объект.</param>
+        /// <param name="propName">Имя свойства или путь через точки.</param>
+        /// <param name="convertToType">Тип для преобразования результата.</param>
+        /// <param name="memberNameType">Тип имени члена для поиска.</param>
+        /// <returns>Значение свойства или null.</returns>
+        public static object Get(object obj, string propName, Type convertToType = null, MemberNameType memberNameType = MemberNameType.Any)
         {
-            return (T)Get(obj, propName, nameComparison, typeof(T));
-        }
-
-        /// <summary>
-        /// Получить значение свойства объекта по имени
-        /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="propName">Имя свойства или путь через точки</param>
-        /// <param name="convertToType">Тип для преобразования результата</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        /// <returns>Значение свойства или null</returns>
-        public static object Get(object obj, string propName, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase, Type convertToType = null)
-        {
-            if (obj == null || string.IsNullOrWhiteSpace((propName)))
+            if (obj == null || string.IsNullOrWhiteSpace(propName))
                 return null;
 
             object getValue;
@@ -358,202 +400,176 @@ namespace RuntimeStuff
                     getValue = dr.RowState == DataRowState.Detached ? null : dr[propName];
                     break;
                 case DataRowView drv:
-                    return Get(drv.Row, propName, nameComparison, convertToType);
+                    return Get(drv.Row, propName, convertToType, memberNameType);
                 default:
-                    getValue = Get(obj, nameComparison, SplitCache.Get(propName));
+                    getValue = Get(obj, SplitCache.Get(propName), convertToType, memberNameType);
                     break;
             }
             return convertToType == null ? getValue : ChangeType(getValue, convertToType);
         }
 
         /// <summary>
-        /// Получить значение свойства объекта по пути
+        /// Получает значения свойства, поля или метода объекта по пути.
         /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        /// <param name="propertyNames">Путь к свойству (массив имен)</param>
-        /// <returns>Значение свойства или null</returns>
-        public static object Get(object obj, StringComparison nameComparison, params string[] propertyNames)
+        /// <param name="obj">Объект.</param>
+        /// <param name="propertyNames">Путь к свойству или полю (массив имен до дочернего свойства).</param>
+        /// <param name="convertToType">Конвертировать значение в указанный тип, null - не конвертировать</param>
+        /// <param name="memberNameType">Тип имени члена для поиска.</param>
+        /// <param name="nameComparison">Сравнение имен</param>
+        /// <returns>Значение свойства или null.</returns>
+        public static object Get(object obj, string[] propertyNames, Type convertToType = null, MemberNameType memberNameType = MemberNameType.Any, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
         {
             if (obj == null || !propertyNames.Any())
                 return null;
 
-            if (obj is DataRow dr)
-                return dr[propertyNames.First()];
-
-            var memberName = propertyNames[0];
-            if (string.IsNullOrWhiteSpace(memberName))
-                return null;
-
-            var objTypeInfo = obj.GetType().GetMemberInfoEx();
-            var propertyName = propertyNames[0];
-            var objMember = objTypeInfo.GetMember(propertyName);
-
-            if (objMember == null)
-                return null;
-
-            try
+            switch (obj)
             {
-                var value = objMember.IsProperty
-                    ? objMember.AsPropertyInfo().GetValue(obj)
-                    : objMember.IsField
-                        ? objMember.AsFieldInfo().GetValue(obj)
-                        : objMember.IsMethod
-                            ? objMember.AsMethodInfo().Invoke(obj, Array.Empty<object>())
-                            : null;
+                case DataRow dr:
+                    return dr[propertyNames[0]];
+                case DataRowView drv:
+                    return Get(drv.Row, new[]{propertyNames[0]}, convertToType, memberNameType, nameComparison);
+                default:
 
-                return propertyNames.Length == 1
-                    ? value
-                    : Get(value, nameComparison, propertyNames.Skip(1).ToArray());
-            }
-            catch
-            {
-                return null;
+                    if (string.IsNullOrWhiteSpace(propertyNames[0]))
+                        return null;
+
+                    var objTypeInfo = obj.GetType().GetMemberInfoEx();
+
+                    var objMember = objTypeInfo.GetMember(propertyNames[0], memberNameType, x=>x.IsProperty || x.IsField || x.IsMethod, nameComparison);
+
+                    if (objMember == null)
+                        return null;
+
+                    return propertyNames.Length == 1
+                        ? (convertToType == null ? objMember.Getter(obj) : ChangeType(objMember.Getter(obj), convertToType))
+                        : Get(objMember.Getter(obj), propertyNames.Skip(1).ToArray(), convertToType, memberNameType, nameComparison);
             }
         }
 
         /// <summary>
-        /// Установить значение свойства объекта по имени
+        /// Устанавливает значение свойства объекта по имени.
         /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="propName">Имя свойства или путь через точки</param>
-        /// <param name="value">Новое значение</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        /// <returns>Успешно ли выполнена операция</returns>
-        public static bool Set(object obj, string propName, object value, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
+        /// <param name="obj">Объект.</param>
+        /// <param name="propName">Имя свойства или путь до свойства через точки.</param>
+        /// <param name="value">Новое значение.</param>
+        /// <param name="memberNameType">Тип имени</param>
+        /// <returns>True, если операция выполнена успешно; иначе false.</returns>
+        public static bool Set(object obj, string propName, object value, MemberNameType memberNameType = MemberNameType.Any)
         {
-            return Set(obj, value, nameComparison, SplitCache.Get(propName));
+            return Set(obj, SplitCache.Get(propName), value, memberNameType);
         }
 
         /// <summary>
-        /// Установить несколько значений свойств объекта
+        /// Устанавливает несколько значений свойств объекта.
         /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="values">Пары имя-значение</param>
-        public static void Set(object obj, IEnumerable<KeyValuePair<string, object>> values)
+        /// <param name="obj">Объект.</param>
+        /// <param name="values">Коллекция пар имя-значение.</param>
+        /// <param name="memberNameType">Тип имени</param>
+        public static void Set(object obj, IEnumerable<KeyValuePair<string, object>> values, MemberNameType memberNameType = MemberNameType.Any)
         {
             foreach (var kv in values)
-                Set(obj, kv.Key, kv.Value);
+                Set(obj, kv.Key, kv.Value, memberNameType);
         }
 
         /// <summary>
-        /// Установить значение свойства объекта по пути
+        /// Устанавливает значение свойства или поля объекта по указанному пути с учетом способа сравнения имен.<br/>
+        /// Поддерживает вложенные свойства, автоматическое создание промежуточных объектов и преобразование типов.<br/>
+        /// Для DataRow и DataRowView выполняет преобразование значения к типу столбца.<br/>
         /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="value">Новое значение</param>
-        /// <param name="propertyNames">Путь к свойству (массив имен)</param>
-        /// <returns>Успешно ли выполнена операция</returns>
-        public static bool Set(object obj, object value, params string[] propertyNames)
-        {
-            return Set(obj, value, StringComparison.OrdinalIgnoreCase, propertyNames);
-        }
-
-        /// <summary>
-        /// Установить значение свойства объекта по пути
-        /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="value">Новое значение</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        /// <param name="propertyNames">Путь к свойству (массив имен)</param>
-        /// <returns>Успешно ли выполнена операция</returns>
-        public static bool Set(object obj, object value, StringComparison nameComparison, params string[] propertyNames)
+        /// <param name="obj">Объект, в котором требуется установить значение.</param>
+        /// <param name="propertyNames">Путь к свойству или полю в виде массива имен (поддерживаются вложенные свойства).</param>
+        /// <param name="value">Новое значение для установки.</param>
+        /// <param name="memberNameType">Тип имени члена для поиска.</param>
+        /// <param name="nameComparison">Сравнение имен</param>
+        /// <returns>True, если значение успешно установлено; иначе false.</returns>
+        public static bool Set(object obj, string[] propertyNames, object value, MemberNameType memberNameType = MemberNameType.Any, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
         {
             if (obj == null || !propertyNames.Any())
                 return false;
 
-            if (obj is DataRow dr)
+            switch (obj)
             {
-                dr[propertyNames.First()] = ChangeType(value, dr.Table.Columns[propertyNames.First()].DataType ?? typeof(object));
-                return true;
-            }
+                case DataRowView drv:
+                    drv.Row[propertyNames[0]] = ChangeType(value,
+                        drv.Row.Table.Columns[propertyNames[0]].DataType ?? typeof(object));
+                    return true;
 
-            var objTypeInfo = obj.GetType().GetMemberInfoEx();
-            var propertyName = propertyNames[0];
-            var propertyOrField = objTypeInfo.GetMember(propertyName, x => x.IsProperty || x.IsField);
+                case DataRow dr:
+                    dr[propertyNames[0]] =
+                        ChangeType(value, dr.Table.Columns[propertyNames[0]].DataType ?? typeof(object));
+                    return true;
 
-            if (propertyOrField == null)
-                return false;
+                default:
+                    var objTypeInfo = obj.GetType().GetMemberInfoEx();
+                    var propertyName = propertyNames[0];
+                    var propertyOrField = objTypeInfo.GetMember(propertyName, memberNameType, x => x.IsProperty || x.IsField, nameComparison);
 
-            try
-            {
-                if (propertyNames.Length == 1)
-                {
-                    var valueType = value?.GetType();
-                    if (propertyOrField.IsProperty)
+                    if (propertyOrField == null)
+                        return false;
+
+                    if (propertyNames.Length == 1)
                     {
-                        var pi = propertyOrField.AsPropertyInfo();
-                        if (pi.CanWrite)
-                        {
-                            pi.SetValue(obj, valueType == null || valueType == propertyOrField.Type || valueType.IsCollection()
+                        var valueType = value?.GetType();
+                        return propertyOrField.SetValue(obj,
+                            valueType == null || valueType == propertyOrField.Type || propertyOrField.IsCollection
                                 ? value
                                 : ChangeType(value, propertyOrField.Type));
-                            return true;
-                        }
-                        else
-                        {
-                            if (propertyOrField.PropertyBackingField != null)
-                            {
-                                propertyOrField.PropertyBackingField.SetValue(obj,
-                                    valueType == null || valueType == propertyOrField.Type
-                                        ? value
-                                        : ChangeType(value, propertyOrField.Type));
-                                return true;
-                            }
-                        }
                     }
-                    else
-                    {
-                        propertyOrField.AsFieldInfo().SetValue(obj,
-                            valueType == null || valueType == propertyOrField.Type
-                                ? value
-                                : ChangeType(value, propertyOrField.Type));
-                        return true;
-                    }
-                }
-                else
-                {
-                    var propValue = Get(obj, nameComparison, propertyName);
+
+                    var propValue = Get(obj, new[]{propertyName}, null, memberNameType);
                     if (propValue == null)
                     {
-                        propValue = TypeExtensions.Create(propertyOrField.Type);
-                        var result = Set(obj, propValue, nameComparison, propertyName);
+                        propValue = propertyOrField.Type.Create();
+                        var result = Set(obj, new[]{propertyName}, propValue, memberNameType);
                         if (!result)
                             return false;
                     }
-                    return Set(propValue, value, nameComparison, propertyNames.Skip(1).ToArray());
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.ToString());
-                return false;
-            }
 
-            return false;
+                    return Set(propValue, propertyNames.Skip(1).ToArray(), value, memberNameType);
+            }
         }
 
         /// <summary>
-        /// Копировать значения свойств из одного объекта в другой
+        /// Устанавливает значение свойства или поля объекта по имени с учетом регистра с минимальным количеством проверок.<br/>
+        /// Не конвертирует тип значения в тип свойства.
+        /// Нет поддержки вложенных свойств и полей.<br/>
+        /// Нет поддержки DataRow и DataRowView.<br/>
         /// </summary>
-        /// <param name="source">Источник</param>
-        /// <param name="target">Целевой объект</param>
-        /// <param name="deepProcessing">Глубокое копирование (создание новых экземпляров для ссылочных типов)</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
+        /// <param name="obj">Объект.</param>
+        /// <param name="propertyName">Имя свойство, регистрозависимое.</param>
+        /// <param name="value">Новое значение.</param>
+        /// <returns>True, если операция выполнена успешно; иначе false.</returns>
+        public static bool FastSet(object obj, string propertyName, object value)
+        {
+            var objTypeInfo = obj.GetType().GetMemberInfoEx();
+            var propertyOrField = objTypeInfo.GetMember(propertyName, MemberNameType.Name, x => x.IsProperty || x.IsField, StringComparison.Ordinal);
+
+            return propertyOrField?.SetValue(obj, value) ?? false;
+        }
+
+        /// <summary>
+        /// Копирует значения свойств из одного объекта в другой.
+        /// </summary>
+        /// <param name="source">Исходный объект.</param>
+        /// <param name="target">Целевой объект.</param>
+        /// <param name="deepProcessing">Выполнять глубокое копирование (создавать новые экземпляры для ссылочных типов).</param>
+        /// <param name="nameComparison">Способ сравнения имен.</param>
         public static void Copy(object source, object target, bool deepProcessing = false, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
         {
-            Copy(source, target, deepProcessing, true, false, nameComparison);
+            Copy(source, target, deepProcessing, true, false, MemberNameType.Name, nameComparison);
         }
 
         /// <summary>
-        /// Копировать значения свойств из одного объекта в другой с дополнительными параметрами
+        /// Копирует значения свойств из одного объекта в другой с дополнительными параметрами.
         /// </summary>
-        /// <param name="source">Источник</param>
-        /// <param name="target">Целевой объект</param>
-        /// <param name="deepProcessing">Глубокое копирование</param>
-        /// <param name="overwritePropertiesWithNullValues">Перезаписывать свойства null значениями</param>
-        /// <param name="overwriteOnlyNullProperties">Перезаписывать только null свойства</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        public static void Copy(object source, object target, bool deepProcessing, bool overwritePropertiesWithNullValues, bool overwriteOnlyNullProperties, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
+        /// <param name="source">Исходный объект.</param>
+        /// <param name="target">Целевой объект.</param>
+        /// <param name="deepProcessing">Выполнять глубокое копирование.</param>
+        /// <param name="overwritePropertiesWithNullValues">Перезаписывать свойства null значениями.</param>
+        /// <param name="overwriteOnlyNullProperties">Перезаписывать только null свойства.</param>
+        /// <param name="memberNameType">Тип имени члена.</param>
+        /// <param name="nameComparison">Сравнение имен</param>
+        public static void Copy(object source, object target, bool deepProcessing, bool overwritePropertiesWithNullValues, bool overwriteOnlyNullProperties, MemberNameType memberNameType = MemberNameType.Name, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
         {
             if (source == null || target == null)
                 return;
@@ -569,13 +585,11 @@ namespace RuntimeStuff
             // Обработка DataRow
             if (source is DataRow dr)
             {
-                var sharedPropNames = Enumerable.Intersect(
-                    targetTypeInfo.Properties.Select(x => x.Name),
-                    dr.Table.Columns.OfType<DataColumn>().Select(x => x.ColumnName),
+                var sharedPropNames = targetTypeInfo.Properties.Select(x => x.Name).Intersect(dr.Table.Columns.OfType<DataColumn>().Select(x => x.ColumnName),
                     nameComparison.ToStringComparer()).ToArray();
 
                 foreach (var s in sharedPropNames)
-                    Set(target, dr[s], s);
+                    Set(target, new[]{s}, dr[s]);
                 return;
             }
 
@@ -594,7 +608,7 @@ namespace RuntimeStuff
 
                 foreach (var i in (IList)source)
                 {
-                    if (targetItemType == typeof(object) || targetItemType.IsImplements(srcItemType) || srcItemTypeInfo.IsValueType && targetItemTypeInfo.IsValueType)
+                    if (targetItemType == typeof(object) || targetItemType.IsImplements(srcItemType) || (srcItemTypeInfo.IsValueType && targetItemTypeInfo.IsValueType))
                     {
                         var targetListItem = Cast(i, targetItemType, deepProcessing, nameComparison);
                         if (targetType.IsArray)
@@ -605,7 +619,7 @@ namespace RuntimeStuff
                     else
                     {
                         var targetListItem = New(targetItemType);
-                        Copy(i, targetListItem, deepProcessing, overwritePropertiesWithNullValues, overwriteOnlyNullProperties, nameComparison);
+                        Copy(i, targetListItem, deepProcessing, overwritePropertiesWithNullValues, overwriteOnlyNullProperties, memberNameType, nameComparison);
                         if (targetType.IsArray)
                             ((Array)target).SetValue(targetListItem, idx);
                         else
@@ -626,8 +640,8 @@ namespace RuntimeStuff
                 foreach (var i in (IDictionary)source)
                 {
                     ((IDictionary)target)[
-                        ChangeType(Get(i, nameComparison, "Key"), targetKeyType) ?? throw new NullReferenceException("TypeHelper.Copy dictionary key is null!")
-                    ] = ChangeType(Get(i, nameComparison, "Value"), targetValueType);
+                        Get(i, new[]{"Key"}, targetKeyType, memberNameType) ?? throw new NullReferenceException("TypeHelper.Copy dictionary key is null!")
+                    ] = Get(i, new[]{"Value"}, targetValueType, memberNameType);
                 }
                 return;
             }
@@ -635,82 +649,81 @@ namespace RuntimeStuff
             // Копирование обычных свойств
             var srcMembers = sourceTypeInfo.Properties;
             var targetMembers = targetTypeInfo.Properties;
-            var sharedNames = Enumerable.Intersect(
-                srcMembers.Select(x => x.Name),
-                targetMembers.Select(x => x.Name),
+            var sharedNames = srcMembers.Select(x => x.Name).Intersect(targetMembers.Select(x => x.Name),
                 nameComparison.ToStringComparer()).ToArray();
 
             foreach (var sn in sharedNames)
             {
-                var srcPropValue = Get(source, nameComparison, sn);
-                if (TypeExtensions.NullValues.Contains(srcPropValue) && overwritePropertiesWithNullValues)
+                var srcPropValue = Get(source, new[]{sn}, null, memberNameType, nameComparison);
+                if (RSTypeExtensions.NullValues.Contains(srcPropValue) && overwritePropertiesWithNullValues)
                     continue;
 
                 var tm = targetMembers.FirstOrDefault(x => x.Name.Equals(sn, nameComparison));
-                if (tm == null || !tm.CanWrite)
+                if (tm?.CanWrite != true)
                     continue;
 
                 if (overwriteOnlyNullProperties)
                 {
-                    var targetPropValue = Get(target, nameComparison, tm.Name);
-                    if (!TypeExtensions.NullValues.Contains(targetPropValue))
+                    var targetPropValue = Get(target, new[]{tm.Name}, null, memberNameType, nameComparison);
+                    if (!RSTypeExtensions.NullValues.Contains(targetPropValue))
                         continue;
                 }
 
                 var castedValue = Cast(srcPropValue, tm.PropertyType, deepProcessing, nameComparison);
-                Set(target, castedValue, nameComparison, tm.Name);
+                Set(target, new[] { tm.Name }, castedValue, memberNameType, nameComparison);
             }
         }
 
         /// <summary>
-        /// Объединить значения свойств из одного объекта в другой (перезаписываются только null свойства)
+        /// Объединяет значения свойств из одного объекта в другой (перезаписываются только null свойства).
         /// </summary>
-        /// <param name="source">Источник</param>
-        /// <param name="target">Целевой объект</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
+        /// <param name="source">Исходный объект.</param>
+        /// <param name="target">Целевой объект.</param>
+        /// <param name="nameComparison">Способ сравнения имен.</param>
         public static void Merge(object source, object target, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
         {
-            Copy(source, target, false, false, true, nameComparison);
+            Copy(source, target, false, false, true, MemberNameType.Name, nameComparison);
         }
 
         /// <summary>
-        /// Вызвать метод объекта
+        /// Вызывает метод объекта по имени.
         /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="methodName">Имя метода</param>
-        /// <param name="args">Аргументы метода</param>
-        /// <returns>Результат выполнения метода или null</returns>
+        /// <param name="obj">Объект.</param>
+        /// <param name="methodName">Имя метода.</param>
+        /// <param name="args">Аргументы метода.</param>
+        /// <returns>Результат выполнения метода или null, если метод не найден.</returns>
         public static object Call(object obj, string methodName, params object[] args)
         {
             if (obj == null)
                 return null;
 
             var typeInfoEx = obj.GetType().GetMemberInfoEx();
-            var mi = typeInfoEx.Methods.FirstOrDefault(x => StringComparer.OrdinalIgnoreCase.Equals((string)x.Name, methodName));
+            var mi = typeInfoEx.Methods.FirstOrDefault(x => StringComparer.OrdinalIgnoreCase.Equals(x.Name, methodName));
             if (mi == null)
                 return null;
             return mi.Invoke(obj, args);
         }
 
         /// <summary>
-        /// Преобразовать значение в указанный тип
+        /// Преобразует значение к указанному типу.
         /// </summary>
-        /// <typeparam name="T">Целевой тип</typeparam>
-        /// <returns>Преобразованное значение</returns>
+        /// <typeparam name="T">Целевой тип.</typeparam>
+        /// <param name="value">Значение для преобразования.</param>
+        /// <returns>Преобразованное значение.</returns>
         public static T Cast<T>(object value)
         {
             return Cast<T>(value, true);
         }
 
         /// <summary>
-        /// Преобразовать объект в указанный тип
+        /// Преобразует объект к указанному типу с возможностью глубокого преобразования.
         /// </summary>
-        /// <typeparam name="T">Целевой тип</typeparam>
-        /// <param name="objInstance">Объект для преобразования</param>
-        /// <param name="deepProcessing">Глубокое преобразование</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        /// <param name="ctorArgs">Аргументы конструктора</param>
-        /// <returns>Преобразованное значение</returns>
+        /// <typeparam name="T">Целевой тип.</typeparam>
+        /// <param name="objInstance">Объект для преобразования.</param>
+        /// <param name="deepProcessing">Выполнять глубокое преобразование.</param>
+        /// <param name="nameComparison">Способ сравнения имен.</param>
+        /// <param name="ctorArgs">Аргументы конструктора.</param>
+        /// <returns>Преобразованный объект типа <typeparamref name="T"/>.</returns>
         public static T Cast<T>(object objInstance, bool deepProcessing, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase, object[] ctorArgs = null)
         {
             if (objInstance is T direct)
@@ -723,14 +736,14 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Преобразовать объект в указанный тип
+        /// Преобразует объект к указанному типу с возможностью глубокого преобразования.
         /// </summary>
-        /// <param name="objInstance">Объект для преобразования</param>
-        /// <param name="toType">Целевой тип</param>
-        /// <param name="deepProcessing">Глубокое преобразование</param>
-        /// <param name="nameComparison">Способ сравнения имен</param>
-        /// <param name="ctorArgs">Аргументы конструктора</param>
-        /// <returns>Преобразованное значение</returns>
+        /// <param name="objInstance">Объект для преобразования.</param>
+        /// <param name="toType">Целевой тип.</param>
+        /// <param name="deepProcessing">Выполнять глубокое преобразование.</param>
+        /// <param name="nameComparison">Способ сравнения имен.</param>
+        /// <param name="ctorArgs">Аргументы конструктора.</param>
+        /// <returns>Преобразованный объект.</returns>
         public static object Cast(object objInstance, Type toType, bool deepProcessing, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase, object[] ctorArgs = null)
         {
             if (objInstance == null)
@@ -754,10 +767,11 @@ namespace RuntimeStuff
                 return objInstance;
 
             var objTypeInfo = objType.GetTypeInfo();
-            var toTypeInfo = toType.GetMemberInfoEx();
+            //var toTypeInfo = toType.GetMemberInfoEx();
 
             if (objType.IsBasic() && toType.IsBasic())
                 return ChangeType(objInstance, toType);
+
             if (objTypeInfo.IsValueType)
             {
                 if (objType == typeof(string) && toType.IsCollection())
@@ -788,18 +802,18 @@ namespace RuntimeStuff
                 newInstance = New(toType, ctorArgs);
             }
 
-            Copy(objInstance, newInstance, deepProcessing, true, false, nameComparison);
+            Copy(objInstance, newInstance, deepProcessing, true, false, MemberNameType.Name, nameComparison);
 
             return newInstance;
         }
 
         /// <summary>
-        /// Попытаться преобразовать значение в указанный тип
+        /// Пытается преобразовать значение к указанному типу, возвращая значение по умолчанию в случае ошибки.
         /// </summary>
-        /// <typeparam name="T">Целевой тип</typeparam>
-        /// <param name="value">Значение для преобразования</param>
-        /// <param name="defaultIfFailed">Значение по умолчанию в случае ошибки</param>
-        /// <returns>Преобразованное значение или значение по умолчанию</returns>
+        /// <typeparam name="T">Целевой тип.</typeparam>
+        /// <param name="value">Значение для преобразования.</param>
+        /// <param name="defaultIfFailed">Значение по умолчанию, если преобразование не удалось.</param>
+        /// <returns>Преобразованное значение или <paramref name="defaultIfFailed"/>.</returns>
         public static T TryCast<T>(object value, T defaultIfFailed)
         {
             try
@@ -813,65 +827,69 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получить значения указанных свойств объекта
+        /// Получает значения указанных свойств объекта.
         /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="propertyNames">Имена свойств</param>
-        /// <returns>Массив значений</returns>
+        /// <param name="obj">Объект.</param>
+        /// <param name="propertyNames">Имена свойств.</param>
+        /// <returns>Массив значений свойств.</returns>
         public static object[] GetValues(object obj, params string[] propertyNames)
         {
             if (obj == null)
                 return Array.Empty<object>();
 
             if (!propertyNames.Any())
+            {
                 propertyNames = obj.GetType()
                     .GetMemberInfoEx().Members
                     .Where(x => x.IsProperty && x.IsPublic)
                     .Select(x => x.Name).ToArray();
+            }
 
             return propertyNames.Select(x => Get(obj, x)).ToArray();
         }
 
         /// <summary>
-        /// Получить значения указанных свойств объекта с преобразованием в указанный тип
+        /// Получает значения указанных свойств объекта с преобразованием в указанный тип.
         /// </summary>
-        /// <typeparam name="T">Тип результата</typeparam>
-        /// <param name="obj">Объект</param>
-        /// <param name="propertyNames">Имена свойств</param>
-        /// <returns>Массив значений</returns>
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="obj">Объект.</param>
+        /// <param name="propertyNames">Имена свойств.</param>
+        /// <returns>Массив значений свойств типа <typeparamref name="T"/>.</returns>
         public static T[] GetValues<T>(object obj, params string[] propertyNames)
         {
             if (obj == null)
                 return Array.Empty<T>();
 
             if (!propertyNames.Any())
+            {
                 propertyNames = obj.GetType()
                     .GetMemberInfoEx().Members
                     .Where(x => x.IsProperty && x.IsPublic)
                     .Select(x => x.Name).ToArray();
+            }
 
             return propertyNames.Select(x => Get<T>(obj, x)).ToArray();
         }
 
         /// <summary>
-        /// Получить значения свойств объекта, удовлетворяющих условию
+        /// Получает значения свойств объекта, удовлетворяющих заданному критерию.
         /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="matchCriteria">Условие выбора свойств</param>
-        /// <param name="args">Дополнительные аргументы</param>
-        /// <returns>Массив значений</returns>
+        /// <param name="obj">Объект.</param>
+        /// <param name="matchCriteria">Функция фильтрации членов.</param>
+        /// <param name="args">Дополнительные аргументы.</param>
+        /// <returns>Массив значений свойств.</returns>
         public static object[] GetValues(object obj, Func<MemberInfoEx, bool> matchCriteria, params object[] args)
         {
-            return GetMembersValues(obj, matchCriteria).Values.ToArray();
+            return GetMembersValues(obj, matchCriteria, args).Values.ToArray();
         }
 
         /// <summary>
-        /// Получить значения свойств объекта, удовлетворяющих условию, в виде словаря
+        /// Получает значения свойств объекта, удовлетворяющих заданному критерию, в виде словаря.
         /// </summary>
-        /// <param name="obj">Объект</param>
-        /// <param name="matchCriteria">Условие выбора свойств</param>
-        /// <param name="args">Дополнительные аргументы</param>
-        /// <returns>Словарь имя-значение</returns>
+        /// <param name="obj">Объект.</param>
+        /// <param name="matchCriteria">Функция фильтрации членов.</param>
+        /// <param name="args">Дополнительные аргументы.</param>
+        /// <returns>Словарь имя-значение.</returns>
         public static Dictionary<string, object> GetMembersValues(object obj, Func<MemberInfoEx, bool> matchCriteria, params object[] args)
         {
             var d = new Dictionary<string, object>();
@@ -882,115 +900,118 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получить атрибут объекта
+        /// Получает атрибут заданного типа для объекта.
         /// </summary>
-        /// <typeparam name="T">Тип атрибута</typeparam>
-        /// <param name="obj">Объект</param>
-        /// <returns>Атрибут или null</returns>
+        /// <typeparam name="T">Тип атрибута.</typeparam>
+        /// <param name="obj">Объект.</param>
+        /// <returns>Экземпляр атрибута или null, если не найден.</returns>
         public static T GetAttribute<T>(object obj) where T : Attribute
         {
             if (obj == null)
-                return default(T);
+                return default;
             var objType = obj.GetType().GetMemberInfoEx();
             return objType.Attributes.OfType<T>().FirstOrDefault();
         }
 
         /// <summary>
-        /// Получить атрибут свойства объекта
+        /// Получает атрибут заданного типа для свойства объекта.
         /// </summary>
-        /// <typeparam name="T">Тип атрибута</typeparam>
-        /// <param name="obj">Объект</param>
-        /// <param name="propertyName">Имя свойства</param>
-        /// <returns>Атрибут или null</returns>
+        /// <typeparam name="T">Тип атрибута.</typeparam>
+        /// <param name="obj">Объект.</param>
+        /// <param name="propertyName">Имя свойства.</param>
+        /// <returns>Экземпляр атрибута или null, если не найден.</returns>
         public static T GetAttribute<T>(object obj, string propertyName) where T : Attribute
         {
             if (obj == null)
-                return default(T);
+                return default;
             var mi = GetMember(obj, propertyName);
             if (mi == null)
-                return default(T);
+                return default;
             return mi.Attributes.OfType<T>().FirstOrDefault();
         }
 
         /// <summary>
-        /// Проверить существует ли метод с именем
+        /// Проверяет, существует ли метод с указанным именем у типа.
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="methodName"></param>
-        /// <param name="stringComparison"></param>
-        /// <returns></returns>
+        /// <param name="type">Тип для проверки.</param>
+        /// <param name="methodName">Имя метода.</param>
+        /// <param name="stringComparison">Способ сравнения имен.</param>
+        /// <returns>True, если метод существует; иначе false.</returns>
         public static bool MethodExists(Type type, string methodName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
             return GetMethodInfo(type, methodName, stringComparison) != null;
         }
 
         /// <summary>
-        /// Проверить существует ли метод с именем
+        /// Получает расширенную информацию о методе по имени для типа.
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="methodName"></param>
-        /// <param name="stringComparison"></param>
-        /// <returns></returns>
+        /// <param name="type">Тип для поиска.</param>
+        /// <param name="methodName">Имя метода.</param>
+        /// <param name="stringComparison">Способ сравнения имен.</param>
+        /// <returns>Экземпляр <see cref="MemberInfoEx"/> или null, если метод не найден.</returns>
         public static MemberInfoEx GetMethodInfo(Type type, string methodName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
             var mi = type.GetTypeInfo();
-            return mi.GetMemberInfoEx().Members.FirstOrDefault(x => x.IsMethod && x.Name.Equals(methodName, stringComparison));
+            return mi.GetMemberInfoEx()?.Members.FirstOrDefault(x => x.IsMethod && x.Name.Equals(methodName, stringComparison));
         }
 
         /// <summary>
-        /// Проверить существует ли метод с именем
+        /// Получает расширенную информацию о методе по имени для типа <typeparamref name="T"/>.
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="methodName"></param>
-        /// <param name="stringComparison"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">Тип для поиска.</typeparam>
+        /// <param name="methodName">Имя метода.</param>
+        /// <param name="stringComparison">Способ сравнения имен.</param>
+        /// <returns>Экземпляр <see cref="MemberInfoEx"/> или null, если метод не найден.</returns>
         public static MemberInfoEx GetMethodInfo<T>(string methodName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
             return GetMethodInfo(typeof(T), methodName, stringComparison);
         }
 
         /// <summary>
-        /// Проверить существует ли метод с именем
+        /// Получает расширенную информацию о методе по имени для экземпляра объекта.
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="methodName"></param>
-        /// <param name="stringComparison"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">Тип объекта.</typeparam>
+        /// <param name="obj">Экземпляр объекта.</param>
+        /// <param name="methodName">Имя метода.</param>
+        /// <param name="stringComparison">Способ сравнения имен.</param>
+        /// <returns>Экземпляр <see cref="MemberInfoEx"/> или null, если метод не найден.</returns>
         public static MemberInfoEx GetMethodInfo<T>(T obj, string methodName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
             return GetMethodInfo(obj?.GetType() ?? typeof(T), methodName, stringComparison);
         }
 
         /// <summary>
-        /// Создать новый экземпляр объекта указанного типа
+        /// Создает новый экземпляр объекта указанного типа.
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="args">Аргументы для конструктора</param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
+        /// <param name="type">Тип объекта.</param>
+        /// <param name="args">Аргументы конструктора.</param>
+        /// <returns>Новый экземпляр объекта.</returns>
+        /// <exception cref="NotImplementedException">Если создание экземпляра не поддерживается.</exception>
         public static object New(Type type, params object[] args)
         {
-            return TypeExtensions.Create(type, args);
+            return type.Create(args);
         }
 
         /// <summary>
-        /// Создать новый экземпляр объекта указанного типа
+        /// Создает новый экземпляр объекта указанного типа и приводит его к типу <typeparamref name="T"/>.
         /// </summary>
-        /// <param name="type"></param>
-        /// <param name="args">Аргументы для конструктора</param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="type">Тип объекта.</param>
+        /// <param name="args">Аргументы конструктора.</param>
+        /// <returns>Новый экземпляр объекта типа <typeparamref name="T"/> или null.</returns>
+        /// <exception cref="NotImplementedException">Если создание экземпляра не поддерживается.</exception>
         public static T New<T>(Type type, params object[] args) where T : class
         {
             return New(type, args) as T;
         }
 
         /// <summary>
-        /// Создать новый экземпляр объекта указанного типа
+        /// Создает новый экземпляр объекта типа <typeparamref name="T"/>.
         /// </summary>
-        /// <param name="args">Аргументы для конструктора</param>
-        /// <returns></returns>
-        /// <exception cref="NotImplementedException"></exception>
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="args">Аргументы конструктора.</param>
+        /// <returns>Новый экземпляр объекта типа <typeparamref name="T"/>.</returns>
+        /// <exception cref="NotImplementedException">Если создание экземпляра не поддерживается.</exception>
         public static T New<T>(params object[] args)
         {
             return (T)New(typeof(T), args);

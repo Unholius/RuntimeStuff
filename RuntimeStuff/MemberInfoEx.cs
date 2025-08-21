@@ -9,25 +9,57 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 
 namespace RuntimeStuff
 {
     /// <summary>
-    /// Расширенная информация о члене класса (свойстве, методе, поле и т.д.)
+    /// Представляет расширенную обёртку над <see cref="MemberInfo"/>, предоставляющую унифицированный доступ к дополнительной информации и операциям для членов типа .NET (свойств, методов, полей, событий, конструкторов и самих типов).
+    /// Класс предназначен для использования в сценариях динамического анализа типов, построения универсальных сериализаторов, ORM, генераторов кода, UI-редакторов и других задач, где требуется расширенная работа с метаданными .NET.
+    /// <para>
+    /// Класс <c>MemberInfoEx</c> позволяет:
+    /// <list type="bullet">
+    /// <item>— Получать расширенные сведения о членах типа, включая их атрибуты, типы, модификаторы доступа, связи с базовыми типами и интерфейсами.</item>
+    /// <item>— Быстро и кэшированно получать члены по имени, включая поиск по альтернативным именам (отображаемое имя, JSON-имя, имя колонки и др.).</item>
+    /// <item>— Определять семантику члена: является ли он свойством, методом, полем, событием, конструктором, типом и т.д.</item>
+    /// <item>— Получать и устанавливать значения свойств и полей через делегаты, а также вызывать методы по отражению.</item>
+    /// <item>— Работать с атрибутами, включая стандартные и пользовательские, а также поддерживать работу с атрибутами сериализации (JSON, XML, DataAnnotations).</item>
+    /// <item>— Определять особенности члена: является ли он коллекцией, словарём, делегатом, nullable, числовым, булевым, кортежем, простым типом и др.</item>
+    /// <item>— Получать информацию о первичных и внешних ключах, колонках, таблицах и схемах для интеграции с ORM и сериализаторами.</item>
+    /// <item>— Кэшировать результаты для повышения производительности при повторных обращениях.</item>
+    /// </list>
+    /// </para>
     /// </summary>
     public class MemberInfoEx : MemberInfo
     {
         internal readonly MemberInfo MemberInfo;
+
+        // Кэш для расширенной информации о членах класса
         private static readonly ConcurrentDictionary<MemberInfo, MemberInfoEx> _cache = new ConcurrentDictionary<MemberInfo, MemberInfoEx>();
-        private static readonly Dictionary<string, Func<object>> _ctors = new Dictionary<string, Func<object>>();
-        private static readonly Dictionary<string, Func<object, object>> _getters = new Dictionary<string, Func<object, object>>();
-        private static readonly Dictionary<string, Action<object, object>> _setters = new Dictionary<string, Action<object, object>>();
+
+        // Кэш делегатов для создания экземпляров типов
+        private static readonly ConcurrentDictionary<string, Func<object>> _ctors = new ConcurrentDictionary<string, Func<object>>();
+
+        // Кэш делегатов для получения значения свойства
+        private static readonly ConcurrentDictionary<PropertyInfo, Func<object, object>> _propertyGetters = new ConcurrentDictionary<PropertyInfo, Func<object, object>>();
+
+        // Кэш делегатов для установки значения свойства
+        private static readonly ConcurrentDictionary<PropertyInfo, Action<object, object>> _propertySetters = new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
+
+        // Кэш делегатов для установки значения поля
+        private static readonly ConcurrentDictionary<FieldInfo, Action<object, object>> _fieldSetters = new ConcurrentDictionary<FieldInfo, Action<object, object>>();
+
+        // Кэш делегатов для получения значения поля
+        private static readonly ConcurrentDictionary<FieldInfo, Func<object, object>> _fieldGetters = new ConcurrentDictionary<FieldInfo, Func<object, object>>();
+
+        // Кэш для расширенной информации о членах класса по имени
         private readonly ConcurrentDictionary<string, MemberInfoEx> _memberCache = new ConcurrentDictionary<string, MemberInfoEx>();
+
         private readonly string _name;
         private readonly Type _type;
-
-        // Кэшированные данные
+        private static readonly OpCode[] s_oneByte = new OpCode[256];
+        private static readonly OpCode[] s_twoByte = new OpCode[256];
         private Attribute[] _attributes;
         private Type[] _baseTypes;
         private ConstructorInfo[] _constructors;
@@ -40,6 +72,18 @@ namespace RuntimeStuff
         private PropertyInfo[] _properties;
         private string _xmlAttr;
         private string _xmlElem;
+
+        static MemberInfoEx()
+        {
+            // Построим таблицу опкодов для дешифровки IL
+            foreach (var fi in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
+            {
+                var op = (OpCode)fi.GetValue(null);
+                ushort v = (ushort)op.Value;
+                if (v < 0x100) s_oneByte[v] = op;
+                else s_twoByte[v & 0xFF] = op;
+            }
+        }
 
         /// <summary>
         /// Конструктор для создания расширенной информации о члене класса
@@ -86,7 +130,7 @@ namespace RuntimeStuff
             IsCollection = _type.IsCollection();
             ElementType = IsCollection ? Type.GetCollectionItemType() : null;
             IsBasic = _type.IsBasic();
-            IsBasicCollection = IsCollection && ElementType.IsBasic() == true;
+            IsBasicCollection = IsCollection && ElementType.IsBasic();
             IsObject = _type == typeof(object);
             IsTuple = _type.IsTuple();
             IsProperty = pi != null;
@@ -96,7 +140,7 @@ namespace RuntimeStuff
             IsMethod = mi != null;
             IsConstructor = ci != null;
             CanWrite = pi != null ? pi.CanWrite : fi != null;
-            CanRead = pi != null || fi != null ? pi?.CanRead ?? true : Type != null;
+            CanRead = pi != null ? pi.CanRead : fi != null;
             IsPublic = IsProperty ? AsPropertyInfo().GetAccessors().Any(m => m.IsPublic) : IsField ? AsFieldInfo().IsPublic : IsMethod ? AsMethodInfo().IsPublic : IsConstructor && AsConstructorInfo().IsPublic;
             IsPrivate = IsProperty ? AsPropertyInfo().GetAccessors().Any(m => m.IsPrivate) : IsField ? AsFieldInfo().IsPrivate : IsMethod ? AsMethodInfo().IsPrivate : IsConstructor && AsConstructorInfo().IsPrivate;
 
@@ -118,8 +162,8 @@ namespace RuntimeStuff
                 var keyAttr = pi.GetCustomAttribute<KeyAttribute>();
                 var colAttr = pi.GetCustomAttribute<ColumnAttribute>();
                 var fkAttr = pi.GetCustomAttribute<ForeignKeyAttribute>();
-                SetMethodDelegate = CreatePropertySetter(pi.DeclaringType, pi.Name);
-                GetMethodDelegate = CreatePropertyAccessor(pi.DeclaringType, pi.Name);
+                Setter = GetPropertySetter(pi);
+                Getter = GetPropertyGetter(pi);
                 PropertyBackingField = Fields.FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ?? GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
                 ColumnName = colAttr != null ? colAttr.Name ?? Name : (IsPrimaryKey ? Name : null);
                 ForeignColumnName = fkAttr?.Name;
@@ -127,8 +171,14 @@ namespace RuntimeStuff
                 IsForeignKey = fkAttr != null;
             }
 
+            if (fi != null)
+            {
+                Setter = GetFieldSetter(fi);
+                Getter = GetFieldGetter(fi);
+            }
+
             // Обработка имени
-            _name = MemberInfo.Name.Split(new char[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
+            _name = MemberInfo.Name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
                 .LastOrDefault() ?? string.Empty;
 
             // Получение атрибутов
@@ -143,12 +193,16 @@ namespace RuntimeStuff
             }
         }
 
-        // Свойства класса
+        #region Статические свойства
 
         /// <summary>
         /// Флаги для поиска членов класса по умолчанию
         /// </summary>
         public static BindingFlags DefaultBindingFlags { get; set; } = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static;
+
+        #endregion
+
+        #region Основные свойства
 
         /// <summary>
         /// Атрибуты члена класса
@@ -412,7 +466,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Имя члена
         /// </summary>
-        public override string Name => _name;
+        public sealed override string Name => _name;
 
         /// <summary>
         /// Родительский член (для вложенных членов)
@@ -423,7 +477,7 @@ namespace RuntimeStuff
             {
                 if (_parent != null)
                     return _parent;
-                if (MemberInfo is Type && MemberInfo.DeclaringType != null)
+                if (MemberInfo.DeclaringType != null)
                     _parent = Create(MemberInfo.DeclaringType);
 
                 return _parent;
@@ -493,10 +547,7 @@ namespace RuntimeStuff
                     }
                 }
 
-                if (_xmlAttr == null)
-                    _xmlAttr = "";
-
-                return _xmlAttr;
+                return _xmlAttr ?? (_xmlAttr = "");
             }
         }
 
@@ -539,31 +590,41 @@ namespace RuntimeStuff
         /// <summary>
         /// Имя в XML (элемент или атрибут)
         /// </summary>
-        public string XmlName { get; }
+        public string XmlName { get; } = null;
 
         /// <summary>
         /// Делегат для получения значения свойства
         /// </summary>
-        private Func<object, object> GetMethodDelegate { get; }
+        public Func<object, object> Getter { get; }
 
         /// <summary>
         /// Делегат для установки значения свойства
         /// </summary>
-        private Action<object, object> SetMethodDelegate { get; }
+        public Action<object, object> Setter { get; }
 
-        // Индексаторы
+        #endregion
+
+        #region Индексаторы
 
         /// <summary>
         /// Получить член по имени
         /// </summary>
-        public MemberInfoEx this[string memberName] => this[memberName, null];
+        /// <param name="memberName">Имя члена для поиска</param>
+        /// <returns>Найденный член или null, если не найден</returns>
+        public MemberInfoEx this[string memberName] => this[memberName, MemberNameType.Any];
 
         /// <summary>
         /// Получить член по имени с фильтрацией
         /// </summary>
-        public MemberInfoEx this[string memberName, Func<MemberInfoEx, bool> memberFilter] => GetMember(memberName, memberFilter);
+        /// <param name="memberName">Имя члена для поиска</param>
+        /// <param name="memberNameType">Тип имени члена для поиска</param>
+        /// <param name="memberFilter">Фильтр для отбора членов</param>
+        /// <returns>Найденный член или null, если не найден</returns>
+        public MemberInfoEx this[string memberName, MemberNameType memberNameType = MemberNameType.Any, Func<MemberInfoEx, bool> memberFilter = null] => GetMember(memberName, memberNameType, memberFilter);
 
-        // Методы класса
+        #endregion
+
+        #region Статические методы
 
         /// <summary>
         /// Создать расширенную информацию о члене класса (с кэшированием)
@@ -572,21 +633,17 @@ namespace RuntimeStuff
         /// <returns>Расширенная информация о члене класса</returns>
         public static MemberInfoEx Create(MemberInfo memberInfo)
         {
-            if (memberInfo == null)
-                return null;
-            if (_cache.TryGetValue(memberInfo, out var ex))
-                return ex;
-
-            var result = new MemberInfoEx(memberInfo);
-            _cache[memberInfo] = result;
-            return result;
+            return memberInfo == null ? null : _cache.GetOrAdd(memberInfo, x => new MemberInfoEx(x, x is Type));
         }
 
         /// <summary>
-        /// Создать делегат конструктора по умолчанию для типа
+        /// Создаёт делегат для конструктора по умолчанию указанного типа.
+        /// Используется для быстрой активации объектов без вызова <see cref="Activator.CreateInstance(Type)"/>.
         /// </summary>
-        /// <param name="type">Тип</param>
-        /// <returns>Делегат конструктора</returns>
+        /// <param name="type">Тип, для которого создаётся делегат конструктора.</param>
+        /// <returns>
+        /// Делегат <see cref="Func{Object}"/>, который создаёт экземпляр типа, или <c>null</c>, если конструктор по умолчанию отсутствует.
+        /// </returns>
         public static Func<object> CreateConstructorDelegate(Type type)
         {
             if (type == null)
@@ -608,83 +665,10 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Создать делегат для получения значения свойства
+        /// Получает поле, связанное с методом получения свойства (геттером).
         /// </summary>
-        /// <param name="type">Тип, содержащий свойство</param>
-        /// <param name="propertyName">Имя свойства</param>
-        /// <returns>Делегат для получения значения</returns>
-        public static Func<object, object> CreatePropertyAccessor(Type type, string propertyName)
-        {
-            _getters.TryGetValue($"{type.FullName}.{propertyName}", out var getter);
-            if (getter != null)
-                return getter;
-            var propertyInfo = type.GetProperties(DefaultBindingFlags)
-                .FirstOrDefault(p => p.Name == propertyName && p.DeclaringType == type);
-
-            if (propertyInfo == null)
-            {
-                var fieldInfo = type.GetField(propertyName, DefaultBindingFlags);
-                if (fieldInfo == null)
-                {
-                    throw new ArgumentException($"Property or field '{propertyName}' not found on type '{type.FullName}'.");
-                }
-
-                getter = CreateFieldAccessor(fieldInfo);
-            }
-            else
-            {
-                getter = CreatePropertyAccessor(propertyInfo);
-            }
-            _getters[$"{type.FullName}.{propertyName}"] = getter;
-            return getter;
-        }
-
-        /// <summary>
-        /// Создать делегат для установки значения свойства
-        /// </summary>
-        /// <param name="type">Тип, содержащий свойство</param>
-        /// <param name="propertyName">Имя свойства</param>
-        /// <returns>Делегат для установки значения</returns>
-        public static Action<object, object> CreatePropertySetter(Type type, string propertyName)
-        {
-            _setters.TryGetValue($"{type.FullName}.{propertyName}", out var setter);
-            if (setter != null)
-                return setter;
-            var propertyInfo = type
-                .GetProperties(DefaultBindingFlags).FirstOrDefault(x =>
-                    x.Name.Equals(propertyName, StringComparison.OrdinalIgnoreCase));
-            if (propertyInfo == null)
-            {
-                return null;
-            }
-
-            var instance = Expression.Parameter(typeof(object), "instance");
-            var value = Expression.Parameter(typeof(object), "value");
-
-            var instanceCast = Expression.Convert(instance, type);
-            var valueCast = Expression.Convert(value, propertyInfo.PropertyType);
-            if (propertyInfo.GetSetMethod(true) == null)
-                return null;
-
-            try
-            {
-                var propertySet = Expression.Call(instanceCast, propertyInfo.GetSetMethod(true), valueCast);
-
-                setter = Expression.Lambda<Action<object, object>>(propertySet, instance, value).Compile();
-                _setters[$"{type.FullName}.{propertyName}"] = setter;
-                return setter;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Получить поле, связанное с методом получения свойства
-        /// </summary>
-        /// <param name="getMethod">Метод получения свойства</param>
-        /// <returns>Информация о поле</returns>
+        /// <param name="getMethod">Метод получения свойства.</param>
+        /// <returns>Информация о поле, либо <c>null</c>, если не удалось определить поле.</returns>
         public static FieldInfo GetFieldInfoFromGetAccessor(MethodInfo getMethod)
         {
             try
@@ -705,91 +689,523 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получить информацию о конструкторе
+        /// Возвращает делегат для установки значения указанного свойства.<br/>
+        /// Для повышения производительности используется кэш компилированных выражений.
         /// </summary>
-        /// <returns>Информация о конструкторе</returns>
+        /// <param name="property">Свойство, для которого создаётся setter.</param>
+        /// <returns>
+        /// Делегат <see cref="Action{Object,Object}"/>, который принимает объект-владельца (или <c>null</c> для static свойств)
+        /// и новое значение. Если свойство read-only, возвращается <c>null</c>.
+        /// </returns>
+        public static Action<object, object> GetPropertySetter(PropertyInfo property)
+        {
+            return _propertySetters.GetOrAdd(property, CreatePropertySetter);
+        }
+
+        /// <summary>
+        /// Создаёт делегат для установки значения свойства.
+        /// </summary>
+        /// <param name="property">Свойство, для которого создаётся setter.</param>
+        /// <returns>Делегат для установки значения свойства или null, если свойство read-only</returns>
+        private static Action<object, object> CreatePropertySetter(PropertyInfo property)
+        {
+            //var setMethod = property.GetSetMethod(nonPublic: true);
+            //if (setMethod == null)
+            //{
+            //    var backingField = GetPropertyBackingField(property);
+            //    return backingField == null ? null : GetFieldSetter(backingField);
+            //}
+
+            //var method = new DynamicMethod(
+            //    $"Set_{property.Name}",
+            //    typeof(void),
+            //    new[] { typeof(object), typeof(object) },
+            //    property.DeclaringType,
+            //    true);
+
+            //var il = method.GetILGenerator();
+
+            //if (!setMethod.IsStatic)
+            //{
+            //    il.Emit(OpCodes.Ldarg_0);
+            //    il.Emit(OpCodes.Castclass, property.DeclaringType);
+            //}
+
+            //il.Emit(OpCodes.Ldarg_1);
+            //il.Emit(OpCodes.Unbox_Any, property.PropertyType);
+
+            //il.Emit(setMethod.IsStatic ? OpCodes.Call : OpCodes.Callvirt, setMethod);
+            //il.Emit(OpCodes.Ret);
+
+            //return (Action<object, object>)method.CreateDelegate(typeof(Action<object, object>));
+
+            var setMethod = property.GetSetMethod(nonPublic: true);
+            if (setMethod == null)
+            {
+                var backingField = GetPropertyBackingField(property);
+                return backingField == null ? null : GetFieldSetter(backingField);
+            }
+
+            var objParam = Expression.Parameter(typeof(object), "obj");
+            var valueParam = Expression.Parameter(typeof(object), "value");
+            var valueCast = Expression.Convert(valueParam, property.PropertyType);
+
+            Expression body;
+
+            if (setMethod.IsStatic)
+            {
+                // static: Class.Property = (T)value
+                body = Expression.Assign(Expression.Property(null, property), valueCast);
+            }
+            else
+            {
+                // instance: ((TDeclaring)obj).Property = (T)value
+                var instanceCast = Expression.Convert(objParam, property.DeclaringType);
+                body = Expression.Assign(Expression.Property(instanceCast, property), valueCast);
+            }
+
+            return Expression.Lambda<Action<object, object>>(body, objParam, valueParam).Compile();
+        }
+
+        /// <summary>
+        /// Возвращает делегат для получения значения указанного свойства.<br/>
+        /// Для повышения производительности используется кэш компилированных выражений.
+        /// </summary>
+        /// <param name="property">Свойство, для которого создаётся getter.</param>
+        /// <returns>
+        /// Делегат <see cref="Func{Object,Object}"/>, который принимает объект-владельца (или <c>null</c> для static свойств)
+        /// и возвращает текущее значение свойства.
+        /// </returns>
+        public static Func<object, object> GetPropertyGetter(PropertyInfo property)
+        {
+            return _propertyGetters.GetOrAdd(property, CreatePropertyGetter);
+        }
+
+        /// <summary>
+        /// Создаёт делегат для получения значения свойства.
+        /// </summary>
+        /// <param name="property">Свойство, для которого создаётся getter.</param>
+        /// <returns>Делегат для получения значения свойства</returns>
+        private static Func<object, object> CreatePropertyGetter(PropertyInfo property)
+        {
+            var getMethod = property.GetGetMethod(nonPublic: true) ?? throw new InvalidOperationException($"Property {property.Name} has no getter.");
+            var objParam = Expression.Parameter(typeof(object), "obj");
+
+            Expression body;
+            if (getMethod.IsStatic)
+            {
+                // static: (object)Class.Property
+                body = Expression.Convert(Expression.Property(null, property), typeof(object));
+            }
+            else
+            {
+                // instance: (object)((TDeclaring)obj).Property
+                var instanceCast = Expression.Convert(objParam, property.DeclaringType);
+                body = Expression.Convert(Expression.Property(instanceCast, property), typeof(object));
+            }
+
+            return Expression.Lambda<Func<object, object>>(body, objParam).Compile();
+        }
+
+        /// <summary>
+        /// Пытается определить поле, используемое для хранения значения свойства.<br/>
+        /// Работает как для автоматически реализованных свойств (backing field вида <c>&lt;Имя&gt;k__BackingField</c>),
+        /// так и для свойств с ручной реализацией, если их геттер/сеттер явно обращается к полю.
+        /// </summary>
+        /// <param name="propertyInfo">Свойство, для которого ищется поле.</param>
+        /// <returns>
+        /// Экземпляр <see cref="FieldInfo"/>, если удалось найти поле, или <c>null</c>,
+        /// если backing field отсутствует (например, свойство вычисляемое).
+        /// </returns>
+        /// <exception cref="ArgumentNullException">Если <paramref name="propertyInfo"/> равен <c>null</c>.</exception>
+        /// <exception cref="InvalidOperationException">Если свойство не имеет типа-владельца.</exception>
+        public static FieldInfo GetPropertyBackingField(PropertyInfo propertyInfo)
+        {
+            if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
+            var declType = propertyInfo.DeclaringType
+                ?? throw new InvalidOperationException("Property has no declaring type.");
+
+            // 1) Попытка: авто-свойство
+            string autoName = $"<{propertyInfo.Name}>k__BackingField";
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public;
+            var field = declType.GetField(autoName, flags);
+            if (field != null) return field;
+
+            // 2) Попытка: достать поле из IL геттера/сеттера
+            return TryGetFieldFromAccessor(propertyInfo.GetGetMethod(true))
+                 ?? TryGetFieldFromAccessor(propertyInfo.GetSetMethod(true));
+        }
+
+        /// <summary>
+        /// Пытается определить поле из IL кода метода доступа (геттера/сеттера).
+        /// </summary>
+        /// <param name="accessor">Метод доступа (геттер или сеттер свойства)</param>
+        /// <returns>Найденное поле или null, если не удалось определить</returns>
+        private static FieldInfo TryGetFieldFromAccessor(MethodInfo accessor)
+        {
+            if (accessor == null) return null;
+            var body = accessor.GetMethodBody();
+            if (body == null) return null;
+
+            var il = body.GetILAsByteArray();
+            if (il == null || il.Length == 0) return null;
+
+            int i = 0;
+            var module = accessor.Module;
+            var typeArgs = accessor.DeclaringType?.GetGenericArguments();
+            var methodArgs = accessor.GetGenericArguments();
+
+            while (i < il.Length)
+            {
+                OpCode op;
+                byte code = il[i++];
+
+                if (code != 0xFE)
+                {
+                    op = s_oneByte[code];
+                }
+                else
+                {
+                    byte b2 = il[i++];
+                    op = s_twoByte[b2];
+                }
+
+                switch (op.OperandType)
+                {
+                    case OperandType.InlineNone:
+                        break;
+
+                    case OperandType.ShortInlineI:
+                    case OperandType.ShortInlineVar:
+                    case OperandType.ShortInlineBrTarget:
+                        i ++;
+                        break;
+
+                    case OperandType.InlineVar:
+                        i += 2;
+                        break;
+
+                    case OperandType.InlineI:
+                    case OperandType.InlineBrTarget:
+                    case OperandType.InlineString:
+                    case OperandType.InlineSig:
+                    case OperandType.InlineMethod:
+                    case OperandType.InlineType:
+                    case OperandType.InlineTok:
+                    case OperandType.ShortInlineR:
+                        i += 4;
+                        break;
+
+                    case OperandType.InlineI8:
+                    case OperandType.InlineR:
+                        i += 8;
+                        break;
+
+                    case OperandType.InlineSwitch:
+                        int count = BitConverter.ToInt32(il, i);
+                        i += 4 + (4 * count);
+                        break;
+
+                    case OperandType.InlineField:
+                        // Вот он — операнд поля у ldfld/ldsfld/stfld/stsfld/ldflda
+                        int token = BitConverter.ToInt32(il, i);
+                        //i += 4;
+
+                        try
+                        {
+                            var fi = module.ResolveField(token, typeArgs, methodArgs);
+                            return fi;
+                        }
+                        catch
+                        {
+                            return null;
+                        }
+
+                    default:
+                        // На всякий случай сместим хотя бы на 0, но сюда обычно не попадём
+                        break;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Возвращает делегат для установки значения указанного поля.<br/>
+        /// Для повышения производительности используется кэш компилированных выражений.
+        /// </summary>
+        /// <param name="field">Поле, для которого создаётся setter.</param>
+        /// <returns>
+        /// Делегат <see cref="Action{Object,Object}"/>, который принимает объект-владельца (или <c>null</c> для static полей)
+        /// и новое значение. Если поле <c>readonly</c> или <c>const</c>, возвращается <c>null</c>.
+        /// </returns>
+        public static Action<object, object> GetFieldSetter(FieldInfo field)
+            => _fieldSetters.GetOrAdd(field, CreateFieldSetter);
+
+        /// <summary>
+        /// Создаёт делегат для установки значения поля.
+        /// </summary>
+        /// <param name="field">Поле, для которого создаётся setter.</param>
+        /// <returns>Делегат для установки значения поля или null, если поле read-only</returns>
+        private static Action<object, object> CreateFieldSetter(FieldInfo field)
+        {
+            if (field.IsInitOnly || field.IsLiteral)
+                return null;
+
+            try
+            {
+                var objParam = Expression.Parameter(typeof(object), "obj");
+                var valueParam = Expression.Parameter(typeof(object), "value");
+                var valueCast = Expression.Convert(valueParam, field.FieldType);
+
+                Expression body;
+                if (field.IsStatic)
+                {
+                    body = Expression.Assign(Expression.Field(null, field), valueCast);
+                }
+                else
+                {
+                    var instanceCast = Expression.Convert(objParam, field.DeclaringType);
+                    body = Expression.Assign(Expression.Field(instanceCast, field), valueCast);
+                }
+
+                return Expression.Lambda<Action<object, object>>(body, objParam, valueParam).Compile();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error creating field setter for {field.Name}: {ex}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Возвращает делегат для получения значения указанного поля.<br/>
+        /// Поддерживаются instance и static поля, включая приватные.
+        /// </summary>
+        /// <param name="field">Поле, для которого создаётся getter.</param>
+        /// <returns>
+        /// Делегат <see cref="Func{Object,Object}"/>, который принимает объект-владельца (или <c>null</c> для static полей)
+        /// и возвращает текущее значение поля.
+        /// </returns>
+        public static Func<object, object> GetFieldGetter(FieldInfo field)
+            => _fieldGetters.GetOrAdd(field, CreateFieldGetter);
+
+        /// <summary>
+        /// Создаёт делегат для получения значения поля.
+        /// </summary>
+        /// <param name="field">Поле, для которого создаётся getter.</param>
+        /// <returns>Делегат для получения значения поля</returns>
+        private static Func<object, object> CreateFieldGetter(FieldInfo field)
+        {
+            var objParam = Expression.Parameter(typeof(object), "obj");
+
+            Expression body;
+            if (field.IsStatic)
+            {
+                body = Expression.Convert(Expression.Field(null, field), typeof(object));
+            }
+            else
+            {
+                var instanceCast = Expression.Convert(objParam, field.DeclaringType);
+                body = Expression.Convert(Expression.Field(instanceCast, field), typeof(object));
+            }
+
+            return Expression.Lambda<Func<object, object>>(body, objParam).Compile();
+        }
+
+        #endregion
+
+        #region Методы преобразования
+
+        /// <summary>
+        /// Возвращает <see cref="ConstructorInfo"/> для текущего члена, если он является конструктором.
+        /// </summary>
+        /// <returns>Экземпляр <see cref="ConstructorInfo"/>, либо <c>null</c>.</returns>
         public ConstructorInfo AsConstructorInfo()
         {
             return MemberInfo as ConstructorInfo;
         }
 
         /// <summary>
-        /// Получить информацию о событии
+        /// Возвращает <see cref="EventInfo"/> для текущего члена, если он является событием.
         /// </summary>
-        /// <returns>Информация о событии</returns>
+        /// <returns>Экземпляр <see cref="EventInfo"/>, либо <c>null</c>.</returns>
         public EventInfo AsEventInfo()
         {
             return MemberInfo as EventInfo;
         }
 
         /// <summary>
-        /// Получить информацию о поле
+        /// Возвращает <see cref="FieldInfo"/> для текущего члена, если он является полем.
         /// </summary>
-        /// <returns>Информация о поле</returns>
+        /// <returns>Экземпляр <see cref="FieldInfo"/>, либо <c>null</c>.</returns>
         public FieldInfo AsFieldInfo()
         {
             return MemberInfo as FieldInfo;
         }
 
         /// <summary>
-        /// Получить информацию о методе
+        /// Возвращает <see cref="MethodInfo"/> для текущего члена, если он является методом.
         /// </summary>
-        /// <returns>Информация о методе</returns>
+        /// <returns>Экземпляр <see cref="MethodInfo"/>, либо <c>null</c>.</returns>
         public MethodInfo AsMethodInfo()
         {
             return MemberInfo as MethodInfo;
         }
 
         /// <summary>
-        /// Получить информацию о свойстве
+        /// Возвращает <see cref="PropertyInfo"/> для текущего члена, если он является свойством.
         /// </summary>
-        /// <returns>Информация о свойстве</returns>
+        /// <returns>Экземпляр <see cref="PropertyInfo"/>, либо <c>null</c>.</returns>
         public PropertyInfo AsPropertyInfo()
         {
             return MemberInfo as PropertyInfo;
         }
 
         /// <summary>
-        /// Получить информацию о типе
+        /// Возвращает <see cref="Type"/> для текущего члена, если он является типом.
         /// </summary>
-        /// <returns>Информация о типе</returns>
+        /// <returns>Экземпляр <see cref="Type"/>, либо <c>null</c>.</returns>
         public Type AsType()
         {
             return MemberInfo as Type;
         }
 
+        #endregion
+
+        #region Методы поиска членов
+
         /// <summary>
-        /// Получить колонки (простые публичные свойства без атрибута NotMapped)
+        /// Получает член по имени с возможностью фильтрации.
         /// </summary>
-        /// <returns>Массив информации о членах</returns>
-        public MemberInfoEx[] GetColumns()
+        /// <param name="name">Имя члена.</param>
+        /// <param name="memberNamesType">Тип имен по которым вести поиск</param>
+        /// <param name="membersFilter">Фильтр для отбора членов (опционально).</param>
+        /// <param name="nameComparison">Сравнение имен</param>
+        /// <returns>Экземпляр <see cref="MemberInfoEx"/>, либо <c>null</c>, если член не найден.</returns>
+        public MemberInfoEx GetMember(string name, MemberNameType memberNamesType = MemberNameType.Any, Func<MemberInfoEx, bool> membersFilter = null, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
         {
-            return Members.Where(x => x.IsProperty && x.IsPublic && x.IsBasic && !x.IsCollection && x.Attributes.All(a => a.GetType().Name != "NotMappedAttribute")).ToArray();
+            if (string.IsNullOrWhiteSpace(name))
+                return null;
+
+            if (_memberCache.TryGetValue(name, out var mx))
+                return mx;
+
+            if (memberNamesType == MemberNameType.Any || memberNamesType.HasFlag(MemberNameType.Name))
+            {
+                // Быстрый поиск свойства
+                var quickProp = Type.GetLowestProperty(name);
+                if (quickProp != null)
+                {
+                    mx = new MemberInfoEx(quickProp);
+                    _memberCache[name] = mx;
+                    if (membersFilter == null || membersFilter(mx))
+                        return mx;
+                }
+
+                // Быстрый поиск поля
+                var quickField = Type.GetLowestField(name);
+                if (quickField != null)
+                {
+                    mx = new MemberInfoEx(quickField);
+                    _memberCache[name] = mx;
+                    if (membersFilter == null || membersFilter(mx))
+                        return mx;
+                }
+
+                // Быстрый поиск метода
+                var quickMethod = Type.GetLowestMethod(name);
+                if (quickMethod != null)
+                {
+                    mx = new MemberInfoEx(quickMethod);
+                    _memberCache[name] = mx;
+                    if (membersFilter == null || membersFilter(mx))
+                        return mx;
+                }
+
+                // Быстрый поиск события
+                var quickEvent = Type.GetLowestEvent(name);
+                if (quickEvent != null)
+                {
+                    mx = new MemberInfoEx(quickEvent);
+                    _memberCache[name] = mx;
+                    if (membersFilter == null || membersFilter(mx))
+                        return mx;
+                }
+            }
+
+            // Поиск по различным именам (основное имя, отображаемое имя, JSON имя и т.д.)
+            var searchNames = new (Func<MemberInfoEx, string> getter, MemberNameType flag)[]
+            {
+                (x => x.Name,        MemberNameType.Name),
+                (x => x.DisplayName, MemberNameType.DisplayName),
+                (x => x.JsonName,    MemberNameType.JsonName),
+                (x => x.XmlName,     MemberNameType.XmlName),
+                (x => x.ColumnName,  MemberNameType.ColumnName),
+                (x => x.TableName,   MemberNameType.TableName),
+                (x => x.SchemaName,  MemberNameType.SchemaName),
+            };
+
+            var searchIndex = 0;
+            for (var idx=0; idx < searchNames.Length; idx++)
+            {
+                var (f, flag) = searchNames[idx];
+
+                // Если явно указан memberNamesType и он не включает этот тип имени — пропускаем
+                if (memberNamesType != MemberNameType.Any && (memberNamesType & flag) == 0)
+                    continue;
+
+                // Ищем по совпадению имени
+                if (mx == null)
+                {
+                    mx = Members.FirstOrDefault(x =>
+                        f(x)?.Equals(name, nameComparison) == true &&
+                        (membersFilter == null || membersFilter(x)));
+                }
+
+                // Ищем по совпадению с удалением специальных символов
+                if (mx == null)
+                {
+                    mx = Members.FirstOrDefault(x =>
+                        Regex.Replace($"{f(x)}", "[ \\-_\\.]", "").Equals(Regex.Replace(name, "[ \\-_\\.]", ""),
+                            nameComparison) && (membersFilter == null || membersFilter(x)));
+                }
+
+                if (mx != null)
+                {
+                    _memberCache[name] = mx;
+                    return mx;
+                }
+
+                searchIndex++;
+            }
+
+            return null;
         }
 
         /// <summary>
-        /// Получить конструктор по имени
+        /// Получает конструктор по имени.
         /// </summary>
-        /// <param name="methodName">Имя конструктора</param>
-        /// <returns>Информация о конструкторе</returns>
+        /// <param name="methodName">Имя конструктора.</param>
+        /// <returns>Экземпляр <see cref="ConstructorInfo"/>, либо <c>null</c>.</returns>
         public ConstructorInfo GetConstructor(string methodName) => GetMember(methodName)?.AsConstructorInfo();
 
         /// <summary>
-        /// Получить конструктор, подходящий для указанных аргументов
+        /// Получает конструктор, подходящий для указанных аргументов.
         /// </summary>
-        /// <param name="ctorArgs">Аргументы конструктора</param>
-        /// <returns>Информация о конструкторе</returns>
+        /// <param name="ctorArgs">Аргументы конструктора. Может быть изменён для добавления значений по умолчанию.</param>
+        /// <returns>Экземпляр <see cref="ConstructorInfo"/>, либо <c>null</c>, если подходящий конструктор не найден.</returns>
         public ConstructorInfo GetConstructorByArgs(ref object[] ctorArgs)
         {
             var args = ctorArgs;
             foreach (var c in Constructors)
             {
                 var pAll = c.GetParameters();
-                if (pAll.Length == ctorArgs.Length && ctorArgs.All((x, i) => args[i]?.GetType()?.IsImplements(pAll[i].ParameterType) == true))
+                if (pAll.Length == ctorArgs.Length && ctorArgs.All((_, i) => args[i]?.GetType().IsImplements(pAll[i].ParameterType) == true))
                     return c;
                 var pNoDef = c.GetParameters().Where(p => !p.HasDefaultValue).ToArray();
-                var pDef = c.GetParameters().Where(p => p.HasDefaultValue).ToArray();
-                if (pNoDef.Length == ctorArgs.Length && ctorArgs.All((x, i) => args[i]?.GetType()?.IsImplements(pNoDef[i].ParameterType) == true))
+                //var pDef = c.GetParameters().Where(p => p.HasDefaultValue).ToArray();
+                if (pNoDef.Length == ctorArgs.Length && ctorArgs.All((_, i) => args[i]?.GetType().IsImplements(pNoDef[i].ParameterType) == true))
                 {
                     Array.Resize(ref ctorArgs, pAll.Length);
                     for (int i = pNoDef.Length; i < pAll.Length; i++)
@@ -802,269 +1218,212 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получить атрибуты члена
+        /// Получает событие по имени.
         /// </summary>
-        /// <param name="inherit">Искать в цепочке наследования</param>
-        /// <returns>Массив атрибутов</returns>
+        /// <param name="eventName">Имя события.</param>
+        /// <returns>Экземпляр <see cref="EventInfo"/>, либо <c>null</c>.</returns>
+        public EventInfo GetEvent(string eventName) => GetMember(eventName)?.AsEventInfo();
+
+        /// <summary>
+        /// Получает поле по имени.
+        /// </summary>
+        /// <param name="fieldName">Имя поля.</param>
+        /// <returns>Экземпляр <see cref="FieldInfo"/>, либо <c>null</c>.</returns>
+        public FieldInfo GetField(string fieldName) => GetMember(fieldName)?.AsFieldInfo();
+
+        /// <summary>
+        /// Получает метод по имени.
+        /// </summary>
+        /// <param name="methodName">Имя метода.</param>
+        /// <returns>Экземпляр <see cref="MethodInfo"/>, либо <c>null</c>.</returns>
+        public MethodInfo GetMethod(string methodName) => GetMember(methodName)?.AsMethodInfo();
+
+        /// <summary>
+        /// Получает свойство по имени.
+        /// </summary>
+        /// <param name="propertyName">Имя свойства.</param>
+        /// <returns>Экземпляр <see cref="PropertyInfo"/>, либо <c>null</c>.</returns>
+        public PropertyInfo GetProperty(string propertyName) => GetMember(propertyName)?.AsPropertyInfo();
+
+        #endregion
+
+        #region Методы работы со значениями
+
+        /// <summary>
+        /// Получает значение члена (свойства, поля или метода) для указанного экземпляра объекта.<br/>
+        /// Использует кешированный делегат <see cref="Getter"/> для получения значения, если он доступен.<br/>
+        /// Не использует преобразование типов, если тип значения не совпадает с типом свойства, то выдается исключение.<br/>
+        /// </summary>
+        /// <param name="objectInstance">Экземпляр объекта, из которого извлекается значение.</param>
+        /// <param name="args">Аргументы для метода, если член является методом.</param>
+        /// <returns>Значение члена, либо <c>null</c> в случае ошибки.</returns>
+        public object GetValue(object objectInstance, params object[] args)
+        {
+            if (IsProperty && Getter != null)
+            {
+                return Getter(objectInstance);
+            }
+
+            if (IsField && Getter != null)
+            {
+                return Getter(objectInstance);
+            }
+
+            if (IsMethod)
+            {
+                return AsMethodInfo()?.Invoke(objectInstance, args);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Устанавливает значение свойства или поля для указанного экземпляра объекта.<br/>
+        /// Использует кешированный делегат <see cref="Setter"/> для установки значения, если он доступен.<br/>
+        /// Не использует преобразование типов, если тип значения не совпадает с типом свойства, то выдается исключение.<br/>
+        /// </summary>
+        /// <param name="objectInstance">Экземпляр объекта, для которого устанавливается значение.</param>
+        /// <param name="value">Значение для установки.</param>
+        /// <returns><c>true</c>, если значение успешно установлено; иначе <c>false</c>.</returns>
+        public bool SetValue(object objectInstance, object value)
+        {
+            if (IsProperty && Setter != null)
+            {
+                Setter(objectInstance, value);
+                return true;
+            }
+
+            if (IsField)
+            {
+                if (Setter != null)
+                    Setter(objectInstance, value);
+                else
+                    AsFieldInfo().SetValue(objectInstance, value);
+                return true;
+            }
+
+            return false;
+        }
+
+        #endregion
+
+        #region Методы работы с атрибутами
+
+        /// <summary>
+        /// Получает все атрибуты члена.
+        /// </summary>
+        /// <param name="inherit">Учитывать ли атрибуты из цепочки наследования.</param>
+        /// <returns>Массив атрибутов.</returns>
         public override object[] GetCustomAttributes(bool inherit)
         {
             return MemberInfo.GetCustomAttributes(inherit);
         }
 
         /// <summary>
-        /// Получить атрибуты указанного типа
+        /// Получает атрибуты указанного типа.
         /// </summary>
-        /// <param name="attributeType">Тип атрибута</param>
-        /// <param name="inherit">Искать в цепочке наследования</param>
-        /// <returns>Массив атрибутов</returns>
+        /// <param name="attributeType">Тип атрибута.</param>
+        /// <param name="inherit">Учитывать ли атрибуты из цепочки наследования.</param>
+        /// <returns>Массив атрибутов указанного типа.</returns>
         public override object[] GetCustomAttributes(Type attributeType, bool inherit)
         {
             return MemberInfo.GetCustomAttributes(attributeType, inherit);
         }
 
         /// <summary>
-        /// Получить событие по имени
+        /// Проверяет, определён ли атрибут указанного типа.
         /// </summary>
-        /// <param name="eventName">Имя события</param>
-        /// <returns>Информация о событии</returns>
-        public EventInfo GetEvent(string eventName) => GetMember(eventName)?.AsEventInfo();
-
-        /// <summary>
-        /// Получить поле по имени
-        /// </summary>
-        /// <param name="fieldName">Имя поля</param>
-        /// <returns>Информация о поле</returns>
-        public FieldInfo GetField(string fieldName) => GetMember(fieldName)?.AsFieldInfo();
-
-        /// <summary>
-        /// Получить член по имени с возможностью фильтрации
-        /// </summary>
-        /// <param name="name">Имя члена</param>
-        /// <param name="membersFilter">Фильтр членов</param>
-        /// <returns>Информация о члене</returns>
-        public MemberInfoEx GetMember(string name, Func<MemberInfoEx, bool> membersFilter = null)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-                return null;
-
-            if (_memberCache.TryGetValue(name, out var mx))
-                return mx;
-
-            // Быстрый поиск свойства
-            var quickProp = Type.GetLowestProperty(name);
-            if (quickProp != null)
-            {
-                mx = new MemberInfoEx(quickProp);
-                _memberCache[name] = mx;
-                if (membersFilter == null || membersFilter(mx))
-                    return mx;
-            }
-
-            // Быстрый поиск поля
-            var quickField = Type.GetLowestField(name);
-            if (quickField != null)
-            {
-                mx = new MemberInfoEx(quickField);
-                _memberCache[name] = mx;
-                if (membersFilter == null || membersFilter(mx))
-                    return mx;
-            }
-
-            // Быстрый поиск метода
-            var quickMethod = Type.GetLowestMethod(name);
-            if (quickMethod != null)
-            {
-                mx = new MemberInfoEx(quickMethod);
-                _memberCache[name] = mx;
-                if (membersFilter == null || membersFilter(mx))
-                    return mx;
-            }
-
-            // Быстрый поиск события
-            var quickEvent = Type.GetLowestEvent(name);
-            if (quickEvent != null)
-            {
-                mx = new MemberInfoEx(quickEvent);
-                _memberCache[name] = mx;
-                if (membersFilter == null || membersFilter(mx))
-                    return mx;
-            }
-
-            // Поиск по различным именам (основное имя, отображаемое имя, JSON имя и т.д.)
-            var searchNames = new Func<MemberInfoEx, string>[]
-            {
-                x => x.Name,
-                x => x.DisplayName,
-                x => x.JsonName,
-                x => x.XmlName,
-                x => x.ColumnName,
-                x => x.TableName,
-                x => x.SchemaName,
-            };
-
-            foreach (var f in searchNames)
-            {
-                mx = Members.FirstOrDefault(x =>
-                    f(x)?.Equals(f) == true && (membersFilter == null || membersFilter(x)));
-                if (mx == null)
-                    mx = Members.FirstOrDefault(x =>
-                        f(x)?.Equals(name, StringComparison.OrdinalIgnoreCase) == true &&
-                        (membersFilter == null || membersFilter(x)));
-                if (mx == null)
-                    mx = Members.FirstOrDefault(x =>
-                        Regex.Replace($"{f(x)}", "[^a-zA-Z0-9]*", "").Equals(Regex.Replace(name, "[^a-zA-Z0-9]*", ""),
-                            StringComparison.OrdinalIgnoreCase) && (membersFilter == null || membersFilter(x)));
-                if (mx != null)
-                {
-                    _memberCache[name] = mx;
-                    return mx;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Получить метод по имени
-        /// </summary>
-        /// <param name="methodName">Имя метода</param>
-        /// <returns>Информация о методе</returns>
-        public MethodInfo GetMethod(string methodName) => GetMember(methodName)?.AsMethodInfo();
-
-        /// <summary>
-        /// Получить свойство по имени
-        /// </summary>
-        /// <param name="propertyName">Имя свойства</param>
-        /// <returns>Информация о свойстве</returns>
-        public PropertyInfo GetProperty(string propertyName) => GetMember(propertyName)?.AsPropertyInfo();
-
-        /// <summary>
-        /// Получить таблицы (коллекции не простых типов без атрибута NotMapped)
-        /// </summary>
-        /// <returns>Массив информации о членах</returns>
-        public MemberInfoEx[] GetTables()
-        {
-            return Members.Where(x => x.IsProperty && x.IsPublic && x.IsCollection && !x.IsBasicCollection && x.Attributes.All(a => a.GetType().Name != "NotMappedAttribute")).ToArray();
-        }
-
-        /// <summary>
-        /// Получить значение члена
-        /// </summary>
-        /// <param name="objectInstance">Экземпляр объекта</param>
-        /// <param name="args">Аргументы для метода (если член является методом)</param>
-        /// <returns>Значение члена</returns>
-        public object GetValue(object objectInstance, params object[] args)
-        {
-            if (IsProperty && GetMethodDelegate != null)
-            {
-                try
-                {
-                    return GetMethodDelegate(objectInstance);
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-
-            if (IsField && GetMethodDelegate != null)
-            {
-                try
-                {
-                    return GetMethodDelegate(objectInstance);
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-
-            if (IsMethod)
-            {
-                try
-                {
-                    return AsMethodInfo()?.Invoke(objectInstance, args);
-                }
-                catch
-                {
-                    return null;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Проверить наличие атрибута
-        /// </summary>
-        /// <typeparam name="T">Тип атрибута</typeparam>
-        /// <param name="filter">Фильтр атрибутов</param>
-        /// <returns>Есть ли атрибут</returns>
-        public bool HasAttribute<T>(Func<T, bool> filter = null) where T : Attribute
-        {
-            if (filter == null)
-                filter = (x) => true;
-            return Attributes.OfType<T>().Any(filter);
-        }
-
-        /// <summary>
-        /// Проверить наличие атрибута указанного типа
-        /// </summary>
-        /// <param name="attributeType">Тип атрибута</param>
-        /// <param name="inherit">Искать в цепочке наследования</param>
-        /// <returns>Есть ли атрибут</returns>
+        /// <param name="attributeType">Тип атрибута.</param>
+        /// <param name="inherit">Учитывать ли атрибуты из цепочки наследования.</param>
+        /// <returns><c>true</c>, если атрибут определён; иначе <c>false</c>.</returns>
         public override bool IsDefined(Type attributeType, bool inherit)
         {
             return MemberInfo.IsDefined(attributeType, inherit);
         }
 
         /// <summary>
-        /// Установить значение члену
+        /// Проверяет наличие атрибута указанного типа.
         /// </summary>
-        /// <param name="objectInstance">Экземпляр объекта</param>
-        /// <param name="value">Значение</param>
-        /// <returns>Успешно ли установлено значение</returns>
-        public bool SetValue(object objectInstance, object value)
+        /// <typeparam name="T">Тип атрибута.</typeparam>
+        /// <param name="filter">Фильтр для отбора атрибутов (опционально).</param>
+        /// <returns><c>true</c>, если атрибут найден; иначе <c>false</c>.</returns>
+        public bool HasAttribute<T>(Func<T, bool> filter = null) where T : Attribute
         {
-            if (IsProperty && SetMethodDelegate != null)
-            {
-                try
-                {
-                    SetMethodDelegate(objectInstance, value);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-
-            if (IsField && SetMethodDelegate != null)
-            {
-                try
-                {
-                    SetMethodDelegate(objectInstance, value);
-                    return true;
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-
-            return false;
+            if (filter == null)
+                filter = (_) => true;
+            return Attributes.OfType<T>().Any(filter);
         }
 
         /// <summary>
-        /// Строковое представление члена
+        /// Проверяет наличие атрибута указанного типа по имени.
         /// </summary>
-        /// <returns>Строка с именем и типом члена</returns>
+        /// <param name="typeNames">Имя типа</param>
+        public bool HasAttributeOfType(params string[] typeNames)
+        {
+            return Attributes.Any(a => a.GetType().Name.In(typeNames));
+        }
+
+        #endregion
+
+        #region Методы работы с ORM
+
+        private MemberInfoEx[] _columns = null;
+
+        /// <summary>
+        /// Получает коллекцию простых публичных свойств, которые подходят для ORM колонок.<br/>
+        /// </summary>
+        /// <returns>Массив <see cref="MemberInfoEx"/> для колонок.</returns>
+        public MemberInfoEx[] GetColumns()
+        {
+            if (_columns != null)
+                return _columns;
+
+            _columns = Members.Where(x => x.HasAttributeOfType("ColumnAttribute", "KeyAttribute", "ForeignKeyAttribute")).ToArray();
+
+            if (_columns.Length > 0)
+                return _columns;
+
+            _columns = Members.Where(x =>
+                x.IsProperty &&
+                x.IsPublic &&
+                x.IsBasic &&
+                !x.IsCollection &&
+                x.Attributes.All(a => a.GetType().Name != "NotMappedAttribute"))
+                .ToArray();
+
+            return _columns;
+        }
+
+        /// <summary>
+        /// Получает коллекцию свойств, представляющих таблицы (коллекции сложных типов без атрибута NotMapped).
+        /// </summary>
+        /// <returns>Массив <see cref="MemberInfoEx"/> для таблиц.</returns>
+        public MemberInfoEx[] GetTables()
+        {
+            return Members.Where(x =>
+                x.IsProperty &&
+                x.IsPublic &&
+                x.IsCollection &&
+                !x.IsBasicCollection &&
+                x.Attributes.All(a => a.GetType().Name != "NotMappedAttribute")).ToArray();
+        }
+
+        #endregion
+
+        #region Вспомогательные методы
+
+        /// <summary>
+        /// Возвращает строковое представление члена в формате "Имя (Тип)".
+        /// </summary>
+        /// <returns>Строка с именем и типом члена.</returns>
         public override string ToString()
         {
             return $"\"{Name}\" ({Type.Name})";
         }
 
-        // Внутренние методы
+        #endregion
+
+        #region Внутренние методы
 
         /// <summary>
         /// Получить все члены типа (свойства, поля, методы и т.д.)
@@ -1072,68 +1431,11 @@ namespace RuntimeStuff
         /// <returns>Массив информации о членах</returns>
         internal MemberInfoEx[] GetMembersInternal()
         {
-            return Properties.Select(p => new MemberInfoEx(p, false)).Concat(
-                   Fields.Select(x => new MemberInfoEx(x, false))).Concat(
-                   Methods.Select(x => new MemberInfoEx(x, false))).Concat(
-                   Constructors.Select(x => new MemberInfoEx(x, false))).Concat(
-                   Events.Select(x => new MemberInfoEx(x, false))).ToArray();
-        }
-
-        /// <summary>
-        /// Создать делегат для получения значения поля
-        /// </summary>
-        /// <param name="fieldInfo">Информация о поле</param>
-        /// <returns>Делегат для получения значения</returns>
-        private static Func<object, object> CreateFieldAccessor(FieldInfo fieldInfo)
-        {
-            var parameter = Expression.Parameter(typeof(object), "obj");
-
-            // Проверка, является ли поле статическим
-            Expression field;
-            if (fieldInfo.IsStatic)
-            {
-                field = Expression.Field(null, fieldInfo);
-            }
-            else
-            {
-                var castedParameter = Expression.Convert(parameter, fieldInfo.DeclaringType);
-                field = Expression.Field(castedParameter, fieldInfo);
-            }
-
-            var castedField = Expression.Convert(field, typeof(object));
-            return Expression.Lambda<Func<object, object>>(castedField, parameter).Compile();
-        }
-
-        /// <summary>
-        /// Создать делегат для получения значения свойства
-        /// </summary>
-        /// <param name="propertyInfo">Информация о свойстве</param>
-        /// <returns>Делегат для получения значения</returns>
-        private static Func<object, object> CreatePropertyAccessor(PropertyInfo propertyInfo)
-        {
-            try
-            {
-                var parameter = Expression.Parameter(typeof(object), "obj");
-                // Проверка, является ли свойство статическим
-                Expression property;
-                if (propertyInfo.GetGetMethod(true)?.IsStatic == true)
-                {
-                    property = Expression.Property(null, propertyInfo);
-                }
-                else
-                {
-                    var castedParameter = Expression.Convert(parameter, propertyInfo.DeclaringType);
-                    property = Expression.Property(castedParameter, propertyInfo);
-                }
-
-                var castedProperty = Expression.Convert(property, typeof(object));
-
-                return Expression.Lambda<Func<object, object>>(castedProperty, parameter).Compile();
-            }
-            catch
-            {
-                return null;
-            }
+            return Properties.Select(p => new MemberInfoEx(p)).Concat(
+                   Fields.Select(x => new MemberInfoEx(x))).Concat(
+                   Methods.Select(x => new MemberInfoEx(x))).Concat(
+                   Constructors.Select(x => new MemberInfoEx(x))).Concat(
+                   Events.Select(x => new MemberInfoEx(x))).ToArray();
         }
 
         /// <summary>
@@ -1198,12 +1500,39 @@ namespace RuntimeStuff
                 .ToList();
             var l = new Dictionary<string, PropertyInfo>();
             foreach (var p in props)
+            {
                 if (!l.ContainsKey(p.Name))
                     l.Add(p.Name, p);
+            }
+
             _properties = l.Values.ToArray();
             return _properties;
         }
+
+        #endregion
     }
+
+    [Flags]
+    public enum MemberNameType
+    {
+        Any = 0,
+        Name = 1,
+        DisplayName = 2,
+        JsonName = 4,
+        XmlName = 8,
+        ColumnName = 16,
+        TableName = 32,
+        SchemaName = 64,
+    }
+
+    public enum MemberNameComparison
+    {
+        Exact,
+        IgnoreCase,
+        IgnoreSpecialChars,
+    }
+
+    #region Методы расширения
 
     /// <summary>
     /// Методы расширения для MemberInfo
@@ -1217,7 +1546,12 @@ namespace RuntimeStuff
         /// <returns>Расширенная информация о члене класса</returns>
         public static MemberInfoEx GetMemberInfoEx(this MemberInfo memberInfo)
         {
+            if (memberInfo is MemberInfoEx miex)
+                return miex;
+
             return MemberInfoEx.Create(memberInfo);
         }
     }
+
+    #endregion
 }

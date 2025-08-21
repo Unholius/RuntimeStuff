@@ -3,7 +3,7 @@
 namespace RuntimeStuff.MSTests.Extensions
 {
     [TestClass]
-    public class StringExtensionsTests
+    public class RSStringExtensionsTests
     {
         [TestMethod]
         public void TrimEnd_Test_01()

@@ -5,7 +5,7 @@ namespace RuntimeStuff.Extensions
     /// <summary>
     /// Полезные расширения для работы со строками
     /// </summary>
-    public static class StringExtensions
+    public static class RSStringExtensions
     {
         /// <summary>
         /// Метод удаляет указанный суффикс с конца строки, если он существует
@@ -27,8 +27,10 @@ namespace RuntimeStuff.Extensions
 
             // Проверка наличия суффикса в конце строки
             if (s.EndsWith(subStr, comparison))
+            {
                 // Возвращаем строку без суффикса
                 return s.Substring(0, s.Length - subStr.Length);
+            }
 
             // Если суффикс не найден, возвращаем исходную строку
             return s;
@@ -60,7 +62,7 @@ namespace RuntimeStuff.Extensions
                 return string.Empty;
 
             // Приведение индексов в допустимые границы
-            int minIndex = 0;
+            const int minIndex = 0;
             int maxIndex = s.Length - 1;
 
             startIndex = Math.Max(minIndex, Math.Min(startIndex, maxIndex));
@@ -89,7 +91,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         /// <param name="name">Исходное имя, для которого нужно сгенерировать уникальную версию</param>
         /// <param name="nameExists">Делегат, проверяющий существование имени в системе</param>
-        /// <param name="nameTemplate">Шаблон форматирования для генерации нового имени. 
+        /// <param name="nameTemplate">Шаблон форматирования для генерации нового имени.
         /// {0} - исходное имя, {1} - числовой суффикс</param>
         /// <returns>Уникальное имя, которое не существует в системе</returns>
         /// <remarks>

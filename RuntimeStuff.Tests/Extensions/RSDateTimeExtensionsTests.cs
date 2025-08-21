@@ -1,11 +1,9 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RuntimeStuff.Extensions;
-using System;
 
 namespace RuntimeStuff.MSTests.Extensions
 {
     [TestClass]
-    public class DateTimeExtensionsTests
+    public class RSDateTimeExtensionsTests
     {
         [TestMethod]
         public void HasTime_WithTime_ReturnsTrue()
@@ -154,8 +152,8 @@ namespace RuntimeStuff.MSTests.Extensions
         [TestMethod]
         public void NowTicks_ReturnsUniqueValues()
         {
-            var tick1 = DateTimeExtensions.NowTicks;
-            var tick2 = DateTimeExtensions.NowTicks;
+            var tick1 = RSDateTimeExtensions.NowTicks;
+            var tick2 = RSDateTimeExtensions.NowTicks;
             Assert.AreNotEqual(tick1, tick2);
         }
 

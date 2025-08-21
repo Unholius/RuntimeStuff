@@ -3,7 +3,7 @@
 namespace RuntimeStuff.MSTests.Extensions
 {
     [TestClass]
-    public class FuncExtensionsTests
+    public class RSFuncExtensionsTests
     {
         [TestMethod]
         public void ConvertFunc_Test_01()
