@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace RuntimeStuff
 {
     /// <summary>
-    /// Базовый абстрактный класс, предоставляющий реализацию интерфейса <see cref="INotifyPropertyChanged"/> и
+    /// Базовый класс, предоставляющий реализацию интерфейса <see cref="INotifyPropertyChanged"/> и
     /// вспомогательные методы для уведомления об изменении свойств, а также автоматического управления подписками на
     /// изменения во вложенных объектах.
     /// </summary>
