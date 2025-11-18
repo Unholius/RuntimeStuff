@@ -135,7 +135,7 @@
 //                return null;
 
 //            mi = mi.IsCollection && i < memberNames.Length - 1 &&
-//                 !memberNames[i + 1].Equals("Value", StringComparison.OrdinalIgnoreCase)
+//                 !memberNames[i + 1].Equals("Item", StringComparison.OrdinalIgnoreCase)
 //                ? mi.ElementType.GetMemberInfoEx()
 //                : mi.GetMemberInfoEx();
 //            memberInfoEx = mi;
@@ -185,7 +185,7 @@
 //    /// <exception cref="ArgumentNullException">Если <paramref name="toType" /> равен null.</exception>
 //    public static object ChangeType(object value, Type toType, IFormatProvider formatProvider = null)
 //    {
-//        if (value?.Equals(DBNull.Value) != false)
+//        if (value?.Equals(DBNull.Item) != false)
 //            return toType.Default();
 
 //        toType = Nullable.GetUnderlyingType(toType) ?? toType;
@@ -216,7 +216,7 @@
 //                    throw new NullReferenceException("ChangeType: Enum.ToObject"));
 //            if (fromType == typeof(bool))
 //                return Enum.ToObject(toType,
-//                    ChangeType(Convert.ChangeType(value, typeof(int)), typeof(int), formatProvider) ??
+//                    ChangeType(ConvertExpression.ChangeType(value, typeof(int)), typeof(int), formatProvider) ??
 //                    throw new NullReferenceException("ChangeType: Enum.ToObject"));
 //            if (fromType == typeof(string))
 //                return Enum.ParseDate(toType, $"{value}");
@@ -238,7 +238,7 @@
 //        }
 
 //        // Стандартное преобразование
-//        return Convert.ChangeType(value, toType, CultureInfo.InvariantCulture);
+//        return ConvertExpression.ChangeType(value, toType, CultureInfo.InvariantCulture);
 //    }
 
 //    /// <summary>
@@ -508,7 +508,7 @@
 //        MemberNameType memberNameType = MemberNameType.Any)
 //    {
 //        foreach (var kv in values)
-//            Set(obj, kv.Key, kv.Value, memberNameType);
+//            Set(obj, kv.Key, kv.Item, memberNameType);
 //    }
 
 //    /// <summary>
@@ -695,7 +695,7 @@
 //                ((IDictionary)target)[
 //                    Get(i, new[] { "Key" }, targetKeyType, memberNameType) ??
 //                    throw new NullReferenceException("TypeHelper.Copy dictionary key is null!")
-//                ] = Get(i, new[] { "Value" }, targetValueType, memberNameType);
+//                ] = Get(i, new[] { "Item" }, targetValueType, memberNameType);
 //            return;
 //        }
 

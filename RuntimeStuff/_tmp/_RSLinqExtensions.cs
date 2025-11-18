@@ -143,7 +143,7 @@
 //        {
 //            foreach (var kv in values)
 //            {
-//                d[kv.Key] = kv.Value;
+//                d[kv.Key] = kv.Item;
 //            }
 //            return d;
 //        }
@@ -465,7 +465,7 @@
 //        /// <returns>Словарь без удалённых элементов.</returns>
 //        public static IDictionary<TKey, TValue> RemoveRange<TKey, TValue>(this IDictionary<TKey, TValue> d, Func<TValue, bool> predicate)
 //        {
-//            var keysToRemove = d.Where(kv => predicate(kv.Value)).Select(kv => kv.Key).ToList();
+//            var keysToRemove = d.Where(kv => predicate(kv.Item)).Select(kv => kv.Key).ToList();
 //            foreach (var key in keysToRemove)
 //                d.Remove(key);
 //            return d;

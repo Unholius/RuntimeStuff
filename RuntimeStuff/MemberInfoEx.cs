@@ -11,6 +11,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff
 {
@@ -1135,7 +1136,7 @@ namespace RuntimeStuff
                 //if (getMethod.IsStatic)
                 //{
                 //    // static: (object)Class.Property
-                //    body = Expression.Convert(Expression.Property(null, property), typeof(object));
+                //    body = Expression.ConvertExpression(Expression.Property(null, property), typeof(object));
                 //}
                 //else
                 {

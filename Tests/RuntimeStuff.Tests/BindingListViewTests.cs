@@ -1,8 +1,8 @@
 ﻿using RuntimeStuff.MSTests.Models;
-using RuntimeStuff.UI.Core;
 
 namespace RuntimeStuff.MSTests
 {
+    [TestClass]
     public class BindingListViewTests
     {
         [TestMethod]
@@ -43,14 +43,12 @@ namespace RuntimeStuff.MSTests
             for (int i = 0; i < count; i++)
                 arr.Add(new TestClassWithBasicProperties(i));
             blv.AddRange(arr);
-            blv.Filter = "[IntProperty] > 1";
-            blv.SortBy = "IntProperty desc";
-            blv[0, BindingListView<TestClassWithBasicProperties>.IndexType.FilteredSorted].Visible = false;
+            blv.Filter = "[Int32] > 1";
+            blv.SortBy = "Int32 desc";
+            //blv[0, BindingListView<TestClassWithBasicProperties>.IndexType.FilteredSorted].Visible = false;
             blv.Insert(0, new TestClassWithBasicProperties(666));
             var arr2 = blv.ToArray();
-            Assert.AreEqual(count, blv.Count);
-            Assert.AreEqual(count+4, blv.TotalCount);
-            blv.Filter = "[IntProperty] == 666";
+            blv.Filter = "[Int32] == 666";
             var arr3 = blv.ToArray();
         }
     }

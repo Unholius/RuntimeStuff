@@ -70,7 +70,7 @@ namespace RuntimeStuff.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Value cannot be null.
+        ///   Looks up a localized string similar to Item cannot be null.
         /// </summary>
         internal static string EX_BindingListView_AddRange_Item_Cannot_Be_Null {
             get {

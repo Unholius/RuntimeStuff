@@ -1,15 +1,23 @@
-﻿using System;
+﻿using RuntimeStuff;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
-using RuntimeStuff;
-using RuntimeStuff.UI.Core;
 
 namespace QuickDialogs.Core.ObjectEditor
 {
+    public interface IObjectEditorViewModel<TObject>
+    {
+        TObject SelectedObject { get; }
+        BindingListView<ObjectPropertyInfo> Properties { get; }
+        Dictionary<string, ObjectPropertyInfo> PropertyMap { get; }
+        ObjectEditorConfiguration<TObject> Configuration { get; }
+    }
+
     public class ObjectEditorViewModel : ObjectEditorViewModel<object>
     {
+        public new ObjectEditorConfiguration Configuration { get; set; }
     }
 
     
@@ -20,15 +28,16 @@ namespace QuickDialogs.Core.ObjectEditor
         private string _focusedPropertyName;
         private object _focusedPropertyValue;
         private bool _hasChanges;
+        internal DynamicPropertyObject _do = new DynamicPropertyObject();
 
-        private BindingListView<ObjectPropertyInfo<TObject>> _properties =
-            new BindingListView<ObjectPropertyInfo<TObject>>();
+        private BindingListView<ObjectPropertyInfo> _properties =
+            new BindingListView<ObjectPropertyInfo>();
 
-        private TObject _selectedObject;
+        private object _selectedObject;
         private Type _selectedObjectType;
 
-        internal Dictionary<string, ObjectPropertyInfo<TObject>> PropertyMap =
-            new Dictionary<string, ObjectPropertyInfo<TObject>>();
+        public Dictionary<string, ObjectPropertyInfo> PropertyMap =
+            new Dictionary<string, ObjectPropertyInfo>();
 
         public ObjectEditorViewModel()
         {
@@ -36,7 +45,7 @@ namespace QuickDialogs.Core.ObjectEditor
             RaiseCanAcceptChanged();
         }
 
-        public BindingListView<ObjectPropertyInfo<TObject>> Properties
+        public BindingListView<ObjectPropertyInfo> Properties
         {
             get => _properties;
             private set => SetProperty(ref _properties, value);
@@ -44,10 +53,14 @@ namespace QuickDialogs.Core.ObjectEditor
 
         private List<string> Errors { get; set; } = new List<string>();
 
-        public TObject SelectedObject
+        public object SelectedObject
         {
             get => _selectedObject;
-            set => SetProperty(ref _selectedObject, value, OnSelectedObjectChanged);
+            set
+            {
+                SetProperty(ref _selectedObject, value, OnSelectedObjectChanged);
+                _do = new DynamicPropertyObject(_selectedObject);
+            }
         }
 
         public bool CanAccept
@@ -88,12 +101,12 @@ namespace QuickDialogs.Core.ObjectEditor
 
         public ObjectEditorConfiguration<TObject> Configuration { get; set; }
 
-        public ObjectPropertyInfo<TObject> Property(string propertyName)
+        public ObjectPropertyInfo Property(string propertyName)
         {
             return PropertyMap.TryGetValue(propertyName, out var info) ? info : null;
         }
 
-        public ObjectPropertyInfo<TObject> Property(Expression<Func<TObject, object>> propertySelector)
+        public ObjectPropertyInfo Property(Expression<Func<TObject, object>> propertySelector)
         {
             return PropertyMap[propertySelector.GetPropertyName()];
         }
@@ -135,9 +148,9 @@ namespace QuickDialogs.Core.ObjectEditor
             var mi = MemberInfoEx.Create(_selectedObjectType);
             PropertyMap =
                 mi.PublicProperties.ToDictionary(x => x.Key,
-                    m => new ObjectPropertyInfo<TObject>(this, SelectedObject, m.Value));
+                    m => new ObjectPropertyInfo(SelectedObject, m.Value));
 
-            Properties = new BindingListView<ObjectPropertyInfo<TObject>>(PropertyMap.Values);
+            Properties = new BindingListView<ObjectPropertyInfo>(PropertyMap.Values);
         }
 
         public void RaiseCanAcceptChanged()

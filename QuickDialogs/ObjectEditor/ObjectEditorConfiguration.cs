@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
+using RuntimeStuff;
 
 namespace QuickDialogs.Core.ObjectEditor
 {
@@ -10,6 +11,11 @@ namespace QuickDialogs.Core.ObjectEditor
         public ObjectEditorConfiguration(ObjectEditorViewModel<object> viewModel) : base(viewModel)
         {
         }
+    }
+
+    public interface IObjectEditorConfiguration<TObject>
+    {
+
     }
 
     public class ObjectEditorConfiguration<TObject>
@@ -127,7 +133,6 @@ namespace QuickDialogs.Core.ObjectEditor
                 var opi = _viewModel.PropertyMap[propertyName];
                 opi.EditFormat = editFormat;
             }
-
             return this;
         }
 
@@ -160,6 +165,19 @@ namespace QuickDialogs.Core.ObjectEditor
                 opi.ReadOnly = readOnly;
             }
 
+            return this;
+        }
+
+        public ObjectEditorConfiguration<TObject> AddProperty<TValue>(string propertyName, TValue value)
+        {
+            _viewModel._do.AddProperty(propertyName, value?.GetType() ?? typeof(TValue));
+            //_viewModel.SelectedObject = _do;
+            return this;
+        }
+
+        public ObjectEditorConfiguration<TObject> AddProperty(string propertyName, object value)
+        {
+            _viewModel._do.AddProperty(propertyName, value?.GetType());
             return this;
         }
     }

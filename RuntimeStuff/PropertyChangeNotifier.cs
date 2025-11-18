@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace RuntimeStuff
 {
     /// <summary>
-    /// Базовый класс, предоставляющий реализацию интерфейса <see cref="INotifyPropertyChanged"/> и
+    /// Базовый класс, предоставляющий реализацию интерфейсов <see cref="INotifyPropertyChanged"/>, <see cref="INotifyPropertyChanging"/> и
     /// вспомогательные методы для уведомления об изменении свойств, а также автоматического управления подписками на
     /// изменения во вложенных объектах.
     /// </summary>
@@ -13,7 +13,16 @@ namespace RuntimeStuff
     /// привязку свойств (например, в MVVM). Реализует автоматическую отписку и повторную подписку на события <see
     /// cref="PropertyChanged"/> у вложенных объектов, что предотвращает утечки памяти и облегчает управление зависимостями
     /// между объектами. Является потокобезопасным для операций подписки и отписки. Для корректного освобождения ресурсов
-    /// рекомендуется явно вызывать <see cref="Dispose()"/> при уничтожении экземпляра.</remarks>
+    /// рекомендуется явно вызывать <see cref="Dispose()"/> при уничтожении экземпляра.
+    /// <code>
+    /// public event PropertyChangedEventHandler PropertyChanged
+    /// {
+    /// add => _notifier.PropertyChanged += value;
+    /// remove => _notifier.PropertyChanged -= value;
+    /// }
+    /// </code>
+    /// </remarks>
+
     public class PropertyChangeNotifier : INotifyPropertyChanged, INotifyPropertyChanging, IDisposable
     {
         /// <summary>
@@ -60,7 +69,7 @@ namespace RuntimeStuff
         /// <param name="onChanged">Действие после изменения свойства</param>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
-        protected bool SetProperty<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
+        public bool SetProperty<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
         {
             if (Equals(field, value)) return false;
             OnPropertyChanging(propertyName);
@@ -80,7 +89,7 @@ namespace RuntimeStuff
         /// <param name="onChanged">Действие после изменения свойства</param>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
-        protected bool SetProperty<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
+        public bool SetProperty<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
         {
             if (Equals(field, value)) return false;
             OnPropertyChanging(propertyName);
@@ -102,7 +111,7 @@ namespace RuntimeStuff
         /// <param name="childPropertyChangeHandler">Действие, вызываемое при изменении <paramref name="childPropertyName"/> у вложенного объекта.</param>
         /// <param name="thisPropertyChangeHandler">Действие, вызываемое после успешного изменения свойства текущего объекта.</param>
         /// <param name="propertyName">Имя свойства текущего объекта. Если не задано, используется имя вызывающего члена.</param>
-        protected void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null) where T : class, INotifyPropertyChanged
+        public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null) where T : class, INotifyPropertyChanged
         {
             BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
             if (SetProperty(ref oldValue, newValue, (Action)null, propertyName))
@@ -123,7 +132,7 @@ namespace RuntimeStuff
         /// Этот метод отписывает обработчик у старого объекта (если он присутствует) и подписывает новый обработчик
         /// к <paramref name="newValue"/>; обработчики хранятся в словаре <see cref="_subscriptions"/> для корректной последующей отписки.
         /// </remarks>
-        protected void BindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler) where T : class, INotifyPropertyChanged
+        public void BindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler) where T : class, INotifyPropertyChanged
         {
             lock (_syncRoot)
             {
@@ -168,7 +177,7 @@ namespace RuntimeStuff
         /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
         /// <param name="newValue">Новое значение вложенного объекта, для которого нужно установить подписку.</param>
         /// <param name="handler">Действие, выполняемое при любом изменении во вложенном объекте.</param>
-        protected void BindPropertyChange<T>(ref T oldValue, T newValue, Action handler) where T : class, INotifyPropertyChanged
+        public void BindPropertyChange<T>(ref T oldValue, T newValue, Action handler) where T : class, INotifyPropertyChanged
         {
             BindPropertyChange(ref oldValue, newValue, null, handler);
         }
@@ -177,7 +186,7 @@ namespace RuntimeStuff
         /// Очистка управляемых ресурсов. Отписывает все внутренние подписки и очищает словарь подписок.
         /// </summary>
         /// <param name="disposing"><c>true</c> при вызове из <see cref="Dispose()"/>; <c>false</c> при вызове из финализатора.</param>
-        protected virtual void Dispose(bool disposing)
+        public virtual void Dispose(bool disposing)
         {
             if (!disposing) return;
 

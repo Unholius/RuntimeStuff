@@ -181,7 +181,7 @@
 //            var columns = new List<(DataColumn, MemberInfoEx)>();
 //            foreach (var kvp in mapper)
 //            {
-//                var m = Obj.GetMember<T>(kvp.Value);
+//                var m = Obj.GetMember<T>(kvp.Item);
 //                if (m == null)
 //                    continue;
 //                columns.Add((dt.Columns[kvp.Key], m));

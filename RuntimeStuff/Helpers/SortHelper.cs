@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using RuntimeStuff.Helpers;
 
 
 /// <summary>
@@ -94,6 +95,7 @@ public static class SortHelper
 
         for (var i = 0; i < sorts.Length; i++)
         {
+            var t = typeof(T);
             var accessor = TypeHelper.Getter<T>(sorts[i].propertyName);
 
             if (i == 0 && !(source is IOrderedEnumerable<T>))

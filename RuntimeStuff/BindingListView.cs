@@ -5,9 +5,10 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
+using System.Linq.Expressions;
+using RuntimeStuff.Helpers;
 
-namespace RuntimeStuff.UI.Core
+namespace RuntimeStuff
 {
     /// <summary>
     ///     Представляет коллекцию, поддерживающую фильтрацию, сортировку, поиск и уведомления об изменениях,
@@ -23,7 +24,7 @@ namespace RuntimeStuff.UI.Core
     /// </remarks>
     /// <typeparam name="T">Тип элементов, содержащихся в списке. Должен быть ссылочным типом.</typeparam>
     [DebuggerDisplay("Count = {Count} TotalCount = {TotalCount}")]
-    public class BindingListView<T> : INotifyPropertyChanged, IBindingListView, INotifyCollectionChanged, IEnumerable<T> where T : class
+    public class BindingListView<T> : PropertyChangeNotifier, IBindingListView, INotifyCollectionChanged, IEnumerable<T> where T : class
     {
         public enum IndexType
         {
@@ -31,15 +32,17 @@ namespace RuntimeStuff.UI.Core
             FilteredSorted
         }
 
-        private readonly List<BindingListViewNode<T>> _nodes = new List<BindingListViewNode<T>>();
-
-        private readonly char[] _sortSeparators = { ',', ';' };
         private readonly List<T> _sourceList;
-        private readonly SynchronizationContext _uiContext = SynchronizationContext.Current ?? new SynchronizationContext();
+        public readonly char[] SortSeparators = { ',', ';' };
+        private bool _allowEdit = true;
+        private bool _allowNew = true;
+        private bool _allowRemove = true;
         private string _filter;
-        private Dictionary<T, BindingListViewNode<T>> _nodeMap;
+        private bool _isSorted;
+        private Dictionary<T, BindingListViewRow> _nodeMap;
         private string _sortBy;
         private List<T> _sourceFilteredAndSortedList;
+        private bool _suspendListChangedEvents;
 
         /// <summary>
         ///     Инициализирует новый экземпляр класса <see cref="BindingListView{T}" />.
@@ -48,9 +51,9 @@ namespace RuntimeStuff.UI.Core
         {
             _sourceList = new List<T>();
             _sourceFilteredAndSortedList = new List<T>();
-            _nodeMap = new Dictionary<T, BindingListViewNode<T>>();
-            _nodes = new List<BindingListViewNode<T>>();
-            RaiseResetEvents();
+            _nodeMap = new Dictionary<T, BindingListViewRow>();
+            TypeInfo = new MemberInfoEx(typeof(T));
+            Properties = TypeInfo.PublicProperties.Values.ToArray();
         }
 
         /// <summary>
@@ -58,14 +61,17 @@ namespace RuntimeStuff.UI.Core
         /// </summary>
         /// <param name="items">Исходная коллекция элементов.</param>
         /// <exception cref="ArgumentNullException">Если <paramref name="items" /> равен null.</exception>
-        public BindingListView(IEnumerable<T> items)
+        public BindingListView(IEnumerable<T> items) : this()
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
             _sourceList = items.ToList();
             _sourceFilteredAndSortedList = _sourceList.ToList();
             RebuildNodeMap();
-            RebuildNodes();
         }
+
+        public MemberInfoEx TypeInfo { get; }
+
+        public MemberInfoEx[] Properties { get; }
 
         /// <summary>
         ///     Возвращает общее количество элементов в исходном списке.
@@ -82,16 +88,27 @@ namespace RuntimeStuff.UI.Core
         public string SortBy
         {
             get => _sortBy;
-            set
-            {
-                if (_sortBy == value) return;
-                _sortBy = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SortBy)));
-                OnSortByChanged();
-            }
+            set => SetProperty(ref _sortBy, value, OnSortByChanged);
         }
 
-        public BindingListViewNode<T> this[int index, IndexType indexType] => indexType == IndexType.FilteredSorted ? _nodes[index] : _nodeMap[_sourceFilteredAndSortedList[index]];
+        /// <summary>
+        ///     Прекращает или возобновляет генерацию событий изменения списка.
+        /// </summary>
+        public bool SuspendListChangedEvents
+        {
+            get => _suspendListChangedEvents;
+            set => SetProperty(ref _suspendListChangedEvents, value, RaiseResetEvents);
+        }
+
+        /// <summary>
+        ///     Фабрика для создания новых элементов при вызове AddNew().
+        /// </summary>
+        public Func<T> NewItemFactory { get; set; }
+
+        /// <summary>
+        ///     Отфильтрован ли список.
+        /// </summary>
+        public bool IsFiltered => Count != TotalCount;
 
         /// <summary>
         ///     Событие, возникающее при изменении списка.
@@ -101,17 +118,29 @@ namespace RuntimeStuff.UI.Core
         /// <summary>
         ///     Разрешено ли редактирование элементов.
         /// </summary>
-        public bool AllowEdit { get; set; } = true;
+        public bool AllowEdit
+        {
+            get => _allowEdit;
+            set => SetProperty(ref _allowEdit, value);
+        }
 
         /// <summary>
         ///     Разрешено ли добавление новых элементов.
         /// </summary>
-        public bool AllowNew { get; set; } = true;
+        public bool AllowNew
+        {
+            get => _allowNew;
+            set => SetProperty(ref _allowNew, value);
+        }
 
         /// <summary>
         ///     Разрешено ли удаление элементов.
         /// </summary>
-        public bool AllowRemove { get; set; } = true;
+        public bool AllowRemove
+        {
+            get => _allowRemove;
+            set => SetProperty(ref _allowRemove, value);
+        }
 
         /// <summary>
         ///     Количество элементов в отображаемом списке.
@@ -122,22 +151,24 @@ namespace RuntimeStuff.UI.Core
             {
                 lock (SyncRoot)
                 {
-                    return _nodes.Count;
+                    return _sourceFilteredAndSortedList.Count;
                 }
             }
         }
 
         /// <summary>
-        ///     Строка фильтрации для отображаемого списка.
+        ///     Строка фильтрации для отображаемого списка. Формат: [ИмяСвойства] Оператор Значение. Операторы: ==, &lt; &gt;, &gt;
+        ///     , &lt;, &gt;=, &lt;=, LIKE, IN.
+        ///     Строковые значения должны быть в одинарных кавычках. Несколько условий можно объединять логическими операторами
+        ///     AND, OR.
         /// </summary>
         public string Filter
         {
             get => _filter;
             set
             {
-                if (_filter == value) return;
-                _filter = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Filter)));
+                if (!SetProperty(ref _filter, value))
+                    return;
                 ApplyFilterAndSort();
                 RebuildNodes();
             }
@@ -156,7 +187,11 @@ namespace RuntimeStuff.UI.Core
         /// <summary>
         ///     Отсортирован ли список.
         /// </summary>
-        public bool IsSorted { get; set; }
+        public bool IsSorted
+        {
+            get => _isSorted;
+            set => SetProperty(ref _isSorted, value);
+        }
 
         /// <summary>
         ///     Является ли доступ к списку синхронизированным.
@@ -166,17 +201,17 @@ namespace RuntimeStuff.UI.Core
         /// <summary>
         ///     Описания сортировки для списка.
         /// </summary>
-        public ListSortDescriptionCollection SortDescriptions { get; set; }
+        public ListSortDescriptionCollection SortDescriptions { get; private set; }
 
         /// <summary>
         ///     Направление сортировки.
         /// </summary>
-        public ListSortDirection SortDirection { get; set; }
+        public ListSortDirection SortDirection { get; private set; }
 
         /// <summary>
         ///     Свойство, по которому выполняется сортировка.
         /// </summary>
-        public PropertyDescriptor SortProperty { get; set; }
+        public PropertyDescriptor SortProperty { get; private set; }
 
         /// <summary>
         ///     Поддерживает ли расширенную сортировку.
@@ -209,7 +244,7 @@ namespace RuntimeStuff.UI.Core
         public object SyncRoot { get; } = new object();
 
         /// <summary>
-        ///     Получает или задает элемент по индексу.
+        ///     Получает или задает элемент по индексу из отфильтрованного и отсортированного списка.
         /// </summary>
         /// <param name="index">Индекс элемента.</param>
         /// <returns>Элемент по указанному индексу.</returns>
@@ -219,24 +254,28 @@ namespace RuntimeStuff.UI.Core
             {
                 lock (SyncRoot)
                 {
-                    return _nodes[index];
+                    return _sourceFilteredAndSortedList[index];
                 }
             }
             set
             {
                 if (!(value is T item))
-                    throw new ArgumentException($"Value must be of type {typeof(T).Name}");
+                    throw new ArgumentException($"Item must be of type {typeof(T).Name}");
 
                 lock (SyncRoot)
                 {
-                    _sourceList[index] = item;
-                    var bli = new BindingListViewNode<T>(item, _sourceList, index);
+                    SubscribeOnPropertyChanged(item, true);
+                    _sourceFilteredAndSortedList[index] = item;
+                    var bli = new BindingListViewRow(this, item, index);
                     _nodeMap[item] = bli;
                     ApplyFilterAndSort();
                 }
 
-                ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemChanged, index));
-                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace));
+                if (!SuspendListChangedEvents)
+                {
+                    ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemChanged, index));
+                    CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace));
+                }
             }
         }
 
@@ -250,18 +289,26 @@ namespace RuntimeStuff.UI.Core
         public int Add(object value)
         {
             if (!(value is T item))
-                throw new ArgumentException($"Value must be of type {typeof(T).Name}");
+                throw new ArgumentException($"Item must be of type {typeof(T).Name}");
+
+            SubscribeOnPropertyChanged(item, true);
+
             if (item == null)
                 throw new ArgumentNullException(nameof(value));
             lock (SyncRoot)
             {
                 _sourceList.Add(item);
-                var bli = new BindingListViewNode<T>(item, _sourceList, _sourceList.Count - 1);
+                var bli = new BindingListViewRow(this, item, _sourceList.Count - 1);
                 _nodeMap[item] = bli;
             }
 
-            ApplyFilterAndSort();
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add));
+            if (!SuspendListChangedEvents)
+            {
+                ApplyFilterAndSort();
+                ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemAdded, _sourceList.Count - 1));
+                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add));
+            }
+
             return _sourceList.Count - 1;
         }
 
@@ -275,7 +322,7 @@ namespace RuntimeStuff.UI.Core
         /// <returns>Добавленный элемент.</returns>
         public object AddNew()
         {
-            var item = Activator.CreateInstance<T>();
+            var item = NewItemFactory?.Invoke() ?? Activator.CreateInstance<T>();
             Add(item);
             return item;
         }
@@ -287,10 +334,10 @@ namespace RuntimeStuff.UI.Core
         {
             lock (SyncRoot)
             {
+                foreach (var item in _sourceList) SubscribeOnPropertyChanged(item, false);
                 _sourceList.Clear();
+                _sourceFilteredAndSortedList.Clear();
                 _nodeMap.Clear();
-                //_fullList.Clear();
-                _nodes.Clear();
             }
 
             RaiseResetEvents();
@@ -303,7 +350,7 @@ namespace RuntimeStuff.UI.Core
         /// <returns>True, если элемент найден; иначе false.</returns>
         public bool Contains(object value)
         {
-            return value is T item && _nodes.Contains(x => x.Value == item);
+            return value is T item && _sourceFilteredAndSortedList.Contains(item);
         }
 
         /// <summary>
@@ -315,7 +362,7 @@ namespace RuntimeStuff.UI.Core
         {
             lock (SyncRoot)
             {
-                ((ICollection)_nodes).CopyTo(array, index);
+                ((ICollection)_sourceFilteredAndSortedList).CopyTo(array, index);
             }
         }
 
@@ -329,9 +376,9 @@ namespace RuntimeStuff.UI.Core
         {
             lock (SyncRoot)
             {
-                for (var i = 0; i < _nodes.Count; i++)
+                for (var i = 0; i < _sourceFilteredAndSortedList.Count; i++)
                 {
-                    var value = property.GetValue(_nodes[i]);
+                    var value = TypeInfo.PublicProperties[property.Name].Getter(_sourceFilteredAndSortedList[i]);
                     if (Equals(value, key))
                         return i;
                 }
@@ -348,7 +395,7 @@ namespace RuntimeStuff.UI.Core
         {
             lock (SyncRoot)
             {
-                return _nodes.Select(x => x.Value).GetEnumerator();
+                return _sourceFilteredAndSortedList.GetEnumerator();
             }
         }
 
@@ -359,7 +406,7 @@ namespace RuntimeStuff.UI.Core
         /// <returns>Индекс элемента или -1, если не найден.</returns>
         public int IndexOf(object value)
         {
-            return value is T item ? _nodes.IndexOf(x => x.Value == item) : -1;
+            return value is T item ? _sourceFilteredAndSortedList.IndexOf(item) : -1;
         }
 
         /// <summary>
@@ -370,20 +417,23 @@ namespace RuntimeStuff.UI.Core
         public void Insert(int index, object value)
         {
             if (!(value is T item))
-                throw new ArgumentException($"Value must be of type {typeof(T).Name}");
+                throw new ArgumentException($"Item must be of type {typeof(T).Name}");
             if (item == null)
                 throw new ArgumentNullException(nameof(value));
 
             lock (SyncRoot)
             {
                 _sourceList.Insert(index, item);
-                var bli = new BindingListViewNode<T>(item, _sourceList, index);
+                var bli = new BindingListViewRow(this, item, index);
                 _nodeMap[item] = bli;
                 ApplyFilterAndSort();
             }
 
-            ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemAdded, index));
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
+            if (!SuspendListChangedEvents)
+            {
+                ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemAdded, index));
+                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, item, index));
+            }
         }
 
         /// <summary>
@@ -396,15 +446,17 @@ namespace RuntimeStuff.UI.Core
 
             lock (SyncRoot)
             {
-                if (_sourceList.Remove((T)value))
+                SubscribeOnPropertyChanged(item, false);
+                if (_sourceList.Remove(item))
                 {
-                    var index = _nodes.IndexOf(x => x.Value == item);
+                    var index = _sourceFilteredAndSortedList.IndexOf(item);
                     if (index >= 0)
-                    {
-                        ApplyFilterAndSort();
-                        ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
-                        CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
-                    }
+                        if (!SuspendListChangedEvents)
+                        {
+                            ApplyFilterAndSort();
+                            ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
+                            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
+                        }
                 }
             }
         }
@@ -423,9 +475,11 @@ namespace RuntimeStuff.UI.Core
                 ApplyFilterAndSort();
             }
 
-            ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
-            CollectionChanged?.Invoke(this,
-                new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
+            if (!SuspendListChangedEvents)
+            {
+                ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
+                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
+            }
         }
 
         /// <summary>
@@ -460,6 +514,7 @@ namespace RuntimeStuff.UI.Core
                 }
 
             SortProperty = null;
+            SortDescriptions = null;
             IsSorted = false;
 
             RaiseResetEvents();
@@ -472,29 +527,19 @@ namespace RuntimeStuff.UI.Core
 
             lock (SyncRoot)
             {
-                _sourceFilteredAndSortedList = SortHelper.Sort(_sourceFilteredAndSortedList, direction, property.Name).ToList();
-                IsSorted = true;
+                ApplyFilterAndSort();
             }
-
-            RaiseResetEvents();
         }
 
         public void ApplySort(ListSortDescriptionCollection sorts)
         {
             SortDescriptions = sorts;
-
-            // Применяем сортировку, если она установлена
-            if (IsSorted && SortProperty != null)
-                _sourceFilteredAndSortedList = SortHelper.Sort(_sourceFilteredAndSortedList, SortDirection, SortProperty.Name).ToList();
-            else if (SortDescriptions != null && SortDescriptions.Count > 0)
-                ApplySort(SortDescriptions);
-
-            RaiseResetEvents();
+            ApplyFilterAndSort();
         }
 
         IEnumerator<T> IEnumerable<T>.GetEnumerator()
         {
-            return _nodes.Select(x => x.Value).GetEnumerator();
+            return _sourceFilteredAndSortedList.GetEnumerator();
         }
 
         /// <summary>
@@ -503,18 +548,134 @@ namespace RuntimeStuff.UI.Core
         public event NotifyCollectionChangedEventHandler CollectionChanged;
 
         /// <summary>
-        ///     Событие, возникающее при изменении свойства.
+        ///     Получает строку представления элемента по указанному индексу.
         /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged;
+        /// <param name="index"></param>
+        /// <param name="indexType"></param>
+        /// <returns></returns>
+        public BindingListViewRow GetRow(int index, IndexType indexType = IndexType.FilteredSorted)
+        {
+            var row = _nodeMap[indexType == IndexType.Source ? _sourceList[index] : _sourceFilteredAndSortedList[index]];
+            row.VisibleIndex = _sourceFilteredAndSortedList.IndexOf(row.Item);
+            row.SourceListIndex = _sourceList.IndexOf(row.Item);
+            return row;
+        }
+
+        public object[] GetRowValues(int index, IndexType indexType = IndexType.FilteredSorted)
+        {
+            var values = new object[Properties.Length];
+            var i = 0;
+            var rowItem = indexType == IndexType.FilteredSorted ? _sourceFilteredAndSortedList[i] : _sourceList[i];
+            foreach (var property in Properties) values[i++] = property.Getter(rowItem);
+            return values;
+        }
+
+        public TValue[] GetPropertyValues<TValue>(Expression<Func<T, TValue>> propertySelector, IndexType indexType = IndexType.FilteredSorted, bool distinct = true)
+        {
+            return GetPropertyValues<TValue>(propertySelector.GetPropertyName(), indexType, distinct);
+        }
+
+        public object[] GetPropertyValues(string propertyName, IndexType indexType = IndexType.FilteredSorted, bool distinct = true)
+        {
+            return GetPropertyValues<object>(propertyName, indexType, distinct);
+        }
+
+        public TValue[] GetPropertyValues<TValue>(string propertyName, IndexType indexType = IndexType.FilteredSorted, bool distinct = true)
+        {
+            lock (SyncRoot)
+            {
+                var list = indexType == IndexType.FilteredSorted
+                    ? _sourceFilteredAndSortedList
+                    : _sourceList;
+
+                var propertyInfoEx = TypeInfo.PublicProperties[propertyName]
+                                     ?? throw new ArgumentException(
+                                         $"Property '{propertyName}' not found in type '{typeof(T).Name}'");
+
+                if (!distinct)
+                {
+                    var result = new TValue[list.Count];
+                    var i = 0;
+                    foreach (var item in list) result[i++] = (TValue)propertyInfoEx.Getter(item);
+
+                    return result;
+                }
+
+                var set = new HashSet<TValue>();
+
+                foreach (var item in list)
+                    set.Add((TValue)propertyInfoEx.Getter(item));
+
+                return set.ToArray();
+            }
+        }
+
+        public IEnumerator GetEnumerator(IndexType indexType)
+        {
+            lock (SyncRoot)
+            {
+                return indexType == IndexType.FilteredSorted ? _sourceFilteredAndSortedList.GetEnumerator() : _sourceList.GetEnumerator();
+            }
+        }
+
+        public void SetRowVisible(T item, bool visible)
+        {
+            SetRowsVisible(new[] { item }, visible);
+        }
+
+        public void SetRowVisible(int itemSourceIndex, bool visible)
+        {
+            SetRowsVisible(new[] { _sourceList[itemSourceIndex] }, visible);
+        }
+
+        public void SetRowsVisible(bool visible, params T[] items)
+        {
+            SetRowsVisible(items.AsEnumerable(), visible);
+        }
+
+        public void SetAllRowsVisible(bool visible)
+        {
+            SetRowsVisible(_sourceList, visible);
+        }
+
+        public void SetRowsVisible(IEnumerable<T> items, bool visible)
+        {
+            foreach (var item in items)
+                if (_nodeMap.TryGetValue(item, out var node))
+                    node.Visible = visible;
+
+            ApplyFilterAndSort();
+        }
+
+        private void OnItemOnPropertyChanged(object s, PropertyChangedEventArgs e)
+        {
+            if (!(s is T item))
+                return;
+            ApplyFilterAndSort();
+            if (!SuspendListChangedEvents)
+            {
+                ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemChanged, IndexOf(item)));
+                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace));
+            }
+        }
+
+        private void SubscribeOnPropertyChanged(object item, bool subscribe)
+        {
+            if (!(item is INotifyPropertyChanged notifyPropertyChanged))
+                return;
+            if (subscribe)
+                notifyPropertyChanged.PropertyChanged += OnItemOnPropertyChanged;
+            else
+                notifyPropertyChanged.PropertyChanged -= OnItemOnPropertyChanged;
+        }
 
         private void RebuildNodeMap()
         {
-            _nodeMap = _sourceList.Select((x, i) => (x, i)).ToDictionary(x => x.x, v => new BindingListViewNode<T>(v.x, _sourceList, v.i));
+            _nodeMap = _sourceList.Select((x, i) => (x, i)).ToDictionary(x => x.x, v => new BindingListViewRow(this, v.x, v.i));
         }
 
         private void RebuildNodes()
         {
-            _nodes.Clear();
             var visibleIndex = 0;
             foreach (var sourceItem in _sourceFilteredAndSortedList)
             {
@@ -522,29 +683,8 @@ namespace RuntimeStuff.UI.Core
                 if (!node.Visible)
                     continue;
                 node.VisibleIndex = visibleIndex++;
-                _nodes.Add(node);
             }
         }
-
-        //private void UpdateBindingListIndices(bool srcIndex, bool visibleIndex)
-        //{
-        //    if (srcIndex && _nodeMap != null && _sourceList != null)
-        //    {
-        //        for (var i = 0; i < _sourceList.Count; i++)
-        //        {
-        //            _nodeMap[_sourceList[i]].SourceListIndex = i;
-        //            _nodeMap[_sourceList[i]].VisibleIndex = -1;
-        //        }
-        //    }
-
-        //    if (visibleIndex && _sourceFilteredAndSortedList != null && _nodeMap != null && _sourceList != null)
-        //    {
-        //        for (var i = 0; i < _sourceFilteredAndSortedList.Count; i++)
-        //        {
-        //            _nodeMap[_sourceList[i]].VisibleIndex = i;
-        //        }
-        //    }
-        //}
 
         /// <summary>
         ///     Разбирает строку <see cref="SortBy" /> и применяет соответствующую сортировку.
@@ -562,7 +702,7 @@ namespace RuntimeStuff.UI.Core
 
             // Разделяем по пробелу, запятой или точке с запятой
 
-            var parts = s.Split(_sortSeparators, StringSplitOptions.RemoveEmptyEntries)
+            var parts = s.Split(SortSeparators, StringSplitOptions.RemoveEmptyEntries)
                 .Select(p => p.Trim())
                 .Where(p => !string.IsNullOrEmpty(p))
                 .ToArray();
@@ -614,8 +754,8 @@ namespace RuntimeStuff.UI.Core
             }
 
             var arr = list.ToArray();
-            var sorts = new ListSortDescriptionCollection(arr);
-            ApplySort(sorts);
+            SortDescriptions = new ListSortDescriptionCollection(arr);
+            ApplyFilterAndSort();
         }
 
         /// <summary>
@@ -629,16 +769,19 @@ namespace RuntimeStuff.UI.Core
 
             lock (SyncRoot)
             {
-                var i = _sourceList.Count;
-                foreach (var item in items)
-                {
-                    _sourceList.Add(item);
-                    _nodeMap.Add(item, new BindingListViewNode<T>(item, _sourceList, i++));
-                }
+                var previousSuspendState = SuspendListChangedEvents;
+                _suspendListChangedEvents = true;
+                foreach (var item in items) Add(item);
+                _suspendListChangedEvents = previousSuspendState;
             }
 
             ApplyFilterAndSort();
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add));
+
+            if (!SuspendListChangedEvents)
+            {
+                ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemAdded, _sourceList.Count - 1));
+                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add));
+            }
         }
 
         /// <summary>
@@ -649,36 +792,56 @@ namespace RuntimeStuff.UI.Core
         public void RemoveRange(IEnumerable<T> items)
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
-            lock (SyncRoot)
-            {
-                _sourceList.RemoveAll(items.Contains);
-            }
+
+            var previousSuspendState = SuspendListChangedEvents;
+            _suspendListChangedEvents = true;
+            foreach (var item in items)
+                Remove(item);
+            _suspendListChangedEvents = previousSuspendState;
 
             ApplyFilterAndSort();
-            CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove));
+
+            if (!SuspendListChangedEvents)
+            {
+                ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, -1));
+                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove));
+            }
         }
 
         /// <summary>
         ///     Применяет фильтр к списку.
         /// </summary>
-        private void ApplyFilterAndSort()
+        public void ApplyFilterAndSort()
         {
             lock (SyncRoot)
             {
+                var sourceCount = _sourceList.Count;
+
                 try
                 {
                     _sourceFilteredAndSortedList = FilterHelper.Filter(_sourceList, _filter).ToList();
                 }
-                catch (FormatException)
+                catch (FormatException fe)
                 {
+                    Debug.WriteLine($"Filter format exception: {fe.Message}");
                     _sourceFilteredAndSortedList = FilterHelper.FilterByText(_sourceList, _filter).ToList();
                 }
 
-                if (IsSorted || !string.IsNullOrWhiteSpace(_sortBy))
-                    ApplySort(SortDescriptions);
-            }
+                _sourceFilteredAndSortedList.RemoveAll(x => !_nodeMap[x].Visible);
 
-            RaiseResetEvents();
+                var filteredCount = _sourceFilteredAndSortedList.Count;
+                var prevIsSorted = IsSorted;
+
+                IsSorted = SortProperty != null || SortDescriptions != null || !string.IsNullOrWhiteSpace(_sortBy);
+
+                if (SortProperty != null)
+                    _sourceFilteredAndSortedList = SortHelper.Sort(_sourceFilteredAndSortedList, SortDirection, SortProperty.Name).ToList();
+                else if (SortDescriptions != null && SortDescriptions.Count > 0)
+                    _sourceFilteredAndSortedList = SortHelper.Sort(_sourceFilteredAndSortedList, SortDescriptions).ToList();
+
+                if (sourceCount != filteredCount || prevIsSorted != IsSorted)
+                    RaiseResetEvents();
+            }
         }
 
         /// <summary>
@@ -686,19 +849,40 @@ namespace RuntimeStuff.UI.Core
         /// </summary>
         private void RaiseResetEvents()
         {
+            if (SuspendListChangedEvents)
+                return;
+
             void Raise()
             {
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Count)));
                 ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.Reset, -1));
-                CollectionChanged?.Invoke(this,
-                    new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
             }
 
             // если мы не в UI-потоке — пересылаем выполнение туда
-            if (SynchronizationContext.Current == _uiContext)
-                Raise();
-            else
-                _uiContext.Post(_ => Raise(), null);
+            //if (SynchronizationContext.Current == null || SynchronizationContext.Current == _uiContext)
+            Raise();
+            //else
+            //_uiContext.Post(_ => Raise(), null);
+        }
+
+        public sealed class BindingListViewRow
+        {
+            internal BindingListViewRow(BindingListView<T> owner, T sourceItem, int? sourceListIndex)
+            {
+                Item = sourceItem;
+                SourceListIndex = sourceListIndex ?? owner?.IndexOf(sourceItem, 0) ?? -1;
+                VisibleIndex = SourceListIndex;
+            }
+
+            public T Item { get; internal set; }
+            public bool Visible { get; set; } = true;
+            public int SourceListIndex { get; internal set; }
+            public int VisibleIndex { get; internal set; }
+
+            public override string ToString()
+            {
+                return $"[{SourceListIndex}] {Item?.ToString() ?? base.ToString()}".Trim();
+            }
         }
     }
 }

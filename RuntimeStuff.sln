@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197 d17.13
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11206.111 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimeStuff", "RuntimeStuff\RuntimeStuff.csproj", "{6CAE7044-A3DC-44BD-BD33-23C9F8869C6E}"
 EndProject
@@ -24,6 +24,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Extensions", "Extensions", "{2FAFE8A3-3F27-42A8-8092-25955480DA71}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimeStuff.UI.Core", "RuntimeStuff.UI.Core\RuntimeStuff.UI.Core.csproj", "{4D8A7A96-0BBD-4F7D-8EE2-0AD2A9E3B27E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Editors", "Editors", "{30AA082E-D476-4D72-A8CF-E7EE52DE32FE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -72,6 +74,7 @@ Global
 		{A6BDEB16-2B5B-441A-AAFF-2A631DD16FCB} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{2FAFE8A3-3F27-42A8-8092-25955480DA71} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{4D8A7A96-0BBD-4F7D-8EE2-0AD2A9E3B27E} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{30AA082E-D476-4D72-A8CF-E7EE52DE32FE} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {093588C5-D2DB-48B1-AEF9-C4141182B33A}

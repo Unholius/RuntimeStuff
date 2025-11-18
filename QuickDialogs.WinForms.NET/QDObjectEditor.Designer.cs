@@ -42,12 +42,12 @@ namespace QuickDialogs.WinForms.NET
             propertyGrid1.Size = new Size(423, 502);
             propertyGrid1.TabIndex = 0;
             // 
-            // ObjectEditor
+            // QDObjectEditor
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             Controls.Add(propertyGrid1);
-            Name = "ObjectEditor";
+            Name = "QDObjectEditor";
             Size = new Size(423, 502);
             ResumeLayout(false);
         }

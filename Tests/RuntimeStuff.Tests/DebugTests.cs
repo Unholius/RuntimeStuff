@@ -11,7 +11,7 @@ namespace RuntimeStuff.MSTests
         {
             var vm = new ObjectEditorViewModel<TestClassWithBasicProperties>();
             vm.SelectedObject = new TestClassWithBasicProperties();
-            vm.Properties.Filter = "[Name] == 'IntProperty'";
+            vm.Properties.Filter = "[Name] == 'Int32'";
             Assert.AreEqual(1, vm.Properties.Count);
         }
 
@@ -39,17 +39,17 @@ namespace RuntimeStuff.MSTests
         public void Test4()
         {
             var vm = new ObjectEditorViewModel<TestClassWithBasicProperties>();
-            vm.SelectedObject = new TestClassWithBasicProperties() { StringProperty = "1" };
+            vm.SelectedObject = new TestClassWithBasicProperties() { Str = "1" };
             vm.Configuration
-                .SetRule(x => x.StringProperty, ["1", "2"], "Значение должно быть '1' или '2'")
-                .SetRule(x => x.IntProperty, 0, 10)
-                .SetVisible(true, x => x.StringProperty)
-                .SetEditable(false, x => x.IntProperty)
-                .SetDisplayFormat(@"{0:00000}", x => x.IntProperty)
+                .SetRule(x => x.Str, ["1", "2"], "Значение должно быть '1' или '2'")
+                .SetRule(x => x.Int32, 0, 10)
+                .SetVisible(true, x => x.Str)
+                .SetEditable(false, x => x.Int32)
+                .SetDisplayFormat(@"{0:00000}", x => x.Int32)
                 ;
-            var p1 = vm.Property(x => x.StringProperty);
+            var p1 = vm.Property(x => x.Str);
             p1.Value = "3";
-            var p2 = vm.Property(x => x.IntProperty);
+            var p2 = vm.Property(x => x.Int32);
             p2.Value = 20;
         }
     }

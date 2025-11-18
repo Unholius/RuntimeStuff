@@ -28,7 +28,7 @@
 //        /// <returns>True, если дата не null и время не равно 00:00:00</returns>
 //        public static bool HasTime(this DateTime? d)
 //        {
-//            return d.HasValue && d.Value.TimeOfDay != TimeSpan.Zero;
+//            return d.HasValue && d.Item.TimeOfDay != TimeSpan.Zero;
 //        }
 
 //        /// <summary>
@@ -45,8 +45,8 @@
 //            var matches = Regex.Matches(s, "[+-]?\\d*[dDmMsSyYwWhfF]");
 //            foreach (Match m in matches)
 //            {
-//                var n = int.ParseDate(m.Value.Substring(0, m.Value.Length - 1));
-//                switch (m.Value.Last())
+//                var n = int.ParseDate(m.Item.Substring(0, m.Item.Length - 1));
+//                switch (m.Item.Last())
 //                {
 //                    case 'y':
 //                    case 'Y':

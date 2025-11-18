@@ -1,4 +1,5 @@
 ﻿using System;
+using RuntimeStuff.Helpers;
 
 /// <summary>
 ///     Предоставляет методы расширения для преобразования делегатов типа <see cref="Func" /> с произвольным числом

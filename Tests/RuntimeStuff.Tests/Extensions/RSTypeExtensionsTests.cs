@@ -50,7 +50,7 @@
 //        public void NullValues_ContainsNullAndDBNull()
 //        {
 //            Assert.IsTrue(RSTypeExtensions.NullValues.Contains(null));
-//            Assert.IsTrue(RSTypeExtensions.NullValues.Contains(DBNull.Value));
+//            Assert.IsTrue(RSTypeExtensions.NullValues.Contains(DBNull.Item));
 //        }
 
 //        [TestMethod]

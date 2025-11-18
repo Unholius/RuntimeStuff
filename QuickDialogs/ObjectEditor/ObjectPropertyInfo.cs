@@ -6,17 +6,8 @@ using RuntimeStuff;
 
 namespace QuickDialogs.Core.ObjectEditor
 {
-    public sealed class ObjectPropertyInfo : ObjectPropertyInfo<object>
+    public class ObjectPropertyInfo : MemberInfoEx, INotifyPropertyChanged
     {
-        public ObjectPropertyInfo(ObjectEditorViewModel<object> viewModel, object source, MemberInfoEx memberInfoEx) :
-            base(viewModel, source, memberInfoEx)
-        {
-        }
-    }
-
-    public class ObjectPropertyInfo<TObject> : MemberInfoEx, INotifyPropertyChanged
-    {
-        private readonly ObjectEditorViewModel<TObject> _viewModel;
         private bool _changed;
         private string _displayValue;
         private bool _editable = true;
@@ -24,11 +15,10 @@ namespace QuickDialogs.Core.ObjectEditor
         private Func<object, bool> _isValueValid;
         private bool _readOnly;
         private object _value;
+        private PropertyChangeNotifier _notifier = new PropertyChangeNotifier();
 
-        public ObjectPropertyInfo(ObjectEditorViewModel<TObject> viewModel, object source, MemberInfoEx memberInfoEx) :
-            base(memberInfoEx)
+        public ObjectPropertyInfo(object source, MemberInfoEx memberInfoEx) : base(memberInfoEx)
         {
-            _viewModel = viewModel;
             IsValueValid = _ => true;
             EditFormat = string.Empty;
             InvalidValueErrorMessage = string.Empty;
@@ -44,8 +34,7 @@ namespace QuickDialogs.Core.ObjectEditor
             {
                 if (!Editable)
                     return;
-                SetField(ref _value, value);
-                OnValueChanged();
+                _notifier.SetProperty(ref _value, value, OnValueChanged);
             }
         }
 
@@ -54,27 +43,19 @@ namespace QuickDialogs.Core.ObjectEditor
         public string DisplayValue
         {
             get => _displayValue;
-            internal set => SetField(ref _displayValue, value);
+            internal set => _notifier.SetProperty(ref _displayValue, value);
         }
 
         public Func<object, bool> IsValueValid
         {
             get => _isValueValid;
-            internal set
-            {
-                SetField(ref _isValueValid, value);
-                OnValueChanged();
-            }
+            internal set => _notifier.SetProperty(ref _isValueValid, value, OnValueChanged);
         }
 
         public string ErrorMessage
         {
             get => _errorMessage;
-            internal set
-            {
-                SetField(ref _errorMessage, value);
-                _viewModel.RaiseCanAcceptChanged();
-            }
+            internal set => _notifier.SetProperty(ref _errorMessage, value, OnValueChanged);
         }
 
         public string InvalidValueErrorMessage { get; internal set; }
@@ -85,12 +66,12 @@ namespace QuickDialogs.Core.ObjectEditor
         public object MaxValue { get; internal set; }
         public object[] AllowedValues { get; internal set; }
 
-        public bool Visible => _viewModel.Properties.Contains(this);
+        //public bool Visible => _viewModel.Properties.Contains(this);
 
         public bool Changed
         {
             get => _changed;
-            internal set => SetField(ref _changed, value);
+            internal set => _notifier.SetProperty(ref _changed, value);
         }
 
         public bool Editable
@@ -99,7 +80,7 @@ namespace QuickDialogs.Core.ObjectEditor
             set
             {
                 _readOnly = !value;
-                SetField(ref _editable, value);
+                _notifier.SetProperty(ref _editable, value);
             }
         }
 
@@ -109,7 +90,7 @@ namespace QuickDialogs.Core.ObjectEditor
             internal set
             {
                 _editable = !value;
-                SetField(ref _readOnly, value);
+                _notifier.SetProperty(ref _readOnly, value);
             }
         }
 
@@ -120,21 +101,13 @@ namespace QuickDialogs.Core.ObjectEditor
             Changed = !Equals(Value, OriginalValue);
             ErrorMessage = IsValueValid(Value) ? string.Empty : InvalidValueErrorMessage;
             DisplayValue = string.Format(DisplayFormat, Value);
-            _viewModel.RaiseCanAcceptChanged();
-            _viewModel.RaiseHasChangesChanged();
+            //_viewModel.RaiseCanAcceptChanged();
+            //_viewModel.RaiseHasChangesChanged();
         }
 
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        private bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value)) return false;
-            field = value;
-            OnPropertyChanged(propertyName);
-            return true;
         }
 
         public sealed override string ToString()

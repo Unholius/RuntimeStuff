@@ -121,7 +121,7 @@
     <value>Элемент с ключом '{0}' уже существует в кэше.</value>
   </data>
   <data name="EX_BindingListView_AddRange_Item_Cannot_Be_Null" xml:space="preserve">
-	  <value>Value cannot be null</value>
+	  <value>Item cannot be null</value>
   </data>
   <data name="ActionExtensions_ConvertAction_Expected_at_least__0__arguments" xml:space="preserve">
 	  <value>Expected at least {0} arguments</value>
