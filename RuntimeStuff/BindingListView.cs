@@ -6,6 +6,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
+using RuntimeStuff.Extensions;
 using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff
@@ -52,8 +54,7 @@ namespace RuntimeStuff
             _sourceList = new List<T>();
             _sourceFilteredAndSortedList = new List<T>();
             _nodeMap = new Dictionary<T, BindingListViewRow>();
-            TypeInfo = new MemberInfoEx(typeof(T));
-            Properties = TypeInfo.PublicProperties.Values.ToArray();
+            Properties = TypeHelper.GetProperties<T>();
         }
 
         /// <summary>
@@ -69,9 +70,7 @@ namespace RuntimeStuff
             RebuildNodeMap();
         }
 
-        public MemberInfoEx TypeInfo { get; }
-
-        public MemberInfoEx[] Properties { get; }
+        public PropertyInfo[] Properties { get; }
 
         /// <summary>
         ///     Возвращает общее количество элементов в исходном списке.
@@ -280,7 +279,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Добавляет элемент в список.
+        ///     Добавляет элемент в список. Для оптимизации используй <see cref="AddRange"/> или <see cref="SuspendListChangedEvents"/>
         /// </summary>
         /// <param name="value">Добавляемый элемент.</param>
         /// <returns>Индекс добавленного элемента.</returns>
@@ -298,6 +297,7 @@ namespace RuntimeStuff
             lock (SyncRoot)
             {
                 _sourceList.Add(item);
+                _sourceFilteredAndSortedList.Add(item);
                 var bli = new BindingListViewRow(this, item, _sourceList.Count - 1);
                 _nodeMap[item] = bli;
             }
@@ -378,7 +378,7 @@ namespace RuntimeStuff
             {
                 for (var i = 0; i < _sourceFilteredAndSortedList.Count; i++)
                 {
-                    var value = TypeInfo.PublicProperties[property.Name].Getter(_sourceFilteredAndSortedList[i]);
+                    var value = TypeHelper.GetValue(_sourceFilteredAndSortedList[i], property.Name);
                     if (Equals(value, key))
                         return i;
                 }
@@ -566,7 +566,8 @@ namespace RuntimeStuff
             var values = new object[Properties.Length];
             var i = 0;
             var rowItem = indexType == IndexType.FilteredSorted ? _sourceFilteredAndSortedList[i] : _sourceList[i];
-            foreach (var property in Properties) values[i++] = property.Getter(rowItem);
+            foreach (var property in Properties) 
+                values[i++] = TypeHelper.GetValue(rowItem, property.Name);
             return values;
         }
 
@@ -588,15 +589,11 @@ namespace RuntimeStuff
                     ? _sourceFilteredAndSortedList
                     : _sourceList;
 
-                var propertyInfoEx = TypeInfo.PublicProperties[propertyName]
-                                     ?? throw new ArgumentException(
-                                         $"Property '{propertyName}' not found in type '{typeof(T).Name}'");
-
                 if (!distinct)
                 {
                     var result = new TValue[list.Count];
                     var i = 0;
-                    foreach (var item in list) result[i++] = (TValue)propertyInfoEx.Getter(item);
+                    foreach (var item in list) result[i++] = TypeHelper.GetValue<TValue>(item, propertyName);
 
                     return result;
                 }
@@ -604,7 +601,7 @@ namespace RuntimeStuff
                 var set = new HashSet<TValue>();
 
                 foreach (var item in list)
-                    set.Add((TValue)propertyInfoEx.Getter(item));
+                    set.Add(TypeHelper.GetValue<TValue>(item, propertyName));
 
                 return set.ToArray();
             }
@@ -649,14 +646,8 @@ namespace RuntimeStuff
 
         private void OnItemOnPropertyChanged(object s, PropertyChangedEventArgs e)
         {
-            if (!(s is T item))
-                return;
             ApplyFilterAndSort();
-            if (!SuspendListChangedEvents)
-            {
-                ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemChanged, IndexOf(item)));
-                CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace));
-            }
+            RaiseResetEvents();
         }
 
         private void SubscribeOnPropertyChanged(object item, bool subscribe)
@@ -819,12 +810,12 @@ namespace RuntimeStuff
 
                 try
                 {
-                    _sourceFilteredAndSortedList = FilterHelper.Filter(_sourceList, _filter).ToList();
+                    _sourceFilteredAndSortedList = _sourceList.Filter(_filter).ToList();
                 }
                 catch (FormatException fe)
                 {
                     Debug.WriteLine($"Filter format exception: {fe.Message}");
-                    _sourceFilteredAndSortedList = FilterHelper.FilterByText(_sourceList, _filter).ToList();
+                    _sourceFilteredAndSortedList = _sourceList.FilterByText(_filter).ToList();
                 }
 
                 _sourceFilteredAndSortedList.RemoveAll(x => !_nodeMap[x].Visible);
@@ -835,9 +826,9 @@ namespace RuntimeStuff
                 IsSorted = SortProperty != null || SortDescriptions != null || !string.IsNullOrWhiteSpace(_sortBy);
 
                 if (SortProperty != null)
-                    _sourceFilteredAndSortedList = SortHelper.Sort(_sourceFilteredAndSortedList, SortDirection, SortProperty.Name).ToList();
+                    _sourceFilteredAndSortedList = _sourceFilteredAndSortedList.Sort(SortDirection, SortProperty.Name).ToList();
                 else if (SortDescriptions != null && SortDescriptions.Count > 0)
-                    _sourceFilteredAndSortedList = SortHelper.Sort(_sourceFilteredAndSortedList, SortDescriptions).ToList();
+                    _sourceFilteredAndSortedList = _sourceFilteredAndSortedList.Sort(SortDescriptions).ToList();
 
                 if (sourceCount != filteredCount || prevIsSorted != IsSorted)
                     RaiseResetEvents();

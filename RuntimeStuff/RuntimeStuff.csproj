@@ -1,11 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+		<ItemGroup>
+			<NupkgFiles Include="bin\$(Configuration)\*.nupkg" />
+		</ItemGroup>
+
+		<Delete Files="@(NupkgFiles)" />
+	</Target>
+	<PropertyGroup>
 	  <TargetFrameworks>netstandard2.0</TargetFrameworks>
 	  <Version>$(VersionPrefix)$([System.DateTime]::Now.ToString("yyyy")).$([System.DateTime]::Now.ToString("MMdd")).$([System.DateTime]::Now.ToString("HHmm"))</Version>
 	  <OutputType>Library</OutputType>
+	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	  <Authors>Rudnev Sergey</Authors>
+	  <PackageProjectUrl>https://github.com/Unholius/RuntimeStuff</PackageProjectUrl>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageReference Include="System.Reflection.Emit.Lightweight" Version="4.7.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">

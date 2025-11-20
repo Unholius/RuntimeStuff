@@ -11,6 +11,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
+using RuntimeStuff.Extensions;
 using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff

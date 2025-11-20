@@ -1,4 +1,6 @@
-﻿namespace RuntimeStuff.MSTests.Extensions
+﻿using RuntimeStuff.Extensions;
+
+namespace RuntimeStuff.MSTests.Extensions
 {
     [TestClass]
     public class RSFuncExtensionsTests

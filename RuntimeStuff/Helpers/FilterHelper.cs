@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RuntimeStuff.Builders;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -18,11 +19,6 @@ namespace RuntimeStuff.Helpers
     public static class FilterHelper
     {
         #region Public
-
-        public static IEnumerable<T> Filter<T>(IEnumerable<T> source, FilterBuilder filterBuilder)
-        {
-            return  Filter(source, filterBuilder.ToString());
-        }
 
         /// <summary>
         ///     Фильтрует элементы последовательности на основе заданного строкового выражения.

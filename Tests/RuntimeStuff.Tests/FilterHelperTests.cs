@@ -1,4 +1,5 @@
-﻿using RuntimeStuff.Helpers;
+﻿using RuntimeStuff.Builders;
+using RuntimeStuff.Helpers;
 using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
@@ -22,7 +23,8 @@ namespace RuntimeStuff.MSTests
             }
 
             var fb = new FilterBuilder();
-            fb.Property("Int32").Like("%2%");
+            //fb.Property("Int32").Like("%2%");
+            fb.Add("Int32", FilterBuilder.Operation.Like, "%2%");
             var filter = fb.ToString(); // "[Int32] like '%2%'";
             var filtered = FilterHelper.Filter(lst, filter).ToArray();
             FilterHelper.ToPredicate<TestClassWithBasicProperties>(filter);

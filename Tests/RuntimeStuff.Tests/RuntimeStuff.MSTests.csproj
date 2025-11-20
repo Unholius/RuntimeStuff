@@ -14,7 +14,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\QuickDialogs\QuickDialogs.Core.csproj" />
-    <ProjectReference Include="..\..\RuntimeStuff.UI.Core\RuntimeStuff.UI.Core.csproj" />
   </ItemGroup>
 
 </Project>

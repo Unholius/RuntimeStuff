@@ -9,7 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RuntimeStuff.UI.Core\RuntimeStuff.UI.Core.csproj" />
+    <ProjectReference Include="..\RuntimeStuff\RuntimeStuff.csproj" />
   </ItemGroup>
 
 </Project>

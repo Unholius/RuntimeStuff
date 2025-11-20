@@ -76,6 +76,8 @@
 
         }
 
+        private string _str = "secret";
+
         public TestClassWithBasicProperties(int int32, string? str = null, bool? @bool = null, double? @double = null)
         {
             Int32 = int32;
@@ -93,5 +95,10 @@
         {
             return $"{Int32}";
         }
+    }
+
+    public class TestClassWithMethods : TestClassWithBasicProperties
+    {
+        public string GetString() => "GetString";
     }
 }

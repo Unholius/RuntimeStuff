@@ -9,8 +9,10 @@ namespace TestApp.WinForms.NET
         public Form1()
         {
             InitializeComponent();
-            for (var i = 0; i < 10; i++)
+            ds.SuspendListChangedEvents = true;
+            for (var i = 0; i < 100_000; i++)
                 ds.Add(new TestClassWithBasicPropertiesWithNotifyPropertyChanged(i));
+            ds.SuspendListChangedEvents = false;
             dataGridView1.DataSource = ds;
             dataGridView1.AllowUserToAddRows = false;
             dataGridView1.AllowUserToDeleteRows = false;

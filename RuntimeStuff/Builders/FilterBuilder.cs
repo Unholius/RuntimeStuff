@@ -1,0 +1,630 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Text;
+using RuntimeStuff.Extensions;
+using RuntimeStuff.Options;
+
+namespace RuntimeStuff.Builders
+{
+    /// <summary>
+    ///     Построитель текстового фильтра. Позволяет удобно составлять выражения фильтра в виде строки.
+    /// </summary>
+    public class FilterBuilder : IHaveOptions<FilterBuilderOptions>
+    {
+        /// <summary>
+        ///     Операции, поддерживаемые строителем фильтра.
+        /// </summary>
+        public enum Operation
+        {
+            /// <summary>Равно</summary>
+            Equal,
+
+            /// <summary>Не равно</summary>
+            NotEqual,
+
+            /// <summary>Больше</summary>
+            GreaterThan,
+
+            /// <summary>Больше или равно</summary>
+            GreaterThanOrEqual,
+
+            /// <summary>Меньше</summary>
+            LessThan,
+
+            /// <summary>Меньше или равно</summary>
+            LessThanOrEqual,
+
+            /// <summary>Похожесть (LIKE)</summary>
+            Like,
+
+            /// <summary>Не похож (NOT LIKE)</summary>
+            NotLike,
+
+            /// <summary>В списке (IN)</summary>
+            In,
+
+            /// <summary>Не в списке (NOT IN)</summary>
+            NotIn,
+
+            /// <summary>Между (BETWEEN)</summary>
+            Between,
+
+            /// <summary>Не между (NOT BETWEEN)</summary>
+            NotBetween
+        }
+
+        private readonly Dictionary<Operation, string> _operations = new Dictionary<Operation, string>
+        {
+            { Operation.Equal, "==" },
+            { Operation.NotEqual, "!=" },
+            { Operation.GreaterThan, ">" },
+            { Operation.GreaterThanOrEqual, ">=" },
+            { Operation.LessThan, "<" },
+            { Operation.LessThanOrEqual, "<=" },
+            { Operation.Like, "LIKE" },
+            { Operation.NotLike, "NOT LIKE" },
+            { Operation.In, "IN" },
+            { Operation.NotIn, "NOT IN" },
+            { Operation.Between, "BETWEEN" },
+            { Operation.NotBetween, "NOT BETWEEN" }
+        };
+
+        private readonly StringBuilder _sb = new StringBuilder();
+
+        private bool _needsOp;
+
+        public FilterBuilder()
+        {
+            Options = new FilterBuilderOptions();
+        }
+
+        public FilterBuilder(FilterBuilderOptions options)
+        {
+            Options = options ?? new FilterBuilderOptions();
+        }
+
+        public FilterBuilderOptions Options { get; set; }
+
+        /// <summary>
+        ///     Вспомогательный метод для добавления текста в строящийся фильтр.
+        /// </summary>
+        /// <param name="text">Текст для добавления.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" /> для цепочек вызовов.</returns>
+        private FilterBuilder Append(string text)
+        {
+            _sb.Append(text);
+            return this;
+        }
+
+        /// <summary>
+        ///     Возвращает итоговое строковое представление фильтра.
+        /// </summary>
+        /// <returns>Строка фильтра.</returns>
+        public override string ToString()
+        {
+            return _sb.ToString();
+        }
+
+        /// <summary>
+        ///     Открывает логическую группу (добавляет "(").
+        /// </summary>
+        /// <remarks>Если перед группой ожидается логический оператор, выбрасывается исключение.</remarks>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        /// <exception cref="InvalidOperationException">Если перед группой требуется оператор AND/OR.</exception>
+        public FilterBuilder OpenGroup()
+        {
+            if (_needsOp)
+                throw new InvalidOperationException("Перед группой нужен оператор AND/OR.");
+            return Append("(");
+        }
+
+        /// <summary>
+        ///     Закрывает логическую группу (добавляет ")").
+        /// </summary>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder CloseGroup()
+        {
+            Append(")");
+            _needsOp = true;
+            return this;
+        }
+
+        /// <summary>
+        ///     Очищает текущее состояние строителя.
+        /// </summary>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder Clear()
+        {
+            _sb.Clear();
+            _needsOp = false;
+            return this;
+        }
+
+        /// <summary>
+        ///     Добавляет логический оператор AND ("&&").
+        /// </summary>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder And()
+        {
+            Append(" && ");
+            _needsOp = false;
+            return this;
+        }
+
+        /// <summary>
+        ///     Добавляет логический оператор OR ("||").
+        /// </summary>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder Or()
+        {
+            Append(" || ");
+            _needsOp = false;
+            return this;
+        }
+
+        /// <summary>
+        ///     Добавляет логическое отрицание (!) перед выражением.
+        /// </summary>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder Not()
+        {
+            Append("!");
+            return this;
+        }
+
+
+        /// <summary>
+        ///     Указывает свойство (имя) для следующей операции фильтра.
+        /// </summary>
+        /// <param name="name">Имя свойства.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        /// <exception cref="InvalidOperationException">Если требуется логический оператор перед операцией.</exception>
+        public FilterBuilder Property(string name)
+        {
+            if (_needsOp)
+                throw new InvalidOperationException("Перед операцией требуется логический оператор.");
+
+            return Append($"[{name}]");
+        }
+
+        /// <summary>
+        ///     Указывает свойство через селектор выражения.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта, содержащего свойство.</typeparam>
+        /// <param name="propertySelector">Выражение выбора свойства.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder Property<T>(Expression<Func<T, object>> propertySelector) where T : class
+        {
+            return Property(propertySelector.GetPropertyName());
+        }
+
+        /// <summary>
+        ///     Преобразует предикат в строковое представление фильтра и добавляет его.
+        /// </summary>
+        /// <typeparam name="T">Тип параметра лямбда-выражения.</typeparam>
+        /// <param name="predicate">Лямбда-предикат.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        /// <exception cref="ArgumentNullException">Если <paramref name="predicate" /> равен null.</exception>
+        public FilterBuilder Where<T>(Expression<Func<T, bool>> predicate) where T : class
+        {
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            var text = FilterExpressionStringBuilder.ConvertExpression(predicate);
+
+            Append(text);
+            _needsOp = true;
+
+            return this;
+        }
+
+        /// <summary>
+        ///     Добавляет оператор AND, затем применяет предикат.
+        /// </summary>
+        /// <typeparam name="T">Тип параметра лямбда-выражения.</typeparam>
+        /// <param name="predicate">Лямбда-предикат.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder AndWhere<T>(Expression<Func<T, bool>> predicate) where T : class
+        {
+            return And().Where(predicate);
+        }
+
+        /// <summary>
+        ///     Добавляет оператор OR, затем применяет предикат.
+        /// </summary>
+        /// <typeparam name="T">Тип параметра лямбда-выражения.</typeparam>
+        /// <param name="predicate">Лямбда-предикат.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder OrWhere<T>(Expression<Func<T, bool>> predicate) where T : class
+        {
+            return Or().Where(predicate);
+        }
+
+        /// <summary>
+        ///     Добавляет операцию равенства с указанным значением.
+        /// </summary>
+        /// <param name="value">Значение для сравнения.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder Equal(object value)
+        {
+            return Binary("==", value);
+        }
+
+        /// <summary>
+        ///     Добавляет операцию неравенства с указанным значением.
+        /// </summary>
+        /// <param name="value">Значение для сравнения.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder NotEqual(object value)
+        {
+            return Binary("!=", value);
+        }
+
+        /// <summary>
+        ///     Добавляет операцию "больше".
+        /// </summary>
+        /// <param name="value">Значение для сравнения.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder GreaterThan(object value)
+        {
+            return Binary(">", value);
+        }
+
+        /// <summary>
+        ///     Добавляет операцию "меньше" (LowerThan).
+        /// </summary>
+        /// <param name="value">Значение для сравнения.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder LowerThan(object value)
+        {
+            return Binary("<", value);
+        }
+
+        /// <summary>
+        ///     Добавляет операцию "больше или равно".
+        /// </summary>
+        /// <param name="value">Значение для сравнения.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder GreaterOrEqual(object value)
+        {
+            return Binary(">=", value);
+        }
+
+        /// <summary>
+        ///     Добавляет операцию "меньше или равно".
+        /// </summary>
+        /// <param name="value">Значение для сравнения.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder LowerOrEqual(object value)
+        {
+            return Binary("<=", value);
+        }
+
+        /// <summary>
+        ///     Вспомогательный метод для бинарных операций — добавляет оператор и форматированное значение.
+        /// </summary>
+        /// <param name="op">Текст оператора (например, "==").</param>
+        /// <param name="value">Значение для форматирования.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        private FilterBuilder Binary(string op, object value)
+        {
+            Append($" {op} {Format(value)}");
+            _needsOp = true;
+            return this;
+        }
+
+        /// <summary>
+        ///     Добавляет запись специфицированной операции для свойства через выражение-селектор.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта, содержащего свойство.</typeparam>
+        /// <param name="propertySelector">Селектор свойства.</param>
+        /// <param name="operation">Операция (<see cref="Operation" />).</param>
+        /// <param name="value">Значение операции.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder Add<T>(Expression<Func<T, object>> propertySelector, Operation operation, object value)
+        {
+            return Add(propertySelector.GetPropertyName(), operation, value);
+        }
+
+        /// <summary>
+        ///     Добавляет запись операции для свойства по имени.
+        /// </summary>
+        /// <param name="propertyName">Имя свойства.</param>
+        /// <param name="operation">Операция (<see cref="Operation" />).</param>
+        /// <param name="value">Значение (может быть IEnumerable для IN/BETWEEN и т.д.).</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        /// <exception cref="ArgumentException">Если имя свойства пустое или аргументы не подходят для операции.</exception>
+        /// <exception cref="NotSupportedException">Если операция не поддерживается.</exception>
+        public FilterBuilder Add(string propertyName, Operation operation, object value)
+        {
+            if (string.IsNullOrWhiteSpace(propertyName))
+                throw new ArgumentException(@"Property name cannot be null or empty.", nameof(propertyName));
+
+            Property(propertyName);
+
+            switch (operation)
+            {
+                case Operation.Between:
+                case Operation.NotBetween:
+                    if (value is IEnumerable e && !(value is string))
+                    {
+                        var list = e.Cast<object>().ToList();
+                        if (list.Count < 2)
+                            throw new ArgumentException(@"Between operation requires at least two values.", nameof(value));
+
+                        return operation == Operation.Between ? Between(list[0], list[1]) : NotBetween(list[0], list[1]);
+                    }
+
+                    throw new ArgumentException(@"Between operation requires an array or IEnumerable with at least two elements.", nameof(value));
+
+                case Operation.In:
+                case Operation.NotIn:
+                    if (value is IEnumerable inValues && !(value is string))
+                        return operation == Operation.In ? In(inValues.Cast<object>()) : NotIn(inValues.Cast<object>());
+                    throw new ArgumentException(@"NotIn operation requires an IEnumerable.", nameof(value));
+
+                case Operation.Like:
+                    return Like(value?.ToString() ?? throw new ArgumentNullException(nameof(value)));
+
+                case Operation.NotLike:
+                    return NotLike(value?.ToString() ?? throw new ArgumentNullException(nameof(value)));
+
+                default:
+                    if (!_operations.TryGetValue(operation, out var opString))
+                        throw new NotSupportedException($"Operation {operation} is not supported.");
+
+                    return Binary(opString, value);
+            }
+        }
+
+
+        /// <summary>
+        ///     Добавляет оператор LIKE с указанным шаблоном.
+        /// </summary>
+        /// <param name="pattern">Шаблон (без кавычек).</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder Like(string pattern)
+        {
+            Append(" LIKE ").Append(Format(pattern));
+            _needsOp = true;
+            return this;
+        }
+
+        /// <summary>
+        ///     Добавляет оператор NOT LIKE с указанным шаблоном.
+        /// </summary>
+        /// <param name="pattern">Шаблон (без кавычек).</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder NotLike(string pattern)
+        {
+            Append(" NOT LIKE ").Append(Format(pattern));
+            _needsOp = true;
+            return this;
+        }
+
+
+        /// <summary>
+        ///     Добавляет оператор IN с перечислением значений.
+        /// </summary>
+        /// <param name="values">Список значений.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder In(IEnumerable<object> values)
+        {
+            Append(" IN { ").Append(string.Join(", ", values.Select(Format))).Append(" }");
+            _needsOp = true;
+            return this;
+        }
+
+        /// <summary>
+        ///     Добавляет оператор NOT IN с перечислением значений.
+        /// </summary>
+        /// <param name="values">Список значений.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder NotIn(IEnumerable<object> values)
+        {
+            Append(" NOT IN { ").Append(string.Join(", ", values.Select(Format))).Append(" }");
+            _needsOp = true;
+            return this;
+        }
+
+
+        /// <summary>
+        ///     Добавляет оператор BETWEEN с нижней и верхней границей.
+        /// </summary>
+        /// <param name="low">Нижняя граница.</param>
+        /// <param name="high">Верхняя граница.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder Between(object low, object high)
+        {
+            Append($" BETWEEN {Format(low)} AND {Format(high)}");
+            _needsOp = true;
+            return this;
+        }
+
+        /// <summary>
+        ///     Добавляет оператор NOT BETWEEN с нижней и верхней границей.
+        /// </summary>
+        /// <param name="low">Нижняя граница.</param>
+        /// <param name="high">Верхняя граница.</param>
+        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        public FilterBuilder NotBetween(object low, object high)
+        {
+            Append($" NOT BETWEEN {Format(low)} AND {Format(high)}");
+            _needsOp = true;
+            return this;
+        }
+
+
+        /// <summary>
+        ///     Форматирует значение в строковое представление, понятное в фильтре.
+        /// </summary>
+        /// <param name="value">Значение для форматирования.</param>
+        /// <returns>Отформатированное строковое представление (включая кавычки для строк/дат).</returns>
+        private string Format(object value)
+        {
+            if (value == null)
+                return "null";
+
+            if (value is string s)
+                return $"{Options.FormatOptions.StringValuePrefix}{s}{Options.FormatOptions.StringValueSuffix}";
+
+            if (value is DateTime dt)
+                return string.Format(Options.FormatOptions.StringValuePrefix + "{0:" + Options.FormatOptions.DateFormat + "}" + Options.FormatOptions.StringValueSuffix, dt);
+
+            if (value is bool b)
+                return b ? Options.FormatOptions.TrueString : Options.FormatOptions.FalseString;
+
+            if (value is Enum e)
+                return Convert.ToInt32(e).ToString();
+
+            return Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
+        OptionsBase IHaveOptions.Options
+        {
+            get => Options;
+            set => Options.Merge(value);
+        }
+    }
+
+    /// <summary>
+    ///     Вспомогательный класс для преобразования linq-выражений в строковое представление фильтра.
+    /// </summary>
+    internal class FilterExpressionStringBuilder : ExpressionVisitor
+    {
+        private readonly StringBuilder _sb = new StringBuilder();
+
+        /// <summary>
+        ///     Преобразует выражение в строку фильтра.
+        /// </summary>
+        /// <param name="expr">Выражение (обычно лямбда-предикат).</param>
+        /// <returns>Строковое представление выражения в виде фильтра.</returns>
+        public static string ConvertExpression(Expression expr)
+        {
+            var visitor = new FilterExpressionStringBuilder();
+            visitor.Visit(expr);
+            return visitor._sb.ToString();
+        }
+
+        protected override Expression VisitLambda<T>(Expression<T> node)
+        {
+            Visit(node.Body);
+            return node;
+        }
+
+        protected override Expression VisitBinary(BinaryExpression node)
+        {
+            _sb.Append("(");
+
+            Visit(node.Left);
+
+            switch (node.NodeType)
+            {
+                case ExpressionType.Equal: _sb.Append(" == "); break;
+                case ExpressionType.NotEqual: _sb.Append(" != "); break;
+                case ExpressionType.GreaterThan: _sb.Append(" > "); break;
+                case ExpressionType.GreaterThanOrEqual: _sb.Append(" >= "); break;
+                case ExpressionType.LessThan: _sb.Append(" < "); break;
+                case ExpressionType.LessThanOrEqual: _sb.Append(" <= "); break;
+                case ExpressionType.AndAlso: _sb.Append(" && "); break;
+                case ExpressionType.OrElse: _sb.Append(" || "); break;
+                default: throw new NotSupportedException(node.NodeType.ToString());
+            }
+
+            Visit(node.Right);
+
+            _sb.Append(")");
+
+            return node;
+        }
+
+        protected override Expression VisitMember(MemberExpression node)
+        {
+            if (node.Expression != null && node.Expression.NodeType == ExpressionType.Parameter)
+            {
+                _sb.Append($"[{node.Member.Name}]");
+                return node;
+            }
+
+            var value = Expression.Lambda(node).Compile().DynamicInvoke();
+            AppendConstant(value);
+            return node;
+        }
+
+        protected override Expression VisitConstant(ConstantExpression node)
+        {
+            AppendConstant(node.Value);
+            return node;
+        }
+
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            if (node.Method.Name == nameof(string.Contains) &&
+                node.Object != null &&
+                node.Object.Type == typeof(string))
+            {
+                Visit(node.Object);
+                _sb.Append(" LIKE ");
+                var val = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke()?.ToString();
+
+                _sb.Append($"'%{val}%'");
+                return node;
+            }
+
+            if (node.Method.Name == nameof(string.StartsWith))
+            {
+                Visit(node.Object);
+                _sb.Append(" LIKE ");
+                var val = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke()?.ToString();
+
+                _sb.Append($"'{val}%'");
+                return node;
+            }
+
+            if (node.Method.Name == nameof(string.EndsWith))
+            {
+                Visit(node.Object);
+                _sb.Append(" LIKE ");
+                var val = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke()?.ToString();
+
+                _sb.Append($"'%{val}'");
+                return node;
+            }
+
+            throw new NotSupportedException($"Method call {node.Method.Name} not supported.");
+        }
+
+        /// <summary>
+        ///     Добавляет константу в строковое представление, корректно форматируя её в зависимости от типа.
+        /// </summary>
+        /// <param name="value">Значение константы.</param>
+        private void AppendConstant(object value)
+        {
+            if (value == null)
+            {
+                _sb.Append("null");
+                return;
+            }
+
+            switch (value)
+            {
+                case string s:
+                    _sb.Append($"'{s.Replace("'", "''")}'");
+                    return;
+                case DateTime dt:
+                    _sb.Append($"'{dt:yyyy-MM-dd HH:mm:ss}'");
+                    return;
+                case bool b:
+                    _sb.Append(b ? "1" : "0");
+                    return;
+                default:
+                    _sb.Append(Convert.ToString(value, CultureInfo.InvariantCulture));
+                    return;
+            }
+        }
+    }
+}
