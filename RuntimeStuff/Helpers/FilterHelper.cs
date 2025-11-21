@@ -1,5 +1,4 @@
-﻿using RuntimeStuff.Builders;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,13 +8,15 @@ using System.Text.RegularExpressions;
 namespace RuntimeStuff.Helpers
 {
     /// <summary>
-    /// Предоставляет методы для фильтрации коллекций по строковым выражениям и тексту, позволяя гибко выбирать элементы на
-    /// основе значений их свойств.
+    ///     Предоставляет методы для фильтрации коллекций по строковым выражениям и тексту, позволяя гибко выбирать элементы на
+    ///     основе значений их свойств.
     /// </summary>
-    /// <remarks>Класс предназначен для динамической фильтрации объектов по заданным условиям, которые задаются в виде
-    /// строковых выражений, аналогичных SQL-выражениям. Поддерживаются операции сравнения, логические операторы, поиск по
-    /// тексту, а также фильтрация по нескольким свойствам. Все методы реализованы как статические и не требуют создания
-    /// экземпляра класса. Класс потокобезопасен при использовании в многопоточных сценариях.</remarks>
+    /// <remarks>
+    ///     Класс предназначен для динамической фильтрации объектов по заданным условиям, которые задаются в виде
+    ///     строковых выражений, аналогичных SQL-выражениям. Поддерживаются операции сравнения, логические операторы, поиск по
+    ///     тексту, а также фильтрация по нескольким свойствам. Все методы реализованы как статические и не требуют создания
+    ///     экземпляра класса. Класс потокобезопасен при использовании в многопоточных сценариях.
+    /// </remarks>
     public static class FilterHelper
     {
         #region Public
@@ -114,7 +115,8 @@ namespace RuntimeStuff.Helpers
         {
             var tokens = new List<string>();
             var pattern =
-                @"(\|\||&&|==|!=|<=|>=|>|<|not in\b|in\b|like\b|not like\b|\[[^\]]+\]|[()\{\}\+\-\*/]|,|'[^']*'|\d+(\.\d+)?|\w+)";
+                @"(is not empty\b|is empty\b|is null\b|is not null\b|\|\||&&|==|!=|<=|>=|>|<|not in\b|in\b|like\b|not like\b|\[[^\]]+\]|[()\{\}\+\-\*/]|,|NULL\b|'[^']*'|\d+(\.\d+)?|\w+)";
+
             foreach (Match m in Regex.Matches(input, pattern, RegexOptions.IgnoreCase))
                 tokens.Add(m.Value);
             return tokens;
@@ -207,6 +209,59 @@ namespace RuntimeStuff.Helpers
 
                     return new BetweenExpr(left, lower, upper, not);
                 }
+
+                if (op == "IS" && pos + 1 < tokens.Count)
+                {
+                    var next = tokens[pos + 1].ToUpper();
+                    if (next == "NULL")
+                    {
+                        pos += 2; // IS NULL
+                        return new BinaryExpr(left, "IS NULL", new ConstantExpr(null));
+                    }
+                    if (next == "NOT" && pos + 2 < tokens.Count && tokens[pos + 2].ToUpper() == "NULL")
+                    {
+                        pos += 3; // IS NOT NULL
+                        return new BinaryExpr(left, "IS NOT NULL", new ConstantExpr(null));
+                    }
+                }
+
+                // = NULL  →  IS NULL
+                if (op == "=" || op == "==")
+                {
+                    if (pos + 1 < tokens.Count && tokens[pos].Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        pos++; // пропускаем NULL
+                        return new BinaryExpr(left, "IS NULL", new ConstantExpr(null));
+                    }
+                }
+
+                // != NULL  →  IS NOT NULL
+                if (op == "!=")
+                {
+                    if (pos + 1 < tokens.Count && tokens[pos].Equals("NULL", StringComparison.OrdinalIgnoreCase))
+                    {
+                        pos++;
+                        return new BinaryExpr(left, "IS NOT NULL", new ConstantExpr(null));
+                    }
+                }
+
+                // IS EMPTY / IS NOT EMPTY
+                if (op == "IS" && pos + 1 < tokens.Count)
+                {
+                    var next = tokens[pos + 1].ToUpper();
+
+                    if (next == "EMPTY")
+                    {
+                        pos += 2;
+                        return new BinaryExpr(left, "IS EMPTY", null);
+                    }
+
+                    if (next == "NOT" && pos + 2 < tokens.Count && tokens[pos + 2].ToUpper() == "EMPTY")
+                    {
+                        pos += 3;
+                        return new BinaryExpr(left, "IS NOT EMPTY", null);
+                    }
+                }
             }
 
             return left;
@@ -279,6 +334,14 @@ namespace RuntimeStuff.Helpers
             if (DateTime.TryParse(token, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
                 return new ConstantExpr(dt);
 
+            // NULL literal
+            if (string.Equals(token, "NULL", StringComparison.OrdinalIgnoreCase))
+                return new ConstantExpr(null);
+            
+            // NULL literal
+            if (string.Equals(token, "NULL", StringComparison.OrdinalIgnoreCase))
+                return new ConstantExpr(null);
+
             throw new FormatException($"Неизвестный токен {token}");
         }
 
@@ -320,7 +383,7 @@ namespace RuntimeStuff.Helpers
         private static Expression ToExpression(Expr expr, ParameterExpression param)
         {
             if (expr is ConstantExpr c)
-                return Expression.Constant(c.Value, c.Value.GetType());
+                return Expression.Constant(c.Value, c.Value?.GetType() ?? typeof(object));
 
             if (expr is PropertyExpr p)
             {
@@ -355,6 +418,56 @@ namespace RuntimeStuff.Helpers
 
                 switch (b.Op.ToUpper())
                 {
+                    case "IS NULL":
+                        return Expression.Equal(left, Expression.Constant(null, left.Type));
+
+                    case "IS NOT NULL":
+                        return Expression.NotEqual(left, Expression.Constant(null, left.Type));
+
+                    case "IS EMPTY":
+                    {
+                        if (left.Type == typeof(string))
+                            return Expression.Equal(left, Expression.Constant("", typeof(string)));
+
+                        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(left.Type))
+                        {
+                            var countProp = left.Type.GetProperty("Count");
+                            if (countProp != null)
+                                return Expression.Equal(Expression.Property(left, countProp),
+                                    Expression.Constant(0));
+
+                            var anyMethod = typeof(Enumerable).GetMethods()
+                                .First(m => m.Name == "Any" && m.GetParameters().Length == 1)
+                                .MakeGenericMethod(left.Type.GetGenericArguments()[0]);
+
+                            return Expression.Not(Expression.Call(anyMethod, left));
+                        }
+
+                        throw new NotSupportedException("IS EMPTY применим только к строкам или коллекциям.");
+                    }
+
+                    case "IS NOT EMPTY":
+                    {
+                        if (left.Type == typeof(string))
+                            return Expression.NotEqual(left, Expression.Constant("", typeof(string)));
+
+                        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(left.Type))
+                        {
+                            var countProp = left.Type.GetProperty("Count");
+                            if (countProp != null)
+                                return Expression.GreaterThan(Expression.Property(left, countProp),
+                                    Expression.Constant(0));
+
+                            var anyMethod = typeof(Enumerable).GetMethods()
+                                .First(m => m.Name == "Any" && m.GetParameters().Length == 1)
+                                .MakeGenericMethod(left.Type.GetGenericArguments()[0]);
+
+                            return Expression.Call(anyMethod, left);
+                        }
+
+                        throw new NotSupportedException("IS NOT EMPTY применим только к строкам или коллекциям.");
+                    }
+
                     case "+": return Expression.Add(left, right);
                     case "-": return Expression.Subtract(left, right);
                     case "*": return Expression.Multiply(left, right);
@@ -372,10 +485,7 @@ namespace RuntimeStuff.Helpers
                         var pattern = ((ConstantExpr)b.Right).Value.ToString();
                         pattern = $"^{Regex.Escape(pattern).Replace("%", ".*").Replace("_", ".")}$";
                         var regexConst = Expression.Constant(new Regex(pattern, RegexOptions.IgnoreCase));
-                        if (left?.Type != null && left.Type != typeof(string))
-                        {
-                            left = Expression.Call(left, left.Type.GetMethod("ToString", Type.EmptyTypes) ?? throw new NullReferenceException());
-                        }
+                        if (left?.Type != null && left.Type != typeof(string)) left = Expression.Call(left, left.Type.GetMethod("ToString", Type.EmptyTypes) ?? throw new NullReferenceException());
                         return Expression.Call(regexConst, "IsMatch", null, left);
 
                     default: throw new NotSupportedException(b.Op);

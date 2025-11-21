@@ -7,7 +7,7 @@ namespace RuntimeStuff.MSTests
     {
         private class TestEntity
         {
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public bool Active { get; set; }
             public int Age { get; set; }
             public DateTime Created { get; set; }
@@ -62,7 +62,7 @@ namespace RuntimeStuff.MSTests
         public void Where_With_Expression_ConvertsToFilterString()
         {
             var b = new FilterBuilder();
-            b.Where<TestEntity>(x => x.Active && x.Name.Contains("abc"));
+            b.Where<TestEntity>(x => x.Active && x.Name != null && x.Name.Contains("abc"));
 
             // ExpressionVisitor создает: ([Active] && [Name] LIKE '%abc%')
             Assert.AreEqual("([Active] && [Name] LIKE '%abc%')", b.ToString());

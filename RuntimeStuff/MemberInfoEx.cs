@@ -84,10 +84,6 @@ namespace RuntimeStuff
         private static readonly ConcurrentDictionary<PropertyInfo, Action<object, object>> PropertySettersCache =
             new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
 
-        private static readonly OpCode[] SOneByte = new OpCode[256];
-
-        private static readonly OpCode[] STwoByte = new OpCode[256];
-
         // Кэш для делегатов получения значений членов
         private readonly ConcurrentDictionary<string, Func<object, object>> _getters =
             new ConcurrentDictionary<string, Func<object, object>>();
@@ -237,10 +233,10 @@ namespace RuntimeStuff
                     var keyAttr = TypeHelper.GetCustomAttribute(pi, "KeyAttribute");
                     var colAttr = TypeHelper.GetCustomAttribute(pi, "ColumnAttribute");
                     var fkAttr = TypeHelper.GetCustomAttribute(pi, "ForeignKeyAttribute");
-                    Setter = GetPropertySetter(pi);
-                    Getter = GetPropertyGetter(pi);
+                    Setter = TypeHelper.Setter<object, object>(pi.Name, pi.DeclaringType);
+                    Getter = TypeHelper.Getter(pi.Name, pi.DeclaringType);
                     PropertyBackingField = Fields.FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ??
-                                           GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
+                                           TypeHelper.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
                     ColumnName = colAttr != null
                         ? colAttr.GetType().GetProperty("Name")?.GetValue(colAttr)?.ToString() ?? Name
                         : IsPrimaryKey
@@ -264,8 +260,8 @@ namespace RuntimeStuff
 
             if (fi != null)
             {
-                Setter = _memberInfoEx?.Setter ?? GetFieldSetter(fi);
-                Getter = _memberInfoEx?.Getter ?? GetFieldGetter(fi);
+                Setter = _memberInfoEx?.Setter ?? TypeHelper.Setter(fi.Name, fi.DeclaringType);
+                Getter = _memberInfoEx?.Getter ?? TypeHelper.Getter(fi.Name, fi.DeclaringType);
             }
 
             // Обработка имени
@@ -869,34 +865,6 @@ namespace RuntimeStuff
         #region Статические методы
 
         /// <summary>
-        ///     Преобразует значение к указанному типу.
-        /// </summary>
-        /// <param name="value">Значение для преобразования.</param>
-        /// <param name="toType">Тип, в который нужно преобразовать.</param>
-        /// <param name="formatProvider">Провайдер формата (по умолчанию <see cref="CultureInfo.InvariantCulture" />).</param>
-        /// <returns>Преобразованное значение.</returns>
-        /// <exception cref="InvalidCastException">Если преобразование невозможно.</exception>
-        /// <exception cref="FormatException">Если формат значения некорректен.</exception>
-        /// <exception cref="ArgumentNullException">Если <paramref name="toType" /> равен null.</exception>
-        public static object ChangeType(object value, Type toType, IFormatProvider formatProvider = null)
-        {
-            return TypeHelper.ChangeType(value, toType, formatProvider);
-        }
-
-        /// <summary>
-        ///     Преобразует значение к указанному типу.
-        /// </summary>
-        /// <param name="value">Значение для преобразования.</param>
-        /// <param name="formatProvider">Провайдер формата (по умолчанию <see cref="CultureInfo.InvariantCulture" />).</param>
-        /// <returns>Преобразованное значение.</returns>
-        /// <exception cref="InvalidCastException">Если преобразование невозможно.</exception>
-        /// <exception cref="FormatException">Если формат значения некорректен.</exception>
-        public static T ChangeType<T>(object value, IFormatProvider formatProvider = null)
-        {
-            return TypeHelper.ChangeType<T>(value, formatProvider);
-        }
-
-        /// <summary>
         ///     Создать расширенную информацию о члене класса (с кэшированием)
         /// </summary>
         /// <param name="memberInfo">Информация о члене класса</param>
@@ -947,343 +915,6 @@ namespace RuntimeStuff
                     .Compile();
             ConstructorsCache[type.FullName ?? type.Name] = ctor;
             return ctor;
-        }
-
-        /// <summary>
-        ///     Возвращает делегат для получения значения указанного поля.<br />
-        ///     Поддерживаются instance и static поля, включая приватные.
-        /// </summary>
-        /// <param name="field">Поле, для которого создаётся getter.</param>
-        /// <returns>
-        ///     Делегат <see cref="Func{Object,Object}" />, который принимает объект-владельца (или <c>null</c> для static полей)
-        ///     и возвращает текущее значение поля.
-        /// </returns>
-        public static Func<object, object> GetFieldGetter(FieldInfo field)
-        {
-            return FieldGettersCache.GetOrAdd(field, CreateFieldGetter);
-        }
-
-        /// <summary>
-        ///     Получает поле, связанное с методом получения свойства (геттером).
-        /// </summary>
-        /// <param name="getMethod">Метод получения свойства.</param>
-        /// <returns>Информация о поле, либо <c>null</c>, если не удалось определить поле.</returns>
-        public static FieldInfo GetFieldInfoFromGetAccessor(MethodInfo getMethod)
-        {
-            try
-            {
-                var getMethodBody = getMethod?.GetMethodBody();
-                if (getMethodBody == null)
-                    return null;
-                var body = getMethodBody.GetILAsByteArray();
-                if (body[0] != 0x02 || body[1] != 0x7B) return null;
-                var fieldToken = BitConverter.ToInt32(body, 2);
-                return getMethod.DeclaringType?.Module.ResolveField(fieldToken);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine(ex.ToString());
-                return null;
-            }
-        }
-
-        /// <summary>
-        ///     Возвращает делегат для установки значения указанного поля.<br />
-        ///     Для повышения производительности используется кэш компилированных выражений.
-        /// </summary>
-        /// <param name="field">Поле, для которого создаётся setter.</param>
-        /// <returns>
-        ///     Делегат <see cref="Action{Object,Object}" />, который принимает объект-владельца (или <c>null</c> для static полей)
-        ///     и новое значение. Если поле <c>readonly</c> или <c>const</c>, возвращается <c>null</c>.
-        /// </returns>
-        public static Action<object, object> GetFieldSetter(FieldInfo field)
-        {
-            return FieldSettersCache.GetOrAdd(field, CreateFieldSetter);
-        }
-
-        /// <summary>
-        ///     Пытается определить поле, используемое для хранения значения свойства.<br />
-        ///     Работает как для автоматически реализованных свойств (backing field вида <c>&lt;Имя&gt;k__BackingField</c>),
-        ///     так и для свойств с ручной реализацией, если их геттер/сеттер явно обращается к полю.
-        /// </summary>
-        /// <param name="propertyInfo">Свойство, для которого ищется поле.</param>
-        /// <returns>
-        ///     Экземпляр <see cref="FieldInfo" />, если удалось найти поле, или <c>null</c>,
-        ///     если backing field отсутствует (например, свойство вычисляемое).
-        /// </returns>
-        /// <exception cref="ArgumentNullException">Если <paramref name="propertyInfo" /> равен <c>null</c>.</exception>
-        /// <exception cref="InvalidOperationException">Если свойство не имеет типа-владельца.</exception>
-        public static FieldInfo GetPropertyBackingField(PropertyInfo propertyInfo)
-        {
-            if (propertyInfo == null) throw new ArgumentNullException(nameof(propertyInfo));
-            var declType = propertyInfo.DeclaringType
-                           ?? throw new InvalidOperationException("Property has no declaring type.");
-
-            // 1) Попытка: авто-свойство
-            var autoName = $"<{propertyInfo.Name}>k__BackingField";
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic |
-                                       BindingFlags.Public;
-            var field = declType.GetField(autoName, flags);
-            if (field != null) return field;
-
-            // 2) Попытка: достать поле из IL геттера/сеттера
-            return TryGetFieldFromAccessor(propertyInfo.GetGetMethod(true))
-                   ?? TryGetFieldFromAccessor(propertyInfo.GetSetMethod(true));
-        }
-
-        /// <summary>
-        ///     Возвращает делегат для получения значения указанного свойства.<br />
-        ///     Для повышения производительности используется кэш компилированных выражений.
-        /// </summary>
-        /// <param name="property">Свойство, для которого создаётся getter.</param>
-        /// <returns>
-        ///     Делегат <see cref="Func{Object,Object}" />, который принимает объект-владельца (или <c>null</c> для static свойств)
-        ///     и возвращает текущее значение свойства.
-        /// </returns>
-        public static Func<object, object> GetPropertyGetter(PropertyInfo property)
-        {
-            return PropertyGettersCache.GetOrAdd(property, CreatePropertyGetter);
-        }
-
-        /// <summary>
-        ///     Возвращает делегат для установки значения указанного свойства.<br />
-        ///     Для повышения производительности используется кэш компилированных выражений.
-        /// </summary>
-        /// <param name="property">Свойство, для которого создаётся setter.</param>
-        /// <returns>
-        ///     Делегат <see cref="Action{Object,Object}" />, который принимает объект-владельца (или <c>null</c> для static
-        ///     свойств)
-        ///     и новое значение. Если свойство read-only, возвращается <c>null</c>.
-        /// </returns>
-        public static Action<object, object> GetPropertySetter(PropertyInfo property)
-        {
-            return PropertySettersCache.GetOrAdd(property, CreatePropertySetter);
-        }
-
-        /// <summary>
-        ///     Создаёт делегат для получения значения поля.
-        /// </summary>
-        /// <param name="field">Поле, для которого создаётся getter.</param>
-        /// <returns>Делегат для получения значения поля</returns>
-        private static Func<object, object> CreateFieldGetter(FieldInfo field)
-        {
-            var objParam = Expression.Parameter(typeof(object), "obj");
-
-            Expression body;
-            if (field.IsStatic)
-            {
-                body = Expression.Convert(Expression.Field(null, field), typeof(object));
-            }
-            else
-            {
-                var instanceCast = Expression.Convert(objParam, field.DeclaringType ?? typeof(object));
-                body = Expression.Convert(Expression.Field(instanceCast, field), typeof(object));
-            }
-
-            return Expression.Lambda<Func<object, object>>(body, objParam).Compile();
-        }
-
-        /// <summary>
-        ///     Создаёт делегат для установки значения поля.
-        /// </summary>
-        /// <param name="field">Поле, для которого создаётся setter.</param>
-        /// <returns>Делегат для установки значения поля или null, если поле read-only</returns>
-        private static Action<object, object> CreateFieldSetter(FieldInfo field)
-        {
-            if (field == null)
-                return null;
-
-            if (field.IsInitOnly || field.IsLiteral)
-                return null;
-
-            try
-            {
-                var objParam = Expression.Parameter(typeof(object), "obj");
-                var valueParam = Expression.Parameter(typeof(object), "value");
-                var valueCast = Expression.Convert(valueParam, field.FieldType);
-
-                Expression body;
-                if (field.IsStatic)
-                {
-                    body = Expression.Assign(Expression.Field(null, field), valueCast);
-                }
-                else
-                {
-                    var instanceCast = Expression.Convert(objParam, field.DeclaringType ?? typeof(object));
-                    body = Expression.Assign(Expression.Field(instanceCast, field), valueCast);
-                }
-
-                return Expression.Lambda<Action<object, object>>(body, objParam, valueParam).Compile();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error creating field setter for {field.Name}: {ex}");
-                return null;
-            }
-        }
-
-        /// <summary>
-        ///     Создаёт делегат для получения значения свойства.
-        /// </summary>
-        /// <param name="property">Свойство, для которого создаётся getter.</param>
-        /// <returns>Делегат для получения значения свойства</returns>
-        private static Func<object, object> CreatePropertyGetter(PropertyInfo property)
-        {
-            try
-            {
-                var objParam = Expression.Parameter(typeof(object), "obj");
-
-                Expression body;
-                //if (getMethod.IsStatic)
-                //{
-                //    // static: (object)Class.Property
-                //    body = Expression.ConvertExpression(Expression.Property(null, property), typeof(object));
-                //}
-                //else
-                {
-                    // instance: (object)((TDeclaring)obj).Property
-                    var instanceCast = Expression.Convert(objParam, property.DeclaringType ?? typeof(object));
-                    body = Expression.Convert(Expression.Property(instanceCast, property), typeof(object));
-                }
-
-                return Expression.Lambda<Func<object, object>>(body, objParam).Compile();
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        ///     Создаёт делегат для установки значения свойства.
-        /// </summary>
-        /// <param name="property">Свойство, для которого создаётся setter.</param>
-        /// <returns>Делегат для установки значения свойства или null, если свойство read-only</returns>
-        private static Action<object, object> CreatePropertySetter(PropertyInfo property)
-        {
-            try
-            {
-                var setMethod = property.GetSetMethod(true);
-                if (setMethod == null)
-                {
-                    var backingField = GetPropertyBackingField(property);
-                    return backingField == null ? null : GetFieldSetter(backingField);
-                }
-
-                var objParam = Expression.Parameter(typeof(object), "obj");
-                var valueParam = Expression.Parameter(typeof(object), "value");
-                var valueCast = Expression.Convert(valueParam, property.PropertyType);
-
-                Expression body;
-
-                //if (setMethod.IsStatic)
-                //{
-                //    // static: Class.Property = (T)value
-                //    body = Expression.Assign(Expression.Property(null, property), valueCast);
-                //}
-                //else
-                {
-                    // instance: ((TDeclaring)obj).Property = (T)value
-                    var instanceCast = Expression.Convert(objParam, property.DeclaringType ?? typeof(object));
-                    body = Expression.Assign(Expression.Property(instanceCast, property), valueCast);
-                }
-
-                return Expression.Lambda<Action<object, object>>(body, objParam, valueParam).Compile();
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        /// <summary>
-        ///     Пытается определить поле из IL кода метода доступа (геттера/сеттера).
-        /// </summary>
-        /// <param name="accessor">Метод доступа (геттер или сеттер свойства)</param>
-        /// <returns>Найденное поле или null, если не удалось определить</returns>
-        private static FieldInfo TryGetFieldFromAccessor(MethodInfo accessor)
-        {
-            if (accessor == null) return null;
-            var body = accessor.GetMethodBody();
-            if (body == null) return null;
-
-            var il = body.GetILAsByteArray();
-            if (il.Length == 0) return null;
-
-            var i = 0;
-            var module = accessor.Module;
-            var typeArgs = accessor.DeclaringType?.GetGenericArguments();
-            var methodArgs = accessor.GetGenericArguments();
-
-            while (i < il.Length)
-            {
-                OpCode op;
-                var code = il[i++];
-
-                if (code != 0xFE)
-                {
-                    op = SOneByte[code];
-                }
-                else
-                {
-                    var b2 = il[i++];
-                    op = STwoByte[b2];
-                }
-
-                switch (op.OperandType)
-                {
-                    case OperandType.InlineNone:
-                        break;
-
-                    case OperandType.ShortInlineI:
-                    case OperandType.ShortInlineVar:
-                    case OperandType.ShortInlineBrTarget:
-                        i++;
-                        break;
-
-                    case OperandType.InlineVar:
-                        i += 2;
-                        break;
-
-                    case OperandType.InlineI:
-                    case OperandType.InlineBrTarget:
-                    case OperandType.InlineString:
-                    case OperandType.InlineSig:
-                    case OperandType.InlineMethod:
-                    case OperandType.InlineType:
-                    case OperandType.InlineTok:
-                    case OperandType.ShortInlineR:
-                        i += 4;
-                        break;
-
-                    case OperandType.InlineI8:
-                    case OperandType.InlineR:
-                        i += 8;
-                        break;
-
-                    case OperandType.InlineSwitch:
-                        var count = BitConverter.ToInt32(il, i);
-                        i += 4 + 4 * count;
-                        break;
-
-                    case OperandType.InlineField:
-                        // Вот он — операнд поля у ldfld/ldsfld/stfld/stsfld/ldflda
-                        var token = BitConverter.ToInt32(il, i);
-                        //i += 4;
-
-                        try
-                        {
-                            var fi = module.ResolveField(token, typeArgs, methodArgs);
-                            return fi;
-                        }
-                        catch
-                        {
-                            return null;
-                        }
-                }
-            }
-
-            return null;
         }
 
         #endregion Статические методы
@@ -1613,57 +1244,6 @@ namespace RuntimeStuff
         }
 
         #endregion Методы поиска членов
-
-        #region Методы работы со значениями
-
-        /// <summary>
-        ///     Получает значение члена (свойства, поля или метода) для указанного экземпляра объекта.<br />
-        ///     Использует кешированный делегат <see cref="Getter" /> для получения значения, если он доступен.<br />
-        ///     Не использует преобразование типов, если тип значения не совпадает с типом свойства, то выдается исключение.<br />
-        /// </summary>
-        /// <param name="objectInstance">Экземпляр объекта, из которого извлекается значение.</param>
-        /// <param name="args">Аргументы для метода, если член является методом.</param>
-        /// <returns>Значение члена, либо <c>null</c> в случае ошибки.</returns>
-        public object GetValue(object objectInstance, params object[] args)
-        {
-            if (IsProperty && Getter != null) return Getter(objectInstance);
-
-            if (IsField && Getter != null) return Getter(objectInstance);
-
-            if (IsMethod) return AsMethodInfo()?.Invoke(objectInstance, args);
-
-            return null;
-        }
-
-        /// <summary>
-        ///     Устанавливает значение свойства или поля для указанного экземпляра объекта.<br />
-        ///     Использует кешированный делегат <see cref="Setter" /> для установки значения, если он доступен.<br />
-        ///     Не использует преобразование типов, если тип значения не совпадает с типом свойства, то выдается исключение.<br />
-        /// </summary>
-        /// <param name="objectInstance">Экземпляр объекта, для которого устанавливается значение.</param>
-        /// <param name="value">Значение для установки.</param>
-        /// <returns><c>true</c>, если значение успешно установлено; иначе <c>false</c>.</returns>
-        public bool SetValue(object objectInstance, object value)
-        {
-            if (IsProperty && Setter != null)
-            {
-                Setter(objectInstance, value);
-                return true;
-            }
-
-            if (IsField)
-            {
-                if (Setter != null)
-                    Setter(objectInstance, value);
-                else
-                    AsFieldInfo().SetValue(objectInstance, value);
-                return true;
-            }
-
-            return false;
-        }
-
-        #endregion Методы работы со значениями
 
         #region Методы работы с атрибутами
 

@@ -47,18 +47,32 @@ namespace RuntimeStuff.Extensions
             return sb.ToString();
         }
 
-        public static void Add(this IEnumerable e, object item)
+        public static void Add(this IEnumerable e, object item, int index = -1)
         {
             if (e == null) throw new ArgumentNullException(nameof(e));
 
             // Проверяем, поддерживает ли коллекция добавление
             if (e is IList list)
             {
-                list.Add(item);
+                if (index == -1)
+                {
+                    list.Add(item);
+                }
+                else
+                {
+                    list.Insert(index, item);
+                }
             }
             else if (e is IList<object> genericList)
             {
-                genericList.Add(item);
+                if (index == -1)
+                {
+                    genericList.Add(item);
+                }
+                else
+                {
+                    genericList.Insert(index, item);
+                }
             }
             else
             {
@@ -78,7 +92,7 @@ namespace RuntimeStuff.Extensions
                 case IList<object> genericList:
                     genericList.Clear();
                     break;
-                case ICollection collection:
+                case ICollection _:
                     // ICollection не имеет Clear(), только Count, но IList наследует ICollection
                     throw new InvalidOperationException("Коллекция не поддерживает Clear.");
                 default:

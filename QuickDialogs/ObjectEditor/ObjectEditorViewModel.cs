@@ -138,7 +138,7 @@ namespace QuickDialogs.Core.ObjectEditor
         private void SelectedObjectPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             var opi = PropertyMap[e.PropertyName];
-            opi.Value = opi.GetValue(SelectedObject);
+            opi.Value = opi.Getter(SelectedObject);
         }
 
         private void OnSelectedObjectTypeChanged()

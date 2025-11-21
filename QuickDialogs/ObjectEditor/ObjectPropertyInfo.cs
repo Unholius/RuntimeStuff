@@ -15,15 +15,15 @@ namespace QuickDialogs.Core.ObjectEditor
         private Func<object, bool> _isValueValid;
         private bool _readOnly;
         private object _value;
-        private PropertyChangeNotifier _notifier = new PropertyChangeNotifier();
+        private readonly PropertyChangeNotifier _notifier = new PropertyChangeNotifier();
 
         public ObjectPropertyInfo(object source, MemberInfoEx memberInfoEx) : base(memberInfoEx)
         {
             IsValueValid = _ => true;
             EditFormat = string.Empty;
             InvalidValueErrorMessage = string.Empty;
-            OriginalValue = memberInfoEx.GetValue(source);
-            _value = memberInfoEx.GetValue(source);
+            OriginalValue = memberInfoEx.Getter(source);
+            _value = memberInfoEx.Getter(source);
             _displayValue = string.Format(DisplayFormat, Value);
         }
 

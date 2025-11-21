@@ -29,6 +29,14 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
+        /// Возвращает строку, повторенную указанное количество раз.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="count">Количество повторений.</param>
+        /// <returns>Новая строка, состоящая из повторений исходной строки.</returns>
+        public static string RepeatString(this string s, int count) => StringHelper.RepeatString(s, count);
+
+        /// <summary>
         ///     Удаляет часть строки в диапазоне [startIndex..endIndex]. Работает как s.Substring(0, startIndex) +
         ///     s.Substring(endIndex + 1);
         /// </summary>

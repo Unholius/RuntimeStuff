@@ -565,7 +565,7 @@ namespace RuntimeStuff
         {
             var values = new object[Properties.Length];
             var i = 0;
-            var rowItem = indexType == IndexType.FilteredSorted ? _sourceFilteredAndSortedList[i] : _sourceList[i];
+            var rowItem = indexType == IndexType.FilteredSorted ? _sourceFilteredAndSortedList[index] : _sourceList[index];
             foreach (var property in Properties) 
                 values[i++] = TypeHelper.GetValue(rowItem, property.Name);
             return values;

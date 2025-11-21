@@ -10,7 +10,7 @@ namespace TestApp.WinForms.NET
         {
             InitializeComponent();
             ds.SuspendListChangedEvents = true;
-            for (var i = 0; i < 100_000; i++)
+            for (var i = 0; i < 1_000_000; i++)
                 ds.Add(new TestClassWithBasicPropertiesWithNotifyPropertyChanged(i));
             ds.SuspendListChangedEvents = false;
             dataGridView1.DataSource = ds;

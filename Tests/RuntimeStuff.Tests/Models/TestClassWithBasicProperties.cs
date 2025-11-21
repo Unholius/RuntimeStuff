@@ -1,21 +1,14 @@
 ﻿namespace RuntimeStuff.MSTests.Models
 {
-    public class TestClassWithBasicPropertiesWithNotifyPropertyChanged : System.ComponentModel.INotifyPropertyChanged
+    public class TestClassWithBasicPropertiesWithNotifyPropertyChanged(int int32, string? str = null, bool? b = null, double? d = null)
+        : System.ComponentModel.INotifyPropertyChanged
     {
-        public TestClassWithBasicPropertiesWithNotifyPropertyChanged(int int32, string? str = null, bool? @bool = null, double? @double = null)
-        {
-            _int32 = int32;
-            _str = str ?? int32.ToString();
-            _bool = @bool ?? int32 % 2 == 0;
-            _double = @double ?? int32 + int32 / 15.0;
-        }
-
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
         }
-        private int _int32;
+        private int _int32 = int32;
         public int Int32
         {
             get => _int32;
@@ -28,7 +21,7 @@
                 }
             }
         }
-        private string? _str;
+        private string? _str = str ?? (int32 % 3 == 0 ? null :int32.ToString());
         public string? Str
         {
             get => _str;
@@ -41,7 +34,7 @@
                 }
             }
         }
-        private bool _bool;
+        private bool _bool = b ?? int32 % 2 == 0;
         public bool Bool
         {
             get => _bool;
@@ -54,7 +47,7 @@
                 }
             }
         }
-        private double _double;
+        private double _double = d ?? int32 + int32 / 15.0;
         public double Double
         {
             get => _double;
@@ -76,7 +69,7 @@
 
         }
 
-        private string _str = "secret";
+        private readonly string _str = "secret";
 
         public TestClassWithBasicProperties(int int32, string? str = null, bool? @bool = null, double? @double = null)
         {
