@@ -449,14 +449,17 @@ namespace RuntimeStuff
                 SubscribeOnPropertyChanged(item, false);
                 if (_sourceList.Remove(item))
                 {
+                    _nodeMap.Remove(item);
                     var index = _sourceFilteredAndSortedList.IndexOf(item);
                     if (index >= 0)
+                    {
                         if (!SuspendListChangedEvents)
                         {
                             ApplyFilterAndSort();
                             ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
                             CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
                         }
+                    }
                 }
             }
         }
@@ -810,28 +813,130 @@ namespace RuntimeStuff
 
                 try
                 {
-                    _sourceFilteredAndSortedList = _sourceList.Filter(_filter).ToList();
+                    // Вместо создания нового списка каждый раз, очищаем и перезаполняем существующий
+                    var filteredList = _sourceList.Filter(_filter).ToList();
+
+                    // Удаляем невидимые элементы
+                    filteredList.RemoveAll(x => !_nodeMap[x].Visible);
+
+                    // Применяем сортировку
+                    if (SortProperty != null)
+                    {
+                        filteredList = filteredList.Sort(SortDirection, SortProperty.Name).ToList();
+                    }
+                    else if (SortDescriptions != null && SortDescriptions.Count > 0)
+                    {
+                        filteredList = filteredList.Sort(SortDescriptions).ToList();
+                    }
+
+                    // Обновляем существующий список вместо создания нового
+                    _sourceFilteredAndSortedList.Clear();
+                    _sourceFilteredAndSortedList.AddRange(filteredList);
                 }
                 catch (FormatException fe)
                 {
                     Debug.WriteLine($"Filter format exception: {fe.Message}");
-                    _sourceFilteredAndSortedList = _sourceList.FilterByText(_filter).ToList();
-                }
+                    var filteredList = _sourceList.FilterByText(_filter).ToList();
+                    filteredList.RemoveAll(x => !_nodeMap[x].Visible);
 
-                _sourceFilteredAndSortedList.RemoveAll(x => !_nodeMap[x].Visible);
+                    _sourceFilteredAndSortedList.Clear();
+                    _sourceFilteredAndSortedList.AddRange(filteredList);
+                }
 
                 var filteredCount = _sourceFilteredAndSortedList.Count;
                 var prevIsSorted = IsSorted;
-
                 IsSorted = SortProperty != null || SortDescriptions != null || !string.IsNullOrWhiteSpace(_sortBy);
-
-                if (SortProperty != null)
-                    _sourceFilteredAndSortedList = _sourceFilteredAndSortedList.Sort(SortDirection, SortProperty.Name).ToList();
-                else if (SortDescriptions != null && SortDescriptions.Count > 0)
-                    _sourceFilteredAndSortedList = _sourceFilteredAndSortedList.Sort(SortDescriptions).ToList();
 
                 if (sourceCount != filteredCount || prevIsSorted != IsSorted)
                     RaiseResetEvents();
+            }
+        }
+        //public void ApplyFilterAndSort()
+        //{
+        //    lock (SyncRoot)
+        //    {
+        //        var sourceCount = _sourceList.Count;
+
+        //        try
+        //        {
+        //            _sourceFilteredAndSortedList = _sourceList.Filter(_filter).ToList();
+        //        }
+        //        catch (FormatException fe)
+        //        {
+        //            Debug.WriteLine($"Filter format exception: {fe.Message}");
+        //            _sourceFilteredAndSortedList = _sourceList.FilterByText(_filter).ToList();
+        //        }
+
+        //        _sourceFilteredAndSortedList.RemoveAll(x => !_nodeMap[x].Visible);
+
+        //        var filteredCount = _sourceFilteredAndSortedList.Count;
+        //        var prevIsSorted = IsSorted;
+
+        //        IsSorted = SortProperty != null || SortDescriptions != null || !string.IsNullOrWhiteSpace(_sortBy);
+
+        //        if (SortProperty != null)
+        //            _sourceFilteredAndSortedList = _sourceFilteredAndSortedList.Sort(SortDirection, SortProperty.Name).ToList();
+        //        else if (SortDescriptions != null && SortDescriptions.Count > 0)
+        //            _sourceFilteredAndSortedList = _sourceFilteredAndSortedList.Sort(SortDescriptions).ToList();
+
+        //        if (sourceCount != filteredCount || prevIsSorted != IsSorted)
+        //            RaiseResetEvents();
+        //    }
+        //}
+
+        public void ClearAll()
+        {
+            lock (SyncRoot)
+            {
+                // Отписываемся от всех событий
+                foreach (var item in _sourceList)
+                {
+                    SubscribeOnPropertyChanged(item, false);
+                }
+
+                _sourceList.Clear();
+                _sourceFilteredAndSortedList.Clear();
+                _nodeMap.Clear();
+
+                // Очищаем кэши
+                _filter = null;
+                _sortBy = null;
+                SortProperty = null;
+                SortDescriptions = null;
+                IsSorted = false;
+            }
+
+            RaiseResetEvents();
+        }
+
+        public void Cleanup()
+        {
+            // Принудительно очищаем большие коллекции
+            lock (SyncRoot)
+            {
+                _sourceFilteredAndSortedList.TrimExcess();
+                _sourceList.TrimExcess();
+
+                // Очищаем словарь
+                var itemsToRemove = _nodeMap.Where(kvp => !_sourceList.Contains(kvp.Key))
+                    .Select(kvp => kvp.Key)
+                    .ToList();
+                foreach (var key in itemsToRemove)
+                {
+                    _nodeMap.Remove(key);
+                }
+            }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+
+        ~BindingListView()
+        {
+            // Очищаем подписки при уничтожении объекта
+            foreach (var item in _sourceList)
+            {
+                SubscribeOnPropertyChanged(item, false);
             }
         }
 

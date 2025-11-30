@@ -16,6 +16,23 @@ namespace RuntimeStuff.Extensions
     public static class StringExtensions
     {
         /// <summary>
+        /// Проверяет, содержит ли исходная строка указанную подстроку,
+        /// используя заданный способ сравнения строк.
+        /// </summary>
+        /// <param name="source">Исходная строка, в которой выполняется поиск.</param>
+        /// <param name="value">Подстрока, которую необходимо найти.</param>
+        /// <param name="comparison">
+        /// Параметр, определяющий способ сравнения строк
+        /// (<see cref="StringComparison"/>), например <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Значение <c>true</c>, если подстрока найдена в исходной строке;
+        /// в противном случае — <c>false</c>.  
+        /// Также возвращает <c>false</c>, если <paramref name="source"/> или <paramref name="value"/> равны <c>null</c>.
+        /// </returns>
+        public static bool Contains(this string source, string value, StringComparison comparison) => StringHelper.Contains(source, value, comparison);
+
+        /// <summary>
         ///     Заменяет часть строки в диапазоне [startIndex..endIndex] на указанную строку.
         /// </summary>
         /// <param name="s">Исходная строка.</param>

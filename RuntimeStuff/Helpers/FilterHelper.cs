@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RuntimeStuff.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -64,8 +65,7 @@ namespace RuntimeStuff.Helpers
         ///     Если не указан, берутся все публичные свойства.
         /// </param>
         /// <returns>Отфильтрованная коллекция.</returns>
-        public static IEnumerable<T> FilterByText<T>(IEnumerable<T> source, string text, string[] propertyNames = null)
-            where T : class
+        public static IEnumerable<T> FilterByText<T>(IEnumerable<T> source, string text, string[] propertyNames = null) where T : class
         {
             if (string.IsNullOrWhiteSpace(text))
                 return source;
@@ -83,8 +83,22 @@ namespace RuntimeStuff.Helpers
                 foreach (var propName in propertyNames)
                 {
                     var value = TypeHelper.Getter<T>(propName)(item);
-                    if (value != null && value.ToString().ToLower().Contains(text))
-                        return true;
+                    if (value == null)
+                        continue;
+
+                    // быстрее, чем ToString(): используем IsAssignableFrom + каст
+                    if (value is string s)
+                    {
+                        if (s.Contains(text, StringComparison.OrdinalIgnoreCase))
+                            return true;
+                    }
+                    else
+                    {
+                        var str = value.ToString();
+                        if (!string.IsNullOrEmpty(str) &&
+                            str.ToLowerInvariant().Contains(text))
+                            return true;
+                    }
                 }
 
                 return false;

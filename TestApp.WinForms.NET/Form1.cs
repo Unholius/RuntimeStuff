@@ -10,7 +10,7 @@ namespace TestApp.WinForms.NET
         {
             InitializeComponent();
             ds.SuspendListChangedEvents = true;
-            for (var i = 0; i < 1_000_000; i++)
+            for (var i = 0; i < 1_000; i++)
                 ds.Add(new TestClassWithBasicPropertiesWithNotifyPropertyChanged(i));
             ds.SuspendListChangedEvents = false;
             dataGridView1.DataSource = ds;
@@ -33,6 +33,7 @@ namespace TestApp.WinForms.NET
             visible = !visible;
             ds.SetAllRowsVisible(visible);
             ds.RemoveSort();
+            ds.Cleanup();
         }
 
         private void btnApplyFilter_Click(object sender, EventArgs e)

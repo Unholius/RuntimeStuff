@@ -93,22 +93,24 @@ namespace RuntimeStuff.Helpers
 
             IOrderedEnumerable<T> result = null;
 
+            var accessor = sorts.Select((x, i) => TypeHelper.Getter<T>(sorts[i].propertyName)).ToArray();
+
             for (var i = 0; i < sorts.Length; i++)
             {
                 var t = typeof(T);
-                var accessor = TypeHelper.Getter<T>(sorts[i].propertyName);
+                
 
                 if (i == 0 && !(source is IOrderedEnumerable<T>))
                 {
                     result = sorts[i].order == ListSortDirection.Ascending
-                        ? source.OrderBy(accessor)
-                        : source.OrderByDescending(accessor);
+                        ? source.OrderBy(accessor[i])
+                        : source.OrderByDescending(accessor[i]);
                 }
                 else
                 {
                     result = sorts[i].order == ListSortDirection.Ascending
-                        ? (result ?? (IOrderedEnumerable<T>)source).ThenBy(accessor)
-                        : (result ?? (IOrderedEnumerable<T>)source).ThenByDescending(accessor);
+                        ? (result ?? (IOrderedEnumerable<T>)source).ThenBy(accessor[i])
+                        : (result ?? (IOrderedEnumerable<T>)source).ThenByDescending(accessor[i]);
                 }
             }
 

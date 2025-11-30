@@ -65,7 +65,7 @@ namespace RuntimeStuff.MSTests
             b.Where<TestEntity>(x => x.Active && x.Name != null && x.Name.Contains("abc"));
 
             // ExpressionVisitor создает: ([Active] && [Name] LIKE '%abc%')
-            Assert.AreEqual("([Active] && [Name] LIKE '%abc%')", b.ToString());
+            Assert.AreEqual("(([Active] && ([Name] != null)) && [Name] LIKE '%abc%')", b.ToString());
         }
 
         [TestMethod]
