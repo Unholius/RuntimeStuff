@@ -8,12 +8,11 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
-using RuntimeStuff.Extensions;
 
 namespace RuntimeStuff.Helpers
 {
     /// <summary>
-    ///     v.2025.11.20<br />
+    ///     v.2025.12.01<br />
     ///     Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     ///     Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     ///     Особенности:
@@ -115,15 +114,15 @@ namespace RuntimeStuff.Helpers
             var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
             var dateParts = dateTimeParts[0]
                 .Split(new[] { '.', '\\', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
-            var yearIndex = dateParts.IndexOf((x, _) => x.Length == 4);
-            var dayForSureIndex = dateParts.IndexOf((x, _) =>
+            var yearIndex = IndexOf(dateParts ,(x, _) => x.Length == 4);
+            var dayForSureIndex = IndexOf(dateParts ,(x, _) =>
                 x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 12 &&
                 (int)Convert.ChangeType(x, typeof(int)) <= 31);
-            var dayPossibleIndex = dateParts.IndexOf((x, i) =>
+            var dayPossibleIndex = IndexOf(dateParts,(x, i) =>
                 x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
                 (int)Convert.ChangeType(x, typeof(int)) <= 31 && i != dayForSureIndex);
             var dayIndex = dayForSureIndex >= 0 ? dayForSureIndex : dayPossibleIndex;
-            var monthIndex = dateParts.IndexOf((x, i) =>
+            var monthIndex = IndexOf(dateParts,(x, i) =>
                 x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
                 (int)Convert.ChangeType(x, typeof(int)) <= 12 && i != dayIndex);
 
@@ -148,13 +147,7 @@ namespace RuntimeStuff.Helpers
             return null;
         };
 
-        private static readonly ConcurrentDictionary<(Type, string, Type), object> GettersCache = new ConcurrentDictionary<(Type, string, Type), object>();
-
-        private static readonly ConcurrentDictionary<(Type, string, Type), object> SettersCache = new ConcurrentDictionary<(Type, string, Type), object>();
-
-        private static readonly ConcurrentDictionary<(Type, string, Type), object> PropertiesAndFieldsCache = new ConcurrentDictionary<(Type, string, Type), object>();
-
-        private static readonly ConcurrentDictionary<string, Type> TypeCache = new ConcurrentDictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<(Type, string, Type), object> Cache = new ConcurrentDictionary<(Type, string, Type), object>();
 
         static TypeHelper()
         {
@@ -243,119 +236,6 @@ namespace RuntimeStuff.Helpers
         ///     Все числовые типы: целочисленные и с плавающей точкой.
         /// </summary>
         public static Type[] NumberTypes { get; }
-
-        public static void Copy(object source, object dest)
-        {
-            if (source == null || dest == null)
-                throw new ArgumentNullException($"Исходный или целевой объект не может быть null");
-
-            var sourceType = source.GetType();
-            var destType = dest.GetType();
-
-            // Получаем все публичные свойства исходного объекта
-            var sourceProperties = GetProperties(sourceType);
-
-            foreach (var prop in sourceProperties)
-            {
-                // Ищем соответствующее свойство в целевом объекте
-                var destProp = GetProperty(destType, prop.Name);
-
-                if (destProp != null)
-                    try
-                    {
-                        // Получаем значение из исходного объекта
-                        var value = GetValue(source, prop.Name);
-                        var convertedValue = ChangeType(value, destProp.PropertyType);
-                        SetPropertyValue(dest, prop.Name, convertedValue);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Обработка ошибок для каждого свойства
-                        throw new Exception($"Ошибка копирования свойства {prop.Name}: {ex.Message}");
-                    }
-            }
-        }
-
-
-        public static object DeepCopy(object source, object dest)
-        {
-            if (source == null || dest == null)
-                throw new ArgumentNullException($"Исходный или целевой объект не может быть null");
-
-            var sourceType = source.GetType();
-            var destType = dest.GetType();
-
-            // Получаем все публичные свойства исходного объекта
-            var sourceProperties = GetProperties(sourceType);
-
-            foreach (var prop in sourceProperties)
-            {
-                // Ищем соответствующее свойство в целевом объекте
-                var destProp = GetProperty(destType, prop.Name);
-
-                if (destProp != null)
-                    try
-                    {
-                        // Получаем значение из исходного объекта
-                        var sourceValue = GetValue(source, prop.Name);
-
-                        // Проверяем тип свойства
-                        if (IsBasic(prop.PropertyType))
-                        {
-                            // Для базовых типов выполняем простое копирование
-                            SetPropertyValue(dest, prop.Name, sourceValue);
-                        }
-                        else if (IsCollection(prop.PropertyType))
-                        {
-                            DeepCopyCollection(sourceValue);
-                        }
-                        else
-                        {
-                            // Для сложных объектов выполняем глубокое копирование
-                            var destValue = GetValue(dest, prop.Name);
-
-                            if (destValue == null)
-                            {
-                                // Если значение null, создаем новый объект
-                                destValue = Activator.CreateInstance(prop.PropertyType);
-                                SetPropertyValue(dest, prop.Name, destValue);
-                            }
-
-                            // Рекурсивно копируем объект
-                            DeepCopy(sourceValue, destValue);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new Exception($"Ошибка глубокого копирования свойства {prop.Name}: {ex.Message}");
-                    }
-
-                void DeepCopyCollection(object value)
-                {
-                    // Для коллекций выполняем глубокое копирование
-                    var itemType = GetCollectionItemType(prop.PropertyType);
-                    var sourceCollection = (IList)value;
-                    var destCollection = (IList)GetValue(dest, prop.Name);
-
-                    // Очищаем целевую коллекцию
-                    destCollection.Clear();
-
-                    foreach (var item in sourceCollection)
-                    {
-                        // Создаем новый элемент коллекции
-                        var newItem = Activator.CreateInstance(itemType);
-
-                        // Рекурсивно копируем элемент
-                        DeepCopy(item, newItem);
-
-                        // Добавляем в целевую коллекцию
-                        destCollection.Add(newItem);
-                    }
-                }
-            }
-
-            return dest;
-        }
 
         /// <summary>
         ///     Преобразует значение к указанному типу.
@@ -502,8 +382,7 @@ namespace RuntimeStuff.Helpers
         ///     <see cref="StringComparison.OrdinalIgnoreCase" />.
         /// </param>
         /// <returns>Первый найденный экземпляр <see cref="Attribute" />, либо <c>null</c>, если атрибут не найден.</returns>
-        public static Attribute GetCustomAttribute(MemberInfo member, string attributeName,
-            StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
+        public static Attribute GetCustomAttribute(MemberInfo member, string attributeName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
             var trimAttributeName = !attributeName.ToLower().EndsWith("attribute");
             var memberAttributes = member.GetCustomAttributes();
@@ -527,7 +406,8 @@ namespace RuntimeStuff.Helpers
         /// <returns>Найденное поле или null, если поле не найдено.</returns>
         public static FieldInfo GetField(Type type, Func<FieldInfo, bool> matchCriteria)
         {
-            return type.GetTypeInfo().DeclaredFields.FirstOrDefault(matchCriteria);
+            var fieldMap = GetFieldsMap(type);
+            return fieldMap.Values.FirstOrDefault(matchCriteria);
         }
 
         /// <summary>
@@ -712,11 +592,10 @@ namespace RuntimeStuff.Helpers
                 yield break;
             }
 
-            if (visited.Contains(obj)) yield break;
-            visited.Add(obj);
+            if (!visited.Add(obj)) yield break;
 
             // Если коллекция и нужно искать в коллекциях
-            if (searchInCollections && obj is IEnumerable enumerable && !(obj is string))
+            if (searchInCollections && obj is IEnumerable enumerable)
             {
                 foreach (var item in enumerable)
                 {
@@ -778,33 +657,18 @@ namespace RuntimeStuff.Helpers
             return GetPropertiesMap(typeof(T));
         }
 
-        public static Dictionary<string, ConstructorInfo> GetConstructorsMap(Type type)
-        {
-            var key = (type, "constructors", typeof(ConstructorInfo)); //$"{type.FullName}.constructors.public";
-
-            if (GettersCache.TryGetValue(key, out var cached))
-                return (Dictionary<string, ConstructorInfo>)cached;
-
-            var typeCtors = type.GetConstructors();
-            var dic = new Dictionary<string, ConstructorInfo>();
-            foreach (var ctor in typeCtors)
-                dic[ctor.Name] = ctor;
-            GettersCache[key] = dic;
-            return dic;
-        }
-
         public static Dictionary<string, PropertyInfo> GetPropertiesMap(Type type)
         {
             var key = (type, "properties", typeof(PropertyInfo));
 
-            if (PropertiesAndFieldsCache.TryGetValue(key, out var cached))
+            if (Cache.TryGetValue(key, out var cached))
                 return (Dictionary<string, PropertyInfo>)cached;
 
             var typeProperties = type.GetProperties();
             var dic = new Dictionary<string, PropertyInfo>();
             foreach (var prop in typeProperties)
                 dic[prop.Name] = prop;
-            PropertiesAndFieldsCache[key] = dic;
+            Cache[key] = dic;
             return dic;
         }
 
@@ -818,14 +682,14 @@ namespace RuntimeStuff.Helpers
         {
             var key = (type, "fields", typeof(FieldInfo));
 
-            if (PropertiesAndFieldsCache.TryGetValue(key, out var cached))
+            if (Cache.TryGetValue(key, out var cached))
                 return (Dictionary<string, FieldInfo>)cached;
 
             var typeFields = type.GetFields(DefaultBindingFlags);
             var dic = new Dictionary<string, FieldInfo>();
             foreach (var fieldInfo in typeFields)
                 dic[fieldInfo.Name] = fieldInfo;
-            PropertiesAndFieldsCache[key] = dic;
+            Cache[key] = dic;
             return dic;
         }
 
@@ -847,8 +711,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="propertyName">Имя свойства</param>
         /// <param name="stringComparison">Сравнение имен</param>
         /// <returns></returns>
-        public static PropertyInfo GetProperty(Type type, string propertyName,
-            StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
+        public static PropertyInfo GetProperty(Type type, string propertyName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
             return GetProperties(type).FirstOrDefault(x => x.Name.Equals(propertyName, stringComparison));
         }
@@ -882,13 +745,13 @@ namespace RuntimeStuff.Helpers
         public static string[] GetPropertyNames(Type type)
         {
             var key = (type, "property-names",
-                typeof(string)); //$"{type.FullName}.property-names.{type.FullName}:object";
+                typeof(string));
 
-            if (GettersCache.TryGetValue(key, out var cached))
+            if (Cache.TryGetValue(key, out var cached))
                 return (string[])cached;
 
             var typePropertyNames = GetProperties(type).Select(x => x.Name).ToArray();
-            GettersCache[key] = typePropertyNames;
+            Cache[key] = typePropertyNames;
             return typePropertyNames;
         }
 
@@ -902,10 +765,10 @@ namespace RuntimeStuff.Helpers
         ///     Пример:
         ///     <code>
         /// var person = new Person { Name = "Alice" };
-        /// var value = PropertyHelper.GetValue(person, "Name"); // "Alice"
+        /// var value = PropertyHelper.GetMemberValue(person, "Name"); // "Alice"
         /// </code>
         /// </summary>
-        public static object GetValue(object source, string propertyName, Type tryConvertToType = null,
+        public static object GetMemberValue(object source, string propertyName, Type tryConvertToType = null,
             bool throwIfSourceIsNull = true)
         {
             if (source == null)
@@ -920,8 +783,7 @@ namespace RuntimeStuff.Helpers
                 : getter(source);
         }
 
-        public static MemberInfo FindMember(Type type, string name, bool ignoreCase = false,
-            BindingFlags? bindingFlags = null)
+        public static MemberInfo FindMember(Type type, string name, bool ignoreCase = false, BindingFlags? bindingFlags = null)
         {
             var flags = bindingFlags ?? DefaultBindingFlags;
             if (ignoreCase)
@@ -971,11 +833,10 @@ namespace RuntimeStuff.Helpers
         ///     Пример:
         ///     <code>
         /// var person = new Person { Age = 42 };
-        /// int age = PropertyHelper.GetValue&lt;Person, int&gt;(person, "Age"); // 42
+        /// int age = PropertyHelper.GetMemberValue&lt;Person, int&gt;(person, "Age"); // 42
         /// </code>
         /// </summary>
-        public static TReturn GetValue<TReturn>(object source, string propertyName, bool tryConvert = false,
-            bool ignoreCase = false, bool throwIfSourceIsNull = true)
+        public static TReturn GetMemberValue<TReturn>(object source, string propertyName, bool tryConvert = false, bool ignoreCase = false, bool throwIfSourceIsNull = true)
         {
             if (source == null)
                 if (throwIfSourceIsNull)
@@ -994,8 +855,7 @@ namespace RuntimeStuff.Helpers
             }
         }
 
-        public static TReturn GetValue<TSource, TReturn>(TSource source, string propertyName, bool tryConvert = false,
-            bool ignoreCase = false, bool throwIfSourceIsNull = true)
+        public static TReturn GetMemberValue<TSource, TReturn>(TSource source, string propertyName, bool tryConvert = false, bool ignoreCase = false, bool throwIfSourceIsNull = true)
         {
             if (source == null)
                 if (throwIfSourceIsNull)
@@ -1023,7 +883,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="value">Значение свойства</param>
         /// <returns></returns>
         /// <exception cref="ArgumentNullException"></exception>
-        public static bool SetPropertyValue<T>(T source, string propertyName, object value) where T : class
+        public static bool SetMemberValue<T>(T source, string propertyName, object value) where T : class
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -1042,8 +902,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="source">Исходный объект</param>
         /// <param name="propertyNames">Имена свойств объекта с учетом регистра</param>
         /// <returns></returns>
-        public static object[] GetPropertyValues<TObject>(TObject source, params string[] propertyNames)
-            where TObject : class
+        public static object[] GetPropertyValues<TObject>(TObject source, params string[] propertyNames) where TObject : class
         {
             var values = new List<object>();
             foreach (var property in propertyNames)
@@ -1064,20 +923,18 @@ namespace RuntimeStuff.Helpers
         /// <param name="source">Исходный объект</param>
         /// <param name="propertyNames">Имена свойств объекта с учетом регистра</param>
         /// <returns></returns>
-        public static TValue[] GetPropertyValues<TObject, TValue>(TObject source, params string[] propertyNames)
-            where TObject : class
+        public static TValue[] GetPropertyValues<TObject, TValue>(TObject source, params string[] propertyNames) where TObject : class
         {
             return GetPropertyValues(source, propertyNames).Select(x => ChangeType<TValue>(x)).ToArray();
         }
 
-        public static Func<T, TResult> Getter<T, TResult>(string memberName, Type sourceType = null,
-            bool ignoreCase = false)
+        public static Func<T, TResult> Getter<T, TResult>(string memberName, Type sourceType = null, bool ignoreCase = false)
         {
             var type = sourceType ?? typeof(T);
 
-            var key = (type, memberName, typeof(TResult));
+            var key = (type, memberName + "-getter", typeof(TResult));
 
-            if (GettersCache.TryGetValue(key, out var cached))
+            if (Cache.TryGetValue(key, out var cached))
                 return (Func<T, TResult>)cached;
 
             var bindingFlags =
@@ -1110,7 +967,7 @@ namespace RuntimeStuff.Helpers
                     throw new NotSupportedException($"Тип члена не поддерживается: {memberInfo.MemberType}");
             }
 
-            GettersCache[key] = func;
+            Cache[key] = func;
             return func;
         }
 
@@ -1138,9 +995,9 @@ namespace RuntimeStuff.Helpers
         {
             var type = sourceType ?? typeof(T);
 
-            var key = (type, memberName, typeof(TValue));
+            var key = (type, memberName+"-setters", typeof(TValue));
 
-            if (SettersCache.TryGetValue(key, out var cached))
+            if (Cache.TryGetValue(key, out var cached))
                 return (Action<T, TValue>)cached;
 
             var bindingFlags =
@@ -1171,7 +1028,7 @@ namespace RuntimeStuff.Helpers
                     throw new NotSupportedException($"Setter не поддерживается для члена: {memberInfo.MemberType}");
             }
 
-            SettersCache[key] = action;
+            Cache[key] = action;
             return action;
         }
 
@@ -1278,7 +1135,7 @@ namespace RuntimeStuff.Helpers
             return null;
         }
 
-        public static Func<T, TResult> CreateFieldGetter<T, TResult>(FieldInfo fi)
+        private static Func<T, TResult> CreateFieldGetter<T, TResult>(FieldInfo fi)
         {
             var dm = new DynamicMethod(
                 "get_" + fi.Name,
@@ -1317,7 +1174,7 @@ namespace RuntimeStuff.Helpers
             return (Func<T, TResult>)dm.CreateDelegate(typeof(Func<T, TResult>));
         }
 
-        public static Action<T, TValue> CreateFieldSetter<T, TValue>(FieldInfo fi)
+        private static Action<T, TValue> CreateFieldSetter<T, TValue>(FieldInfo fi)
         {
             var dm = new DynamicMethod("set_" + fi.Name, typeof(void), new[] { typeof(T), typeof(TValue) }, typeof(T),
                 true);
@@ -1814,9 +1671,11 @@ namespace RuntimeStuff.Helpers
             if (string.IsNullOrWhiteSpace(typeOrInterfaceName))
                 throw new ArgumentException(@"Type name cannot be null or empty.", nameof(typeOrInterfaceName));
 
+            var key = ((Type)null, typeOrInterfaceName + "-type-by-name", typeof(Type));
+
             // Проверяем кэш
-            if (TypeCache.TryGetValue(typeOrInterfaceName, out var cachedType))
-                return cachedType;
+            if (Cache.TryGetValue(key, out var cachedType))
+                return (Type)cachedType;
 
             Type foundType = null;
             var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -1851,9 +1710,56 @@ namespace RuntimeStuff.Helpers
                 }
 
             // Кэшируем результат (в том числе null, чтобы избежать повторных обходов)
-            TypeCache[typeOrInterfaceName] = foundType;
+            Cache[key] = foundType;
 
             return foundType;
+        }
+
+        private static int IndexOf<T>(IEnumerable<T> e, Func<T, int, bool> match, bool reverseSearch = false)
+        {
+            if (e == null)
+                return -1;
+
+            // Если исходная коллекция - массив или IList<T>, используем индексацию
+            if (e is IList<T> list)
+            {
+                if (!reverseSearch)
+                {
+                    for (var i = 0; i < list.Count; i++)
+                        if (match(list[i], i))
+                            return i;
+                }
+                else
+                {
+                    for (var i = list.Count - 1; i >= 0; i--)
+                        if (match(list[i], i))
+                            return i;
+                }
+
+                return -1;
+            }
+
+            // Для остальных IEnumerable<T>
+            if (!reverseSearch)
+            {
+                var i = 0;
+                foreach (var item in e)
+                {
+                    if (match(item, i))
+                        return i;
+                    i++;
+                }
+            }
+            else
+            {
+                // К сожалению, для IEnumerable<T> без индексации придётся материализовать в список
+                var arr = e.ToArray();
+                for (var i = arr.Length - 1; i >= 0; i--)
+                    if (match(arr[i], i))
+                        return i;
+            }
+
+            return -1;
         }
     }
 }

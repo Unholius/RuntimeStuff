@@ -25,12 +25,12 @@ namespace RuntimeStuff.Extensions
         ///     Пример:
         ///     <code>
         /// var person = new Person { Name = "Alice" };
-        /// var value = PropertyHelper.GetValue(person, "Name"); // "Alice"
+        /// var value = PropertyHelper.GetMemberValue(person, "Name"); // "Alice"
         /// </code>
         /// </summary>
         public static object GetPropertyValue<T>(T source, string propertyName) where T : class
         {
-            return TypeHelper.GetValue(source, propertyName);
+            return TypeHelper.GetMemberValue(source, propertyName);
         }
 
         /// <summary>

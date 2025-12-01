@@ -948,7 +948,7 @@
 //        if (obj == null)
 //            return d;
 //        var mi = obj.GetType().GetMemberInfoEx();
-//        return mi.Members.Where(matchCriteria).ToDictionary(key => key.Name, value => value.GetValue(obj, args));
+//        return mi.Members.Where(matchCriteria).ToDictionary(key => key.Name, value => value.GetMemberValue(obj, args));
 //    }
 
 //    /// <summary>

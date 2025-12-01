@@ -169,7 +169,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static object GetPropertyValue(this object source, string propertyName)
         {
-            return TypeHelper.GetValue(source, propertyName);
+            return TypeHelper.GetMemberValue(source, propertyName);
         }
 
         /// <summary>

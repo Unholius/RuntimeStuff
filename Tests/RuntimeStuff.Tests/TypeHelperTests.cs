@@ -15,17 +15,17 @@ namespace RuntimeStuff.MSTests
         public void Test1()
         {
             var o = new TestClassWithBasicProperties(666);
-            var v = TypeHelper.GetValue(o, "Int32");
+            var v = TypeHelper.GetMemberValue(o, "Int32");
         }
 
         [TestMethod]
         public void Test2()
         {
             var o = new TestClassWithMethods() {Int32 = 666};
-            var v1 = TypeHelper.GetValue(o, "_str");
-            var v2 = TypeHelper.GetValue<string>(o, "int32", true, true);
-            var v3 = TypeHelper.GetValue(o, "GetString");
-            var v4 = TypeHelper.GetValue<string>(o, "GetString");
+            var v1 = TypeHelper.GetMemberValue(o, "_str");
+            var v2 = TypeHelper.GetMemberValue<string>(o, "int32", true, true);
+            var v3 = TypeHelper.GetMemberValue(o, "GetString");
+            var v4 = TypeHelper.GetMemberValue<string>(o, "GetString");
             var g = TypeHelper.Getter<TestClassWithMethods, string>("_str");
         }
     }

@@ -378,7 +378,7 @@ namespace RuntimeStuff
             {
                 for (var i = 0; i < _sourceFilteredAndSortedList.Count; i++)
                 {
-                    var value = TypeHelper.GetValue(_sourceFilteredAndSortedList[i], property.Name);
+                    var value = TypeHelper.GetMemberValue(_sourceFilteredAndSortedList[i], property.Name);
                     if (Equals(value, key))
                         return i;
                 }
@@ -570,7 +570,7 @@ namespace RuntimeStuff
             var i = 0;
             var rowItem = indexType == IndexType.FilteredSorted ? _sourceFilteredAndSortedList[index] : _sourceList[index];
             foreach (var property in Properties) 
-                values[i++] = TypeHelper.GetValue(rowItem, property.Name);
+                values[i++] = TypeHelper.GetMemberValue(rowItem, property.Name);
             return values;
         }
 
@@ -596,7 +596,7 @@ namespace RuntimeStuff
                 {
                     var result = new TValue[list.Count];
                     var i = 0;
-                    foreach (var item in list) result[i++] = TypeHelper.GetValue<TValue>(item, propertyName);
+                    foreach (var item in list) result[i++] = TypeHelper.GetMemberValue<TValue>(item, propertyName);
 
                     return result;
                 }
@@ -604,7 +604,7 @@ namespace RuntimeStuff
                 var set = new HashSet<TValue>();
 
                 foreach (var item in list)
-                    set.Add(TypeHelper.GetValue<TValue>(item, propertyName));
+                    set.Add(TypeHelper.GetMemberValue<TValue>(item, propertyName));
 
                 return set.ToArray();
             }

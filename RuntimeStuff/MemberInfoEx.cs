@@ -4,19 +4,16 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Text.RegularExpressions;
-using RuntimeStuff.Extensions;
 using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff
 {
     /// <summary>
+    ///     v.2025.12.01
     ///     Представляет расширенную обёртку над <see cref="MemberInfo" />, предоставляющую унифицированный доступ к
     ///     дополнительной информации и операциям для членов типа .NET<br />
     ///     (свойств, методов, полей, событий, конструкторов и самих типов).
@@ -67,22 +64,6 @@ namespace RuntimeStuff
         // Кэш делегатов для создания экземпляров типов
         private static readonly ConcurrentDictionary<string, Func<object>> ConstructorsCache =
             new ConcurrentDictionary<string, Func<object>>();
-
-        // Кэш делегатов для получения значения поля
-        private static readonly ConcurrentDictionary<FieldInfo, Func<object, object>> FieldGettersCache =
-            new ConcurrentDictionary<FieldInfo, Func<object, object>>();
-
-        // Кэш делегатов для установки значения поля
-        private static readonly ConcurrentDictionary<FieldInfo, Action<object, object>> FieldSettersCache =
-            new ConcurrentDictionary<FieldInfo, Action<object, object>>();
-
-        // Кэш делегатов для получения значения свойства
-        private static readonly ConcurrentDictionary<PropertyInfo, Func<object, object>> PropertyGettersCache =
-            new ConcurrentDictionary<PropertyInfo, Func<object, object>>();
-
-        // Кэш делегатов для установки значения свойства
-        private static readonly ConcurrentDictionary<PropertyInfo, Action<object, object>> PropertySettersCache =
-            new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
 
         // Кэш для делегатов получения значений членов
         private readonly ConcurrentDictionary<string, Func<object, object>> _getters =
@@ -586,7 +567,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Все члены типа (свойства, поля, методы и т.д.)
+        ///     Все члены типа (свойства, поля, методы, события, конструкторы)
         /// </summary>
         public MemberInfoEx[] Members
         {
@@ -1000,12 +981,12 @@ namespace RuntimeStuff
             foreach (var c in Constructors)
             {
                 var pAll = c.GetParameters();
-                if (pAll.Length == ctorArgs.Length && ctorArgs.All((_, i) =>
+                if (pAll.Length == ctorArgs.Length && All(ctorArgs, (_, i) =>
                         TypeHelper.IsImplements(args[i]?.GetType(), pAll[i].ParameterType)))
                     return c;
                 var pNoDef = c.GetParameters().Where(p => !p.HasDefaultValue).ToArray();
 
-                if (pNoDef.Length == ctorArgs.Length && ctorArgs.All((_, i) =>
+                if (pNoDef.Length == ctorArgs.Length && All(ctorArgs, (_, i) =>
                         TypeHelper.IsImplements(args[i]?.GetType(), pNoDef[i].ParameterType)))
                 {
                     Array.Resize(ref ctorArgs, pAll.Length);
@@ -1306,6 +1287,9 @@ namespace RuntimeStuff
         #region Методы работы с ORM
 
         private MemberInfoEx[] _columns;
+        private MemberInfoEx[] _tables;
+        private MemberInfoEx[] _pks;
+        private MemberInfoEx[] _fks;
 
         /// <summary>
         ///     Получает коллекцию простых публичных свойств, которые подходят для ORM колонок.<br />
@@ -1333,18 +1317,45 @@ namespace RuntimeStuff
             return _columns;
         }
 
+        public MemberInfoEx[] GetPrimaryKeys()
+        {
+            if (_pks != null)
+                return _pks;
+
+            _pks = Members.Where(x => x.IsPrimaryKey)
+                .ToArray();
+
+            return _pks;
+        }
+
+        public MemberInfoEx[] GetForeignKeys()
+        {
+            if (_fks != null)
+                return _fks;
+
+            _fks = Members.Where(x => x.IsForeignKey)
+                .ToArray();
+
+            return _fks;
+        }
+
         /// <summary>
         ///     Получает коллекцию свойств, представляющих таблицы (коллекции сложных типов без атрибута NotMapped).
         /// </summary>
         /// <returns>Массив <see cref="MemberInfoEx" /> для таблиц.</returns>
         public MemberInfoEx[] GetTables()
         {
-            return Members.Where(x =>
+            if (_tables != null)
+                return _tables;
+
+            _tables = Members.Where(x =>
                 x.IsProperty &&
                 x.IsPublic &&
                 x.IsCollection &&
                 !x.IsBasicCollection &&
                 x.Attributes.All(a => a.GetType().Name != "NotMappedAttribute")).ToArray();
+
+            return _tables;
         }
 
         #endregion Методы работы с ORM
@@ -1370,8 +1381,12 @@ namespace RuntimeStuff
         /// <returns>Массив атрибутов</returns>
         private Attribute[] GetAttributes()
         {
+            if (_attributes != null)
+                return _attributes;
+
             _attributes = MemberInfo.GetCustomAttributes().Concat(BaseTypes.SelectMany(x => x.GetCustomAttributes()))
                 .ToArray();
+
             return _attributes;
         }
 
@@ -1381,6 +1396,9 @@ namespace RuntimeStuff
         /// <returns>Массив информации о конструкторах</returns>
         private ConstructorInfo[] GetConstructors()
         {
+            if (_constructors != null)
+                return _constructors;
+
             _constructors = _type.GetConstructors(DefaultBindingFlags);
             return _constructors;
         }
@@ -1391,6 +1409,7 @@ namespace RuntimeStuff
         /// <returns>Массив информации о событиях</returns>
         private EventInfo[] GetEvents()
         {
+            if (_events != null) return _events;
             _events = _type.GetEvents(DefaultBindingFlags);
             return _events;
         }
@@ -1401,6 +1420,7 @@ namespace RuntimeStuff
         /// <returns>Массив информации о полях</returns>
         private FieldInfo[] GetFields()
         {
+            if (_fields != null) return _fields;
             _fields = _type.GetFields(DefaultBindingFlags)
                 .Concat(BaseTypes.SelectMany(x => x.GetFields(DefaultBindingFlags))).ToArray();
             return _fields;
@@ -1412,6 +1432,7 @@ namespace RuntimeStuff
         /// <returns>Массив информации о методах</returns>
         private MethodInfo[] GetMethods()
         {
+            if (_methods != null) return _methods;
             _methods = _type.GetMethods(DefaultBindingFlags);
             return _methods;
         }
@@ -1422,6 +1443,7 @@ namespace RuntimeStuff
         /// <returns>Массив информации о свойствах</returns>
         private PropertyInfo[] GetProperties()
         {
+            if (_properties != null) return _properties;
             var props = _type.GetProperties(DefaultBindingFlags)
                 .Concat(BaseTypes.Where(x => !x.IsInterface)
                     .SelectMany(x => x.GetProperties(DefaultBindingFlags)))
@@ -1433,6 +1455,22 @@ namespace RuntimeStuff
 
             _properties = l.Values.ToArray();
             return _properties;
+        }
+
+        private static bool All<TSource>(IEnumerable<TSource> source, Func<TSource, int, bool> predicate)
+        {
+            if (source == null) throw new NullReferenceException("source");
+
+            if (predicate == null) throw new NullReferenceException("predicate");
+
+            var i = 0;
+            foreach (var item in source)
+            {
+                if (!predicate(item, i)) return false;
+                i++;
+            }
+
+            return true;
         }
 
         #endregion Внутренние методы

@@ -481,8 +481,8 @@ namespace RuntimeStuff.Helpers
         {
             if (tokens == null)
                 return;
-            var tokensArray = tokens as Token[] ?? tokens.ToArray();
-            foreach (var t in tokensArray)
+
+            foreach (var t in tokens)
             {
                 if (t.Parent == null)
                 {
@@ -493,7 +493,7 @@ namespace RuntimeStuff.Helpers
                     {
                         var plainToken = new Token(t.Source, 0, t.SourceStart - 1, setTag);
                         t.InsertBefore(plainToken);
-                        tokensArray.Add(plainToken, 0);
+                        tokens.Add(plainToken, 0);
                         continue;
                     }
 
@@ -501,7 +501,7 @@ namespace RuntimeStuff.Helpers
                     {
                         var plainToken = new Token(t.Source, t.Previous.SourceEnd + 1, t.SourceStart - 1, setTag);
                         t.InsertBefore(plainToken);
-                        tokensArray.Add(plainToken, plainToken.Index);
+                        tokens.Add(plainToken, plainToken.Index);
                         continue;
                     }
 
@@ -509,7 +509,7 @@ namespace RuntimeStuff.Helpers
                     {
                         var plainToken = new Token(t.Source, t.SourceEnd + 1, t.Source.Length - 1, setTag);
                         t.InsertAfter(plainToken);
-                        tokensArray.Add(plainToken);
+                        tokens.Add(plainToken);
                     }
                 }
                 else
