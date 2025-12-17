@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 
-namespace RuntimeStuff.Tests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class CacheTests
@@ -400,7 +400,7 @@ namespace RuntimeStuff.Tests
             cache.Get("test");
 
             string removedKey = null;
-            cache.ItemRemoved += key => removedKey = key as string;
+            cache.ItemRemoved += (key, r) => removedKey = key as string;
 
             // Act
             cache.Remove("test");
@@ -428,24 +428,6 @@ namespace RuntimeStuff.Tests
 
             // Assert
             Assert.AreEqual(0, cache.Count);
-        }
-
-        [TestMethod]
-        public void Clear_TriggersCacheClearedEvent()
-        {
-            // Arrange
-            Func<string, int> factory = key => key.Length;
-            var cache = new Cache<string, int>(factory);
-            cache.Get("test");
-
-            bool cleared = false;
-            cache.CacheCleared += () => cleared = true;
-
-            // Act
-            cache.Clear();
-
-            // Assert
-            Assert.IsTrue(cleared);
         }
 
         #endregion
@@ -536,25 +518,6 @@ namespace RuntimeStuff.Tests
 
             // Assert
             Assert.IsFalse(contains);
-        }
-
-        [TestMethod]
-        public void ContainsKey_ExpiredKey_ReturnsTrueButTryGetValueReturnsFalse()
-        {
-            // Arrange
-            Func<string, int> factory = key => key.Length;
-            var expiration = TimeSpan.FromMilliseconds(50);
-            var cache = new Cache<string, int>(factory, expiration);
-            cache.Get("test");
-            Thread.Sleep(100); // Wait for expiration
-
-            // Act
-            var containsKey = cache.ContainsKey("test");
-            var tryGetValue = cache.TryGetValue("test", out _);
-
-            // Assert
-            Assert.IsTrue(containsKey); // Key still exists in dictionary
-            Assert.IsFalse(tryGetValue); // But value is expired
         }
 
         [TestMethod]

@@ -11,7 +11,7 @@ using System.Reflection.Emit;
 namespace RuntimeStuff.Helpers
 {
     /// <summary>
-    ///     v.2025.12.16<br />
+    ///     v.2025.12.17<br />
     ///     Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     ///     Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     ///     Особенности:
@@ -94,8 +94,6 @@ namespace RuntimeStuff.Helpers
         private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> PropertiesCache = new ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>>();
 
         private static readonly ConcurrentDictionary<CacheKey, Delegate> SettersCache = new ConcurrentDictionary<CacheKey, Delegate>();
-        private static readonly ConcurrentDictionary<Type, Func<object[], object>> ConstructorsCache = new ConcurrentDictionary<Type, Func<object[], object>>();
-
 
         // Порог для переключения на SortedDictionary
         private static readonly OpCode[] SOneByte = new OpCode[256];
@@ -1165,26 +1163,6 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        ///     Возвращает значение свойства с типизацией результата.<br />
-        ///     Создает и кэширует делегат для быстрого доступа к свойству по имени.<br />
-        ///     Особенности:<br />
-        ///     - Имя свойства реегистронезависимо.<br />
-        ///     - Позволяет получить значение свойства с приведением к нужному типу (Тип должен быть совместимым! Автоматической
-        ///     конвертации типов не происходит!).<br />
-        ///     - Использует кэширование делегатов для повышения производительности.<br />
-        ///     - Генерирует исключение, если свойство не найдено или несовместимо по типу.<br />
-        ///     Пример:
-        ///     <code>
-        /// var person = new Person { Age = 42 };
-        /// int age = PropertyHelper.GetMemberValue&lt;Person, int&gt;(person, "Age"); // 42
-        /// </code>
-        /// </summary>
-        //public static object GetMemberValue(this object source, string propertyName, bool throwIfSourceIsNull = true)
-        //{
-        //    return GetMemberValue<object>(source, propertyName, throwIfSourceIsNull);
-        //}
-
-        /// <summary>
         ///     Возвращает значение по ключу из словаря или добавляет его, если ключ отсутствует.
         /// </summary>
         /// <typeparam name="TKey">Тип ключа словаря.</typeparam>
@@ -1700,7 +1678,7 @@ namespace RuntimeStuff.Helpers
                     Expression.Convert(
                         Expression.ArrayIndex(argsParam, Expression.Constant(i)),
                         p.ParameterType))
-                .ToArray();
+                .ToArray<Expression>();
 
             var newExpr = Expression.New(ctor, ctorArgs);
 
@@ -1718,16 +1696,12 @@ namespace RuntimeStuff.Helpers
         /// <param name="type">Тип создаваемого объекта. Должен иметь конструктор без параметров.</param>
         /// <returns>Новый экземпляр типа <typeparamref name="T" />.</returns>
         /// <exception cref="InvalidOperationException">Выбрасывается, если тип не имеет конструктора по умолчанию.</exception>
-        /// <remarks>
-        ///     Используется метод <see cref="CreateConstructorGetter(Type)" /> для генерации делегата конструктора.
-        ///     Это ускоряет создание объектов по сравнению с <see cref="Activator.CreateInstance(Type)" />.
-        /// </remarks>
         public static T New<T>(Type type)
         {
             return (T)New(type);
         }
 
-        private static readonly ConcurrentDictionary<ConstructorInfo, Func<object[], object>> _cache = new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
+        private static readonly ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache = new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
 
         /// <summary>
         /// Создаёт новый экземпляр указанного типа, используя конструктор,
@@ -1749,7 +1723,7 @@ namespace RuntimeStuff.Helpers
         public static object New(Type type, params object[] args)
         {
             var ctor = FindConstructor(type, args);
-            var factory = _cache.GetOrAdd(ctor, CreateFactory);
+            var factory = CtorCache.GetOrAdd(ctor, CreateFactory);
             return factory(args);
         }
 
@@ -1777,7 +1751,6 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         ///     Установить значение свойству объекта по имени.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
         /// <param name="source">Объект</param>
         /// <param name="propertyName">Имя свойства</param>
         /// <param name="value">Значение свойства</param>
@@ -1821,37 +1794,57 @@ namespace RuntimeStuff.Helpers
                 "get_" + fi.Name,
                 typeof(TResult),
                 new[] { typeof(T) },
-                typeof(T), // разрешения на private поля
-                true // skipVisibility
+                typeof(T),
+                true
             );
 
             var il = dm.GetILGenerator();
 
             if (fi.IsStatic)
             {
-                // Static: просто загружаем значение
                 il.Emit(OpCodes.Ldsfld, fi);
             }
             else
             {
-                // Instance: загружаем аргумент 0 (x)
                 il.Emit(OpCodes.Ldarg_0);
 
-                // Если тип T — value type, надо разыменовать
                 if (typeof(T).IsValueType)
                     il.Emit(OpCodes.Unbox_Any, typeof(T));
 
-                // Загружаем поле x.field
                 il.Emit(OpCodes.Ldfld, fi);
             }
 
-            // Если типы отличаются — кастуем
-            if (fi.FieldType != typeof(TResult))
-                il.Emit(OpCodes.Castclass, typeof(TResult));
+            EmitCast(il, fi.FieldType, typeof(TResult));
 
             il.Emit(OpCodes.Ret);
 
             return (Func<T, TResult>)dm.CreateDelegate(typeof(Func<T, TResult>));
+        }
+
+        private static void EmitCast(ILGenerator il, Type from, Type to)
+        {
+            if (from == to)
+                return;
+
+            if (from.IsValueType && to == typeof(object))
+            {
+                il.Emit(OpCodes.Box, from);
+                return;
+            }
+
+            if (!from.IsValueType && to.IsValueType)
+            {
+                il.Emit(OpCodes.Unbox_Any, to);
+                return;
+            }
+
+            if (!from.IsValueType && !to.IsValueType)
+            {
+                il.Emit(OpCodes.Castclass, to);
+                return;
+            }
+
+            throw new InvalidOperationException($"Нельзя привести {from} к {to}");
         }
 
         private static Action<T, TValue> CreateFieldSetter<T, TValue>(FieldInfo fi)
@@ -1860,6 +1853,7 @@ namespace RuntimeStuff.Helpers
                 "set_" + fi.Name,
                 null,
                 new[] { typeof(T), typeof(TValue) },
+                typeof(T),
                 true);
 
             var il = dm.GetILGenerator();
@@ -1869,43 +1863,20 @@ namespace RuntimeStuff.Helpers
 
             if (fi.IsStatic)
             {
-                //
-                // Load value
-                //
                 il.Emit(OpCodes.Ldarg_1);
-
-                //
-                // Convert value to fieldType
-                //
                 EmitConvertForSetter(il, typeof(TValue), fieldType);
-
-                //
-                // Set static field
-                //
                 il.Emit(OpCodes.Stsfld, fi);
             }
             else
             {
-                //
-                // Load instance (arg0)
-                //
                 il.Emit(OpCodes.Ldarg_0);
+
+                // ⚠️ value-type instance → нужен адрес
                 if (declaring?.IsValueType == true)
-                    il.Emit(OpCodes.Unbox, declaring); // need address for stfld
+                    il.Emit(OpCodes.Unbox, declaring);
 
-                //
-                // Load value
-                //
                 il.Emit(OpCodes.Ldarg_1);
-
-                //
-                // Convert
-                //
                 EmitConvertForSetter(il, typeof(TValue), fieldType);
-
-                //
-                // Set field
-                //
                 il.Emit(OpCodes.Stfld, fi);
             }
 
@@ -2073,61 +2044,6 @@ namespace RuntimeStuff.Helpers
             };
         }
 
-        private static Func<TClass, TProp> CreatePropertyGetterOld<TClass, TProp>(PropertyInfo pi)
-        {
-            if (pi == null)
-                throw new ArgumentNullException(nameof(pi));
-
-            var getMethod = pi.GetGetMethod(true)
-                            ?? throw new InvalidOperationException(
-                                $"Property '{pi.Name}' has no getter.");
-
-            var declaring = pi.DeclaringType;
-            var propType = pi.PropertyType;
-
-            var dm = new DynamicMethod(
-                "get_" + pi.Name,
-                typeof(TProp),
-                new[] { typeof(TClass) },
-                true);
-
-            var il = dm.GetILGenerator();
-
-            //
-            // Static property
-            //
-            if (getMethod.IsStatic)
-            {
-                il.Emit(OpCodes.Call, getMethod);
-
-                EmitConvertForGetter(il, propType, typeof(TProp));
-                il.Emit(OpCodes.Ret);
-
-                return (Func<TClass, TProp>)dm.CreateDelegate(typeof(Func<TClass, TProp>));
-            }
-
-            //
-            // Instance property
-            //
-            il.Emit(OpCodes.Ldarg_0); // load instance
-
-            if (declaring?.IsValueType == true)
-            {
-                // Need address (not copy!)
-                il.Emit(OpCodes.Unbox, declaring);
-                il.Emit(OpCodes.Call, getMethod);
-            }
-            else
-            {
-                il.Emit(OpCodes.Callvirt, getMethod);
-            }
-
-            EmitConvertForGetter(il, propType, typeof(TProp));
-            il.Emit(OpCodes.Ret);
-
-            return (Func<TClass, TProp>)dm.CreateDelegate(typeof(Func<TClass, TProp>));
-        }
-
         private static Action<TClass, TProp> CreatePropertySetter<TClass, TProp>(PropertyInfo pi)
         {
             if (pi == null)
@@ -2197,42 +2113,36 @@ namespace RuntimeStuff.Helpers
             return (Action<TClass, TProp>)dm.CreateDelegate(typeof(Action<TClass, TProp>));
         }
 
-
-        private static void EmitConvertForGetter(ILGenerator il, Type from, Type to)
+        private static void EmitConvertForSetter(ILGenerator il, Type from, Type to)
         {
             if (from == to)
                 return;
 
-            if (to == typeof(object) && from.IsValueType)
+            // object -> value type
+            if (!from.IsValueType && to.IsValueType)
             {
-                // boxing
+                il.Emit(OpCodes.Unbox_Any, to);
+                return;
+            }
+
+            // value type -> object (обычно не нужно для stfld, но пусть будет)
+            if (from.IsValueType && to == typeof(object))
+            {
                 il.Emit(OpCodes.Box, from);
                 return;
             }
 
-            if (to.IsValueType)
+            // reference -> reference
+            if (!from.IsValueType && !to.IsValueType)
             {
-                // unbox_any
-                il.Emit(OpCodes.Unbox_Any, to);
+                il.Emit(OpCodes.Castclass, to);
                 return;
             }
 
-            // reference cast
-            il.Emit(OpCodes.Castclass, to);
+            throw new InvalidOperationException(
+                $"Невозможно привести {from} к {to} для setter");
         }
 
-        private static void EmitConvertForSetter(ILGenerator il, Type from, Type to)
-        {
-            if (to == from)
-                return;
-
-            if (to.IsValueType)
-                // Always unbox_any for value types
-                il.Emit(OpCodes.Unbox_Any, to);
-            else
-                // reference cast
-                il.Emit(OpCodes.Castclass, to);
-        }
 
         private static MemberInfo GetMemberInfoFromLambda(LambdaExpression le)
         {

@@ -533,12 +533,12 @@
 //        {
 //            case DataRowView drv:
 //                drv.Row[propertyNames[0]] = ChangeType(value,
-//                    drv.Row.Table.Columns[propertyNames[0]].DataType ?? typeof(object));
+//                    drv.Row.Table.ColumnProperties[propertyNames[0]].DataType ?? typeof(object));
 //                return true;
 
 //            case DataRow dr:
 //                dr[propertyNames[0]] =
-//                    ChangeType(value, dr.Table.Columns[propertyNames[0]].DataType ?? typeof(object));
+//                    ChangeType(value, dr.Table.ColumnProperties[propertyNames[0]].DataType ?? typeof(object));
 //                return true;
 
 //            default:
@@ -636,7 +636,7 @@
 //        if (source is DataRow dr)
 //        {
 //            var sharedPropNames = targetTypeInfo.Properties.Select(x => x.Name).Intersect(
-//                dr.Table.Columns.OfType<DataColumn>().Select(x => x.ColumnName),
+//                dr.Table.ColumnProperties.OfType<DataColumn>().Select(x => x.ColumnName),
 //                nameComparison.ToStringComparer()).ToArray();
 
 //            foreach (var s in sharedPropNames)

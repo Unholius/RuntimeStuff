@@ -151,8 +151,8 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         ///     Хранилище ожидающих задач по идентификатору события.
         /// </summary>
-        private static readonly ConcurrentDictionary<object, TaskCompletionSource<EventInfo<T>>> _waiters
-            = new ConcurrentDictionary<object, TaskCompletionSource<EventInfo<T>>>();
+        private static readonly ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>> _waiters
+            = new ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>>();
 
         /// <summary>
         ///     Асинхронно ожидает событие с указанным идентификатором, пока не будет использовано <see cref="TryComplete"/> или истечет время ожидания
@@ -163,18 +163,18 @@ namespace RuntimeStuff.Helpers
         ///     По истечении времени ожидание будет автоматически отменено.
         /// </param>
         /// <returns>
-        ///     Задача, завершающаяся объектом <see cref="EventInfo" /> при установке события.
+        ///     Задача, завершающаяся объектом <see cref="EventResult{T}" /> при установке события.
         /// </returns>
         /// <remarks>
         ///     Если ожидание по указанному идентификатору уже существует,
         ///     будет возвращена существующая задача.
         /// </remarks>
-        public static Task<EventInfo<T>> Wait(object eventId, int maxMillisecondsToWait = 5000)
+        public static Task<EventResult<T>> Wait(object eventId, int maxMillisecondsToWait = 5000)
         {
             if (eventId == null)
                 throw new NullReferenceException(nameof(eventId));
 
-            var tcs = new TaskCompletionSource<EventInfo<T>>(
+            var tcs = new TaskCompletionSource<EventResult<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
             if (!_waiters.TryAdd(eventId, tcs)) return _waiters[eventId].Task;
@@ -194,23 +194,23 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="eventId">Уникальный идентификатор события, по которому ожидается уведомление.</param>
         /// <param name="timeoutStatus">
-        /// Статус, который будет установлен в <see cref="EventInfo{T}.Status"/> при истечении времени ожидания.
+        /// Статус, который будет установлен в <see cref="EventResult{T}.Status"/> при истечении времени ожидания.
         /// </param>
         /// <param name="maxMillisecondsToWait">
         /// Максимальное время ожидания события в секундах. По истечении этого времени возвращается <paramref name="timeoutStatus"/>.
         /// </param>
         /// <returns>
-        /// Задача, завершающаяся объектом <see cref="EventInfo{T}"/> с указанным статусом или статусом таймаута.
+        /// Задача, завершающаяся объектом <see cref="EventResult{T}"/> с указанным статусом или статусом таймаута.
         /// </returns>
         /// <remarks>
         /// Если ожидание с указанным идентификатором уже существует, возвращается существующая задача.
         /// </remarks>
-        public static Task<EventInfo<T>> Wait(object eventId, T timeoutStatus, int maxMillisecondsToWait)
+        public static Task<EventResult<T>> Wait(object eventId, T timeoutStatus, int maxMillisecondsToWait)
         {
             if (eventId == null)
                 throw new NullReferenceException(nameof(eventId));
 
-            var tcs = new TaskCompletionSource<EventInfo<T>>(
+            var tcs = new TaskCompletionSource<EventResult<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
             if (!_waiters.TryAdd(eventId, tcs))
@@ -221,8 +221,8 @@ namespace RuntimeStuff.Helpers
             {
                 if (_waiters.TryRemove(eventId, out var removed))
                 {
-                    // Возвращаем EventInfo с заданным статусом таймаута
-                    removed.TrySetResult(new EventInfo<T>(eventId, timeoutStatus));
+                    // Возвращаем EventResult с заданным статусом таймаута
+                    removed.TrySetResult(new EventResult<T>(eventId, timeoutStatus));
                 }
             });
 
@@ -244,7 +244,7 @@ namespace RuntimeStuff.Helpers
             if (eventId == null)
                 throw new NullReferenceException(nameof(eventId));
 
-            var eventInfo = new EventInfo<T>(eventId, status, eventData);
+            var eventInfo = new EventResult<T>(eventId, status, eventData);
 
             if (_waiters.TryRemove(eventId, out var tsc))
             {
@@ -289,7 +289,7 @@ namespace RuntimeStuff.Helpers
     /// <summary>
     ///     Информация о произошедшем событии.
     /// </summary>
-    public sealed class EventInfo<T>
+    public sealed class EventResult<T>
     {
         /// <summary>
         ///     Создаёт новый экземпляр информации о событии.
@@ -297,7 +297,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="eventId">Идентификатор события.</param>
         /// <param name="status">Статус события.</param>
         /// <param name="data">Произвольные данные события.</param>
-        public EventInfo(object eventId, T status, object data = null)
+        public EventResult(object eventId, T status, object data = null)
         {
             EventId = eventId ?? throw new NullReferenceException(nameof(eventId));
             Status = status;

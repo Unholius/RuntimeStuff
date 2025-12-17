@@ -465,5 +465,23 @@ namespace RuntimeStuff.Extensions
 
             return true;
         }
+
+        /// <summary>
+        /// Возвращает уникальные элементы последовательности по заданному ключу.
+        /// Аналог LINQ DistinctBy из .NET 6+.
+        /// </summary>
+        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (keySelector == null) throw new ArgumentNullException(nameof(keySelector));
+
+            var seenKeys = new HashSet<TKey>();
+
+            foreach (var element in source)
+            {
+                if (seenKeys.Add(keySelector(element)))
+                    yield return element;
+            }
+        }
     }
 }

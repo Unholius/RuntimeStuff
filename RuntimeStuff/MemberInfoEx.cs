@@ -13,7 +13,7 @@ using RuntimeStuff.Helpers;
 namespace RuntimeStuff
 {
     /// <summary>
-    ///     v.2025.12.09
+    ///     v.2025.12.17
     ///     Представляет расширенную обёртку над <see cref="MemberInfo" />, предоставляющую унифицированный доступ к
     ///     дополнительной информации и операциям для членов типа .NET<br />
     ///     (свойств, методов, полей, событий, конструкторов и самих типов).
@@ -65,10 +65,6 @@ namespace RuntimeStuff
         private static readonly ConcurrentDictionary<string, Func<object>> ConstructorsCache =
             new ConcurrentDictionary<string, Func<object>>();
 
-        // Кэш для делегатов получения значений членов
-        private readonly ConcurrentDictionary<string, Func<object, object>> _getters =
-            new ConcurrentDictionary<string, Func<object, object>>();
-
         // Кэш для расширенной информации о членах класса по имени
         private readonly ConcurrentDictionary<string, MemberInfoEx> _memberCache =
             new ConcurrentDictionary<string, MemberInfoEx>();
@@ -76,11 +72,10 @@ namespace RuntimeStuff
         private readonly MemberInfoEx _memberInfoEx;
 
         // Кэш для делегатов установки и получения значений членов
-        private readonly ConcurrentDictionary<string, Action<object, object>> _setters1 =
-            new ConcurrentDictionary<string, Action<object, object>>();
+        private readonly ConcurrentDictionary<string, Action<object, object>[]> _setters = new ConcurrentDictionary<string, Action<object, object>[]>(StringComparer.OrdinalIgnoreCase);
 
-        private readonly ConcurrentDictionary<string, Action<object, object>> _setters2 =
-            new ConcurrentDictionary<string, Action<object, object>>(StringComparer.OrdinalIgnoreCase);
+        // Кэш для делегатов получения значений членов
+        private readonly ConcurrentDictionary<string, Func<object, object>[]> _getters = new ConcurrentDictionary<string, Func<object, object>[]>(StringComparer.OrdinalIgnoreCase);
 
         private readonly Type _type;
 
@@ -98,7 +93,7 @@ namespace RuntimeStuff
 
         private string _jsonName;
 
-        private MemberInfoEx[] _members;
+        private Dictionary<string, MemberInfoEx> _members;
 
         private MethodInfo[] _methods;
 
@@ -178,14 +173,20 @@ namespace RuntimeStuff
                 IsField ? AsFieldInfo().IsPrivate :
                 IsMethod ? AsMethodInfo().IsPrivate : IsConstructor && AsConstructorInfo().IsPrivate;
 
+            Attributes = GetAttributes().ToDictionary(x => x.GetType().Name);
+            Events = GetEvents().ToDictionary(x => x.Name);
+
             // Дополнительная обработка для типов
             if (IsType)
             {
+                // Рекурсивная загрузка членов класса
+                if (getMembers) _members = _memberInfoEx?._members ?? GetMembersInternal();
+
                 DefaultConstructor = _memberInfoEx?.DefaultConstructor ?? CreateConstructorDelegate(t);
 
                 if (_memberInfoEx == null)
                 {
-                    var tblAttr = TypeHelper.GetCustomAttribute(MemberInfo, "TableAttribute");
+                    var tblAttr = Attributes.GetValueOrDefault("TableAttribute");
                     if (tblAttr != null)
                     {
                         var tblNameProperty = tblAttr.GetType().GetProperty("Name");
@@ -200,34 +201,52 @@ namespace RuntimeStuff
                     SchemaName = _memberInfoEx.SchemaName;
                 }
 
-                PrimaryKeys = _memberInfoEx?.PrimaryKeys ??
-                              PublicBasicProperties.Where(x => TypeHelper.GetCustomAttribute(x.Value.AsPropertyInfo(), "KeyAttribute") != null)
-                                  .Select(x => x.Value)
-                                  .ToArray();
+                Properties = _memberInfoEx?.Properties ?? Members.Values.Where(x => x.IsProperty).ToDictionary(x => x.Name);
+                PublicProperties = _memberInfoEx?.PublicProperties ?? Properties.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
+                PrivateProperties = _memberInfoEx?.PrivateProperties ?? Properties.Values.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
+                PublicBasicProperties = _memberInfoEx?.PublicBasicProperties ?? PublicProperties.Values.Where(x => x.IsBasic).ToDictionary(x => x.Name);
+                PublicBasicEnumerableProperties = _memberInfoEx?.PublicBasicEnumerableProperties ?? PublicProperties.Values.Where(x => x.IsBasicCollection).ToDictionary(x => x.Name);
+                PublicEnumerableProperties = _memberInfoEx?.PublicEnumerableProperties ?? PublicProperties.Values.Where(x => x.IsCollection && !x.IsBasicCollection).ToDictionary(x => x.Name);
 
-                if (PrimaryKeys.Length == 0)
+                Fields = _memberInfoEx?.Fields ?? Members.Values.Where(x => x.IsField).ToDictionary(x => x.Name);
+                PublicFields = _memberInfoEx?.PublicFields ?? Fields.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
+                PrivateFields = _memberInfoEx?.PrivateFields ?? Fields.Values.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
+
+                PrimaryKeys = _memberInfoEx?.PrimaryKeys ??
+                              PublicBasicProperties.Where(x => x.Value.Attributes.ContainsKey("KeyAttribute"))
+                                  .Select(x => x.Value)
+                                  .ToDictionary(x => x.Name);
+
+                if (PrimaryKeys.Count == 0)
                 {
                     var p = PublicBasicProperties.GetValueOrDefault("id", StringComparer.OrdinalIgnoreCase) ?? PublicBasicProperties.GetValueOrDefault(TableName + "id", StringComparer.OrdinalIgnoreCase);
                     if (p != null)
-                        PrimaryKeys = new[] { PublicBasicProperties[p.Name] };
+                        PrimaryKeys = new Dictionary<string, MemberInfoEx>() { { p.Name, PublicBasicProperties[p.Name] } };
                 }
 
                 ForeignKeys = _memberInfoEx?.ForeignKeys ?? PublicBasicProperties
-                    .Where(x => TypeHelper.GetCustomAttribute(x.Value.AsPropertyInfo(), "ForeignKeyAttribute") != null)
+                    .Where(x => x.Value.Attributes.ContainsKey("ForeignKeyAttribute"))
                     .Select(x => x.Value)
-                    .ToArray();
+                    .ToDictionary(x => x.Name);
 
-                Columns = _memberInfoEx?.Columns ?? PublicBasicProperties.Where(x =>
-                    !x.Value.IsPrimaryKey &&
-                    TypeHelper.GetCustomAttribute(x.Value.AsPropertyInfo(), "ColumnAttribute") != null &&
-                    TypeHelper.GetCustomAttribute(x.Value.AsPropertyInfo(), "NotMappedAttribute") == null)
-                    .Select(x => x.Value)
-                    .ToArray();
+                ColumnProperties = _memberInfoEx?.ColumnProperties ?? PublicBasicProperties.Where(x =>
+                        !x.Value.IsPrimaryKey
+                        && x.Value.Attributes.ContainsKey("ColumnAttribute")
+                        && !x.Value.Attributes.ContainsKey("NotMappedAttribute")
+                    ).Select(x => x.Value)
+                    .ToDictionary(x => x.Name);
 
-                if (Columns.Length == 0)
-                    Columns = PublicBasicProperties.Where(x => !x.Value.IsPrimaryKey)
+                if (ColumnProperties.Count == 0)
+                    ColumnProperties = PublicBasicProperties.Where(x => !x.Value.IsPrimaryKey)
                         .Select(x => x.Value)
-                        .ToArray();
+                        .ToDictionary(x => x.Name);
+
+                var propsAndFields = Members.Where(x => x.Value.IsProperty || x.Value.IsField).GroupBy(x => x.Key, StringComparer.OrdinalIgnoreCase);
+                foreach (var pf in propsAndFields)
+                {
+                    _setters[pf.Key] = pf.Select(x => x.Value.Setter).ToArray();
+                    _getters[pf.Key] = pf.Select(x => x.Value.Getter).ToArray();
+                }
             }
 
             // Дополнительная обработка для свойств
@@ -236,12 +255,12 @@ namespace RuntimeStuff
                 PropertyType = pi.PropertyType;
                 if (_memberInfoEx == null)
                 {
-                    var keyAttr = TypeHelper.GetCustomAttribute(pi, "KeyAttribute");
-                    var colAttr = TypeHelper.GetCustomAttribute(pi, "ColumnAttribute");
-                    var fkAttr = TypeHelper.GetCustomAttribute(pi, "ForeignKeyAttribute");
+                    var keyAttr = Attributes.GetValueOrDefault("KeyAttribute");
+                    var colAttr = Attributes.GetValueOrDefault("ColumnAttribute");
+                    var fkAttr = Attributes.GetValueOrDefault("ForeignKeyAttribute");
                     Setter = TypeHelper.GetMemberSetter(pi.Name, pi.DeclaringType);
                     Getter = TypeHelper.GetMemberGetter(pi.Name, pi.DeclaringType);
-                    PropertyBackingField = Fields.FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ??
+                    PropertyBackingField = GetFields().FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ??
                                            TypeHelper.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
                     ColumnName = colAttr != null
                         ? colAttr.GetType().GetProperty("Name")?.GetValue(colAttr)?.ToString() ?? Name
@@ -275,28 +294,30 @@ namespace RuntimeStuff
                 .LastOrDefault() ?? string.Empty;
 
             // Получение атрибутов
-            Description = _memberInfoEx?.Description ??
-                          MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
+            Description = _memberInfoEx?.Description ?? MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
             DisplayName = _memberInfoEx?.DisplayName ?? MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
 
             if (_memberInfoEx == null)
             {
-                var displayAttr = TypeHelper.GetCustomAttribute(MemberInfo, "DisplayAttribute");
-                if (displayAttr != null)
-                {
-                    var dispGroupNameProp = displayAttr.GetType().GetProperty("GroupName");
-                    if (dispGroupNameProp != null)
-                        GroupName = dispGroupNameProp.GetValue(displayAttr)?.ToString() ?? DisplayName;
-                }
+                var displayAttr = Attributes.GetValueOrDefault("DisplayAttribute");
+                if (displayAttr == null) return;
+                var groupNameProp = displayAttr.GetType().GetProperty("GroupName");
+                if (groupNameProp != null)
+                    GroupName = groupNameProp.GetValue(displayAttr)?.ToString() ?? DisplayName;
             }
             else
             {
                 GroupName = _memberInfoEx.GroupName;
             }
-
-            // Рекурсивная загрузка членов класса
-            if (getMembers) _members = _memberInfoEx?._members ?? GetMembersInternal();
         }
+
+        public Dictionary<string, MemberInfoEx> PrivateFields { get; }
+
+        public Dictionary<string, MemberInfoEx> PublicFields { get; }
+
+        public Dictionary<string, MemberInfoEx> PrivateProperties { get; }
+
+        public Dictionary<string, MemberInfoEx> Fields { get; }
 
         public Type PropertyType { get; }
 
@@ -337,19 +358,10 @@ namespace RuntimeStuff
 
         #region Основные свойства
 
-        private Dictionary<string, MemberInfoEx> _publicBasicEnumerableProperties;
-
-        private Dictionary<string, MemberInfoEx> _publicBasicProperties;
-        private Dictionary<string, MemberInfoEx> _columnsMap;
-
-        private Dictionary<string, MemberInfoEx> _publicEnumerableProperties;
-
-        private Dictionary<string, MemberInfoEx> _publicProperties;
-
         /// <summary>
         ///     Атрибуты члена класса
         /// </summary>
-        public Attribute[] Attributes => _attributes ?? GetAttributes();
+        public Dictionary<string, Attribute> Attributes { get; }
 
         /// <summary>
         ///     Базовые типы и интерфейсы
@@ -382,16 +394,6 @@ namespace RuntimeStuff
         public string ColumnName { get; }
 
         /// <summary>
-        ///     Колонки (свойства с атрибутом ColumnAttribute). Не включают в себя <see cref="PrimaryKeys"/>. Если нет таких свойств, то берутся все публичные простые свойства кроме "EventId"
-        /// </summary>
-        public MemberInfoEx[] Columns { get; } = Array.Empty<MemberInfoEx>();
-
-        /// <summary>
-        ///     Конструкторы типа
-        /// </summary>
-        public ConstructorInfo[] Constructors => _constructors ?? GetConstructors();
-
-        /// <summary>
         ///     Тип, объявивший этот член
         /// </summary>
         public override Type DeclaringType => MemberInfo.DeclaringType;
@@ -417,16 +419,6 @@ namespace RuntimeStuff
         public Type ElementType { get; }
 
         /// <summary>
-        ///     События типа
-        /// </summary>
-        public EventInfo[] Events => _events ?? GetEvents();
-
-        /// <summary>
-        ///     Поля типа
-        /// </summary>
-        public FieldInfo[] Fields => _fields ?? GetFields();
-
-        /// <summary>
         ///     Имя внешнего ключа (из атрибута ForeignKeyAttribute)
         /// </summary>
         public string ForeignColumnName { get; }
@@ -434,7 +426,7 @@ namespace RuntimeStuff
         /// <summary>
         ///     Свойства, помеченные атрибутом ForeignKeyAttribute
         /// </summary>
-        public MemberInfoEx[] ForeignKeys { get; }
+        public Dictionary<string, MemberInfoEx> ForeignKeys { get; }
 
         /// <summary>
         ///     Делегат для получения значения свойства
@@ -579,7 +571,7 @@ namespace RuntimeStuff
                 if (_memberInfoEx == null)
                 {
                     _jsonName = "";
-                    var jsonAttr = Attributes.FirstOrDefault(x => x.GetType().Name.StartsWith("Json"));
+                    var jsonAttr = GetAttributes().FirstOrDefault(x => x.GetType().Name.StartsWith("Json"));
                     if (jsonAttr == null) return _jsonName;
                     var propName = jsonAttr.GetType().GetProperties().FirstOrDefault(p => p.Name.EndsWith("Name"));
                     if (propName != null)
@@ -595,9 +587,9 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Все члены типа (свойства, поля, методы, события, конструкторы)
+        ///     Все члены типа (свойства, поля, методы, события)
         /// </summary>
-        public MemberInfoEx[] Members
+        public Dictionary<string, MemberInfoEx> Members
         {
             get
             {
@@ -614,9 +606,9 @@ namespace RuntimeStuff
         public override MemberTypes MemberType => MemberInfo.MemberType;
 
         /// <summary>
-        ///     Методы типа
+        /// Словарь событий типа
         /// </summary>
-        public MethodInfo[] Methods => _methods ?? _memberInfoEx?._methods ?? GetMethods();
+        public Dictionary<string, EventInfo> Events { get; }
 
         /// <summary>
         ///     Имя члена
@@ -643,12 +635,7 @@ namespace RuntimeStuff
         /// <summary>
         ///     Свойства, помеченные атрибутом KeyAttribute. Если таких нет, то ищется сначала "EventId", потом ИмяТаблицыId
         /// </summary>
-        public MemberInfoEx[] PrimaryKeys { get; }
-
-        /// <summary>
-        ///     Свойства типа
-        /// </summary>
-        public PropertyInfo[] Properties => _properties ?? GetProperties();
+        public Dictionary<string, MemberInfoEx> PrimaryKeys { get; }
 
         /// <summary>
         ///     Поле, хранящее значение свойства (для автоматически реализуемых свойств)
@@ -656,88 +643,52 @@ namespace RuntimeStuff
         public FieldInfo PropertyBackingField { get; }
 
         /// <summary>
-        ///     Словарь публичных свойств-коллекций с элементом списка {T}, где T - простой тип <see cref="BaseTypes" />
+        ///     Словарь публичных свойств-коллекций с элементом списка {T}, где T - простой тип <see cref="BaseTypes" /> (IsPublic && IsProperty && IsBasicCollection)
         /// </summary>
         public Dictionary<string, MemberInfoEx> PublicBasicEnumerableProperties
         {
-            get
-            {
-                if (_publicBasicEnumerableProperties != null)
-                    return _publicBasicEnumerableProperties;
-
-                _publicBasicEnumerableProperties = _memberInfoEx?._publicBasicEnumerableProperties ?? Members.Where(x => x.IsPublic && x.IsProperty && x.IsBasicCollection)
-                    .ToDictionary(x => x.Name);
-
-                return _publicBasicEnumerableProperties;
-            }
+            get;
         }
 
         /// <summary>
-        ///     Словарь простых (<see cref="TypeHelper.BasicTypes" />) публичных свойств типа
-        /// </summary>
-        public Dictionary<string, MemberInfoEx> PublicBasicProperties
-        {
-            get
-            {
-                if (_publicBasicProperties != null)
-                    return _publicBasicProperties;
-
-                _publicBasicProperties = _memberInfoEx?._publicBasicProperties ??
-                                         Members.Where(x => x.IsPublic && x.IsProperty && x.IsBasic).ToDictionary(x => x.Name);
-
-                return _publicBasicProperties;
-            }
-        }
-
-        /// <summary>
-        ///     Словарь свойств по имени колонки у которых есть один из атрибутов Column, Key, Foreign и нет NotMapped
-        /// </summary>
-        public Dictionary<string, MemberInfoEx> ColumnsMap
-        {
-            get
-            {
-                if (_columnsMap != null)
-                    return _columnsMap;
-
-                _columnsMap = GetColumns().ToDictionary(x => x.ColumnName);
-
-                return _columnsMap;
-            }
-        }
-
-        /// <summary>
-        ///     Словарь публичных свойств-коллекций с элементом списка {T}, где T : class
+        ///     Словарь публичных свойств-коллекций с элементом списка {T}, где T : class (IsPublic && IsProperty && IsCollection && !IsBasicCollection)
         /// </summary>
         public Dictionary<string, MemberInfoEx> PublicEnumerableProperties
         {
-            get
-            {
-                if (_publicEnumerableProperties != null)
-                    return _publicEnumerableProperties;
-
-                _publicEnumerableProperties = _memberInfoEx?._publicEnumerableProperties ??
-                                              Members
-                                                  .Where(x => x.IsPublic && x.IsProperty && x.IsCollection && !x.IsBasicCollection)
-                                                  .ToDictionary(x => x.Name);
-
-                return _publicEnumerableProperties;
-            }
+            get;
         }
 
         /// <summary>
-        ///     Словарь публичных свойств типа
+        ///     Словарь простых (<see cref="TypeHelper.BasicTypes" />) публичных свойств типа (IsPublic && IsProperty && IsBasic)
+        /// </summary>
+        public Dictionary<string, MemberInfoEx> PublicBasicProperties
+        {
+            get;
+        }
+
+        /// <summary>
+        ///     Словарь свойств по имени колонки у которых есть один из атрибутов Column, Key, Foreign и нет NotMapped. Если таких нет, то все простые публичные свойства кроме первичных ключей
+        /// </summary>
+        public Dictionary<string, MemberInfoEx> ColumnProperties
+        {
+            get;
+        }
+
+        /// <summary>
+        ///     Словарь публичных свойств типа (IsPublic && IsProperty)
         /// </summary>
         public Dictionary<string, MemberInfoEx> PublicProperties
         {
-            get
-            {
-                if (_publicProperties != null)
-                    return _publicProperties;
+            get;
+            private set;
+        }
 
-                _publicProperties = _memberInfoEx?._publicProperties ?? Members.Where(x => x.IsPublic && x.IsProperty).ToDictionary(x => x.Name);
-
-                return _publicProperties;
-            }
+        /// <summary>
+        ///     Словарь всех свойств типа (IsProperty)
+        /// </summary>
+        public Dictionary<string, MemberInfoEx> Properties
+        {
+            get;
         }
 
         /// <summary>
@@ -859,17 +810,11 @@ namespace RuntimeStuff
         /// <param name="source">Объект</param>
         /// <param name="memberName">Имя свойства или поля</param>
         /// <returns></returns>
-        public object this[object source, string memberName, bool ignoreCase = true]
+        public object this[object source, string memberName]
         {
-            get => _getters[memberName](source);
+            get => GetValue(source, memberName);
 
-            set
-            {
-                if (ignoreCase)
-                    _setters2[memberName](source, value);
-                else
-                    _setters1[memberName](source, value);
-            }
+            set => SetValue(source, memberName, value);
         }
 
         /// <summary>
@@ -913,13 +858,6 @@ namespace RuntimeStuff
                 return me;
 
             var result = memberInfo == null ? null : MemberInfoCache.GetOrAdd(memberInfo, x => new MemberInfoEx(x, x is Type));
-            if (!(memberInfo is Type)) return result;
-            foreach (var m in result.Members)
-            {
-                result._setters1.TryAdd(m.Name, m.Setter);
-                result._setters2.TryAdd(m.Name, m.Setter);
-                result._getters.TryAdd(m.Name, m.Getter);
-            }
 
             return result;
         }
@@ -1036,7 +974,7 @@ namespace RuntimeStuff
         public ConstructorInfo GetConstructorByArgs(ref object[] ctorArgs)
         {
             var args = ctorArgs;
-            foreach (var c in Constructors)
+            foreach (var c in GetConstructors())
             {
                 var pAll = c.GetParameters();
                 if (pAll.Length == ctorArgs.Length && All(ctorArgs, (_, i) =>
@@ -1241,13 +1179,13 @@ namespace RuntimeStuff
 
                 // Ищем по совпадению имени
                 if (mx == null)
-                    mx = Members.FirstOrDefault(x =>
+                    mx = Members.Values.FirstOrDefault(x =>
                         f(x)?.Equals(name, nameComparison) == true &&
                         (membersFilter == null || membersFilter(x)));
 
                 // Ищем по совпадению с удалением специальных символов
                 if (mx == null)
-                    mx = Members.FirstOrDefault(x =>
+                    mx = Members.Values.FirstOrDefault(x =>
                         Regex.Replace($"{f(x)}", "[ \\-_\\.]", string.Empty).Equals(
                             Regex.Replace(name, "[ \\-_\\.]", string.Empty),
                             nameComparison) && (membersFilter == null || membersFilter(x)));
@@ -1308,19 +1246,6 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Проверяет наличие атрибута указанного типа.
-        /// </summary>
-        /// <typeparam name="T">Тип атрибута.</typeparam>
-        /// <param name="filter">Фильтр для отбора атрибутов (опционально).</param>
-        /// <returns><c>true</c>, если атрибут найден; иначе <c>false</c>.</returns>
-        public bool HasAttribute<T>(Func<T, bool> filter = null) where T : Attribute
-        {
-            if (filter == null)
-                filter = _ => true;
-            return Attributes.OfType<T>().Any(filter);
-        }
-
-        /// <summary>
         ///     Проверяет наличие атрибута указанного типа по имени.
         /// </summary>
         /// <param name="typeNames">Имя типа</param>
@@ -1354,7 +1279,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <returns>Массив <see cref="MemberInfoEx"/>, представляющий свойства, подходящие для колонок базы данных.</returns>
         /// <remarks>
-        /// Метод сначала ищет свойства, помеченные атрибутами <c>ColumnAttribute</c>, <c>KeyAttribute</c> или <c>ForeignKeyAttribute</c>. 
+        /// Метод сначала ищет свойства, помеченные атрибутами <c>ColumnAttribute</c>, <c>KeyAttribute</c> или <c>ForeignKeyAttribute</c>.
         /// Если такие свойства не найдены, возвращаются все публичные простые свойства, не являющиеся коллекциями и не помеченные как <c>NotMappedAttribute</c>.
         /// Результат кэшируется в поле <c>_columns</c> для повторного использования.
         /// </remarks>
@@ -1363,13 +1288,13 @@ namespace RuntimeStuff
             if (_columns != null)
                 return _columns;
 
-            _columns = Members.Where(x => x.HasAttributeOfType("ColumnAttribute", "KeyAttribute", "ForeignKeyAttribute"))
+            _columns = Members.Values.Where(x => x.HasAttributeOfType("ColumnAttribute", "KeyAttribute", "ForeignKeyAttribute"))
                 .ToArray();
 
             if (_columns.Length > 0)
                 return _columns;
 
-            _columns = Members.Where(x =>
+            _columns = Members.Values.Where(x =>
                     x.IsProperty &&
                     x.IsPublic &&
                     x.IsBasic &&
@@ -1392,7 +1317,7 @@ namespace RuntimeStuff
             if (_pks != null)
                 return _pks;
 
-            _pks = Members.Where(x => x.IsPrimaryKey)
+            _pks = Members.Values.Where(x => x.IsPrimaryKey)
                 .ToArray();
 
             return _pks;
@@ -1410,7 +1335,7 @@ namespace RuntimeStuff
             if (_fks != null)
                 return _fks;
 
-            _fks = Members.Where(x => x.IsForeignKey)
+            _fks = Members.Values.Where(x => x.IsForeignKey)
                 .ToArray();
 
             return _fks;
@@ -1425,7 +1350,7 @@ namespace RuntimeStuff
             if (_tables != null)
                 return _tables;
 
-            _tables = Members.Where(x =>
+            _tables = Members.Values.Where(x =>
                 x.IsProperty &&
                 x.IsPublic &&
                 x.IsCollection &&
@@ -1440,28 +1365,35 @@ namespace RuntimeStuff
         #region Внутренние методы
 
         /// <summary>
-        ///     Получить все члены типа (свойства, поля, методы и т.д.)
+        ///     Получить все члены типа (свойства, поля, события)
         /// </summary>
         /// <returns>Массив информации о членах</returns>
-        internal MemberInfoEx[] GetMembersInternal()
+        internal Dictionary<string, MemberInfoEx> GetMembersInternal()
         {
-            return Properties.Select(p => new MemberInfoEx(p)).Concat(
-                Fields.Select(x => new MemberInfoEx(x))).Concat(
-                Methods.Select(x => new MemberInfoEx(x))).Concat(
-                Constructors.Select(x => new MemberInfoEx(x))).Concat(
-                Events.Select(x => new MemberInfoEx(x))).ToArray();
+            var members = 
+                GetProperties().Select(p => new MemberInfoEx(p)).Concat(
+                GetFields().Select(x => new MemberInfoEx(x))).Concat(
+                GetMethods().Select(x => new MemberInfoEx(x))).Concat(
+                //GetConstructors().Select(x => new MemberInfoEx(x))).Concat(
+                GetEvents().Select(x => new MemberInfoEx(x))).ToArray();
+
+                return members.ToDictionary(x => x.Name);
         }
 
         /// <summary>
         ///     Получить атрибуты члена и его базовых типов
         /// </summary>
         /// <returns>Массив атрибутов</returns>
-        private Attribute[] GetAttributes()
+        public Attribute[] GetAttributes()
         {
             if (_attributes != null)
                 return _attributes;
 
-            _attributes = MemberInfo.GetCustomAttributes().Concat(BaseTypes.SelectMany(x => x.GetCustomAttributes()))
+            _attributes = MemberInfo
+                .GetCustomAttributes()
+                .Concat(BaseTypes.SelectMany(x => x.GetCustomAttributes()))
+                .Distinct()
+                .DistinctBy(x => x.GetType().Name)
                 .ToArray();
 
             return _attributes;
@@ -1470,22 +1402,49 @@ namespace RuntimeStuff
         /// <summary>
         /// Устанавливает значение члена для указанного объекта.
         /// </summary>
-        /// <param name="instance">Объект, для которого устанавливается значение.</param>
+        /// <param name="source">Объект, для которого устанавливается значение.</param>
         /// <param name="value">Значение, которое нужно установить.</param>
-        public virtual void SetValue(object instance, object value)
+        public virtual void SetValue(object source, object value)
         {
-            Setter(instance, value);
+            Setter(source, value);
         }
 
         /// <summary>
         /// Устанавливает значение члена для указанного объекта.
         /// </summary>
-        /// <param name="instance">Объект, для которого устанавливается значение.</param>
-        /// <param name="propertyName"></param>
+        /// <param name="source">Объект, для которого устанавливается значение.</param>
+        /// <param name="memberName"></param>
         /// <param name="value">Значение, которое нужно установить.</param>
-        public virtual void SetValue(object instance, string propertyName, object value)
+        public virtual void SetValue(object source, string memberName, object value)
         {
-            _setters2[propertyName](instance, value);
+            if (!_setters.TryGetValue(memberName, out var setters))
+                return;
+            foreach (var s in setters)
+            {
+                s(source, value);
+            }
+        }
+
+        /// <summary>
+        /// Извлекает значения указанного члена из заданного объекта источника.
+        /// </summary>
+        /// <remarks>Если для указанного имени члена определено несколько геттеров, возвращаются значения
+        /// всех соответствующих членов. Если член не найден, возвращается null.</remarks>
+        /// <param name="source">Объект, из которого требуется получить значения члена. Не может быть равен null.</param>
+        /// <param name="memberName">Имя члена, значения которого необходимо получить. Чувствительно к регистру.</param>
+        /// <returns>Массив объектов, содержащий значения указанного члена. Возвращает null, если член с заданным именем не
+        /// найден.</returns>
+        public virtual object GetValue(object source, string memberName)
+        {
+            if (!_getters.TryGetValue(memberName, out var getters))
+                return null;
+
+            var values = new List<object>();
+            foreach (var g in getters)
+            {
+                values.Add(g(source));
+            }
+            return values.ToArray();
         }
 
         private object _typedSetter1;
@@ -1503,8 +1462,6 @@ namespace RuntimeStuff
 
             ((Action<T, object>)_typedSetter1)(instance, value);
         }
-
-        private object _typedSetter2;
 
         /// <summary>
         /// Получает значение члена указанного объекта.
@@ -1531,7 +1488,7 @@ namespace RuntimeStuff
         ///     Получить конструкторы типа
         /// </summary>
         /// <returns>Массив информации о конструкторах</returns>
-        private ConstructorInfo[] GetConstructors()
+        public ConstructorInfo[] GetConstructors()
         {
             if (_constructors != null)
                 return _constructors;
@@ -1544,7 +1501,7 @@ namespace RuntimeStuff
         ///     Получить события типа
         /// </summary>
         /// <returns>Массив информации о событиях</returns>
-        private EventInfo[] GetEvents()
+        public EventInfo[] GetEvents()
         {
             if (_events != null) return _events;
             _events = _type.GetEvents(DefaultBindingFlags);
@@ -1555,7 +1512,7 @@ namespace RuntimeStuff
         ///     Получить поля типа и его базовых типов
         /// </summary>
         /// <returns>Массив информации о полях</returns>
-        private FieldInfo[] GetFields()
+        public FieldInfo[] GetFields()
         {
             if (_fields != null) return _fields;
             _fields = _type.GetFields(DefaultBindingFlags)
@@ -1567,7 +1524,7 @@ namespace RuntimeStuff
         ///     Получить методы типа
         /// </summary>
         /// <returns>Массив информации о методах</returns>
-        private MethodInfo[] GetMethods()
+        public MethodInfo[] GetMethods()
         {
             if (_methods != null) return _methods;
             _methods = _type.GetMethods(DefaultBindingFlags);
@@ -1578,7 +1535,7 @@ namespace RuntimeStuff
         ///     Получить свойства типа и его базовых типов (кроме интерфейсов)
         /// </summary>
         /// <returns>Массив информации о свойствах</returns>
-        private PropertyInfo[] GetProperties()
+        public PropertyInfo[] GetProperties()
         {
             if (_properties != null) return _properties;
             var props = _type.GetProperties(DefaultBindingFlags)
@@ -1669,6 +1626,20 @@ namespace RuntimeStuff
         public static MemberInfoEx GetMemberInfoEx(this MemberInfo memberInfo)
         {
             return MemberInfoEx.Create(memberInfo);
+        }
+
+        internal static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (keySelector == null) throw new ArgumentNullException(nameof(keySelector));
+
+            var seenKeys = new HashSet<TKey>();
+
+            foreach (var element in source)
+            {
+                if (seenKeys.Add(keySelector(element)))
+                    yield return element;
+            }
         }
     }
 

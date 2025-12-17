@@ -19,12 +19,12 @@
 //        public void AddCol_ShouldAddNewColumn()
 //        {
 //            var dt = new DataTable();
-//            int before = dt.Columns.Count;
+//            int before = dt.ColumnProperties.Count;
 
 //            dt.AddCol("TestCol", "Заголовок", addCopyIfExists: false, colType: typeof(int));
 
-//            Assert.AreEqual(before + 1, dt.Columns.Count);
-//            var col = dt.Columns["TestCol"];
+//            Assert.AreEqual(before + 1, dt.ColumnProperties.Count);
+//            var col = dt.ColumnProperties["TestCol"];
 //            Assert.IsNotNull(col);
 //            Assert.AreEqual("Заголовок", col.Caption);
 //            Assert.AreEqual(typeof(int), col.DataType);
@@ -35,26 +35,26 @@
 //        public void AddCol_WhenExistsAndAddCopyFalse_ShouldNotAdd()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("C1");
-//            int before = dt.Columns.Count;
+//            dt.ColumnProperties.Add("C1");
+//            int before = dt.ColumnProperties.Count;
 
 //            dt.AddCol("C1", addCopyIfExists: false);
 
-//            Assert.AreEqual(before, dt.Columns.Count);
+//            Assert.AreEqual(before, dt.ColumnProperties.Count);
 //        }
 
 //        [TestMethod]
 //        public void AddCol_WhenExistsAndAddCopyTrue_ShouldAddCopyWithUniqueName()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("C1");
-//            int before = dt.Columns.Count;
+//            dt.ColumnProperties.Add("C1");
+//            int before = dt.ColumnProperties.Count;
 
 //            dt.AddCol("C1", addCopyIfExists: true);
 
-//            Assert.AreEqual(before + 1, dt.Columns.Count);
+//            Assert.AreEqual(before + 1, dt.ColumnProperties.Count);
 //            // Новая колонка не должна иметь то же имя "C1"
-//            Assert.IsTrue(dt.Columns.Cast<DataColumn>().Any(c => c.ColumnName != "C1"));
+//            Assert.IsTrue(dt.ColumnProperties.Cast<DataColumn>().Any(c => c.ColumnName != "C1"));
 //        }
 
 //        [TestMethod]
@@ -76,7 +76,7 @@
 //            var dt = new DataTable();
 //            dt.AddCol("Auto", colType: typeof(int), isAutoIncrement: true);
 
-//            var col = dt.Columns["Auto"];
+//            var col = dt.ColumnProperties["Auto"];
 //            Assert.IsTrue(col.AutoIncrement);
 //            Assert.AreEqual(1, col.AutoIncrementSeed);
 //            Assert.AreEqual(1, col.AutoIncrementStep);
@@ -92,8 +92,8 @@
 //        public void AddRow_ValuesOverload_ShouldAddRowWithValues()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("A", typeof(int));
-//            dt.Columns.Add("B", typeof(string));
+//            dt.ColumnProperties.Add("A", typeof(int));
+//            dt.ColumnProperties.Add("B", typeof(string));
 
 //            dt.AddRow(42, "Hello");
 
@@ -106,7 +106,7 @@
 //        public void AddRow_OutRowOverload_ShouldReturnRowReference()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("X", typeof(string));
+//            dt.ColumnProperties.Add("X", typeof(string));
 
 //            dt.AddRow(out DataRow row, "value");
 //            Assert.AreSame(row, dt.Rows[0]);
@@ -117,8 +117,8 @@
 //        public void AddRow_ByColumnNames_ShouldMapValuesCorrectly()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("Col1", typeof(int));
-//            dt.Columns.Add("Col2", typeof(string));
+//            dt.ColumnProperties.Add("Col1", typeof(int));
+//            dt.ColumnProperties.Add("Col2", typeof(string));
 
 //            dt.AddRow(["Col2", "Col1"], ["abc", 99]);
 
@@ -131,7 +131,7 @@
 //        public void AddRow_ByColumnNamesOut_ShouldReturnRowReference()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("F", typeof(double));
+//            dt.ColumnProperties.Add("F", typeof(double));
 
 //            dt.AddRow(["F"], [3.14], out DataRow row);
 
@@ -152,8 +152,8 @@
 //            dt.ImportData(items);
 
 //            // Ожидаем две колонки: EventId и Name
-//            Assert.IsTrue(dt.Columns.Contains("EventId"));
-//            Assert.IsTrue(dt.Columns.Contains("Name"));
+//            Assert.IsTrue(dt.ColumnProperties.Contains("EventId"));
+//            Assert.IsTrue(dt.ColumnProperties.Contains("Name"));
 
 //            // Должно быть две строки
 //            Assert.AreEqual(2, dt.Rows.Count);
@@ -201,8 +201,8 @@
 //        public void ToList_ReturnsCorrectObjects_WhenDefaultMapping()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("Name", typeof(string));
-//            dt.Columns.Add("Age", typeof(int));
+//            dt.ColumnProperties.Add("Name", typeof(string));
+//            dt.ColumnProperties.Add("Age", typeof(int));
 //            dt.Rows.Add("Alice", 30);
 //            dt.Rows.Add("Bob", 25);
 
@@ -219,8 +219,8 @@
 //        public void ToList_UsesCustomMapper()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("Имя", typeof(string));
-//            dt.Columns.Add("Возраст", typeof(int));
+//            dt.ColumnProperties.Add("Имя", typeof(string));
+//            dt.ColumnProperties.Add("Возраст", typeof(int));
 //            dt.Rows.Add("Ivan", 40);
 
 //            var mapper = new Dictionary<string, string>
@@ -240,8 +240,8 @@
 //        public void ToList_ReturnsEmptyList_WhenNoRows()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("Name", typeof(string));
-//            dt.Columns.Add("Age", typeof(int));
+//            dt.ColumnProperties.Add("Name", typeof(string));
+//            dt.ColumnProperties.Add("Age", typeof(int));
 
 //            var result = dt.ToList<TestClass>();
 
@@ -253,8 +253,8 @@
 //        public void ToList_AutoColumnMappingViaAttributes()
 //        {
 //            var dt = new DataTable();
-//            dt.Columns.Add("Имя", typeof(string));
-//            dt.Columns.Add("Возраст", typeof(int));
+//            dt.ColumnProperties.Add("Имя", typeof(string));
+//            dt.ColumnProperties.Add("Возраст", typeof(int));
 //            dt.AddRow(["Имя", "Возраст"], ["Алиса", 30]);
 //            dt.AddRow(["Имя", "Возраст"], ["Боб", 25]);
 
@@ -269,9 +269,9 @@
 //        {
 //            var dt = new DataTable();
 //            const int count = 100_000;
-//            dt.Columns.Add("Name", typeof(string));
-//            dt.Columns.Add("Age", typeof(int));
-//            dt.Columns.Add("Sex", typeof(bool));
+//            dt.ColumnProperties.Add("Name", typeof(string));
+//            dt.ColumnProperties.Add("Age", typeof(int));
+//            dt.ColumnProperties.Add("Sex", typeof(bool));
 
 //            for (int i = 0; i < count; i++)
 //            {

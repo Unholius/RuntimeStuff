@@ -3,7 +3,7 @@
 namespace RuntimeStuff.MSTests.Extensions
 {
     [TestClass]
-    public class RSActionExtensionsTests
+    public class ActionExtensionsTests
     {
         [TestMethod]
         public void ConvertAction_TypedToObject_1Param()

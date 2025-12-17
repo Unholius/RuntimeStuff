@@ -35,11 +35,11 @@
 //            bool isPrimaryKey = false,
 //            bool isAutoIncrement = false)
 //        {
-//            if (dt.Columns.Contains(colName) && !addCopyIfExists)
+//            if (dt.ColumnProperties.Contains(colName) && !addCopyIfExists)
 //                return dt;
 
-//            colName = colName.GetUniqueName(x => dt.Columns.Contains(x));
-//            DataColumn col = dt.Columns.Add(colName, colType ?? typeof(string));
+//            colName = colName.GetUniqueName(x => dt.ColumnProperties.Contains(x));
+//            DataColumn col = dt.ColumnProperties.Add(colName, colType ?? typeof(string));
 //            col.Caption = caption;
 //            col.AutoIncrementSeed = 1;
 //            col.AutoIncrementStep = 1;
@@ -76,7 +76,7 @@
 //        /// <returns>Тот же экземпляр DataTable для возможности цепочного вызова.</returns>
 //        public static DataTable AddRow(this DataTable dt, out DataRow row, params object[] values)
 //        {
-//            int valCount = Math.Min(dt.Columns.Count, values.Length);
+//            int valCount = Math.Min(dt.ColumnProperties.Count, values.Length);
 //            row = dt.NewRow();
 //            for (int i = 0; i < valCount; i++)
 //            {
@@ -172,7 +172,7 @@
 //            if (mapper == null)
 //            {
 //                mapper = new Dictionary<string, string>();
-//                foreach (DataColumn col in dt.Columns)
+//                foreach (DataColumn col in dt.ColumnProperties)
 //                {
 //                    mapper[col.ColumnName] = col.ColumnName;
 //                }
@@ -184,7 +184,7 @@
 //                var m = Obj.GetMember<T>(kvp.Item);
 //                if (m == null)
 //                    continue;
-//                columns.Add((dt.Columns[kvp.Key], m));
+//                columns.Add((dt.ColumnProperties[kvp.Key], m));
 //            }
 
 //            var list = new List<T>(dt.Rows.Count);

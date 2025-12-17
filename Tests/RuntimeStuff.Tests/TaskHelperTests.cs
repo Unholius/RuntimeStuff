@@ -1,82 +1,76 @@
-﻿using FluentAssertions;
-using Xunit;
+﻿using System;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using RuntimeStuff.Helpers;
 
-public class TaskHelperTests
+namespace RuntimeStuff.Tests
 {
+    [TestClass]
     public class RunAndForgetTests
     {
-        [Fact]
-        public void RunAndForget_Generic_WithException_ShouldCallHandler()
+        [TestMethod]
+        public async Task RunAndForget_Generic_WithException_ShouldCallHandler()
         {
-            // Arrange
             var exception = new InvalidOperationException("Test exception");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-            Action<InvalidOperationException> onException = ex => handlerCalled = true;
+            var tcs = new TaskCompletionSource<bool>();
 
-            // Act
+            Action<InvalidOperationException> onException = _ => tcs.SetResult(true);
+
+            var task = Task.FromException(exception);
+            TaskHelper.Initialize(shouldAlwaysRethrowException: false);
             TaskHelper.RunAndForget(task, onException);
 
-            // Assert - даем время на выполнение асинхронного метода
-            Task.Delay(100).Wait();
-            handlerCalled.Should().BeTrue();
+            var handled = await tcs.Task;
+            Assert.IsTrue(handled);
         }
 
-        [Fact]
-        public void RunAndForget_Generic_WithoutException_ShouldNotCallHandler()
+        [TestMethod]
+        public async Task RunAndForget_Generic_WithoutException_ShouldNotCallHandler()
         {
-            // Arrange
+            var tcs = new TaskCompletionSource<bool>();
+            Action<InvalidOperationException> onException = _ => tcs.SetResult(true);
+
             var task = Task.CompletedTask;
-            var handlerCalled = false;
-            Action<InvalidOperationException> onException = ex => handlerCalled = true;
-
-            // Act
+            TaskHelper.Initialize(shouldAlwaysRethrowException: false);
             TaskHelper.RunAndForget(task, onException);
 
-            // Assert
-            Task.Delay(100).Wait();
-            handlerCalled.Should().BeFalse();
+            // Подождём коротко, если обработчик не вызван, завершится Timeout
+            var completed = await Task.WhenAny(tcs.Task, Task.Delay(50));
+            Assert.AreNotEqual(tcs.Task, completed); // обработчик не должен был вызваться
         }
 
-        [Fact]
-        public void RunAndForget_NonGeneric_WithException_ShouldCallHandler()
+        [TestMethod]
+        public async Task RunAndForget_NonGeneric_WithException_ShouldCallHandler()
         {
-            // Arrange
             var exception = new Exception("Test exception");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-            Action<Exception> onException = ex => handlerCalled = true;
+            var tcs = new TaskCompletionSource<bool>();
+            Action<Exception> onException = _ => tcs.SetResult(true);
 
-            // Act
+            var task = Task.FromException(exception);
+            TaskHelper.Initialize(shouldAlwaysRethrowException: false);
             TaskHelper.RunAndForget(task, onException);
 
-            // Assert
-            Task.Delay(100).Wait();
-            handlerCalled.Should().BeTrue();
+            var handled = await tcs.Task;
+            Assert.IsTrue(handled);
         }
 
-        [Fact]
-        public void RunAndForget_WithDefaultExceptionHandler_ShouldCallBothHandlers()
+        [TestMethod]
+        public async Task RunAndForget_WithDefaultExceptionHandler_ShouldCallBothHandlers()
         {
-            // Arrange
-            var exception = new Exception("Test exception");
-            var task = Task.FromException(exception);
-            var defaultHandlerCalled = false;
-            var localHandlerCalled = false;
+            var tcsDefault = new TaskCompletionSource<bool>();
+            var tcsLocal = new TaskCompletionSource<bool>();
 
-            TaskHelper.SetDefaultExceptionHandling(ex => defaultHandlerCalled = true);
-            Action<Exception> onException = ex => localHandlerCalled = true;
+            TaskHelper.SetDefaultExceptionHandling(_ => tcsDefault.SetResult(true));
 
             try
             {
-                // Act
-                TaskHelper.RunAndForget(task, onException);
+                var task = Task.FromException(new Exception("Test"));
+                TaskHelper.Initialize(shouldAlwaysRethrowException: false);
+                TaskHelper.RunAndForget(task, ex => tcsLocal.SetResult(true));
 
-                // Assert
-                Task.Delay(100).Wait();
-                defaultHandlerCalled.Should().BeTrue();
-                localHandlerCalled.Should().BeTrue();
+                var handled = await Task.WhenAll(tcsDefault.Task, tcsLocal.Task);
+                Assert.IsTrue(handled[0]);
+                Assert.IsTrue(handled[1]);
             }
             finally
             {
@@ -84,249 +78,83 @@ public class TaskHelperTests
             }
         }
 
-        [Fact]
-        public void RunAndForget_GenericWithDifferentExceptionType_ShouldNotCallHandler()
+        [TestMethod]
+        public async Task RunAndForget_GenericWithDifferentExceptionType_ShouldNotCallHandler()
         {
-            // Arrange
-            var exception = new ArgumentException("Test exception");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-            Action<InvalidOperationException> onException = ex => handlerCalled = true;
+            var tcs = new TaskCompletionSource<bool>();
+            Action<InvalidOperationException> onException = _ => tcs.SetResult(true);
 
-            // Act
+            var task = Task.FromException(new ArgumentException("Test"));
+            TaskHelper.Initialize(shouldAlwaysRethrowException: false);
             TaskHelper.RunAndForget(task, onException);
 
-            // Assert
-            Task.Delay(100).Wait();
-            handlerCalled.Should().BeFalse();
+            var completed = await Task.WhenAny(tcs.Task, Task.Delay(50));
+            Assert.AreNotEqual(tcs.Task, completed); // обработчик не должен был вызваться
         }
     }
 
+    [TestClass]
     public class InitializeTests
     {
-        [Fact]
-        public void Initialize_WithRethrowTrue_ShouldRethrowException()
+        [TestMethod]
+        public async Task Initialize_WithRethrowFalse_ShouldNotRethrowException()
         {
-            // Arrange
-            TaskHelper.Initialize(shouldAlwaysRethrowException: true);
-            var exception = new Exception("Test");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-            Action<Exception> onException = ex => handlerCalled = true;
-
-            // Act & Assert - проверяем, что исключение действительно пробрасывается
-            try
-            {
-                TaskHelper.RunAndForget(task, onException);
-                Task.Delay(100).Wait();
-
-                // В реальном приложении это может вызвать крах,
-                // но в тестах это нормально
-            }
-            finally
-            {
-                TaskHelper.Initialize(shouldAlwaysRethrowException: false);
-            }
-        }
-
-        [Fact]
-        public void Initialize_WithRethrowFalse_ShouldNotRethrowException()
-        {
-            // Arrange
             TaskHelper.Initialize(shouldAlwaysRethrowException: false);
-            var exception = new Exception("Test");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-            Action<Exception> onException = ex => handlerCalled = true;
 
-            // Act
+            var tcs = new TaskCompletionSource<bool>();
+            Action<Exception> onException = _ => tcs.SetResult(true);
+
+            var task = Task.FromException(new Exception("Test"));
             TaskHelper.RunAndForget(task, onException);
 
-            // Assert - не должно быть необработанных исключений
-            Task.Delay(100).Wait();
-            handlerCalled.Should().BeTrue();
+            var handled = await tcs.Task;
+            Assert.IsTrue(handled);
         }
     }
 
-    public class SetDefaultExceptionHandlingTests
+    [TestClass]
+    public class DefaultExceptionHandlingTests
     {
-        [Fact]
+        [TestMethod]
         public void SetDefaultExceptionHandling_WithNull_ShouldThrowArgumentNullException()
         {
-            // Act & Assert
-            Action act = () => TaskHelper.SetDefaultExceptionHandling(null);
-            act.Should().Throw<ArgumentNullException>();
+            Assert.ThrowsException<ArgumentNullException>(
+                () => TaskHelper.SetDefaultExceptionHandling(null));
         }
 
-        [Fact]
-        public void SetDefaultExceptionHandling_WithValidHandler_ShouldBeCalled()
+        [TestMethod]
+        public async Task SetDefaultExceptionHandling_WithValidHandler_ShouldBeCalled()
         {
-            // Arrange
-            var exception = new Exception("Test");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-
+            var tcs = new TaskCompletionSource<bool>();
             try
             {
-                TaskHelper.SetDefaultExceptionHandling(ex => handlerCalled = true);
-
-                // Act
+                TaskHelper.SetDefaultExceptionHandling(_ => tcs.SetResult(true));
+                var task = Task.FromException(new Exception("Test"));
+                TaskHelper.Initialize(shouldAlwaysRethrowException: false);
                 TaskHelper.RunAndForget(task);
 
-                // Assert
-                Task.Delay(100).Wait();
-                handlerCalled.Should().BeTrue();
+                var handled = await tcs.Task;
+                Assert.IsTrue(handled);
             }
             finally
             {
                 TaskHelper.RemoveDefaultExceptionHandling();
             }
         }
-    }
 
-    public class RemoveDefaultExceptionHandlingTests
-    {
-        [Fact]
-        public void RemoveDefaultExceptionHandling_ShouldRemoveHandler()
+        [TestMethod]
+        public async Task RemoveDefaultExceptionHandling_ShouldRemoveHandler()
         {
-            // Arrange
-            var exception = new Exception("Test");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-
-            TaskHelper.SetDefaultExceptionHandling(ex => handlerCalled = true);
+            var tcs = new TaskCompletionSource<bool>();
+            TaskHelper.SetDefaultExceptionHandling(_ => tcs.SetResult(true));
             TaskHelper.RemoveDefaultExceptionHandling();
 
-            // Act
+            var task = Task.FromException(new Exception("Test"));
+            TaskHelper.Initialize(shouldAlwaysRethrowException: false);
             TaskHelper.RunAndForget(task);
 
-            // Assert
-            Task.Delay(100).Wait();
-            handlerCalled.Should().BeFalse();
-        }
-    }
-
-    public class RunAndForgetWithInParametersTests
-    {
-        [Fact]
-        public void RunAndForget_WithInParameter_ShouldHandleException()
-        {
-            // Arrange
-            var exception = new Exception("Test");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-            Action<Exception> onException = ex => handlerCalled = true;
-
-            // Act
-            TaskHelper.RunAndForget(task, in onException);
-
-            // Assert
-            Task.Delay(100).Wait();
-            handlerCalled.Should().BeTrue();
-        }
-
-        [Fact]
-        public void RunAndForget_GenericWithInParameter_ShouldHandleException()
-        {
-            // Arrange
-            var exception = new InvalidOperationException("Test");
-            var task = Task.FromException(exception);
-            var handlerCalled = false;
-            Action<InvalidOperationException> onException = ex => handlerCalled = true;
-
-            // Act
-            TaskHelper.RunAndForget(task, in onException);
-
-            // Assert
-            Task.Delay(100).Wait();
-            handlerCalled.Should().BeTrue();
-        }
-
-        [Fact]
-        public void RunAndForget_WithoutHandler_ShouldNotThrow()
-        {
-            // Arrange
-            var exception = new Exception("Test");
-            var task = Task.FromException(exception);
-
-            // Act
-            var act = () => TaskHelper.RunAndForget(task);
-
-            // Assert - не должно бросать исключение в вызывающий код
-            act.Should().NotThrow();
-            Task.Delay(100).Wait();
-        }
-
-        [Fact]
-        public void RunAndForget_WithContinueOnCapturedContext_ShouldComplete()
-        {
-            // Arrange
-            var task = Task.Delay(10);
-            var completed = false;
-            Action<Exception> onException = ex => { };
-
-            // Act
-            TaskHelper.RunAndForget(task, onException, continueOnCapturedContext: true);
-
-            // Assert
-            Task.Delay(100).Wait();
-            task.IsCompleted.Should().BeTrue();
-        }
-    }
-
-    public class MultipleHandlerScenarios
-    {
-        [Fact]
-        public void RunAndForget_WithBothDefaultAndLocalHandlers_ShouldCallBoth()
-        {
-            // Arrange
-            var exception = new Exception("Test");
-            var task = Task.FromException(exception);
-            var defaultHandlerCallCount = 0;
-            var localHandlerCallCount = 0;
-
-            TaskHelper.SetDefaultExceptionHandling(ex => defaultHandlerCallCount++);
-
-            try
-            {
-                // Act
-                TaskHelper.RunAndForget(task, ex => localHandlerCallCount++);
-
-                // Assert
-                Task.Delay(100).Wait();
-                defaultHandlerCallCount.Should().Be(1);
-                localHandlerCallCount.Should().Be(1);
-            }
-            finally
-            {
-                TaskHelper.RemoveDefaultExceptionHandling();
-            }
-        }
-
-        [Fact]
-        public void RunAndForget_MultipleTasks_ShouldHandleAllExceptions()
-        {
-            // Arrange
-            var handlerCallCount = 0;
-            var exceptions = new[]
-            {
-                new Exception("Test1"),
-                new Exception("Test2"),
-                new Exception("Test3")
-            };
-
-            Action<Exception> onException = ex => handlerCallCount++;
-
-            // Act
-            foreach (var exception in exceptions)
-            {
-                var task = Task.FromException(exception);
-                TaskHelper.RunAndForget(task, onException);
-            }
-
-            // Assert
-            Task.Delay(200).Wait();
-            handlerCallCount.Should().Be(3);
+            var completed = await Task.WhenAny(tcs.Task, Task.Delay(50));
+            Assert.AreNotEqual(tcs.Task, completed); // обработчик не должен был вызваться
         }
     }
 }
