@@ -11,7 +11,7 @@
 //        // Вспомогательный класс для тестирования ImportData
 //        private class SampleItem
 //        {
-//            public int Id { get; set; }
+//            public int EventId { get; set; }
 //            public string Name { get; set; } = "";
 //        }
 
@@ -144,22 +144,22 @@
 //        {
 //            var items = new List<SampleItem>
 //            {
-//                new() { Id = 1, Name = "One" },
-//                new() { Id = 2, Name = "Two" }
+//                new() { EventId = 1, Name = "One" },
+//                new() { EventId = 2, Name = "Two" }
 //            };
 
 //            var dt = new DataTable();
 //            dt.ImportData(items);
 
-//            // Ожидаем две колонки: Id и Name
-//            Assert.IsTrue(dt.Columns.Contains("Id"));
+//            // Ожидаем две колонки: EventId и Name
+//            Assert.IsTrue(dt.Columns.Contains("EventId"));
 //            Assert.IsTrue(dt.Columns.Contains("Name"));
 
 //            // Должно быть две строки
 //            Assert.AreEqual(2, dt.Rows.Count);
-//            Assert.AreEqual(1, dt.Rows[0]["Id"]);
+//            Assert.AreEqual(1, dt.Rows[0]["EventId"]);
 //            Assert.AreEqual("One", dt.Rows[0]["Name"]);
-//            Assert.AreEqual(2, dt.Rows[1]["Id"]);
+//            Assert.AreEqual(2, dt.Rows[1]["EventId"]);
 //            Assert.AreEqual("Two", dt.Rows[1]["Name"]);
 //        }
 
@@ -168,17 +168,17 @@
 //        {
 //            var items = new List<SampleItem?>
 //            {
-//                new() { Id = 1, Name = "First" },
+//                new() { EventId = 1, Name = "First" },
 //                (SampleItem?)null,
-//                new() { Id = 3, Name = "Third" }
+//                new() { EventId = 3, Name = "Third" }
 //            };
 
 //            var dt = new DataTable();
 //            dt.ImportData(items);
 
 //            Assert.AreEqual(2, dt.Rows.Count);
-//            Assert.AreEqual(1, dt.Rows[0]["Id"]);
-//            Assert.AreEqual(3, dt.Rows[1]["Id"]);
+//            Assert.AreEqual(1, dt.Rows[0]["EventId"]);
+//            Assert.AreEqual(3, dt.Rows[1]["EventId"]);
 //            Assert.AreEqual("First", dt.Rows[0]["Name"]);
 //            Assert.AreEqual("Third", dt.Rows[1]["Name"]);
 //        }

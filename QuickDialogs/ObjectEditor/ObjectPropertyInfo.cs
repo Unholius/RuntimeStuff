@@ -22,8 +22,8 @@ namespace QuickDialogs.Core.ObjectEditor
             IsValueValid = _ => true;
             EditFormat = string.Empty;
             InvalidValueErrorMessage = string.Empty;
-            OriginalValue = memberInfoEx.Getter(source);
-            _value = memberInfoEx.Getter(source);
+            OriginalValue = memberInfoEx.GetValue(source);
+            _value = memberInfoEx.GetValue(source);
             _displayValue = string.Format(DisplayFormat, Value);
         }
 

@@ -23,6 +23,26 @@ namespace RuntimeStuff.Extensions
     /// </remarks>
     public static class EnumerableExtensions
     {
+        /// <summary>
+        /// Выполняет указанное действие для каждого элемента последовательности
+        /// и возвращает исходную последовательность.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов последовательности.
+        /// </typeparam>
+        /// <param name="source">
+        /// Исходная последовательность элементов.
+        /// </param>
+        /// <param name="action">
+        /// Действие, выполняемое для каждого элемента последовательности.
+        /// </param>
+        /// <returns>
+        /// Исходная последовательность <paramref name="source"/>,
+        /// что позволяет использовать метод в цепочках вызовов.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> или <paramref name="action"/> равны <c>null</c>.
+        /// </exception>
         public static IEnumerable<T> ForEach<T>(this IEnumerable<T> source, Action<T> action)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -31,6 +51,26 @@ namespace RuntimeStuff.Extensions
             return source;
         }
 
+        /// <summary>
+        /// Преобразует элементы последовательности в строку, соединяя их
+        /// с использованием указанного разделителя.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов последовательности.
+        /// </typeparam>
+        /// <param name="source">
+        /// Последовательность элементов, которые будут объединены в строку.
+        /// </param>
+        /// <param name="separator">
+        /// Разделитель, который будет использоваться между элементами строки.
+        /// По умолчанию используется запятая и пробел (<c>", "</c>).
+        /// </param>
+        /// <returns>
+        /// Строка, содержащая элементы последовательности, разделённые указанным разделителем.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> равна <c>null</c>.
+        /// </exception>
         public static string ToJoinedString<T>(this IEnumerable<T> source, string separator = ", ")
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -47,6 +87,25 @@ namespace RuntimeStuff.Extensions
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Добавляет элемент в коллекцию.
+        /// </summary>
+        /// <param name="e">
+        /// Коллекция, в которую необходимо добавить элемент.
+        /// </param>
+        /// <param name="item">
+        /// Добавляемый элемент.
+        /// </param>
+        /// <param name="index">
+        /// Индекс, по которому необходимо вставить элемент.
+        /// Если значение равно <c>-1</c>, элемент добавляется в конец коллекции.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="e"/> равен <c>null</c>.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если коллекция не поддерживает добавление элементов.
+        /// </exception>
         public static void Add(this IEnumerable e, object item, int index = -1)
         {
             if (e == null) throw new ArgumentNullException(nameof(e));
@@ -80,6 +139,18 @@ namespace RuntimeStuff.Extensions
             }
         }
 
+        /// <summary>
+        /// Удаляет все элементы из коллекции.
+        /// </summary>
+        /// <param name="e">
+        /// Коллекция, которую необходимо очистить.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="e"/> равен <c>null</c>.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если коллекция не поддерживает операцию очистки.
+        /// </exception>
         public static void Clear(this IEnumerable e)
         {
             if (e == null) throw new ArgumentNullException(nameof(e));

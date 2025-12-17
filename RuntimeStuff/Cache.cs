@@ -5,85 +5,97 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RuntimeStuff
 {
     /// <summary>
-    /// Обеспечивает потокобезопасный кэш с автоматическим созданием и устареванием значений по ключу. Поддерживает
-    /// синхронные и асинхронные фабрики значений, а также события для отслеживания изменений в кэше.
+    /// Потокобезопасный кэш значений с поддержкой ленивой инициализации
+    /// и опционального времени жизни элементов.
     /// </summary>
-    /// <remarks>Класс предназначен для хранения и автоматического создания значений по ключу с возможностью задания
-    /// времени жизни элементов. Если элемент устарел или отсутствует, он создаётся с помощью заданной фабрики.
-    /// Поддерживаются события для отслеживания добавления, удаления и очистки элементов. Кэш реализует интерфейс
-    /// IReadOnlyDictionary для удобного доступа к коллекции ключей и значений. Все операции потокобезопасны благодаря
-    /// использованию ConcurrentDictionary.</remarks>
-    /// <typeparam name="TKey">Тип ключа, используемого для идентификации элементов в кэше.</typeparam>
-    /// <typeparam name="TValue">Тип значения, хранимого в кэше.</typeparam>
+    /// <typeparam name="TKey">Тип ключа кэша.</typeparam>
+    /// <typeparam name="TValue">Тип значения кэша.</typeparam>
     [DebuggerDisplay("Count = {Count}")]
     public class Cache<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
     {
         /// <summary>
-        ///     Асинхронная фабрика значений (опционально). Используется в асинхронном конструкторе.
+        /// Асинхронная фабрика значений.
+        /// Используется в методе <see cref="GetAsync"/>.
         /// </summary>
         private readonly Func<TKey, Task<TValue>> _asyncValueFactory;
 
         /// <summary>
-        ///     Внутренний словарь: ключ → пара (значение, время создания).
+        /// Внутреннее хранилище кэша.
+        /// Значения обёрнуты в <see cref="Lazy{T}"/> для ленивого создания.
         /// </summary>
-        protected readonly ConcurrentDictionary<TKey, (TValue Value, DateTime Created)> _cache;
+        protected readonly ConcurrentDictionary<TKey, Lazy<(TValue Value, DateTime Created)>> _cache;
 
         /// <summary>
-        ///     Время жизни элемента в кэше. Если <c>null</c>, элементы не устаревают.
+        /// Время жизни элементов кэша.
+        /// Если <c>null</c>, элементы не истекают.
         /// </summary>
         protected readonly TimeSpan? _expiration;
 
         /// <summary>
-        ///     Синхронная фабрика значений, используемая для создания значения по ключу.
+        /// Синхронная фабрика значений.
         /// </summary>
         private readonly Func<TKey, TValue> _valueFactory;
 
         /// <summary>
-        ///     Инициализирует новый экземпляр кэша с заданной функцией преобразования ключа в значение.
+        /// Создаёт экземпляр кэша с синхронной фабрикой значений.
         /// </summary>
-        /// <param name="valueFactory">Функция для генерации значения по ключу.</param>
-        /// <param name="expiration">Время жизни элементов (null — без истечения срока).</param>
-        /// <param name="concurrencyLevel">Ожидаемый уровень параллелизма для <see cref="_cache" />.</param>
-        /// <param name="capacity">Начальная ёмкость словаря.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="valueFactory" /> равен <c>null</c>.</exception>
-        public Cache(Func<TKey, TValue> valueFactory, TimeSpan? expiration = null, int concurrencyLevel = 4,
+        /// <param name="valueFactory">Функция создания значения по ключу.</param>
+        /// <param name="expiration">Время жизни элемента кэша.</param>
+        /// <param name="concurrencyLevel">Ожидаемое количество параллельных потоков.</param>
+        /// <param name="capacity">Начальная ёмкость кэша.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="valueFactory"/> равен <c>null</c>.
+        /// </exception>
+        public Cache(
+            Func<TKey, TValue> valueFactory,
+            TimeSpan? expiration = null,
+            int concurrencyLevel = 4,
             int capacity = 31)
         {
-            _cache = new ConcurrentDictionary<TKey, (TValue Value, DateTime Created)>(concurrencyLevel, capacity);
+            _cache = new ConcurrentDictionary<TKey, Lazy<(TValue Value, DateTime Created)>>(
+                concurrencyLevel, capacity);
+
             _valueFactory = valueFactory ?? throw new ArgumentNullException(nameof(valueFactory));
             _expiration = expiration;
         }
 
         /// <summary>
-        ///     Создаёт асинхронный кэш с автоматическим созданием значений.
-        ///     Асинхронная фабрика хранится и используется в методе <see cref="GetAsync" />
+        /// Создаёт экземпляр кэша с асинхронной фабрикой значений.
         /// </summary>
-        /// <param name="asyncValueFactory">Асинхронная функция генерации значения по ключу.</param>
-        /// <param name="expiration">Время жизни элементов (null — без истечения срока).</param>
-        /// <param name="concurrencyLevel">Уровень параллельности <see cref="_cache" />.</param>
-        /// <param name="capacity">Начальная ёмкость словаря.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="asyncValueFactory" /> равен <c>null</c>.</exception>
-        public Cache(Func<TKey, Task<TValue>> asyncValueFactory, TimeSpan? expiration = null, int concurrencyLevel = 4, int capacity = 31)
+        /// <param name="asyncValueFactory">Асинхронная функция создания значения.</param>
+        /// <param name="expiration">Время жизни элемента кэша.</param>
+        /// <param name="concurrencyLevel">Ожидаемое количество параллельных потоков.</param>
+        /// <param name="capacity">Начальная ёмкость кэша.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="asyncValueFactory"/> равен <c>null</c>.
+        /// </exception>
+        public Cache(
+            Func<TKey, Task<TValue>> asyncValueFactory,
+            TimeSpan? expiration = null,
+            int concurrencyLevel = 4,
+            int capacity = 31)
             : this(key => asyncValueFactory(key).Result, expiration, concurrencyLevel, capacity)
         {
-            _asyncValueFactory = asyncValueFactory ?? throw new ArgumentNullException(nameof(asyncValueFactory));
+            _asyncValueFactory = asyncValueFactory
+                ?? throw new ArgumentNullException(nameof(asyncValueFactory));
         }
 
         /// <summary>
-        ///     Возвращает значение, указывающее, является ли коллекция доступной только для чтения.
+        /// Возвращает <c>false</c>, так как кэш поддерживает изменение.
         /// </summary>
         public bool IsReadOnly => false;
 
         /// <summary>
-        ///     Определяет, содержится ли указанный ключ в кэше.
+        /// Проверяет наличие ключа в кэше.
         /// </summary>
-        /// <param name="key">Ключ для поиска.</param>
-        /// <returns><see langword="true" />, если ключ найден; иначе — <see langword="false" />.</returns>
+        /// <param name="key">Ключ.</param>
+        /// <returns><c>true</c>, если ключ существует.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool ContainsKey(TKey key)
         {
@@ -91,152 +103,207 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Пытается получить значение, связанное с указанным ключом.
+        /// Пытается получить значение по ключу без создания нового элемента.
         /// </summary>
-        /// <param name="key">Ключ значения, которое требуется получить.</param>
-        /// <param name="value">
-        ///     Выходной параметр: значение, связанное с ключом, если оно найдено и не истекло; иначе значение по
-        ///     умолчанию для типа.
-        /// </param>
-        /// <returns><see langword="true" />, если значение найдено и действительно; иначе — <see langword="false" />.</returns>
+        /// <param name="key">Ключ.</param>
+        /// <param name="value">Полученное значение.</param>
+        /// <returns>
+        /// <c>true</c>, если значение найдено и не истекло.
+        /// </returns>
         public bool TryGetValue(TKey key, out TValue value)
         {
-            if (_cache.TryGetValue(key, out var entry))
+            if (_cache.TryGetValue(key, out var lazyEntry))
+            {
+                var entry = lazyEntry.Value;
                 if (_expiration == null || DateTime.UtcNow - entry.Created < _expiration)
                 {
                     value = entry.Value;
                     return true;
                 }
 
+                // Элемент истёк
+                if (_cache.TryRemove(key, out _))
+                {
+                    OnItemExpired(key);
+                    OnItemRemoved(key, RemovalReason.Expired);
+                }
+            }
+
             value = default;
             return false;
         }
 
         /// <summary>
-        ///     Возвращает перечислитель, выполняющий итерацию по кэшу.
+        /// Возвращает перечислитель по актуальным (неистекшим) элементам кэша.
         /// </summary>
-        /// <returns>Перечислитель для элементов кэша (ключ, значение).</returns>
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
-            return _cache.Select(x => new KeyValuePair<TKey, TValue>(x.Key, x.Value.Value)).GetEnumerator();
+            return _cache
+                .Select(x =>
+                {
+                    var entry = x.Value.Value;
+                    if (_expiration == null || DateTime.UtcNow - entry.Created < _expiration)
+                    {
+                        return new KeyValuePair<TKey, TValue>(x.Key, entry.Value);
+                    }
+
+                    return new KeyValuePair<TKey, TValue>(x.Key, default);
+                })
+                .Where(x => x.Value != null || default(TValue) == null)
+                .GetEnumerator();
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         /// <summary>
-        ///     Количество элементов, содержащихся в кэше.
+        /// Количество элементов в кэше (включая устаревшие).
         /// </summary>
         public int Count => _cache.Count;
 
         /// <summary>
-        ///     Коллекция всех ключей, содержащихся в кэше.
+        /// Коллекция ключей кэша.
         /// </summary>
         public IEnumerable<TKey> Keys => _cache.Keys;
 
         /// <summary>
-        ///     Коллекция всех значений, содержащихся в кэше.
+        /// Коллекция актуальных (неистекших) значений кэша.
         /// </summary>
-        public IEnumerable<TValue> Values => _cache.Values.Select(x => x.Value);
+        public IEnumerable<TValue> Values => _cache.Values
+            .Select(x => x.Value)
+            .Where(entry => _expiration == null || DateTime.UtcNow - entry.Created < _expiration)
+            .Select(entry => entry.Value);
 
         /// <summary>
-        ///     Получает или задаёт элемент, связанный с указанным ключом.
-        ///     Если элемент отсутствует, используется фабрика значений <see cref="_valueFactory" />.
+        /// Получает значение по ключу, создавая его при необходимости.
         /// </summary>
-        /// <param name="key">Ключ элемента.</param>
-        /// <returns>Значение, связанное с ключом.</returns>
+        /// <param name="key">Ключ.</param>
         public TValue this[TKey key] => Get(key);
 
         /// <summary>
-        ///     Событие вызывается при добавлении нового элемента в кэш.
+        /// Событие вызывается при добавлении нового элемента в кэш.
         /// </summary>
         public event Action<TKey> ItemAdded;
 
         /// <summary>
-        ///     Событие вызывается при удалении элемента из кэша.
+        /// Событие вызывается при удалении элемента из кэша.
         /// </summary>
-        public event Action<TKey> ItemRemoved;
+        public event Action<TKey, RemovalReason> ItemRemoved;
 
         /// <summary>
-        ///     Событие вызывается при очистке всего кэша.
+        /// Событие вызывается при полной очистке кэша.
         /// </summary>
         public event Action CacheCleared;
 
         /// <summary>
-        ///     Получает значение по ключу. Если значение отсутствует, оно создаётся с помощью <see cref="_valueFactory" />.
+        /// Событие вызывается при истечении срока жизни элемента кэша.
         /// </summary>
-        /// <param name="key">Ключ, по которому нужно получить значение.</param>
-        /// <returns>Значение, связанное с ключом.</returns>
+        public event Action<TKey> ItemExpired;
+
+        /// <summary>
+        /// Получает значение по ключу.
+        /// Если значение отсутствует или истекло — создаёт новое.
+        /// </summary>
+        /// <param name="key">Ключ.</param>
+        /// <returns>Значение кэша.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TValue Get(TKey key)
         {
-            if (_cache.TryGetValue(key, out var entry))
-                if (_expiration == null || DateTime.UtcNow - entry.Created < _expiration)
-                    return entry.Value;
+            var lazyEntry = _cache.GetOrAdd(key, k =>
+                new Lazy<(TValue Value, DateTime Created)>(() =>
+                {
+                    var value = _valueFactory(k);
+                    OnItemAdded(k);
+                    return (value, DateTime.UtcNow);
+                }, LazyThreadSafetyMode.ExecutionAndPublication));
 
-            var value = _valueFactory(key);
-            _cache[key] = (value, DateTime.UtcNow);
-            OnItemAdded(key);
-            return value;
+            var entry = lazyEntry.Value;
+
+            if (_expiration != null && DateTime.UtcNow - entry.Created >= _expiration)
+            {
+                if (_cache.TryRemove(key, out _))
+                {
+                    OnItemExpired(key);
+                    OnItemRemoved(key, RemovalReason.Expired);
+                }
+
+                return Get(key);
+            }
+
+            return entry.Value;
         }
 
         /// <summary>
-        ///     Асинхронно получает значение по ключу.
-        ///     Если значения нет или оно устарело — вызывает асинхронную фабрику.
+        /// Асинхронно получает значение по ключу.
+        /// Если значение отсутствует или истекло — создаёт новое.
         /// </summary>
-        /// <param name="key">Ключ, по которому требуется получить значение.</param>
-        /// <returns>Задача, возвращающая значение, связанное с ключом.</returns>
+        /// <param name="key">Ключ.</param>
+        /// <returns>Значение кэша.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task<TValue> GetAsync(TKey key)
         {
-            if (_cache.TryGetValue(key, out var entry))
-                if (_expiration == null || DateTime.UtcNow - entry.Created < _expiration)
-                    return entry.Value;
+            var lazyEntry = _cache.GetOrAdd(key, k =>
+                new Lazy<(TValue Value, DateTime Created)>(() =>
+                {
+                    var task = _asyncValueFactory(k);
+                    var value = task.Result;
+                    OnItemAdded(k);
+                    return (value, DateTime.UtcNow);
+                }, LazyThreadSafetyMode.ExecutionAndPublication));
 
-            var value = await _asyncValueFactory(key);
-            _cache[key] = (value, DateTime.UtcNow);
-            OnItemAdded(key);
-            return value;
+            var entry = lazyEntry.Value;
+
+            if (_expiration != null && DateTime.UtcNow - entry.Created >= _expiration)
+            {
+                if (_cache.TryRemove(key, out _))
+                {
+                    OnItemExpired(key);
+                    OnItemRemoved(key, RemovalReason.Expired);
+                }
+
+                return await GetAsync(key);
+            }
+
+            return entry.Value;
         }
 
         /// <summary>
-        ///     Вызывает событие <see cref="ItemAdded" /> для указанного ключа.
+        /// Вызывает событие <see cref="ItemAdded"/>.
         /// </summary>
-        /// <param name="key">Ключ добавленного элемента.</param>
-        protected void OnItemAdded(TKey key)
-        {
-            ItemAdded?.Invoke(key);
-        }
+        protected void OnItemAdded(TKey key) => ItemAdded?.Invoke(key);
 
         /// <summary>
-        ///     Вызывает событие <see cref="CacheCleared" /> при очистке кэша.
+        /// Вызывает событие <see cref="CacheCleared"/>.
         /// </summary>
-        protected void OnCacheCleared()
-        {
-            CacheCleared?.Invoke();
-        }
+        protected void OnCacheCleared() => CacheCleared?.Invoke();
 
         /// <summary>
-        ///     Вызывает событие <see cref="ItemRemoved" /> для указанного ключа.
+        /// Вызывает событие <see cref="ItemRemoved"/>.
         /// </summary>
         /// <param name="key">Ключ удалённого элемента.</param>
-        protected void OnItemRemoved(TKey key)
+        /// <param name="reason">Причина удаления.</param>
+        protected void OnItemRemoved(TKey key, RemovalReason reason)
         {
-            ItemRemoved?.Invoke(key);
+            ItemRemoved?.Invoke(key, reason);
         }
 
         /// <summary>
-        ///     Удаляет значение из кэша по ключу.
+        /// Вызывает событие <see cref="ItemExpired"/>.
         /// </summary>
-        /// <param name="key">Ключ, который нужно удалить.</param>
-        /// <returns><c>true</c>, если элемент был удалён; иначе <c>false</c>.</returns>
+        protected void OnItemExpired(TKey key)
+        {
+            ItemExpired?.Invoke(key);
+        }
+
+        /// <summary>
+        /// Удаляет элемент из кэша по ключу.
+        /// </summary>
+        /// <param name="key">Ключ.</param>
+        /// <returns><c>true</c>, если элемент был удалён.</returns>
         public bool Remove(TKey key)
         {
             if (_cache.TryRemove(key, out _))
             {
-                OnItemRemoved(key);
+                OnItemRemoved(key, RemovalReason.Manual);
                 return true;
             }
 
@@ -244,12 +311,40 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Очищает весь кэш и вызывает событие очистки.
+        /// Полностью очищает кэш.
         /// </summary>
         public void Clear()
         {
+            var keys = _cache.Keys.ToArray();
+
             _cache.Clear();
+
+            foreach (var key in keys)
+            {
+                OnItemRemoved(key, RemovalReason.Cleared);
+            }
             OnCacheCleared();
         }
+    }
+
+    /// <summary>
+    /// Причина удаления элемента из кэша.
+    /// </summary>
+    public enum RemovalReason
+    {
+        /// <summary>
+        /// Элемент был удалён вручную.
+        /// </summary>
+        Manual,
+
+        /// <summary>
+        /// Элемент был удалён из-за истечения срока жизни.
+        /// </summary>
+        Expired,
+
+        /// <summary>
+        /// Элемент был удалён в результате полной очистки кэша.
+        /// </summary>
+        Cleared
     }
 }

@@ -52,7 +52,6 @@ namespace RuntimeStuff
         /// <exception cref="ArgumentNullException">Если <paramref name="propertyName"/> равен <c>null</c>.</exception>
         public virtual void OnPropertyChanging([CallerMemberName] string propertyName = null) => PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
 
-
         /// <summary>
         /// Вызывает событие <see cref="PropertyChanged"/> для указанного свойства.
         /// </summary>

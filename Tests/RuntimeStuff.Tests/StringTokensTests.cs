@@ -23,7 +23,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void GetTokens_Test_02()
         {
-            var s = "([Id] >= 2 || [Id] < 100)";
+            var s = "([EventId] >= 2 || [EventId] < 100)";
             var masks = new List<StringHelper.TokenMask>();
             masks.Add(new StringHelper.TokenMask("[", "]", _ => "property"));
             masks.Add(new StringHelper.TokenMask("(", ")", _ => "group"));

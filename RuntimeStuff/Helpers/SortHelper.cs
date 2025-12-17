@@ -93,7 +93,7 @@ namespace RuntimeStuff.Helpers
 
             IOrderedEnumerable<T> result = null;
 
-            var accessor = sorts.Select((x, i) => TypeHelper.Getter<T>(sorts[i].propertyName)).ToArray();
+            var accessor = sorts.Select((x, i) => TypeHelper.GetMemberGetter<T>(sorts[i].propertyName)).ToArray();
 
             for (var i = 0; i < sorts.Length; i++)
             {

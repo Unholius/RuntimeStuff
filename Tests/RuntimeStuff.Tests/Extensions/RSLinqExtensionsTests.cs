@@ -12,13 +12,13 @@
 //            public Sample() { }
 //            public Sample(int id, string name)
 //            {
-//                Id = id;
+//                EventId = id;
 //                Name = name;
 //            }
 
-//            public int Id { get; set; }
+//            public int EventId { get; set; }
 //            public string Name { get; set; } = "";
-//            public override string ToString() => $"{Id}:{Name}";
+//            public override string ToString() => $"{EventId}:{Name}";
 //        }
 
 //        [TestMethod]
@@ -106,8 +106,8 @@
 //        [TestMethod]
 //        public void DistinctBy_ReturnsDistinct()
 //        {
-//            var list = new[] { new Sample { Id = 1, Name = "A" }, new Sample { Id = 1, Name = "B" }, new Sample { Id = 2, Name = "C" } };
-//            var result = list.DistinctBy(x => x.Id).ToList();
+//            var list = new[] { new Sample { EventId = 1, Name = "A" }, new Sample { EventId = 1, Name = "B" }, new Sample { EventId = 2, Name = "C" } };
+//            var result = list.DistinctBy(x => x.EventId).ToList();
 //            Assert.AreEqual(2, result.Count);
 //            Assert.AreEqual("A", result[0].Name);
 //        }
@@ -219,10 +219,10 @@
 //        [TestMethod]
 //        public void ToDataTable_ConvertsList()
 //        {
-//            var list = new[] { new Sample { Id = 1, Name = "A" }, new Sample { Id = 2, Name = "B" } };
+//            var list = new[] { new Sample { EventId = 1, Name = "A" }, new Sample { EventId = 2, Name = "B" } };
 //            var dt = list.ToDataTable();
 //            Assert.AreEqual(2, dt.Rows.Count);
-//            Assert.AreEqual(1, dt.Rows[0]["Id"]);
+//            Assert.AreEqual(1, dt.Rows[0]["EventId"]);
 //        }
 
 //        [TestMethod]

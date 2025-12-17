@@ -11,7 +11,14 @@ namespace RuntimeStuff.MSTests
             [Column("Name")]
             public int Id { get; set; }
 
-            [Column("Id")] public string Name { get; set; } = "";
+            [Column("EventId")] public string Name { get; set; } = "";
+        }
+
+        public class TestClass02
+        {
+            public string Prop { get; set; }
+            public string PROP { get; set; }
+            private string prop;
         }
 
         [TestMethod]
@@ -36,6 +43,14 @@ namespace RuntimeStuff.MSTests
         {
             var memberInfo = typeof(TestClass).GetMemberInfoEx();
             var m = memberInfo.GetMember("name");
+        }
+
+        [TestMethod]
+        public void MemberSameNames_Test_01()
+        {
+            var mi = typeof(TestClass02).GetMemberInfoEx();
+            var x = new TestClass02();
+            mi.SetValue(x, "prop", "123");
         }
     }
 }

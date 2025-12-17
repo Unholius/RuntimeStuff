@@ -29,7 +29,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="source">Исходная коллекция</param>
         /// <param name="filterExpression">
         ///     Выражение, имена свойств задаются в квадратных скобках, строковые значения в одинарных
-        ///     кавычках. Пример: [Id] >= 100 && [Name] like '%hello%'
+        ///     кавычках. Пример: [EventId] >= 100 && [Name] like '%hello%'
         /// </param>
         /// <returns></returns>
         public static IEnumerable<T> Filter<T>(IEnumerable<T> source, string filterExpression)
@@ -80,9 +80,12 @@ namespace RuntimeStuff.Helpers
 
             return source.Where(item =>
             {
+                if (item == null)
+                    return false;
+
                 foreach (var propName in propertyNames)
                 {
-                    var value = TypeHelper.Getter<T>(propName)(item);
+                    var value = item.GetMemberValue(propName);
                     if (value == null)
                         continue;
 
@@ -367,7 +370,7 @@ namespace RuntimeStuff.Helpers
         ///     Скомпилировать текстовый фильтр в предикат
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="filter">Текстовый фильтр, например: [Id] >= 1000 || [name] like '%h%l%o%'</param>
+        /// <param name="filter">Текстовый фильтр, например: [EventId] >= 1000 || [name] like '%h%l%o%'</param>
         /// <returns></returns>
         public static Func<T, bool> ToPredicate<T>(string filter)
         {

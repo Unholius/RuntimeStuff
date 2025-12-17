@@ -50,11 +50,11 @@ namespace RuntimeStuff.Extensions
         ///     <see cref="TypeHelper.ChangeType{T}(object, IFormatProvider)" />
         /// </summary>
         /// <typeparam name="TObject"></typeparam>
+        /// <typeparam name="TValue"></typeparam>
         /// <param name="source">Исходный объект</param>
         /// <param name="propertyNames">Имена свойств объекта с учетом регистра</param>
         /// <returns></returns>
-        public static TValue[] GetPropertyValues<TObject, TValue>(this TObject source, params string[] propertyNames)
-            where TObject : class
+        public static TValue[] GetPropertyValues<TObject, TValue>(this TObject source, params string[] propertyNames) where TObject : class
         {
             return TypeHelper.GetPropertyValues<TObject, TValue>(source, propertyNames);
         }

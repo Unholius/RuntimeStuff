@@ -1,5 +1,4 @@
-﻿using RuntimeStuff.Extensions;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -481,8 +480,8 @@ namespace RuntimeStuff.Helpers
         {
             if (tokens == null)
                 return;
-
-            foreach (var t in tokens)
+            var tokensArray = tokens.ToList();
+            foreach (var t in tokensArray)
             {
                 if (t.Parent == null)
                 {
@@ -493,7 +492,7 @@ namespace RuntimeStuff.Helpers
                     {
                         var plainToken = new Token(t.Source, 0, t.SourceStart - 1, setTag);
                         t.InsertBefore(plainToken);
-                        tokens.Add(plainToken, 0);
+                        //tokensArray.Add(plainToken, 0);
                         continue;
                     }
 
@@ -501,7 +500,7 @@ namespace RuntimeStuff.Helpers
                     {
                         var plainToken = new Token(t.Source, t.Previous.SourceEnd + 1, t.SourceStart - 1, setTag);
                         t.InsertBefore(plainToken);
-                        tokens.Add(plainToken, plainToken.Index);
+                        //tokensArray.Add(plainToken, plainToken.Index);
                         continue;
                     }
 
@@ -509,14 +508,14 @@ namespace RuntimeStuff.Helpers
                     {
                         var plainToken = new Token(t.Source, t.SourceEnd + 1, t.Source.Length - 1, setTag);
                         t.InsertAfter(plainToken);
-                        tokens.Add(plainToken);
+                        //tokensArray.Add(plainToken);
                     }
                 }
                 else
                 {
                     if (t.Children.Any())
                         TokenizeNotMatched(t.Children, setTag);
-                    
+
                     if (t.SourceStart - t.Parent.ParentStart > 1 && t.Previous == null)
                     {
                         var plainToken = new Token(t.Parent.Body, 0 + t.Parent.Prefix.Length, t.ParentStart - 1, setTag);

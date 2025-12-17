@@ -66,28 +66,5 @@ namespace RuntimeStuff.Extensions
         /// Имя свойства, если выражение представляет доступ к свойству; иначе — null.
         /// </returns>
         public static string GetPropertyName(this Expression expr) => ExpressionHelper.GetPropertyName(expr);
-
-        /// <summary>
-        ///     Создает и кэширует делегат для получения значения свойства на основе лямбда-выражения.
-        ///     Позволяет быстро и безопасно извлекать значение свойства по имени без постоянного использования Reflection.
-        ///     Особенности:
-        ///     - Принимает лямбда-выражение, указывающее на нужное свойство, и возвращает делегат-геттер.
-        ///     - Автоматически извлекает имя свойства из выражения и возвращает его через out-параметр.
-        ///     - Использует кэширование делегатов для повышения производительности при повторных вызовах.
-        ///     - Генерирует исключение, если выражение не указывает на свойство.
-        ///     Пример:
-        ///     <code>
-        /// var getter = PropertyHelper.Getter&lt;Person, string&gt;(x =&gt; x.Name, out var propName);
-        /// var value = getter(person); // "Alice"
-        /// </code>
-        /// </summary>
-        //public static Func<TSource, object> Getter<TSource, TSourceProp>(this Expression<Func<TSource, TSourceProp>> propSelector, out string propertyName)
-        //{
-        //    if (!(propSelector.Body is MemberExpression member))
-        //        throw new ArgumentException(@"Выражение должно указывать на свойство.", nameof(propSelector));
-
-        //    propertyName = member.Member.Name;
-        //    return Getter<TSource>(propertyName);
-        //}
     }
 }
