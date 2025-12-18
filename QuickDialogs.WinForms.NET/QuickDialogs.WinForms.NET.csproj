@@ -5,8 +5,4 @@
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\QuickDialogs\QuickDialogs.Core.csproj" />
-  </ItemGroup>
-
 </Project>

@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\QuickDialogs\QuickDialogs.Core.csproj" />
+    <ProjectReference Include="..\..\RuntimeStuff\RuntimeStuff.csproj" />
   </ItemGroup>
 
 </Project>

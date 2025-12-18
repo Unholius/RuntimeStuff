@@ -13,15 +13,6 @@ namespace RuntimeStuff.MSTests
             public DateTime Created { get; set; }
         }
 
-        //[TestMethod]
-        //public void Property_Equal_String_EscapesQuotes()
-        //{
-        //    var b = new StringFilterBuilder();
-        //    b.Property("Name").Equal("O'Reilly");
-
-        //    Assert.AreEqual("[Name] == 'O''Reilly'", b.ToString());
-        //}
-
         [TestMethod]
         public void In_With_Integers_FormatsList()
         {
