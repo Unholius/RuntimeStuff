@@ -13,7 +13,7 @@ namespace RuntimeStuff.Builders
     /// <summary>
     ///     Построитель текстового фильтра. Позволяет удобно составлять выражения фильтра в виде строки.
     /// </summary>
-    public class FilterBuilder : IHaveOptions<FilterBuilderOptions>
+    public class StringFilterBuilder : IHaveOptions<FilterBuilderOptions>
     {
         /// <summary>
         ///     Операции, поддерживаемые строителем фильтра.
@@ -77,12 +77,12 @@ namespace RuntimeStuff.Builders
 
         private bool _needsOp;
 
-        public FilterBuilder()
+        public StringFilterBuilder()
         {
             Options = new FilterBuilderOptions();
         }
 
-        public FilterBuilder(FilterBuilderOptions options)
+        public StringFilterBuilder(FilterBuilderOptions options)
         {
             Options = options ?? new FilterBuilderOptions();
         }
@@ -93,8 +93,8 @@ namespace RuntimeStuff.Builders
         ///     Вспомогательный метод для добавления текста в строящийся фильтр.
         /// </summary>
         /// <param name="text">Текст для добавления.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" /> для цепочек вызовов.</returns>
-        private FilterBuilder Append(string text)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" /> для цепочек вызовов.</returns>
+        private StringFilterBuilder Append(string text)
         {
             _sb.Append(text);
             return this;
@@ -113,9 +113,9 @@ namespace RuntimeStuff.Builders
         ///     Открывает логическую группу (добавляет "(").
         /// </summary>
         /// <remarks>Если перед группой ожидается логический оператор, выбрасывается исключение.</remarks>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
         /// <exception cref="InvalidOperationException">Если перед группой требуется оператор AND/OR.</exception>
-        public FilterBuilder OpenGroup()
+        public StringFilterBuilder OpenGroup()
         {
             if (_needsOp)
                 throw new InvalidOperationException("Перед группой нужен оператор AND/OR.");
@@ -125,8 +125,8 @@ namespace RuntimeStuff.Builders
         /// <summary>
         ///     Закрывает логическую группу (добавляет ")").
         /// </summary>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder CloseGroup()
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder CloseGroup()
         {
             Append(")");
             _needsOp = true;
@@ -136,8 +136,8 @@ namespace RuntimeStuff.Builders
         /// <summary>
         ///     Очищает текущее состояние строителя.
         /// </summary>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder Clear()
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder Clear()
         {
             _sb.Clear();
             _needsOp = false;
@@ -147,8 +147,8 @@ namespace RuntimeStuff.Builders
         /// <summary>
         ///     Добавляет логический оператор AND ("&&").
         /// </summary>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder And()
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder And()
         {
             Append(" && ");
             _needsOp = false;
@@ -158,8 +158,8 @@ namespace RuntimeStuff.Builders
         /// <summary>
         ///     Добавляет логический оператор OR ("||").
         /// </summary>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder Or()
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder Or()
         {
             Append(" || ");
             _needsOp = false;
@@ -169,8 +169,8 @@ namespace RuntimeStuff.Builders
         /// <summary>
         ///     Добавляет логическое отрицание (!) перед выражением.
         /// </summary>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder Not()
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder Not()
         {
             Append("!");
             return this;
@@ -181,9 +181,9 @@ namespace RuntimeStuff.Builders
         ///     Указывает свойство (имя) для следующей операции фильтра.
         /// </summary>
         /// <param name="name">Имя свойства.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
         /// <exception cref="InvalidOperationException">Если требуется логический оператор перед операцией.</exception>
-        public FilterBuilder Property(string name)
+        public StringFilterBuilder Property(string name)
         {
             if (_needsOp)
                 throw new InvalidOperationException("Перед операцией требуется логический оператор.");
@@ -196,8 +196,8 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <typeparam name="T">Тип объекта, содержащего свойство.</typeparam>
         /// <param name="propertySelector">Выражение выбора свойства.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder Property<T>(Expression<Func<T, object>> propertySelector) where T : class
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder Property<T>(Expression<Func<T, object>> propertySelector) where T : class
         {
             return Property(propertySelector.GetPropertyName());
         }
@@ -207,9 +207,9 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <typeparam name="T">Тип параметра лямбда-выражения.</typeparam>
         /// <param name="predicate">Лямбда-предикат.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
         /// <exception cref="ArgumentNullException">Если <paramref name="predicate" /> равен null.</exception>
-        public FilterBuilder Where<T>(Expression<Func<T, bool>> predicate) where T : class
+        public StringFilterBuilder Where<T>(Expression<Func<T, bool>> predicate) where T : class
         {
             if (predicate == null)
                 throw new ArgumentNullException(nameof(predicate));
@@ -227,8 +227,8 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <typeparam name="T">Тип параметра лямбда-выражения.</typeparam>
         /// <param name="predicate">Лямбда-предикат.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder AndWhere<T>(Expression<Func<T, bool>> predicate) where T : class
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder AndWhere<T>(Expression<Func<T, bool>> predicate) where T : class
         {
             return And().Where(predicate);
         }
@@ -238,8 +238,8 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <typeparam name="T">Тип параметра лямбда-выражения.</typeparam>
         /// <param name="predicate">Лямбда-предикат.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder OrWhere<T>(Expression<Func<T, bool>> predicate) where T : class
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder OrWhere<T>(Expression<Func<T, bool>> predicate) where T : class
         {
             return Or().Where(predicate);
         }
@@ -248,8 +248,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет операцию равенства с указанным значением.
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder Equal(object value)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder Equal(object value)
         {
             return Binary("==", value);
         }
@@ -258,8 +258,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет операцию неравенства с указанным значением.
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder NotEqual(object value)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder NotEqual(object value)
         {
             return Binary("!=", value);
         }
@@ -268,8 +268,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет операцию "больше".
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder GreaterThan(object value)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder GreaterThan(object value)
         {
             return Binary(">", value);
         }
@@ -278,8 +278,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет операцию "меньше" (LowerThan).
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder LowerThan(object value)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder LowerThan(object value)
         {
             return Binary("<", value);
         }
@@ -288,8 +288,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет операцию "больше или равно".
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder GreaterOrEqual(object value)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder GreaterOrEqual(object value)
         {
             return Binary(">=", value);
         }
@@ -298,8 +298,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет операцию "меньше или равно".
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder LowerOrEqual(object value)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder LowerOrEqual(object value)
         {
             return Binary("<=", value);
         }
@@ -309,8 +309,8 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <param name="op">Текст оператора (например, "==").</param>
         /// <param name="value">Значение для форматирования.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        private FilterBuilder Binary(string op, object value)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        private StringFilterBuilder Binary(string op, object value)
         {
             Append($" {op} {Format(value)}");
             _needsOp = true;
@@ -324,8 +324,8 @@ namespace RuntimeStuff.Builders
         /// <param name="propertySelector">Селектор свойства.</param>
         /// <param name="operation">Операция (<see cref="Operation" />).</param>
         /// <param name="value">Значение операции.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder Add<T>(Expression<Func<T, object>> propertySelector, Operation operation, object value)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder Add<T>(Expression<Func<T, object>> propertySelector, Operation operation, object value)
         {
             return Add(propertySelector.GetPropertyName(), operation, value);
         }
@@ -336,10 +336,10 @@ namespace RuntimeStuff.Builders
         /// <param name="propertyName">Имя свойства.</param>
         /// <param name="operation">Операция (<see cref="Operation" />).</param>
         /// <param name="value">Значение (может быть IEnumerable для IN/BETWEEN и т.д.).</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
         /// <exception cref="ArgumentException">Если имя свойства пустое или аргументы не подходят для операции.</exception>
         /// <exception cref="NotSupportedException">Если операция не поддерживается.</exception>
-        public FilterBuilder Add(string propertyName, Operation operation, object value)
+        public StringFilterBuilder Add(string propertyName, Operation operation, object value)
         {
             if (string.IsNullOrWhiteSpace(propertyName))
                 throw new ArgumentException(@"Property name cannot be null or empty.", nameof(propertyName));
@@ -386,8 +386,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет оператор LIKE с указанным шаблоном.
         /// </summary>
         /// <param name="pattern">Шаблон (без кавычек).</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder Like(string pattern)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder Like(string pattern)
         {
             Append(" LIKE ").Append(Format(pattern));
             _needsOp = true;
@@ -398,8 +398,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет оператор NOT LIKE с указанным шаблоном.
         /// </summary>
         /// <param name="pattern">Шаблон (без кавычек).</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder NotLike(string pattern)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder NotLike(string pattern)
         {
             Append(" NOT LIKE ").Append(Format(pattern));
             _needsOp = true;
@@ -411,8 +411,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет оператор IN с перечислением значений.
         /// </summary>
         /// <param name="values">Список значений.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder In(IEnumerable<object> values)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder In(IEnumerable<object> values)
         {
             Append(" IN { ").Append(string.Join(", ", values.Select(Format))).Append(" }");
             _needsOp = true;
@@ -423,8 +423,8 @@ namespace RuntimeStuff.Builders
         ///     Добавляет оператор NOT IN с перечислением значений.
         /// </summary>
         /// <param name="values">Список значений.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder NotIn(IEnumerable<object> values)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder NotIn(IEnumerable<object> values)
         {
             Append(" NOT IN { ").Append(string.Join(", ", values.Select(Format))).Append(" }");
             _needsOp = true;
@@ -437,8 +437,8 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <param name="low">Нижняя граница.</param>
         /// <param name="high">Верхняя граница.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder Between(object low, object high)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder Between(object low, object high)
         {
             Append($" BETWEEN {Format(low)} AND {Format(high)}");
             _needsOp = true;
@@ -450,8 +450,8 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <param name="low">Нижняя граница.</param>
         /// <param name="high">Верхняя граница.</param>
-        /// <returns>Текущий экземпляр <see cref="FilterBuilder" />.</returns>
-        public FilterBuilder NotBetween(object low, object high)
+        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        public StringFilterBuilder NotBetween(object low, object high)
         {
             Append($" NOT BETWEEN {Format(low)} AND {Format(high)}");
             _needsOp = true;
@@ -563,7 +563,7 @@ namespace RuntimeStuff.Builders
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
-            if (node.Method.Name == nameof(string.Contains) &&
+            if (node.Method.Name == "Contains" &&
                 node.Object != null &&
                 node.Object.Type == typeof(string))
             {

@@ -8,7 +8,7 @@ namespace RuntimeStuff.DI
     {
         public static IServiceCollection AddFilterBuilderOptions(this IServiceCollection services, IConfiguration config)
         {
-            services.Configure<FilterBuilderOptions>(config.GetSection("FilterBuilder"));
+            services.Configure<FilterBuilderOptions>(config.GetSection("StringFilterBuilder"));
             return services;
         }
     }

@@ -105,13 +105,19 @@ namespace RuntimeStuff
 
         private string _xmlElem;
 
+        public MemberInfoEx(MemberInfo memberInfo) : this(memberInfo, getMembers: memberInfo is Type)
+        {
+        }
+
         /// <summary>
         ///     Конструктор для создания расширенной информации о члене класса
         /// </summary>
         /// <param name="memberInfo">Информация о члене класса</param>
         /// <param name="getMembers">Получить информацию о дочерних членах: свойства, поля, методы и т.п.</param>
-        public MemberInfoEx(MemberInfo memberInfo, bool getMembers = false)
+        private MemberInfoEx(MemberInfo memberInfo, bool getMembers = false, MemberInfoEx parent = null)
         {
+            Parent = parent;
+
             _memberInfoEx = memberInfo as MemberInfoEx;
             if (_memberInfoEx != null)
                 memberInfo = _memberInfoEx.MemberInfo;
@@ -166,21 +172,34 @@ namespace RuntimeStuff
             IsConstructor = ci != null;
             CanWrite = pi != null ? pi.CanWrite : fi != null;
             CanRead = pi != null ? pi.CanRead : fi != null;
-            IsPublic = _memberInfoEx?.IsPublic ?? IsProperty ? AsPropertyInfo().GetAccessors().Any(m => m.IsPublic) :
-                IsField ? AsFieldInfo().IsPublic :
-                IsMethod ? AsMethodInfo().IsPublic : IsConstructor && AsConstructorInfo().IsPublic;
-            IsPrivate = _memberInfoEx?.IsPrivate ?? IsProperty ? AsPropertyInfo().GetAccessors().Any(m => m.IsPrivate) :
-                IsField ? AsFieldInfo().IsPrivate :
-                IsMethod ? AsMethodInfo().IsPrivate : IsConstructor && AsConstructorInfo().IsPrivate;
+            IsPublic = _memberInfoEx?.IsPublic ?? 
+                        IsProperty ? AsPropertyInfo().GetAccessors().Any(m => m.IsPublic) :
+                        IsField ? AsFieldInfo().IsPublic :
+                        IsMethod ? AsMethodInfo().IsPublic : 
+                        IsConstructor ? AsConstructorInfo().IsPublic : 
+                        IsEvent || Type.IsPublic;
+            IsPrivate = _memberInfoEx?.IsPrivate ?? 
+                        IsProperty ? AsPropertyInfo().GetAccessors().Any(m => m.IsPrivate) :
+                        IsField ? AsFieldInfo().IsPrivate :
+                        IsMethod ? AsMethodInfo().IsPrivate : 
+                        IsConstructor ? AsConstructorInfo().IsPrivate :
+                        IsType ? !Type.IsPublic :
+                        !IsEvent
+                        ;
 
             Attributes = GetAttributes().ToDictionary(x => x.GetType().Name);
             Events = GetEvents().ToDictionary(x => x.Name);
 
+            // Обработка имени
+            Name = _memberInfoEx?.Name ?? MemberInfo.Name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
+                .LastOrDefault() ?? string.Empty;
+
             // Дополнительная обработка для типов
             if (IsType)
             {
-                // Рекурсивная загрузка членов класса
-                if (getMembers) _members = _memberInfoEx?._members ?? GetMembersInternal();
+                // Получение атрибутов
+                Description = _memberInfoEx?.Description ?? MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
+                DisplayName = _memberInfoEx?.DisplayName ?? MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
 
                 DefaultConstructor = _memberInfoEx?.DefaultConstructor ?? CreateConstructorDelegate(t);
 
@@ -191,8 +210,12 @@ namespace RuntimeStuff
                     {
                         var tblNameProperty = tblAttr.GetType().GetProperty("Name");
                         var tblSchemaProperty = tblAttr.GetType().GetProperty("Schema");
-                        TableName = tblNameProperty?.GetValue(tblAttr)?.ToString() ?? Name;
+                        TableName = tblNameProperty?.GetValue(tblAttr)?.ToString();
                         SchemaName = tblSchemaProperty?.GetValue(tblAttr)?.ToString();
+                    }
+                    else
+                    {
+                        TableName = Name;
                     }
                 }
                 else
@@ -247,6 +270,9 @@ namespace RuntimeStuff
                     _setters[pf.Key] = pf.Select(x => x.Value.Setter).ToArray();
                     _getters[pf.Key] = pf.Select(x => x.Value.Getter).ToArray();
                 }
+
+                // Рекурсивная загрузка членов класса
+                if (getMembers) _members = _memberInfoEx?._members ?? GetMembersInternal();
             }
 
             // Дополнительная обработка для свойств
@@ -258,18 +284,20 @@ namespace RuntimeStuff
                     var keyAttr = Attributes.GetValueOrDefault("KeyAttribute");
                     var colAttr = Attributes.GetValueOrDefault("ColumnAttribute");
                     var fkAttr = Attributes.GetValueOrDefault("ForeignKeyAttribute");
+                    IsPrimaryKey = keyAttr != null;
+                    IsForeignKey = fkAttr != null;
+
                     Setter = TypeHelper.GetMemberSetter(pi.Name, pi.DeclaringType);
                     Getter = TypeHelper.GetMemberGetter(pi.Name, pi.DeclaringType);
                     PropertyBackingField = GetFields().FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ??
                                            TypeHelper.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
+
+                    TableName = Parent.TableName;
                     ColumnName = colAttr != null
                         ? colAttr.GetType().GetProperty("Name")?.GetValue(colAttr)?.ToString() ?? Name
-                        : IsPrimaryKey
-                            ? Name
-                            : null;
-                    ForeignColumnName = fkAttr?.GetType().GetProperty("Name")?.GetValue(fkAttr)?.ToString();
-                    IsPrimaryKey = keyAttr != null;
-                    IsForeignKey = fkAttr != null;
+                        : Name;
+
+                    ForeignColumnName = fkAttr?.GetType().GetProperty("Name")?.GetValue(fkAttr)?.ToString() ?? string.Empty;
                 }
                 else
                 {
@@ -288,14 +316,6 @@ namespace RuntimeStuff
                 Setter = _memberInfoEx?.Setter ?? TypeHelper.GetMemberSetter(fi.Name, fi.DeclaringType);
                 Getter = _memberInfoEx?.Getter ?? TypeHelper.GetMemberGetter(fi.Name, fi.DeclaringType);
             }
-
-            // Обработка имени
-            Name = _memberInfoEx?.Name ?? MemberInfo.Name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
-                .LastOrDefault() ?? string.Empty;
-
-            // Получение атрибутов
-            Description = _memberInfoEx?.Description ?? MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
-            DisplayName = _memberInfoEx?.DisplayName ?? MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
 
             if (_memberInfoEx == null)
             {
@@ -622,14 +642,16 @@ namespace RuntimeStuff
         {
             get
             {
-                if (_parent != null)
-                    return _parent;
+                //if (_parent != null)
+                //    return _parent;
 
-                if (MemberInfo.DeclaringType != null)
-                    _parent = _memberInfoEx?._parent ?? Create(MemberInfo.DeclaringType);
+                //if (MemberInfo.DeclaringType != null)
+                //    _parent = _memberInfoEx?._parent ?? Create(MemberInfo.DeclaringType);
 
                 return _parent;
             }
+
+            private set  => _parent = value;
         }
 
         /// <summary>
@@ -858,6 +880,16 @@ namespace RuntimeStuff
                 return me;
 
             var result = memberInfo == null ? null : MemberInfoCache.GetOrAdd(memberInfo, x => new MemberInfoEx(x, x is Type));
+
+            return result;
+        }
+
+        private static MemberInfoEx Create(MemberInfo memberInfo, MemberInfoEx parent)
+        {
+            if (memberInfo is MemberInfoEx me)
+                return me;
+
+            var result = memberInfo == null ? null : MemberInfoCache.GetOrAdd(memberInfo, x => new MemberInfoEx(x, x is Type, parent));
 
             return result;
         }
@@ -1370,14 +1402,14 @@ namespace RuntimeStuff
         /// <returns>Массив информации о членах</returns>
         internal Dictionary<string, MemberInfoEx> GetMembersInternal()
         {
-            var members = 
-                GetProperties().Select(p => new MemberInfoEx(p)).Concat(
-                GetFields().Select(x => new MemberInfoEx(x))).Concat(
-                GetMethods().Select(x => new MemberInfoEx(x))).Concat(
-                //GetConstructors().Select(x => new MemberInfoEx(x))).Concat(
-                GetEvents().Select(x => new MemberInfoEx(x))).ToArray();
+            var members =
+                GetProperties().Concat(
+                    GetFields().Concat(
+                        //GetMethods().Select(x => new MemberInfoEx(x))).Concat(
+                        //GetConstructors().Select(x => new MemberInfoEx(x))).Concat(
+                        GetEvents().OfType<MemberInfo>())).Select(m => Create(m, this)).ToArray();
 
-                return members.ToDictionary(x => x.Name);
+            return members.ToDictionary(x => x.Name);
         }
 
         /// <summary>

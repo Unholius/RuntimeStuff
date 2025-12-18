@@ -92,7 +92,7 @@ namespace RuntimeStuff.Helpers
                     // быстрее, чем ToString(): используем IsAssignableFrom + каст
                     if (value is string s)
                     {
-                        if (s.Contains(text, StringComparison.OrdinalIgnoreCase))
+                        if (s.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0)
                             return true;
                     }
                     else

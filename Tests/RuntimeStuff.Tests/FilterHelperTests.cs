@@ -22,9 +22,9 @@ namespace RuntimeStuff.MSTests
                 });
             }
 
-            var fb = new FilterBuilder();
+            var fb = new StringFilterBuilder();
             //fb.Property("Int32").Like("%2%");
-            fb.Add("Int32", FilterBuilder.Operation.Like, "%2%");
+            fb.Add("Int32", StringFilterBuilder.Operation.Like, "%2%");
             var filter = fb.ToString(); // "[Int32] like '%2%'";
             var filtered = FilterHelper.Filter(lst, filter).ToArray();
             FilterHelper.ToPredicate<TestClassWithBasicProperties>(filter);
