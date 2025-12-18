@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -129,6 +131,136 @@ namespace RuntimeStuff
         {
             return new DbClient();
         }
+
+        /// <summary>
+        /// Формирует строку SQL-запроса с подстановкой значений параметров
+        /// из переданного <see cref="IDbCommand"/>.
+        /// </summary>
+        /// <param name="command">
+        /// Команда <see cref="IDbCommand"/>, содержащая параметры и их значения,
+        /// которые будут подставлены в SQL.
+        /// </param>
+        /// <param name="paramNamePrefix">
+        /// Префикс имени параметра в SQL-запросе. 
+        /// По умолчанию <c>"@"</c>.
+        /// </param>
+        /// <param name="dateFormat">
+        /// Формат даты при подстановке значений <see cref="DateTime"/>.
+        /// По умолчанию <c>"yyyyMMdd"</c>.
+        /// </param>
+        /// <param name="stringPrefix">
+        /// Префикс для строковых значений (например, кавычка в SQL).
+        /// По умолчанию <c>"'"</c>.
+        /// </param>
+        /// <param name="stringSuffix">
+        /// Суффикс для строковых значений (например, кавычка в SQL).
+        /// По умолчанию <c>"'"</c>.
+        /// </param>
+        /// <param name="nullValue">
+        /// Строковое представление <c>null</c> значения.
+        /// По умолчанию <c>"NULL"</c>.
+        /// </param>
+        /// <param name="trueValue">
+        /// Строковое представление логического значения <c>true</c>.
+        /// По умолчанию <c>"1"</c>.
+        /// </param>
+        /// <param name="falseValue">
+        /// Строковое представление логического значения <c>false</c>.
+        /// По умолчанию <c>"0"</c>.
+        /// </param>
+        /// <returns>
+        /// Строка SQL с подставленными значениями параметров,
+        /// готовая к использованию для логирования или анализа.
+        /// </returns>
+        /// <remarks>
+        /// Метод не выполняет команду <see cref="IDbCommand"/> — он только
+        /// формирует SQL с текущими значениями параметров.
+        /// </remarks>
+        public string GetRawSql(IDbCommand command, string paramNamePrefix = "@", string dateFormat = "yyyyMMdd", string stringPrefix = "'", string stringSuffix = "'", string nullValue = "NULL", string trueValue = "1", string falseValue = "0")
+        {
+            if (command == null)
+                throw new ArgumentNullException(nameof(command));
+
+            var sql = command.CommandText;
+
+            foreach (IDbDataParameter parameter in command.Parameters)
+            {
+                var paramToken = paramNamePrefix + parameter.ParameterName;
+                var literal = ToSqlLiteral(
+                    parameter.Value,
+                    dateFormat,
+                    stringPrefix,
+                    stringSuffix,
+                    nullValue,
+                    trueValue,
+                    falseValue);
+
+                sql = ReplaceParameterToken(sql, paramToken, literal);
+            }
+
+            return sql;
+        }
+
+        private static string ReplaceParameterToken(string sql, string token, string replacement)
+        {
+            return Regex.Replace(
+                sql,
+                $@"(?<![\w@]){Regex.Escape(token)}(?!\w)",
+                replacement,
+                RegexOptions.CultureInvariant);
+        }
+
+        private static string ToSqlLiteral(
+            object value,
+            string dateFormat,
+            string stringPrefix,
+            string stringSuffix,
+            string nullValue,
+            string trueValue,
+            string falseValue)
+        {
+            if (value == null || value == DBNull.Value)
+                return nullValue;
+
+            switch (value)
+            {
+                case string s:
+                    return $"{stringPrefix}{EscapeString(s)}{stringSuffix}";
+
+                case char c:
+                    return $"{stringPrefix}{EscapeString(c.ToString())}{stringSuffix}";
+
+                case bool b:
+                    return b ? trueValue : falseValue;
+
+                case DateTime dt:
+                    return $"{stringPrefix}{dt.ToString(dateFormat, CultureInfo.InvariantCulture)}{stringSuffix}";
+
+                case DateTimeOffset dto:
+                    return $"{stringPrefix}{dto.ToString(dateFormat, CultureInfo.InvariantCulture)}{stringSuffix}";
+
+                case Guid g:
+                    return $"{stringPrefix}{g}{stringSuffix}";
+
+                case Enum e:
+                    return Convert.ToInt64(e).ToString(CultureInfo.InvariantCulture);
+
+                case TimeSpan ts:
+                    return $"{stringPrefix}{ts.ToString("c", CultureInfo.InvariantCulture)}{stringSuffix}";
+
+                case IFormattable formattable:
+                    return formattable.ToString(null, CultureInfo.InvariantCulture);
+
+                default:
+                    return $"{stringPrefix}{EscapeString(value.ToString())}{stringSuffix}";
+            }
+        }
+
+        private static string EscapeString(string value)
+        {
+            return value.Replace("'", "''");
+        }
+
 
         /// <summary>
         /// Создаёт и настраивает команду для выполнения SQL-запроса.

@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using RuntimeStuff;
+﻿using RuntimeStuff;
 
 namespace QuickDialogs.Core
 {
