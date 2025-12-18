@@ -24,6 +24,13 @@ namespace RuntimeStuff.Extensions
     /// </summary>
     public static class EnumExtensions
     {
+        private static readonly StringComparer _OrdinalIgnoreCase = StringComparer.OrdinalIgnoreCase;
+        private static readonly StringComparer _CurrentCulture = StringComparer.CurrentCulture;
+        private static readonly StringComparer _CurrentCultureIgnoreCase = StringComparer.CurrentCultureIgnoreCase;
+        private static readonly StringComparer _InvariantCulture = StringComparer.InvariantCulture;
+        private static readonly StringComparer _InvariantCultureIgnoreCase = StringComparer.InvariantCultureIgnoreCase;
+        private static readonly StringComparer _Ordinal = StringComparer.Ordinal;
+
         /// <summary>
         /// Преобразует значение <see cref="StringComparison"/> в эквивалентный объект <see cref="StringComparer"/>.
         /// <para>
@@ -39,17 +46,17 @@ namespace RuntimeStuff.Extensions
             switch (comparison)
             {
                 case StringComparison.CurrentCulture:
-                    return StringComparer.CurrentCulture;
+                    return _CurrentCulture;
                 case StringComparison.CurrentCultureIgnoreCase:
-                    return StringComparer.CurrentCultureIgnoreCase;
+                    return _CurrentCultureIgnoreCase;
                 case StringComparison.InvariantCulture:
-                    return StringComparer.InvariantCulture;
+                    return _InvariantCulture;
                 case StringComparison.InvariantCultureIgnoreCase:
-                    return StringComparer.InvariantCultureIgnoreCase;
+                    return _InvariantCultureIgnoreCase;
                 case StringComparison.Ordinal:
-                    return StringComparer.Ordinal;
+                    return _Ordinal;
                 case StringComparison.OrdinalIgnoreCase:
-                    return StringComparer.OrdinalIgnoreCase;
+                    return _OrdinalIgnoreCase;
                 default:
                     throw new ArgumentException("Invalid StringComparison value", nameof(comparison));
             }
@@ -67,17 +74,17 @@ namespace RuntimeStuff.Extensions
         /// <exception cref="ArgumentException">Выбрасывается, если передан неизвестный или нестандартный <see cref="StringComparer"/>.</exception>
         public static StringComparison ToStringComparison(this StringComparer comparer)
         {
-            if (comparer == StringComparer.Ordinal)
+            if (comparer == _Ordinal)
                 return StringComparison.Ordinal;
-            if (comparer == StringComparer.OrdinalIgnoreCase)
+            if (comparer == _OrdinalIgnoreCase)
                 return StringComparison.OrdinalIgnoreCase;
-            if (comparer == StringComparer.CurrentCulture)
+            if (comparer == _CurrentCulture)
                 return StringComparison.CurrentCulture;
-            if (comparer == StringComparer.CurrentCultureIgnoreCase)
+            if (comparer == _CurrentCultureIgnoreCase)
                 return StringComparison.CurrentCultureIgnoreCase;
-            if (comparer == StringComparer.InvariantCulture)
+            if (comparer == _InvariantCulture)
                 return StringComparison.InvariantCulture;
-            if (comparer == StringComparer.InvariantCultureIgnoreCase)
+            if (comparer == _InvariantCultureIgnoreCase)
                 return StringComparison.InvariantCultureIgnoreCase;
 
             throw new ArgumentException("Неизвестный StringComparer", nameof(comparer));

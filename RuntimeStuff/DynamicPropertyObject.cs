@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using RuntimeStuff.Extensions;
 
 namespace RuntimeStuff
 {
@@ -11,7 +12,7 @@ namespace RuntimeStuff
     /// </summary>
     public class DynamicPropertyObject : ICustomTypeDescriptor
     {
-        private readonly Dictionary<string, PropertyData> _properties = new Dictionary<string, PropertyData>(StringComparer.Ordinal);
+        private readonly Dictionary<string, PropertyData> _properties = new Dictionary<string, PropertyData>(StringComparison.OrdinalIgnoreCase.ToStringComparer());
 
         /// <summary>
         /// Создает пустой объект.

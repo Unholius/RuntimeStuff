@@ -11,7 +11,7 @@ using System.Reflection.Emit;
 namespace RuntimeStuff.Helpers
 {
     /// <summary>
-    ///     v.2025.12.17<br />
+    ///     v.2025.12.18 (RS)<br/>
     ///     Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     ///     Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     ///     Особенности:
@@ -158,7 +158,8 @@ namespace RuntimeStuff.Helpers
         };
 
         private static readonly OpCode[] STwoByte = new OpCode[256];
-        private static readonly ConcurrentDictionary<string, Type> TypeCache = new ConcurrentDictionary<string, Type>(StringComparer.OrdinalIgnoreCase);
+        private static readonly StringComparer OrdinalIgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
+        private static readonly ConcurrentDictionary<string, Type> TypeCache = new ConcurrentDictionary<string, Type>(OrdinalIgnoreCaseComparer);
 
         static TypeHelper()
         {
@@ -259,6 +260,9 @@ namespace RuntimeStuff.Helpers
         {
             if (value == null || (value.Equals(DBNull.Value) && IsNullable(toType)))
                 return null;
+
+            if (toType == typeof(object))
+                return value;
 
             if (formatProvider == null)
                 formatProvider = CultureInfo.InvariantCulture;

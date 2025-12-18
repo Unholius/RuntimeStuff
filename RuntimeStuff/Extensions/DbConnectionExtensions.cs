@@ -1,191 +1,27 @@
-﻿using RuntimeStuff.Builders;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using System.Diagnostics;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace RuntimeStuff.Helpers
+namespace RuntimeStuff.Extensions
 {
-    public class DbClient<T> : DbClient where T : IDbConnection, new()
-    {
-        public DbClient() : base(new T())
-        {
-
-        }
-
-        public new T Connection         
-        {
-            get => (T)base.Connection;
-            set => base.Connection = value;
-        }
-
-        public DbClient(string connectionString)
-        {
-            Connection = new T
-            {
-                ConnectionString = connectionString
-            };
-        }
-    }
-
     /// <summary>
-    /// Предоставляет набор статических вспомогательных методов для упрощения работы с реляционными базами данных через
-    /// интерфейсы ADO.NET. Включает универсальные методы для создания и выполнения SQL-команд, преобразования
-    /// результатов запросов в коллекции объектов, словари, DataTable, а также для выполнения операций вставки,
-    /// обновления и удаления как в синхронном, так и в асинхронном режиме.
+    /// Набор расширений для <see cref="IDbConnection"/>, упрощающих выполнение команд,
+    /// получение скалярных значений, списков, словарей и автоматическое маппирование данных.
     /// </summary>
-    /// <remarks>Класс предназначен для типовых CRUD-операций и маппинга данных между базой и объектами .NET,
-    /// минимизируя ручную работу с SQL и IDataReader. Все методы реализованы как статические и не требуют создания
-    /// экземпляра класса. Поддерживается автоматическое открытие и закрытие соединения, а также обработка параметров
-    /// команд и сопоставление колонок с помощью выражений и пользовательских маппингов. Для асинхронных операций
-    /// используются стандартные Task-методы. Класс не является потокобезопасным для одновременного использования одного
-    /// и того же подключения из разных потоков. Для корректной работы требуется, чтобы используемые типы сущностей
-    /// имели публичные конструкторы без параметров и свойства с публичными сеттерами.</remarks>
-    public class DbClient : IDisposable
+    public static class DbConnectionExtensions
     {
-        private  readonly ConditionalWeakTable<IDbConnection, Counter> Counters = new ConditionalWeakTable<IDbConnection, Counter>();
-
-        public DbClient()
-        {
-            DbReaderValueConvertor = (value, type) => ChangeType(value is string s ? s.Trim() : value, type);
-        }
-
-        public DbClient(IDbConnection con) : this()
-        {
-            Connection = con ?? throw new ArgumentNullException(nameof(con));
-        }
-
-        public static DbClient<T> Create<T>(string connectionString) where T : IDbConnection, new()
-        {
-            return new DbClient<T>(connectionString);
-        }
-
-        public static DbClient Create(IDbConnection connection)
-        {
-            return new DbClient(connection);
-        }
-
-        public static DbClient Create()
-        {
-            return new DbClient();
-        }
-
-        ~DbClient()
-        {
-            Dispose(false);
-        }
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        private bool _disposed;
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!_disposed && disposing)
-            {
-                Connection?.Dispose();
-                _disposed = true;
-            }
-        }
-
-        public virtual IDbConnection Connection { get; set; }
-
-        private void BeginConnection()
-        {
-            BeginConnection(Connection);
-        }
-
-        private void CloseConnection()
-        {
-            CloseConnection(Connection);
-        }
-
-        private  void BeginConnection(IDbConnection con)
-        {
-            if (con == null)
-                throw new NullReferenceException(nameof(con));
-
-            if (con.State != ConnectionState.Open)
-                con.Open();
-
-            Counters.GetOrCreateValue(con).Increment();
-        }
-
-        [Conditional("DEBUG")]
-        private  void LogCommand(IDbCommand cmd)
-        {
-            Debug.WriteLine($"Executing SQL: {cmd.CommandText}");
-            foreach (IDbDataParameter p in cmd.Parameters)
-            {
-                Debug.WriteLine($"  {p.ParameterName} = {p.Value}");
-            }
-        }
-
-        private  void HandleDbException(Exception ex, IDbCommand cmd, [CallerMemberName] string methodName = "")
-        {
-            var errorMessage = $"Ошибка в методе {methodName}. " +
-                               $"Запрос: {cmd.CommandText}. " +
-                               $"Параметры: {string.Join(", ", cmd.Parameters.Cast<IDbDataParameter>().Select(p => $"{p.ParameterName}={p.Value}"))}";
-
-            throw new InvalidOperationException(errorMessage, ex);
-        }
-
-        private Task BeginConnectionAsync()
-        {
-            return  BeginConnectionAsync(Connection);
-        }
-
-        private  async Task BeginConnectionAsync(IDbConnection con)
-        {
-            if (!(con is DbConnection dbcon))
-                throw new NullReferenceException(nameof(con));
-
-            if (con.State != ConnectionState.Open)
-                await dbcon.OpenAsync();
-
-            Counters.GetOrCreateValue(con).Increment();
-        }
-
-        private  void CloseConnection(IDbConnection con)
-        {
-            if (con == null)
-                throw new NullReferenceException(nameof(con));
-
-            var c = Counters.GetOrCreateValue(con).Decrement();
-            if (c != 0) return;
-            if (con.State != ConnectionState.Closed)
-                con.Close();
-        }
-
-        private class Counter
-        {
-            private int _depth;
-            public void Increment()
-            {
-                Interlocked.Increment(ref _depth);
-            }
-
-            public int Decrement() => Interlocked.Decrement(ref _depth);
-        }
-
         /// <summary>
-        /// Конвертор значения из DbReader в тип свойства
+        /// Создаёт и настраивает команду для выполнения SQL-запроса.
         /// </summary>
-        public  Func<object, Type, object> DbReaderValueConvertor { get; set; }
-
-        /// <summary>
-        /// Количество секунд по умолчанию для таймаута команд
-        /// </summary>
-        public  int DefaultCommandTimeout { get; set; } = 30; // секунды
+        /// <param name="con">Экземпляр соединения с БД.</param>
+        /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
+        /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
+        public static IDbCommand CreateCommand(this IDbConnection con, string query, IEnumerable<(string, object)> cmdParams = null) => DbClient.Create(con).CreateCommand(query, cmdParams);
 
         /// <summary>
         /// Создаёт и настраивает команду для выполнения SQL-запроса.
@@ -194,43 +30,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
         /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
-        public  IDbCommand CreateCommand(string query, IEnumerable<(string, object)> cmdParams = null)
-        {
-            return CreateCommand(Connection, query, cmdParams?.ToArray() ?? Array.Empty<(string, object)>());
-        }
-
-        /// <summary>
-        /// Создаёт и настраивает команду для выполнения SQL-запроса.
-        /// </summary>
-        /// <param name="con">Экземпляр соединения с БД.</param>
-        /// <param name="query">Текст SQL-команды.</param>
-        /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
-        /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
-        public  IDbCommand CreateCommand(IDbConnection connection, string query, params (string, object)[] cmdParams)
-        {
-            // Проверка на потенциально опасные конструкции
-            if (query.Contains(";") && query.IndexOf("DROP", StringComparison.OrdinalIgnoreCase) >= 0)
-            {
-                throw new ArgumentException(@"Потенциально опасный SQL-запрос", nameof(query));
-            }
-
-            var cmd = connection.CreateCommand();
-            cmd.CommandText = query;
-            cmd.CommandTimeout = DefaultCommandTimeout;
-
-            if (cmdParams != null)
-                foreach (var cp in cmdParams)
-                {
-                    var p = cmd.CreateParameter();
-                    p.ParameterName = cp.Item1;
-                    p.Value = cp.Item2 ?? DBNull.Value;
-                    cmd.Parameters.Add(p);
-                }
-
-            LogCommand(cmd);
-
-            return cmd;
-        }
+        public static IDbCommand CreateCommand(this IDbConnection con, string query, params (string, object)[] cmdParams) => DbClient.Create(con).CreateCommand(query, cmdParams);
 
         /// <summary>
         /// Создаёт команду для SQL-запроса, принимая параметры в виде словаря.
@@ -239,10 +39,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="query">SQL-запрос.</param>
         /// <param name="cmdParams">Параметры команды.</param>
         /// <returns>Команда <see cref="IDbCommand"/>.</returns>
-        public  IDbCommand CreateCommand(string query, IEnumerable<KeyValuePair<string, object>> cmdParams)
-        {
-            return CreateCommand(Connection, query, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
-        }
+        public static IDbCommand CreateCommand(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams = null) => DbClient.Create(con).CreateCommand(query, cmdParams);
 
         /// <summary>
         /// Выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
@@ -252,10 +49,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Коллекция параметров SQL-команды.</param>
         /// <returns>Количество затронутых строк.</returns>
-        public  int ExecuteNonQuery(string query, IEnumerable<KeyValuePair<string, object>> cmdParams)
-        {
-            return ExecuteNonQuery( query, cmdParams.Select(x => (x.Key, x.Value)).ToArray());
-        }
+        public static int ExecuteNonQuery(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams) => DbClient.Create(con).ExecuteNonQuery(query, cmdParams);
 
         /// <summary>
         /// Выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
@@ -265,17 +59,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Массив параметров SQL-команды в формате (имя, значение).</param>
         /// <returns>Количество затронутых строк.</returns>
-        public  int ExecuteNonQuery(string query, params (string, object)[] cmdParams)
-        {
-            using (var cmd = CreateCommand(Connection, query, cmdParams))
-            {
-                BeginConnection(Connection);
-
-                var i = cmd.ExecuteNonQuery();
-                CloseConnection(Connection);
-                return i;
-            }
-        }
+        public static int ExecuteNonQuery(this IDbConnection con, string query, params (string, object)[] cmdParams) => DbClient.Create(con).ExecuteNonQuery(query, cmdParams);
 
         /// <summary>
         /// Асинхронно выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
@@ -285,10 +69,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Коллекция параметров SQL-команды.</param>
         /// <returns>Задача, возвращающая количество затронутых строк.</returns>
-        public  Task<int> ExecuteNonQueryAsync(string query, IEnumerable<KeyValuePair<string, object>> cmdParams)
-        {
-            return ExecuteNonQueryAsync( query, cmdParams.Select(x => (x.Key, x.Value)).ToArray());
-        }
+        public static Task<int> ExecuteNonQueryAsync(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams) => DbClient.Create(con).ExecuteNonQueryAsync(query, cmdParams);
 
         /// <summary>
         /// Асинхронно выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
@@ -298,22 +79,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Массив параметров SQL-команды в формате (имя, значение).</param>
         /// <returns>Задача, возвращающая количество затронутых строк.</returns>
-        public  async Task<int> ExecuteNonQueryAsync(string query, params (string, object)[] cmdParams)
-        {
-            using (var cmd = (DbCommand)CreateCommand(Connection, query, cmdParams))
-            {
-                await BeginConnectionAsync();
-                try
-                {
-                    var i = await cmd.ExecuteNonQueryAsync();
-                    return i;
-                }
-                finally
-                {
-                    CloseConnection();
-                }
-            }
-        }
+        public static Task<int> ExecuteNonQueryAsync(this IDbConnection con, string query, params (string, object)[] cmdParams) => DbClient.Create(con).ExecuteNonQueryAsync(query, cmdParams);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает одно скалярное значение.
@@ -323,36 +89,17 @@ namespace RuntimeStuff.Helpers
         /// <param name="query">SQL-запрос.</param>
         /// <param name="cmdParams">Параметры команды.</param>
         /// <returns>Значение типа <typeparamref name="T"/>.</returns>
-        public  T ExecuteScalar<T>(string query, params (string, object)[] cmdParams)
-        {
-            using (var cmd = CreateCommand(Connection, query, cmdParams))
-            {
-                BeginConnection();
-
-                var v = cmd.ExecuteScalar();
-
-                CloseConnection();
-
-                return (T)ChangeType(v, typeof(T));
-            }
-        }
+        public static T ExecuteScalar<T>(this IDbConnection con, string query, params (string, object)[] cmdParams) => DbClient.Create(con).ExecuteScalar<T>(query, cmdParams);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.
         /// </summary>
-        public  T ExecuteScalar<T>(Expression<Func<T, bool>> whereExpression)
-        {
-            var query = (SqlQueryBuilder.GetSelectQuery<T>() + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
-            return ExecuteScalar<T>( query);
-        }
+        public static T ExecuteScalar<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression) => DbClient.Create(con).ExecuteScalar(whereExpression);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.
         /// </summary>
-        public  T ExecuteScalar<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams)
-        {
-            return ExecuteScalar<T>( query, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
-        }
+        public static T ExecuteScalar<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams) => DbClient.Create(con).ExecuteScalar<T>(query, cmdParams);
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос и возвращает скалярное значение.
@@ -363,10 +110,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="cmdParams">Параметры команды.</param>
         /// <param name="ct">Токен отмены.</param>
         /// <returns>Значение типа <typeparamref name="T"/>.</returns>
-        public  Task<T> ExecuteScalarAsync<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, CancellationToken ct = default)
-        {
-            return ExecuteScalarAsync<T>( query, cmdParams?.Select(x => (x.Key, x.Value)), ct);
-        }
+        public static Task<T> ExecuteScalarAsync<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, CancellationToken ct = default)
+            => DbClient.Create(con).ExecuteScalarAsync<T>(query, cmdParams, ct);
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос и возвращает скалярное значение.
@@ -377,24 +122,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="cmdParams">Параметры команды.</param>
         /// <param name="ct">Токен отмены.</param>
         /// <returns>Значение типа <typeparamref name="T"/>.</returns>
-        public  async Task<T> ExecuteScalarAsync<T>(string query, IEnumerable<(string, object)> cmdParams = null, CancellationToken ct = default)
-        {
-            using (var cmd = CreateCommand(Connection, query, cmdParams?.ToArray()))
-            {
-
-                await BeginConnectionAsync();
-                object value;
-
-                if (cmd is DbCommand dbcmd)
-                    value = await dbcmd.ExecuteScalarAsync(ct);
-                else
-                    value = cmd.ExecuteScalar();
-
-                CloseConnection();
-
-                return (T)ChangeType(value, typeof(T));
-            }
-        }
+        public static Task<T> ExecuteScalarAsync<T>(this IDbConnection con, string query, IEnumerable<(string, object)> cmdParams = null, CancellationToken ct = default)
+            => DbClient.Create(con).ExecuteScalarAsync<T>(query, cmdParams, ct);
 
         /// <summary>
         /// Выполняет SQL-запрос и преобразует результат в словарь <see cref="Dictionary{TKey, TValue}"/>,
@@ -429,10 +158,8 @@ namespace RuntimeStuff.Helpers
         /// Метод является удобной перегрузкой, преобразующей коллекцию <see cref="KeyValuePair{String, Object}"/>
         /// в массив кортежей <c>(string, object)</c> и передающей его основной реализации.
         /// </remarks>
-        public  Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams = null)
-        {
-            return ToDictionary<TKey, TValue>( query, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
-        }
+        public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams = null)
+            => DbClient.Create(con).ToDictionary<TKey, TValue>(query, cmdParams);
 
         /// <summary>
         /// Выполняет запрос к базе данных и возвращает результаты в виде словаря.
@@ -452,11 +179,8 @@ namespace RuntimeStuff.Helpers
         /// Метод строит SQL-запрос на основе переданных селекторов и фильтра (если указан),
         /// выполняет его через подключение <paramref name="con"/> и возвращает результаты в виде словаря.
         /// </remarks>
-        public  Dictionary<TKey, TValue> ToDictionary<TKey, TValue, T>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
-        {
-            var query = (SqlQueryBuilder.GetSelectQuery(MemberInfoEx.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetMemberInfoEx(), ExpressionHelper.GetMemberInfo(valueSelector).GetMemberInfoEx()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
-            return ToDictionary<TKey, TValue>( query);
-        }
+        public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue, T>(this IDbConnection con, Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
+            => DbClient.Create(con).ToDictionary(keySelector, valueSelector, whereExpression);
 
         /// <summary>
         /// Асинхронно выполняет запрос к базе данных и возвращает результаты в виде словаря.
@@ -476,11 +200,8 @@ namespace RuntimeStuff.Helpers
         /// Метод строит SQL-запрос на основе переданных селекторов и фильтра (если указан),
         /// выполняет его через подключение <paramref name="con"/> и возвращает результаты в виде словаря.
         /// </remarks>
-        public  Task<Dictionary<TKey, TValue>> ToDictionaryAsync<T, TKey, TValue>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
-        {
-            var query = (SqlQueryBuilder.GetSelectQuery(MemberInfoEx.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetMemberInfoEx(), ExpressionHelper.GetMemberInfo(valueSelector).GetMemberInfoEx()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
-            return ToDictionaryAsync<TKey, TValue>( query);
-        }
+        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<T, TKey, TValue>(this IDbConnection con, Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
+            => DbClient.Create(con).ToDictionaryAsync(keySelector, valueSelector, whereExpression);
 
         /// <summary>
         /// Преобразует результат выполнения SQL-запроса в словарь <see cref="Dictionary{TKey, TValue}"/>, используя первые два столбца результата.
@@ -508,38 +229,8 @@ namespace RuntimeStuff.Helpers
         /// <item>Закрывает подключение через <see cref="CloseConnection(IDbConnection)"/>.</item>
         /// </list>
         /// </remarks>
-        public  Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(string query, params (string, object)[] cmdParams)
-        {
-            using (var cmd = CreateCommand(Connection, query, cmdParams))
-            {
-
-                BeginConnection();
-
-                var dic = new Dictionary<TKey, TValue>();
-
-                using (var r = cmd.ExecuteReader())
-                {
-                    while (r.Read())
-                    {
-                        var rawKey = r.GetValue(0);
-                        if (rawKey == null || rawKey == DBNull.Value)
-                            HandleDbException(new Exception("Ключ не должен быть null!"), cmd);
-
-                        var rawValue = r.GetValue(1);
-
-                        var key = (TKey)ChangeType(rawKey, typeof(TKey));
-                        var value = rawValue == null || rawValue == DBNull.Value
-                            ? default
-                            : (TValue)ChangeType(rawValue, typeof(TValue));
-
-                        dic[key] = value;
-                    }
-                }
-
-                CloseConnection();
-                return dic;
-            }
-        }
+        public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IDbConnection con, string query, params (string, object)[] cmdParams)
+            => DbClient.Create(con).ToDictionary<TKey, TValue>(query, cmdParams);
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос и преобразует результат в словарь
@@ -575,10 +266,8 @@ namespace RuntimeStuff.Helpers
         /// <see cref="KeyValuePair{String, Object}"/> в последовательность кортежей
         /// <c>(string, object)</c> и передающей её основной реализации.
         /// </remarks>
-        public  Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, CancellationToken ct = default)
-        {
-            return ToDictionaryAsync<TKey, TValue>( query, cmdParams?.Select(x => (x.Key, x.Value)).ToArray(), ct);
-        }
+        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, CancellationToken ct = default)
+            => DbClient.Create(con).ToDictionaryAsync<TKey, TValue>(query, cmdParams, ct);
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос и преобразует результат выбора
@@ -629,42 +318,8 @@ namespace RuntimeStuff.Helpers
         /// Если значение второго столбца равно <c>null</c> или <see cref="DBNull"/>,
         /// то в словарь помещается значение по умолчанию (<c>default(TValue)</c>).
         /// </remarks>
-        public  async Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(string query, IEnumerable<(string, object)> cmdParams = null, CancellationToken ct = default)
-        {
-            using (var cmd = CreateCommand(Connection, query, cmdParams?.ToArray()))
-            {
-
-                await BeginConnectionAsync();
-
-                var dic = new Dictionary<TKey, TValue>();
-
-                if (cmd is DbCommand dbcmd)
-                    using (var r = await dbcmd.ExecuteReaderAsync(ct))
-                    {
-                        while (await r.ReadAsync(ct))
-                        {
-                            var rawKey = r.GetValue(0);
-                            if (rawKey == null || rawKey == DBNull.Value)
-                                HandleDbException(new Exception("Ключ не должен быть null!"), dbcmd);
-
-                            var rawValue = r.GetValue(1);
-
-                            var key = (TKey)ChangeType(rawKey, typeof(TKey));
-                            var value = rawValue == null || rawValue == DBNull.Value
-                                ? default
-                                : (TValue)ChangeType(rawValue, typeof(TValue));
-
-                            dic[key] = value;
-                        }
-                    }
-                else
-                    throw new NotSupportedException("Для async требуется DbConnection/DbCommand.");
-
-                CloseConnection();
-
-                return dic;
-            }
-        }
+        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IDbConnection con, string query, IEnumerable<(string, object)> cmdParams = null, CancellationToken ct = default)
+            => DbClient.Create(con).ToDictionaryAsync<TKey, TValue>(query, cmdParams, ct);
 
         /// <summary>
         /// Выполняет SQL-запрос и преобразует результат в список объектов типа
@@ -711,10 +366,8 @@ namespace RuntimeStuff.Helpers
         /// <see cref="KeyValuePair{String, String}"/>, в последовательности кортежей
         /// <c>(string, object)</c> и <c>(string, string)</c>, и передающей их основной реализации.
         /// </remarks>
-        public  List<T> ToList<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1) where T : class, new()
-        {
-            return ToList( query, cmdParams?.Select(x => (x.Key, x.Value)), columnToPropertyMap?.Select(x => (x.Key, x.Value)), converter, setter, maxRows);
-        }
+        public static List<T> ToList<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1) where T : class, new()
+            => DbClient.Create(con).ToList(query, cmdParams, columnToPropertyMap, converter, setter, maxRows);
 
         /// <summary>
         /// Выполняет SQL-запрос, сформированный на основе выражения фильтрации
@@ -757,12 +410,8 @@ namespace RuntimeStuff.Helpers
         /// После формирования запроса управление передаётся основной реализации метода <c>ToList</c>,
         /// работающей с параметрами и сопоставлением колонок.
         /// </remarks>
-        public  List<T> ToList<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
-        {
-            var query = (SqlQueryBuilder.GetSelectQuery<T>() + " " + SqlQueryBuilder.GetWhereClause(whereExpression) + " " + SqlQueryBuilder.GetOrderBy(orderByExpression)).Trim();
-
-            return ToList( query, null, (IEnumerable<(string, string)>)null, converter, setter, maxRows);
-        }
+        public static List<T> ToList<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
+            => DbClient.Create(con).ToList(whereExpression, converter, setter, maxRows, orderByExpression);
 
         /// <summary>
         /// Выполняет SQL-запрос и преобразует результат выборки в список объектов
@@ -813,10 +462,8 @@ namespace RuntimeStuff.Helpers
         /// <item>применение пользовательского конвертера и setter'а.</item>
         /// </list>
         /// </remarks>
-        public  List<T> ToList<T>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1) where T : class, new()
-        {
-            return ToCollection<List<T>, T>( query, cmdParams, columnToPropertyMap, converter, setter, maxRows);
-        }
+        public static List<T> ToList<T>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1) where T : class, new()
+            => DbClient.Create(con).ToList(query, cmdParams, columnToPropertyMap, converter, setter, maxRows);
 
         /// <summary>
         /// Преобразует результат выполнения SQL-запроса в коллекцию объектов заданного типа.
@@ -857,67 +504,8 @@ namespace RuntimeStuff.Helpers
         /// Метод автоматически открывает подключение к базе данных с помощью <see cref="BeginConnection(IDbConnection)"/> и закрывает его после выполнения запроса <see cref="CloseConnection(IDbConnection)"/>.
         /// Для каждого ряда результата создается новый объект <typeparamref name="TItem"/>. Все свойства заполняются в соответствии с <paramref name="columnToPropertyMap"/> или сопоставлением по имени.
         /// </remarks>
-        public  TList ToCollection<TList, TItem>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, TItem> setter = null, int maxRows = -1) where TList : ICollection<TItem>, new() where TItem : class, new()
-        {
-            if (string.IsNullOrWhiteSpace(query))
-                query = SqlQueryBuilder.GetSelectQuery<TItem>();
-
-            if (maxRows >= 0 && query.StartsWith("SELECT ") && !query.StartsWith("SELECT TOP"))
-                query = $"SELECT TOP {maxRows}" + query.Substring(6);
-
-            var cmd = CreateCommand(query, cmdParams);
-
-            BeginConnection();
-
-            var list = new TList();
-
-            using (var r = cmd.ExecuteReader())
-            {
-                var map = GetReaderFieldToPropertyMap<TItem>(r, columnToPropertyMap);
-                var valueConverter = converter ?? DbReaderValueConvertor;
-                var valueFactory = setter ?? ((colName, colValue, prop, item) => { prop.SetValue(item, colValue); });
-
-                var rowCount = 0;
-                while (r.Read())
-                {
-                    if (rowCount >= maxRows && maxRows > 0)
-                        break;
-
-                    var item = new TItem();
-
-                    foreach (var kv in map)
-                    {
-                        var colIndex = kv.Key;
-                        var mapItem = kv.Value;
-
-                        var raw = r.GetValue(colIndex);
-
-                        if (raw == null || raw == DBNull.Value)
-                        {
-                            mapItem.propSetter(item, null);
-                            continue;
-                        }
-
-                        var value = valueConverter(raw, mapItem.propInfoEx.PropertyType);
-                        try
-                        {
-                            valueFactory(r.GetName(kv.Key), value, mapItem.propInfoEx, item);
-                        }
-                        catch (Exception ex)
-                        {
-                            HandleDbException(new Exception($"Failed to set property {mapItem} value {value} ({value?.GetType().Name})", ex), cmd);
-                        }
-                    }
-
-                    list.Add(item);
-                    rowCount++;
-                }
-            }
-
-            CloseConnection();
-
-            return list;
-        }
+        public static TList ToCollection<TList, TItem>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, TItem> setter = null, int maxRows = -1) where TList : ICollection<TItem>, new() where TItem : class, new()
+            => DbClient.Create(con).ToCollection<TList, TItem>(query, cmdParams, columnToPropertyMap, converter, setter, maxRows);
 
         /// <summary>
         /// Выполняет SQL-запрос и преобразует результирующий набор данных в <see cref="DataTable"/>.
@@ -947,59 +535,8 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="NullReferenceException">
         /// Генерируется, если параметр <paramref name="query"/> не указан.
         /// </exception>
-        public  DataTable ToDataTable(string query, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnMap = null, int maxRows = -1)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-                throw new NullReferenceException(nameof(query));
-
-            var cmd = CreateCommand(query, cmdParams);
-
-            BeginConnection();
-
-            var dataTable = new DataTable(query);
-            dataTable.BeginLoadData();
-
-            using (var r = cmd.ExecuteReader())
-            {
-                var map = GetReaderFieldToPropertyMap(r, columnMap);
-                foreach (var kv in map)
-                {
-                    var col = new DataColumn(kv.Value, r.GetFieldType(kv.Key));
-                    dataTable.Columns.Add(col);
-                }
-
-                var rowCount = 0;
-                while (r.Read())
-                {
-                    if (rowCount >= maxRows && maxRows > 0)
-                        break;
-
-                    var item = dataTable.NewRow();
-
-                    foreach (var kv in map)
-                    {
-                        var colIndex = kv.Key;
-
-                        var raw = r.GetValue(colIndex);
-
-                        if (raw == null || raw == DBNull.Value)
-                        {
-                            continue;
-                        }
-
-                        item[kv.Value] = raw;
-                    }
-
-                    dataTable.Rows.Add(item);
-                    rowCount++;
-                }
-            }
-            dataTable.AcceptChanges();
-            dataTable.EndLoadData();
-            CloseConnection();
-
-            return dataTable;
-        }
+        public static DataTable ToDataTable(this IDbConnection con, string query, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnMap = null, int maxRows = -1)
+            => DbClient.Create(con).ToDataTable(query, cmdParams, columnMap, maxRows);
 
         /// <summary>
         /// Асинхронно преобразует результат выполнения SQL-запроса в список объектов заданного типа <typeparamref name="T"/>,
@@ -1039,10 +576,8 @@ namespace RuntimeStuff.Helpers
         /// Этот метод является перегрузкой метода <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, MemberInfoEx, T}, CancellationToken)"/>,
         /// преобразующей <see cref="KeyValuePair{String, Object}"/> параметры в кортежи <c>(string, object)</c> перед вызовом основной реализации.
         /// </remarks>
-        public  Task<List<T>> ToListAsync<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
-        {
-            return ToListAsync( query, cmdParams?.Select(x => (x.Key, x.Value)), columnToPropertyMap?.Select(x => (x.Key, x.Value)), converter, setter, maxRows, ct);
-        }
+        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, string query = null, IEnumerable<KeyValuePair<string, object>> cmdParams = null, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
+            => DbClient.Create(con).ToListAsync(query, cmdParams, columnToPropertyMap, converter, setter, maxRows, ct);
 
         /// <summary>
         /// Асинхронно преобразует результат выполнения SQL-запроса в список объектов заданного типа <typeparamref name="T"/>.
@@ -1080,10 +615,8 @@ namespace RuntimeStuff.Helpers
         /// Внутри используется метод <see cref="ToCollectionAsync{TList, TItem}"/> для выполнения SQL-запроса и построения коллекции.
         /// Каждая строка результата запроса преобразуется в объект <typeparamref name="T"/> с заполнением всех свойств.
         /// </remarks>
-        public  Task<List<T>> ToListAsync<T>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
-        {
-            return ToCollectionAsync<List<T>, T>( query, cmdParams, columnToPropertyMap, converter, setter, maxRows, ct);
-        }
+        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
+            => DbClient.Create(con).ToListAsync(query, cmdParams, columnToPropertyMap, converter, setter, maxRows, ct);
 
         /// <summary>
         /// Асинхронно получает список объектов <typeparamref name="T"/>, фильтруя строки с помощью выражения <paramref name="whereExpression"/>.
@@ -1114,12 +647,8 @@ namespace RuntimeStuff.Helpers
         /// Метод генерирует SQL-запрос SELECT с WHERE-клауза на основе <paramref name="whereExpression"/>.
         /// Использует перегрузку <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, MemberInfoEx, T}, CancellationToken)"/> для выполнения запроса и построения коллекции.
         /// </remarks>
-        public  Task<List<T>> ToListAsync<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
-        {
-            var query = (SqlQueryBuilder.GetSelectQuery<T>() + " " + SqlQueryBuilder.GetWhereClause(whereExpression) + " " + SqlQueryBuilder.GetOrderBy(orderByExpression)).Trim();
-
-            return ToListAsync( query, null, (IEnumerable<(string, string)>)null, converter, setter, maxRows);
-        }
+        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
+            => DbClient.Create(con).ToListAsync(whereExpression, converter, setter, maxRows, orderByExpression);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает первый объект типа <typeparamref name="T"/> из результата,
@@ -1151,13 +680,10 @@ namespace RuntimeStuff.Helpers
         /// <remarks>
         /// Метод использует <see cref="ToList"/> с ограничением на 1 запись, после чего возвращает <c>FirstOrDefault()</c>.
         /// </remarks>
-        public  T First<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams,
-            IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
+        public static T First<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
             Action<string, object, MemberInfoEx, T> setter = null) where T : class, new()
-        {
-            return ToList( query, cmdParams, columnToPropertyMap, converter, setter, 1)?.FirstOrDefault();
-        }
+            => DbClient.Create(con).First(query, cmdParams, columnToPropertyMap, converter, setter);
 
         /// <summary>
         /// Выполняет SQL-запрос с условием <paramref name="whereExpression"/> и возвращает первый объект типа <typeparamref name="T"/> из результата,
@@ -1170,10 +696,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="setter">Пользовательская логика присвоения значения свойству.</param>
         /// <param name="orderByExpression">Порядок сортировки</param>
         /// <returns>Первый объект типа <typeparamref name="T"/> или <c>null</c>, если результат пустой.</returns>
-        public  T First<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
-        {
-            return ToList( whereExpression, converter, setter, 1, orderByExpression)?.FirstOrDefault();
-        }
+        public static T First<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
+            => DbClient.Create(con).First(whereExpression, converter, setter, orderByExpression);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает первый объект типа <typeparamref name="T"/> из результата,
@@ -1208,12 +732,10 @@ namespace RuntimeStuff.Helpers
         /// Метод использует <see cref="ToList{T}"/> с ограничением на одну запись,
         /// после чего возвращает <c>FirstOrDefault()</c>.
         /// </remarks>
-        public  T First<T>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null,
+        public static T First<T>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null,
             Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, T> setter = null)
             where T : class, new()
-        {
-            return ToList( query, cmdParams, columnToPropertyMap, converter, setter, 1)?.FirstOrDefault();
-        }
+            => DbClient.Create(con).First(query, cmdParams, columnToPropertyMap, converter, setter);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает первый объект типа <typeparamref name="T"/> из результата асинхронно,
@@ -1229,35 +751,29 @@ namespace RuntimeStuff.Helpers
         /// <param name="ct">Токен отмены <see cref="CancellationToken"/>.</param>
         /// <returns>Задача, результатом которой является первый объект типа <typeparamref name="T"/> или <c>null</c>.</returns>
         /// <remarks>Метод использует <see cref="ToListAsync"/> с ограничением на 1 запись и возвращает <c>FirstOrDefault()</c>.</remarks>
-        public  async Task<T> FirstAsync<T>(string query,
+        public static Task<T> FirstAsync<T>(this IDbConnection con, string query,
             IEnumerable<KeyValuePair<string, object>> cmdParams,
             IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
             Action<string, object, MemberInfoEx, T> setter = null) where T : class, new()
-        {
-            return (await ToListAsync( query, cmdParams, columnToPropertyMap, converter, setter, 1))?.FirstOrDefault();
-        }
+            => DbClient.Create(con).FirstAsync(query, cmdParams, columnToPropertyMap, converter, setter);
 
         /// <summary>
         /// Асинхронная версия метода <see cref="First{T}(IDbConnection, Expression{Func{T, bool}}, Func{object, Type, object}, Action{string, object, MemberInfoEx, T})"/>.
         /// </summary>
-        public  async Task<T> FirstAsync<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null,
+        public static Task<T> FirstAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null,
             Action<string, object, MemberInfoEx, T> setter = null, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
-        {
-            return (await ToListAsync( whereExpression, converter, setter, 1, orderByExpression))?.FirstOrDefault();
-        }
+            => DbClient.Create(con).FirstAsync(whereExpression, converter, setter, orderByExpression);
 
         /// <summary>
         /// Асинхронная версия метода <see cref="First{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, MemberInfoEx, T})"/>.
         /// </summary>
-        public  async Task<T> FirstAsync<T>(string query = null,
+        public static Task<T> FirstAsync<T>(this IDbConnection con, string query = null,
             IEnumerable<(string, object)> cmdParams = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
             Action<string, object, MemberInfoEx, T> setter = null) where T : class, new()
-        {
-            return (await ToListAsync( query, cmdParams, columnToPropertyMap, converter, setter, 1))?.FirstOrDefault();
-        }
+            => DbClient.Create(con).FirstAsync(query, cmdParams, columnToPropertyMap, converter, setter);
 
         /// <summary>
         /// Асинхронно преобразует результат выполнения SQL-запроса в коллекцию объектов заданного типа.
@@ -1312,67 +828,8 @@ namespace RuntimeStuff.Helpers
         /// <item>Закрывает подключение после выполнения запроса через <see cref="CloseConnection(IDbConnection)"/>.</item>
         /// </list>
         /// </remarks>
-        public  async Task<TList> ToCollectionAsync<TList, TItem>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, TItem> setter = null, int maxRows = -1, CancellationToken ct = default) where TList : ICollection<TItem>, new() where TItem : class, new()
-        {
-            if (string.IsNullOrWhiteSpace(query))
-                query = SqlQueryBuilder.GetSelectQuery<TItem>();
-
-            if (maxRows >= 0 && query.StartsWith("SELECT ") && !query.StartsWith("SELECT TOP"))
-                query = $"SELECT TOP {maxRows}" + query.Substring(6);
-
-            var cmd = (DbCommand)CreateCommand(query, cmdParams);
-
-            await BeginConnectionAsync();
-
-            var list = new TList();
-
-            using (var r = await cmd.ExecuteReaderAsync(ct))
-            {
-                var map = GetReaderFieldToPropertyMap<TItem>(r, columnToPropertyMap);
-                var valueConverter = converter ?? DbReaderValueConvertor;
-                var valueFactory = setter ?? ((colName, colValue, prop, item) => { prop.SetValue(item, colValue); });
-
-                var rowCount = 0;
-                while (await r.ReadAsync(ct))
-                {
-                    if (rowCount >= maxRows && maxRows > 0)
-                        break;
-
-                    var item = new TItem();
-
-                    foreach (var kv in map)
-                    {
-                        var colIndex = kv.Key;
-                        var mapItem = kv.Value;
-
-                        var raw = r.GetValue(colIndex);
-
-                        if (raw == null || raw == DBNull.Value)
-                        {
-                            mapItem.propSetter(item, null);
-                            continue;
-                        }
-
-                        var value = valueConverter(raw, mapItem.propInfoEx.PropertyType);
-                        try
-                        {
-                            valueFactory(r.GetName(kv.Key), value, mapItem.propInfoEx, item);
-                        }
-                        catch (Exception ex)
-                        {
-                            HandleDbException(new Exception($"Failed to set property {mapItem} value {value} ({value?.GetType().Name})", ex), cmd);
-                        }
-                    }
-
-                    list.Add(item);
-                    rowCount++;
-                }
-            }
-
-            CloseConnection();
-
-            return list;
-        }
+        public static Task<TList> ToCollectionAsync<TList, TItem>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberInfoEx, TItem> setter = null, int maxRows = -1, CancellationToken ct = default) where TList : ICollection<TItem>, new() where TItem : class, new()
+            => DbClient.Create(con).ToCollectionAsync<TList, TItem>(query, cmdParams, columnToPropertyMap, converter, setter, maxRows, ct);
 
         /// <summary>
         /// Асинхронно выполняет обновление набора объектов в базе данных с возможностью указать условие WHERE.
@@ -1380,24 +837,16 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="T">Тип сущности, данные которой обновляются.</typeparam>
         /// <param name="con">Активное подключение к базе данных.</param>
         /// <param name="list">Коллекция сущностей, значения которых должны быть обновлены.</param>
+        /// <param name="whereExpression">
+        /// Лямбда-выражение, формирующее условие WHERE.
+        /// Если значение <c>null</c>, WHERE формируется по ключевым свойствам (если реализовано в <c>SqlQueryBuilder</c>).
+        /// </param>
         /// <param name="updateColumns">
         /// Массив выражений <c>x =&gt; x.Property</c>, задающий список обновляемых колонок.
         /// </param>
         /// <returns>Объект задачи, представляющий асинхронную операцию обновления.</returns>
-        public  async Task<int> UpdateAsync<T>(IEnumerable<T> list, params Expression<Func<T, object>>[] updateColumns) where T : class
-        {
-            var count = 0;
-            using (var tr = Connection.BeginTransaction())
-            {
-                foreach (var item in list)
-                {
-                    count += await UpdateAsync( item, null, updateColumns);
-                }
-                tr.Commit();
-            }
-
-            return count;
-        }
+        public static Task<int> UpdateRangeAsync<T>(this IDbConnection con, IEnumerable<T> list, params Expression<Func<T, object>>[] updateColumns) where T : class
+            => DbClient.Create(con).UpdateRangeAsync(list, updateColumns);
 
         /// <summary>
         /// Асинхронно обновляет один объект в базе данных,
@@ -1411,10 +860,8 @@ namespace RuntimeStuff.Helpers
         /// Если передано <c>null</c> или массив пуст — обновляются все публичные простые свойства.
         /// </param>
         /// <returns>Объект задачи, представляющий асинхронное выполнение UPDATE.</returns>
-        public  Task<int> UpdateAsync<T>(T item, params Expression<Func<T, object>>[] updateColumns) where T : class
-        {
-            return UpdateAsync( item, null, updateColumns);
-        }
+        public static Task<int> UpdateAsync<T>(this IDbConnection con, T item, params Expression<Func<T, object>>[] updateColumns) where T : class
+            => DbClient.Create(con).UpdateAsync(item, updateColumns);
 
         /// <summary>
         /// Асинхронно обновляет один объект с возможностью указания выражения WHERE.
@@ -1427,14 +874,8 @@ namespace RuntimeStuff.Helpers
         /// Если <c>null</c>, WHERE формируется на основе ключевых полей сущности (если предусмотрено).</param>
         /// <param name="updateColumns">Список обновляемых колонок.</param>
         /// <returns>Задача, представляющая выполнение команды UPDATE.</returns>
-        public  Task<int> UpdateAsync<T>(T item, Expression<Func<T, bool>> whereExpression, params Expression<Func<T, object>>[] updateColumns) where T : class
-        {
-            var query = SqlQueryBuilder.GetUpdateQuery(updateColumns);
-            query += " " + (whereExpression != null ? SqlQueryBuilder.GetWhereClause(whereExpression)
-                                                    : SqlQueryBuilder.GetWhereClause<T>());
-
-            return ExecuteNonQueryAsync( query, GetParams(item));
-        }
+        public static Task<int> UpdateAsync<T>(this IDbConnection con, T item, Expression<Func<T, bool>> whereExpression, params Expression<Func<T, object>>[] updateColumns) where T : class
+            => DbClient.Create(con).UpdateAsync(item, whereExpression, updateColumns);
 
         /// <summary>
         /// Выполняет обновление набора объектов с возможностью указания условия WHERE.
@@ -1443,19 +884,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="con">Активное подключение.</param>
         /// <param name="list">Коллекция сущностей для обновления.</param>
         /// <param name="updateColumns">Обновляемые колонки.</param>
-        public  int Update<T>(IEnumerable<T> list, params Expression<Func<T, object>>[] updateColumns) where T : class
-        {
-            var count = 0;
-            using (var tr = Connection.BeginTransaction())
-            {
-                foreach (var item in list)
-                {
-                    count += Update( item, null, updateColumns);
-                }
-                tr.Commit();
-            }
-            return count;
-        }
+        public static int UpdateRange<T>(this IDbConnection con, IEnumerable<T> list, params Expression<Func<T, object>>[] updateColumns) where T : class
+            => DbClient.Create(con).UpdateRange(list, updateColumns);
 
         /// <summary>
         /// Синхронно обновляет один объект, используя указанный набор обновляемых колонок.
@@ -1464,10 +894,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="con">Подключение к БД.</param>
         /// <param name="item">Обновляемая сущность.</param>
         /// <param name="updateColumns">Массив обновляемых свойств.</param>
-        public  int Update<T>(T item, params Expression<Func<T, object>>[] updateColumns) where T : class
-        {
-            return Update( item, null, updateColumns);
-        }
+        public static int Update<T>(this IDbConnection con, T item, params Expression<Func<T, object>>[] updateColumns) where T : class
+            => DbClient.Create(con).Update(item, updateColumns);
 
         /// <summary>
         /// Синхронное обновление одного объекта с возможностью задать выражение WHERE.
@@ -1480,14 +908,8 @@ namespace RuntimeStuff.Helpers
         /// Если отсутствует, WHERE строится по ключевым свойствам сущности.
         /// </param>
         /// <param name="updateColumns">Выражения, определяющие обновляемые колонки.</param>
-        public  int Update<T>(T item, Expression<Func<T, bool>> whereExpression, params Expression<Func<T, object>>[] updateColumns) where T : class
-        {
-            var query = SqlQueryBuilder.GetUpdateQuery(updateColumns);
-            query += " " + (whereExpression != null ? SqlQueryBuilder.GetWhereClause(whereExpression)
-                                                    : SqlQueryBuilder.GetWhereClause<T>());
-
-            return ExecuteNonQuery( query, GetParams(item));
-        }
+        public static int Update<T>(this IDbConnection con, T item, Expression<Func<T, bool>> whereExpression, params Expression<Func<T, object>>[] updateColumns) where T : class
+            => DbClient.Create(con).Update(item, updateColumns);
 
         /// <summary>
         /// Создает новый объект типа <typeparamref name="T"/>, заполняет его с помощью переданных действий
@@ -1497,14 +919,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="con">Подключение к базе данных. Если закрыто — будет автоматически открыто.</param>
         /// <param name="insertColumns">Делегаты, которые заполняют свойства создаваемого объекта.</param>
         /// <returns>Созданный и вставленный объект.</returns>
-        public  T Insert<T>(params Action<T>[] insertColumns) where T : class
-        {
-            var item = TypeHelper.New<T>();
-            foreach (var a in insertColumns)
-                a(item);
-            Insert( item);
-            return item;
-        }
+        public static T Insert<T>(this IDbConnection con, params Action<T>[] insertColumns) where T : class
+            => DbClient.Create(con).Insert(insertColumns);
 
         /// <summary>
         /// Асинхронно создает новый объект типа <typeparamref name="T"/> и выполняет INSERT,
@@ -1517,13 +933,8 @@ namespace RuntimeStuff.Helpers
         /// <returns>
         /// Значение первичного ключа, если оно получено, иначе — <c>null</c>.
         /// </returns>
-        public  Task<object> InsertAsync<T>(string queryGetId = "SELECT SCOPE_IDENTITY()", params Action<T>[] insertColumns) where T : class
-        {
-            var item = TypeHelper.New<T>();
-            foreach (var a in insertColumns)
-                a(item);
-            return InsertAsync( item, queryGetId);
-        }
+        public static Task<object> InsertAsync<T>(this IDbConnection con, string queryGetId = "SELECT SCOPE_IDENTITY()", params Action<T>[] insertColumns) where T : class
+            => DbClient.Create(con).InsertAsync(queryGetId, insertColumns);
 
         /// <summary>
         /// Выполняет INSERT указанного объекта в базу данных и при необходимости
@@ -1535,23 +946,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="queryGetId">Запрос для получения идентификатора (например, SCOPE_IDENTITY). Если пустой — идентификатор не считывается.</param>
         /// <param name="insertColumns">Список свойств, которые необходимо вставить. Если не указаны — вставляются все свойства, кроме первичного ключа.</param>
         /// <returns>Значение первичного ключа, если получено. Иначе — <c>null</c>.</returns>
-        public  object Insert<T>(T item, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
-        {
-            object id = null;
-            var query = SqlQueryBuilder.GetInsertQuery(insertColumns);
-            if (string.IsNullOrWhiteSpace(queryGetId))
-                ExecuteNonQuery( query, GetParams(item));
-            else
-            {
-                query += $"; {queryGetId}";
-                id = ExecuteScalar<object>( query, GetParams(item));
-                var mi = MemberInfoEx.Create<T>();
-                if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
-                    mi.PrimaryKeys.First().Value.SetValue(item, TypeHelper.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
-            }
-
-            return id;
-        }
+        public static object Insert<T>(this IDbConnection con, T item, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
+            => DbClient.Create(con).Insert(item, queryGetId, insertColumns);
 
         /// <summary>
         /// Асинхронно выполняет INSERT указанного объекта в базу данных и при необходимости
@@ -1563,18 +959,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="queryGetId">Запрос для получения идентификатора (например, SCOPE_IDENTITY). Если пустой — идентификатор не считывается.</param>
         /// <param name="insertColumns">Список свойств, которые необходимо вставить. Если не указаны — вставляются все свойства, кроме первичного ключа.</param>
         /// <returns>Задача, возвращающая значение первичного ключа или <c>null</c>.</returns>
-        public  async Task<object> InsertAsync<T>(T item, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
-        {
-            var query = SqlQueryBuilder.GetInsertQuery(insertColumns);
-            await ExecuteNonQueryAsync( query);
-            var mi = MemberInfoEx.Create<T>();
-            if (string.IsNullOrWhiteSpace(queryGetId) || mi.PrimaryKeys.Count != 1) return null;
-            var parameters = GetParams(item);
-            var id = await ExecuteScalarAsync<object>( queryGetId, parameters);
-            if (id != null && id != DBNull.Value)
-                mi.PrimaryKeys.First().Value.SetValue(item, id);
-            return id;
-        }
+        public static Task<object> InsertAsync<T>(this IDbConnection con, T item, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
+            => DbClient.Create(con).InsertAsync(item, queryGetId, insertColumns);
 
         /// <summary>
         /// Выполняет пакетную вставку коллекции объектов в базу данных внутри одной транзакции.
@@ -1591,17 +977,8 @@ namespace RuntimeStuff.Helpers
         /// Все вставки выполняются в одной транзакции.
         /// Если одна из вставок завершится ошибкой, транзакция не будет зафиксирована.
         /// </remarks>
-        public  void Insert<T>(IEnumerable<T> list, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
-        {
-            using (var tr = Connection.BeginTransaction())
-            {
-                foreach (var item in list)
-                {
-                    Insert( item, queryGetId, insertColumns);
-                }
-                tr.Commit();
-            }
-        }
+        public static int InsertRange<T>(this IDbConnection con, IEnumerable<T> list, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
+            => DbClient.Create(con).InsertRange(list, queryGetId, insertColumns);
 
         /// <summary>
         /// Асинхронно выполняет пакетную вставку коллекции объектов в базу данных внутри одной транзакции.
@@ -1619,17 +996,8 @@ namespace RuntimeStuff.Helpers
         /// Все вставки выполняются в одной транзакции.
         /// Если одна из вставок завершится ошибкой, транзакция не будет зафиксирована.
         /// </remarks>
-        public  async Task InsertAsync<T>(IEnumerable<T> list, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
-        {
-            using (var tr = Connection.BeginTransaction())
-            {
-                foreach (var item in list)
-                {
-                    await InsertAsync( item, queryGetId, insertColumns);
-                }
-                tr.Commit();
-            }
-        }
+        public static Task<int> InsertRangeAsync<T>(this IDbConnection con, IEnumerable<T> list, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
+            => DbClient.Create(con).InsertRangeAsync(list, queryGetId, insertColumns);
 
         /// <summary>
         /// Выполняет удаление записей из таблицы, соответствующей типу <typeparamref name="T"/>,
@@ -1644,11 +1012,8 @@ namespace RuntimeStuff.Helpers
         /// DELETE FROM [Table] WHERE ...
         /// </code>
         /// </remarks>
-        public  int Delete<T>(Expression<Func<T, bool>> whereExpression) where T : class
-        {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>() + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
-            return ExecuteNonQuery( query);
-        }
+        public static int Delete<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression) where T : class
+            => DbClient.Create(con).Delete(whereExpression);
 
         /// <summary>
         /// Удаляет запись из базы данных на основе ключевых свойств объекта.
@@ -1673,11 +1038,8 @@ namespace RuntimeStuff.Helpers
         ///
         /// Предполагается, что значения параметров будут привязаны позже, при выполнении команды.
         /// </remarks>
-        public  int Delete<T>(T item) where T : class
-        {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>() + " " + SqlQueryBuilder.GetWhereClause<T>()).Trim();
-            return ExecuteNonQuery( query, GetParams(item));
-        }
+        public static int Delete<T>(this IDbConnection con, T item) where T : class
+            => DbClient.Create(con).Delete(item);
 
         /// <summary>
         /// Асинхронно удаляет запись из базы данных на основе ключевых свойств объекта.
@@ -1702,11 +1064,8 @@ namespace RuntimeStuff.Helpers
         ///
         /// Использует асинхронный ExecuteNonQueryAsync.
         /// </remarks>
-        public  Task<int> DeleteAsync<T>(T item) where T : class
-        {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>() + " " + SqlQueryBuilder.GetWhereClause<T>()).Trim();
-            return ExecuteNonQueryAsync( query, GetParams(item));
-        }
+        public static Task<int> DeleteAsync<T>(this IDbConnection con, T item) where T : class
+            => DbClient.Create(con).DeleteAsync(item);
 
         /// <summary>
         /// Асинхронно удаляет из базы данных все объекты указанного типа <typeparamref name="T"/>, переданные в коллекции <paramref name="list"/>.
@@ -1727,20 +1086,8 @@ namespace RuntimeStuff.Helpers
         /// </list>
         /// Если при удалении любого элемента возникает исключение, транзакция не фиксируется и все изменения откатываются.
         /// </remarks>
-        public  async Task<int> DeleteAsync<T>(IEnumerable<T> list) where T : class
-        {
-            var count = 0;
-            using (var tr = Connection.BeginTransaction())
-            {
-                foreach (var item in list)
-                {
-                    count += await DeleteAsync( item);
-                }
-                tr.Commit();
-            }
-
-            return count;
-        }
+        public static Task<int> DeleteRangeAsync<T>(this IDbConnection con, IEnumerable<T> list) where T : class
+            => DbClient.Create(con).DeleteRangeAsync(list);
 
         /// <summary>
         /// Асинхронно выполняет удаление записей из таблицы, соответствующей типу <typeparamref name="T"/>,
@@ -1756,123 +1103,7 @@ namespace RuntimeStuff.Helpers
         /// DELETE FROM [Table] WHERE ...
         /// </code>
         /// </remarks>
-        public  Task<int> DeleteAsync<T>(Expression<Func<T, bool>> whereExpression) where T : class
-        {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>() + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
-            return ExecuteNonQueryAsync( query);
-        }
-
-        /// <summary>
-        /// Создает словарь параметров SQL на основе публичных свойств объекта.
-        /// </summary>
-        /// <typeparam name="T">Тип объекта, для которого извлекаются параметры.</typeparam>
-        /// <param name="item">Объект, значения свойств которого используются как значения параметров.</param>
-        /// <param name="include">
-        /// Если <c>true</c> — включаются только свойства, перечисленные в <paramref name="propertyNames"/>.
-        /// Если <c>false</c> — исключаются свойства из <paramref name="propertyNames"/>.
-        /// </param>
-        /// <param name="propertyNames">Список имен свойств, которые нужно включить или исключить.</param>
-        /// <returns>
-        /// Словарь параметров, где ключ — имя свойства, а значение — его значение у объекта.
-        /// </returns>
-        public  Dictionary<string, object> GetParams<T>(T item, bool include = true, params string[] propertyNames)
-        {
-            var queryParams = new Dictionary<string, object>();
-            foreach (var mi in MemberInfoEx.Create(typeof(T)).PublicBasicProperties)
-            {
-                if (propertyNames.Length > 0)
-                {
-                    switch (include)
-                    {
-                        case true when !propertyNames.Contains(mi.Key):
-                        case false when propertyNames.Contains(mi.Key):
-                            continue;
-                    }
-                }
-
-                queryParams[mi.Key] = mi.Value.GetValue(item);
-            }
-
-            return queryParams;
-        }
-
-        /// <summary>
-        /// Универсальный преобразователь типа, поддерживающий Guid, Enum, Nullable,
-        /// строки-даты и примитивы.
-        /// Используется во всех методах маппинга и чтения значений.
-        /// </summary>
-        /// <param name="value">Исходное значение.</param>
-        /// <param name="targetType">Тип назначения.</param>
-        /// <returns>Сконвертированное значение.</returns>
-        private  object ChangeType(object value, Type targetType) => TypeHelper.ChangeType(value, targetType);
-
-        // Использовать StringComparer.OrdinalIgnoreCase один раз:
-        private  readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
-
-        private  Dictionary<int, string> GetReaderFieldToPropertyMap(IDataReader reader, IEnumerable<(string, string)> customMap = null, bool onlyFromCustomMap = true)
-        {
-            var customMapDic = customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
-            var map = new Dictionary<int, string>();
-
-            var columnsCount = reader.FieldCount;
-
-            for (var i = 0; i < columnsCount; i++)
-            {
-                var colIndex = i;
-                var colName = reader.GetName(i);
-
-                if (customMapDic.Count > 0 && customMapDic.TryGetValue(colName, out var mappedColumn))
-                {
-                    map[colIndex] = mappedColumn;
-                    if (onlyFromCustomMap)
-                        continue;
-                }
-
-                map[colIndex] = colName;
-            }
-
-            return map;
-        }
-
-        private  Dictionary<int, (MemberInfoEx propInfoEx, Action<T, object> propSetter)> GetReaderFieldToPropertyMap<T>(IDataReader reader, IEnumerable<(string, string)> customMap = null, bool onlyFromCustomMap = true)
-        {
-            var customMapDic = customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
-            var map = new Dictionary<int, (MemberInfoEx propInfoEx, Action<T, object> propSetter)>();
-            var typeInfoEx = MemberInfoEx.Create(typeof(T));
-            var columnsCount = reader.FieldCount;
-
-            for (var i = 0; i < columnsCount; i++)
-            {
-                var colIndex = i;
-                var colName = reader.GetName(i);
-                MemberInfoEx propInfoEx;
-                if (customMap != null)
-                {
-                    propInfoEx = typeInfoEx.PublicBasicProperties.GetValueOrDefault(customMapDic.GetValueOrDefault(colName, IgnoreCaseComparer), IgnoreCaseComparer);
-                    map[colIndex] = (propInfoEx, TypeHelper.GetMemberSetter<T>(propInfoEx.Name));
-                    if (map[colIndex].propInfoEx != null || onlyFromCustomMap)
-                        continue;
-                }
-
-                propInfoEx = typeInfoEx.ColumnProperties.GetValueOrDefault(colName, IgnoreCaseComparer);
-                if (propInfoEx != null)
-                {
-                    map[colIndex] = (propInfoEx, TypeHelper.GetMemberSetter<T>(propInfoEx.Name));
-                    continue;
-                }
-
-                propInfoEx = typeInfoEx.PublicBasicProperties.GetValueOrDefault(colName, IgnoreCaseComparer);
-
-                if (propInfoEx != null)
-                {
-                    map[colIndex] = (propInfoEx, TypeHelper.GetMemberSetter<T>(propInfoEx.Name));
-                    continue;
-                }
-
-                map.Remove(colIndex);
-            }
-
-            return map;
-        }
+        public static Task<int> DeleteAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression) where T : class
+            => DbClient.Create(con).DeleteAsync(whereExpression);
     }
 }

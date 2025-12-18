@@ -192,7 +192,7 @@ namespace RuntimeStuff.Builders
             var mi = MemberInfoEx.Create<T>();
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x=>x.GetMemberInfoEx()).ToArray() ?? Array.Empty<MemberInfoEx>();
             if (members.Length == 0)
-                members = mi.ColumnProperties.Values.ToArray();
+                members = mi.ColumnProperties.Values.ToArray().Concat(mi.PrimaryKeys.Values).ToArray();
             if (members.Length == 0)
                 return $"SELECT * FROM {namePrefix}{mi.TableName}{nameSuffix}";
 
@@ -284,12 +284,12 @@ namespace RuntimeStuff.Builders
 
             if (props.Count == 0)
                 props.AddRange(mi.ColumnProperties
-                    .Where(x => !x.Value.IsPrimaryKey)
+                    .Where(x => !x.Value.IsPrimaryKey && x.Value.IsSetterPublic)
                     .Select(x => x.Value.ColumnName));
 
             if (props.Count == 0)
                 props.AddRange(mi.PublicBasicProperties
-                    .Where(x => x.Key.ToLower() != "id")
+                    .Where(x => x.Key.ToLower() != "id" && x.Value.IsSetterPublic)
                     .Select(x => x.Value.ColumnName));
             else
             {
@@ -342,7 +342,7 @@ namespace RuntimeStuff.Builders
 
             var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName)?.ToArray() ?? Array.Empty<string>();
             if (insertCols.Length == 0)
-                insertCols = mi.ColumnProperties.Values.Select(x => x.Name).ToArray();
+                insertCols = mi.ColumnProperties.Values.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
 
             for (var i = 0; i < insertCols.Length; i++)
             {

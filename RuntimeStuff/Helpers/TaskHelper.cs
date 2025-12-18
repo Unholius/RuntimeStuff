@@ -151,7 +151,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         ///     Хранилище ожидающих задач по идентификатору события.
         /// </summary>
-        private static readonly ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>> _waiters
+        private static readonly ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>> Waiters
             = new ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>>();
 
         /// <summary>
@@ -177,13 +177,13 @@ namespace RuntimeStuff.Helpers
             var tcs = new TaskCompletionSource<EventResult<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
-            if (!_waiters.TryAdd(eventId, tcs)) return _waiters[eventId].Task;
+            if (!Waiters.TryAdd(eventId, tcs)) return Waiters[eventId].Task;
 
             var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait));
 
             cts.Token.Register(() =>
             {
-                if (_waiters.TryRemove(eventId, out var removed)) removed.TrySetCanceled();
+                if (Waiters.TryRemove(eventId, out var removed)) removed.TrySetCanceled();
             });
             return tcs.Task;
         }
@@ -213,13 +213,13 @@ namespace RuntimeStuff.Helpers
             var tcs = new TaskCompletionSource<EventResult<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
-            if (!_waiters.TryAdd(eventId, tcs))
-                return _waiters[eventId].Task;
+            if (!Waiters.TryAdd(eventId, tcs))
+                return Waiters[eventId].Task;
 
             var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait));
             cts.Token.Register(() =>
             {
-                if (_waiters.TryRemove(eventId, out var removed))
+                if (Waiters.TryRemove(eventId, out var removed))
                 {
                     // Возвращаем EventResult с заданным статусом таймаута
                     removed.TrySetResult(new EventResult<T>(eventId, timeoutStatus));
@@ -246,7 +246,7 @@ namespace RuntimeStuff.Helpers
 
             var eventInfo = new EventResult<T>(eventId, status, eventData);
 
-            if (_waiters.TryRemove(eventId, out var tsc))
+            if (Waiters.TryRemove(eventId, out var tsc))
             {
                 tsc.SetResult(eventInfo);
                 return true;
@@ -268,7 +268,7 @@ namespace RuntimeStuff.Helpers
             if (eventId == null)
                 throw new NullReferenceException(nameof(eventId));
 
-            return _waiters.TryRemove(eventId, out var tsc) && tsc.TrySetCanceled();
+            return Waiters.TryRemove(eventId, out var tsc) && tsc.TrySetCanceled();
         }
 
         /// <summary>
@@ -280,9 +280,9 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         public static void ClearAll()
         {
-            foreach (var tsc in _waiters.Values) tsc.TrySetCanceled();
+            foreach (var tsc in Waiters.Values) tsc.TrySetCanceled();
 
-            _waiters.Clear();
+            Waiters.Clear();
         }
     }
 

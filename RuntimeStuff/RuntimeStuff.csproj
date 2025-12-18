@@ -8,7 +8,7 @@
 	</Target>
 	<PropertyGroup>
 	  <TargetFrameworks>netstandard2.0</TargetFrameworks>
-	  <Version>$(VersionPrefix)$([System.DateTime]::Now.ToString("yyyy")).$([System.DateTime]::Now.ToString("MMdd")).$([System.DateTime]::Now.ToString("HHmm"))</Version>
+	  <Version>$(VersionPrefix)$([System.DateTime]::Now.ToString("yyyy")).$([System.DateTime]::Now.ToString("MMdd")).0</Version>
 	  <OutputType>Library</OutputType>
 	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	  <Authors>Rudnev Sergey</Authors>

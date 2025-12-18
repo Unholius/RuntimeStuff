@@ -8,12 +8,13 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using RuntimeStuff.Extensions;
 using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff
 {
     /// <summary>
-    ///     v.2025.12.17
+    ///     v.2025.12.18 (RS) <br/>
     ///     Представляет расширенную обёртку над <see cref="MemberInfo" />, предоставляющую унифицированный доступ к
     ///     дополнительной информации и операциям для членов типа .NET<br />
     ///     (свойств, методов, полей, событий, конструкторов и самих типов).
@@ -72,10 +73,10 @@ namespace RuntimeStuff
         private readonly MemberInfoEx _memberInfoEx;
 
         // Кэш для делегатов установки и получения значений членов
-        private readonly ConcurrentDictionary<string, Action<object, object>[]> _setters = new ConcurrentDictionary<string, Action<object, object>[]>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, Action<object, object>[]> _setters = new ConcurrentDictionary<string, Action<object, object>[]>(StringComparison.OrdinalIgnoreCase.ToStringComparer());
 
         // Кэш для делегатов получения значений членов
-        private readonly ConcurrentDictionary<string, Func<object, object>[]> _getters = new ConcurrentDictionary<string, Func<object, object>[]>(StringComparer.OrdinalIgnoreCase);
+        private readonly ConcurrentDictionary<string, Func<object, object>[]> _getters = new ConcurrentDictionary<string, Func<object, object>[]>(StringComparison.OrdinalIgnoreCase.ToStringComparer());
 
         private readonly Type _type;
 
@@ -242,7 +243,7 @@ namespace RuntimeStuff
 
                 if (PrimaryKeys.Count == 0)
                 {
-                    var p = PublicBasicProperties.GetValueOrDefault("id", StringComparer.OrdinalIgnoreCase) ?? PublicBasicProperties.GetValueOrDefault(TableName + "id", StringComparer.OrdinalIgnoreCase);
+                    var p = PublicBasicProperties.GetValueOrDefault("id", StringComparison.OrdinalIgnoreCase.ToStringComparer()) ?? PublicBasicProperties.GetValueOrDefault(TableName + "id", StringComparer.OrdinalIgnoreCase);
                     if (p != null)
                         PrimaryKeys = new Dictionary<string, MemberInfoEx>() { { p.Name, PublicBasicProperties[p.Name] } };
                 }
@@ -264,7 +265,7 @@ namespace RuntimeStuff
                         .Select(x => x.Value)
                         .ToDictionary(x => x.Name);
 
-                var propsAndFields = Members.Where(x => x.Value.IsProperty || x.Value.IsField).GroupBy(x => x.Key, StringComparer.OrdinalIgnoreCase);
+                var propsAndFields = Members.Where(x => x.Value.IsProperty || x.Value.IsField).GroupBy(x => x.Key, StringComparison.OrdinalIgnoreCase.ToStringComparer());
                 foreach (var pf in propsAndFields)
                 {
                     _setters[pf.Key] = pf.Select(x => x.Value.Setter).ToArray();
@@ -272,19 +273,24 @@ namespace RuntimeStuff
                 }
 
                 // Рекурсивная загрузка членов класса
-                if (getMembers) _members = _memberInfoEx?._members ?? GetMembersInternal();
+                if (getMembers) _members = _memberInfoEx?._members ?? GetChildMembersInternal();
             }
 
             // Дополнительная обработка для свойств
             if (pi != null)
             {
                 PropertyType = pi.PropertyType;
+                IsSetterPublic = pi.GetSetMethod()?.IsPublic == true;
+                IsSetterPrivate = pi.GetSetMethod()?.IsPrivate == true;
+                IsGetterPublic = pi.GetGetMethod()?.IsPublic == true;
+                IsGetterPrivate = pi.GetGetMethod()?.IsPrivate == true;
+
                 if (_memberInfoEx == null)
                 {
                     var keyAttr = Attributes.GetValueOrDefault("KeyAttribute");
                     var colAttr = Attributes.GetValueOrDefault("ColumnAttribute");
                     var fkAttr = Attributes.GetValueOrDefault("ForeignKeyAttribute");
-                    IsPrimaryKey = keyAttr != null;
+                    IsPrimaryKey = keyAttr != null || string.Equals(Name, "id", StringComparison.OrdinalIgnoreCase);
                     IsForeignKey = fkAttr != null;
 
                     Setter = TypeHelper.GetMemberSetter(pi.Name, pi.DeclaringType);
@@ -292,7 +298,7 @@ namespace RuntimeStuff
                     PropertyBackingField = GetFields().FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ??
                                            TypeHelper.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
 
-                    TableName = Parent.TableName;
+                    //TableName = Parent.TableName;
                     ColumnName = colAttr != null
                         ? colAttr.GetType().GetProperty("Name")?.GetValue(colAttr)?.ToString() ?? Name
                         : Name;
@@ -313,6 +319,11 @@ namespace RuntimeStuff
 
             if (fi != null)
             {
+                IsSetterPublic = true;
+                IsSetterPrivate = false;
+                IsGetterPublic = true;
+                IsGetterPrivate = false;
+
                 Setter = _memberInfoEx?.Setter ?? TypeHelper.GetMemberSetter(fi.Name, fi.DeclaringType);
                 Getter = _memberInfoEx?.Getter ?? TypeHelper.GetMemberGetter(fi.Name, fi.DeclaringType);
             }
@@ -330,6 +341,14 @@ namespace RuntimeStuff
                 GroupName = _memberInfoEx.GroupName;
             }
         }
+
+        public bool IsGetterPrivate { get; }
+
+        public bool IsGetterPublic { get; }
+
+        public bool IsSetterPrivate { get; }
+
+        public bool IsSetterPublic { get; }
 
         public Dictionary<string, MemberInfoEx> PrivateFields { get; }
 
@@ -615,7 +634,7 @@ namespace RuntimeStuff
             {
                 if (_members != null)
                     return _members;
-                _members = _memberInfoEx?._members ?? GetMembersInternal();
+                _members = _memberInfoEx?._members ?? GetChildMembersInternal();
                 return _members;
             }
         }
@@ -689,7 +708,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Словарь свойств по имени колонки у которых есть один из атрибутов Column, Key, Foreign и нет NotMapped. Если таких нет, то все простые публичные свойства кроме первичных ключей
+        ///     Словарь свойств по имени колонки у которых есть один из атрибутов Column, Foreign и нет NotMapped и Key. Если таких нет, то все простые публичные свойства кроме первичных ключей
         /// </summary>
         public Dictionary<string, MemberInfoEx> ColumnProperties
         {
@@ -1400,14 +1419,14 @@ namespace RuntimeStuff
         ///     Получить все члены типа (свойства, поля, события)
         /// </summary>
         /// <returns>Массив информации о членах</returns>
-        internal Dictionary<string, MemberInfoEx> GetMembersInternal()
+        internal Dictionary<string, MemberInfoEx> GetChildMembersInternal()
         {
             var members =
                 GetProperties().Concat(
                     GetFields().Concat(
-                        //GetMethods().Select(x => new MemberInfoEx(x))).Concat(
-                        //GetConstructors().Select(x => new MemberInfoEx(x))).Concat(
-                        GetEvents().OfType<MemberInfo>())).Select(m => Create(m, this)).ToArray();
+                        GetEvents().OfType<MemberInfo>()))
+                    .Select(m => Create(m, this))
+                    .ToArray();
 
             return members.ToDictionary(x => x.Name);
         }

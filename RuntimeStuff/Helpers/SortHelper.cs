@@ -97,9 +97,6 @@ namespace RuntimeStuff.Helpers
 
             for (var i = 0; i < sorts.Length; i++)
             {
-                var t = typeof(T);
-                
-
                 if (i == 0 && !(source is IOrderedEnumerable<T>))
                 {
                     result = sorts[i].order == ListSortDirection.Ascending
