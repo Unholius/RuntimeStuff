@@ -133,139 +133,8 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Формирует строку SQL-запроса с подстановкой значений параметров
-        /// из переданного <see cref="IDbCommand"/>.
-        /// </summary>
-        /// <param name="command">
-        /// Команда <see cref="IDbCommand"/>, содержащая параметры и их значения,
-        /// которые будут подставлены в SQL.
-        /// </param>
-        /// <param name="paramNamePrefix">
-        /// Префикс имени параметра в SQL-запросе. 
-        /// По умолчанию <c>"@"</c>.
-        /// </param>
-        /// <param name="dateFormat">
-        /// Формат даты при подстановке значений <see cref="DateTime"/>.
-        /// По умолчанию <c>"yyyyMMdd"</c>.
-        /// </param>
-        /// <param name="stringPrefix">
-        /// Префикс для строковых значений (например, кавычка в SQL).
-        /// По умолчанию <c>"'"</c>.
-        /// </param>
-        /// <param name="stringSuffix">
-        /// Суффикс для строковых значений (например, кавычка в SQL).
-        /// По умолчанию <c>"'"</c>.
-        /// </param>
-        /// <param name="nullValue">
-        /// Строковое представление <c>null</c> значения.
-        /// По умолчанию <c>"NULL"</c>.
-        /// </param>
-        /// <param name="trueValue">
-        /// Строковое представление логического значения <c>true</c>.
-        /// По умолчанию <c>"1"</c>.
-        /// </param>
-        /// <param name="falseValue">
-        /// Строковое представление логического значения <c>false</c>.
-        /// По умолчанию <c>"0"</c>.
-        /// </param>
-        /// <returns>
-        /// Строка SQL с подставленными значениями параметров,
-        /// готовая к использованию для логирования или анализа.
-        /// </returns>
-        /// <remarks>
-        /// Метод не выполняет команду <see cref="IDbCommand"/> — он только
-        /// формирует SQL с текущими значениями параметров.
-        /// </remarks>
-        public string GetRawSql(IDbCommand command, string paramNamePrefix = "@", string dateFormat = "yyyyMMdd", string stringPrefix = "'", string stringSuffix = "'", string nullValue = "NULL", string trueValue = "1", string falseValue = "0")
-        {
-            if (command == null)
-                throw new ArgumentNullException(nameof(command));
-
-            var sql = command.CommandText;
-
-            foreach (IDbDataParameter parameter in command.Parameters)
-            {
-                var paramToken = paramNamePrefix + parameter.ParameterName;
-                var literal = ToSqlLiteral(
-                    parameter.Value,
-                    dateFormat,
-                    stringPrefix,
-                    stringSuffix,
-                    nullValue,
-                    trueValue,
-                    falseValue);
-
-                sql = ReplaceParameterToken(sql, paramToken, literal);
-            }
-
-            return sql;
-        }
-
-        private static string ReplaceParameterToken(string sql, string token, string replacement)
-        {
-            return Regex.Replace(
-                sql,
-                $@"(?<![\w@]){Regex.Escape(token)}(?!\w)",
-                replacement,
-                RegexOptions.CultureInvariant);
-        }
-
-        private static string ToSqlLiteral(
-            object value,
-            string dateFormat,
-            string stringPrefix,
-            string stringSuffix,
-            string nullValue,
-            string trueValue,
-            string falseValue)
-        {
-            if (value == null || value == DBNull.Value)
-                return nullValue;
-
-            switch (value)
-            {
-                case string s:
-                    return $"{stringPrefix}{EscapeString(s)}{stringSuffix}";
-
-                case char c:
-                    return $"{stringPrefix}{EscapeString(c.ToString())}{stringSuffix}";
-
-                case bool b:
-                    return b ? trueValue : falseValue;
-
-                case DateTime dt:
-                    return $"{stringPrefix}{dt.ToString(dateFormat, CultureInfo.InvariantCulture)}{stringSuffix}";
-
-                case DateTimeOffset dto:
-                    return $"{stringPrefix}{dto.ToString(dateFormat, CultureInfo.InvariantCulture)}{stringSuffix}";
-
-                case Guid g:
-                    return $"{stringPrefix}{g}{stringSuffix}";
-
-                case Enum e:
-                    return Convert.ToInt64(e).ToString(CultureInfo.InvariantCulture);
-
-                case TimeSpan ts:
-                    return $"{stringPrefix}{ts.ToString("c", CultureInfo.InvariantCulture)}{stringSuffix}";
-
-                case IFormattable formattable:
-                    return formattable.ToString(null, CultureInfo.InvariantCulture);
-
-                default:
-                    return $"{stringPrefix}{EscapeString(value.ToString())}{stringSuffix}";
-            }
-        }
-
-        private static string EscapeString(string value)
-        {
-            return value.Replace("'", "''");
-        }
-
-
-        /// <summary>
         /// Создаёт и настраивает команду для выполнения SQL-запроса.
         /// </summary>
-        /// <param name="con">Экземпляр соединения с БД.</param>
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
         /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
@@ -275,60 +144,20 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Заполняет коллекцию параметров команды базы данных
-        /// значениями из указанного словаря.
-        /// </summary>
-        /// <param name="cmd">
-        /// Команда базы данных, параметры которой будут обновлены или добавлены.
-        /// </param>
-        /// <param name="cmdParams">
-        /// Словарь параметров, где ключ — имя параметра,
-        /// значение — соответствующее значение параметра.
-        /// </param>
-        /// <remarks>
-        /// Если параметр с указанным именем уже существует в коллекции
-        /// <see cref="IDbCommand.Parameters"/>, его значение будет обновлено.
-        /// В противном случае создаётся новый параметр и добавляется в команду.
-        /// <para/>
-        /// Значение <see langword="null"/> автоматически преобразуется
-        /// в <see cref="DBNull.Value"/>, как требуется для параметров
-        /// команд баз данных.
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="cmd"/> или
-        /// <paramref name="cmdParams"/> равны <see langword="null"/>.
-        /// </exception>
-        public void SetParameterCollection(IDbCommand cmd, Dictionary<string, object> cmdParams)
-        {
-            foreach (var cp in cmdParams)
-            {
-                
-                IDbDataParameter p = null;
-                if (cmd.Parameters.Contains(cp.Key))
-                    p = (IDbDataParameter)cmd.Parameters[cp.Key];
-                else
-                {
-                    p = cmd.CreateParameter();
-                    cmd.Parameters.Add(p);
-                }
-
-                p.ParameterName = cp.Key;
-                p.Value = cp.Value ?? DBNull.Value;
-            }
-        }
-
-        /// <summary>
         /// Создаёт и настраивает команду для выполнения SQL-запроса.
         /// </summary>
-        /// <param name="con">Экземпляр соединения с БД.</param>
+        /// <param name="connection">Экземпляр соединения с БД.</param>
         /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
         /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
         /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
-        public IDbCommand CreateCommand(IDbConnection connection, string query, params (string, object)[] cmdParams)
+        public IDbCommand CreateCommand(IDbConnection connection, string query, IDbTransaction dbTransaction, params (string, object)[] cmdParams)
         {
             var cmd = connection.CreateCommand();
             cmd.CommandText = query;
             cmd.CommandTimeout = DefaultCommandTimeout;
+            cmd.CommandType = CommandType.Text;
+            cmd.Transaction = dbTransaction;
 
             if (cmdParams != null)
                 foreach (var cp in cmdParams)
@@ -501,7 +330,7 @@ namespace RuntimeStuff
                 CloseConnection();
             }
         }
-        
+
         /// <summary>
         /// Освобождает все ресурсы, используемые данным экземпляром класса.
         /// </summary>
@@ -550,9 +379,10 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="con">Открытое или закрытое подключение к базе данных. Если подключение закрыто — будет открыто автоматически.</param>
         /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
         /// <param name="cmdParams">Массив параметров SQL-команды в формате (имя, значение).</param>
         /// <returns>Количество затронутых строк.</returns>
-        public int ExecuteNonQuery(string query, params (string, object)[] cmdParams)
+        public int ExecuteNonQuery(string query, IDbTransaction dbTransaction, params (string, object)[] cmdParams)
         {
             using (var cmd = CreateCommand(Connection, query, cmdParams))
             {
@@ -562,6 +392,19 @@ namespace RuntimeStuff
                 CloseConnection(Connection);
                 return i;
             }
+        }
+
+        /// <summary>
+        /// Выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
+        /// с использованием массива параметров.
+        /// </summary>
+        /// <param name="con">Открытое или закрытое подключение к базе данных. Если подключение закрыто — будет открыто автоматически.</param>
+        /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="cmdParams">Массив параметров SQL-команды в формате (имя, значение).</param>
+        /// <returns>Количество затронутых строк.</returns>
+        public int ExecuteNonQuery(string query, params (string, object)[] cmdParams)
+        {
+            return ExecuteNonQuery(query, (IDbTransaction)null, cmdParams)
         }
 
         /// <summary>
@@ -882,6 +725,75 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Формирует строку SQL-запроса с подстановкой значений параметров
+        /// из переданного <see cref="IDbCommand"/>.
+        /// </summary>
+        /// <param name="command">
+        /// Команда <see cref="IDbCommand"/>, содержащая параметры и их значения,
+        /// которые будут подставлены в SQL.
+        /// </param>
+        /// <param name="paramNamePrefix">
+        /// Префикс имени параметра в SQL-запросе. 
+        /// По умолчанию <c>"@"</c>.
+        /// </param>
+        /// <param name="dateFormat">
+        /// Формат даты при подстановке значений <see cref="DateTime"/>.
+        /// По умолчанию <c>"yyyyMMdd"</c>.
+        /// </param>
+        /// <param name="stringPrefix">
+        /// Префикс для строковых значений (например, кавычка в SQL).
+        /// По умолчанию <c>"'"</c>.
+        /// </param>
+        /// <param name="stringSuffix">
+        /// Суффикс для строковых значений (например, кавычка в SQL).
+        /// По умолчанию <c>"'"</c>.
+        /// </param>
+        /// <param name="nullValue">
+        /// Строковое представление <c>null</c> значения.
+        /// По умолчанию <c>"NULL"</c>.
+        /// </param>
+        /// <param name="trueValue">
+        /// Строковое представление логического значения <c>true</c>.
+        /// По умолчанию <c>"1"</c>.
+        /// </param>
+        /// <param name="falseValue">
+        /// Строковое представление логического значения <c>false</c>.
+        /// По умолчанию <c>"0"</c>.
+        /// </param>
+        /// <returns>
+        /// Строка SQL с подставленными значениями параметров,
+        /// готовая к использованию для логирования или анализа.
+        /// </returns>
+        /// <remarks>
+        /// Метод не выполняет команду <see cref="IDbCommand"/> — он только
+        /// формирует SQL с текущими значениями параметров.
+        /// </remarks>
+        public string GetRawSql(IDbCommand command, string paramNamePrefix = "@", string dateFormat = "yyyyMMdd", string stringPrefix = "'", string stringSuffix = "'", string nullValue = "NULL", string trueValue = "1", string falseValue = "0")
+        {
+            if (command == null)
+                throw new ArgumentNullException(nameof(command));
+
+            var sql = command.CommandText;
+
+            foreach (IDbDataParameter parameter in command.Parameters)
+            {
+                var paramToken = paramNamePrefix + parameter.ParameterName;
+                var literal = ToSqlLiteral(
+                    parameter.Value,
+                    dateFormat,
+                    stringPrefix,
+                    stringSuffix,
+                    nullValue,
+                    trueValue,
+                    falseValue);
+
+                sql = ReplaceParameterToken(sql, paramToken, literal);
+            }
+
+            return sql;
+        }
+
+        /// <summary>
         /// Создает новый объект типа <typeparamref name="T"/>, заполняет его с помощью переданных действий
         /// и выполняет INSERT в базу данных.
         /// </summary>
@@ -1076,7 +988,7 @@ namespace RuntimeStuff
                         {
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
-                            
+
                             var id = await dbCmd.ExecuteScalarAsync(token);
                             if (pk != null && id != null)
                             {
@@ -1102,7 +1014,49 @@ namespace RuntimeStuff
                 CloseConnection();
             }
         }
-        
+
+        /// <summary>
+        /// Заполняет коллекцию параметров команды базы данных
+        /// значениями из указанного словаря.
+        /// </summary>
+        /// <param name="cmd">
+        /// Команда базы данных, параметры которой будут обновлены или добавлены.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Словарь параметров, где ключ — имя параметра,
+        /// значение — соответствующее значение параметра.
+        /// </param>
+        /// <remarks>
+        /// Если параметр с указанным именем уже существует в коллекции
+        /// <see cref="IDbCommand.Parameters"/>, его значение будет обновлено.
+        /// В противном случае создаётся новый параметр и добавляется в команду.
+        /// <para/>
+        /// Значение <see langword="null"/> автоматически преобразуется
+        /// в <see cref="DBNull.Value"/>, как требуется для параметров
+        /// команд баз данных.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="cmd"/> или
+        /// <paramref name="cmdParams"/> равны <see langword="null"/>.
+        /// </exception>
+        public void SetParameterCollection(IDbCommand cmd, Dictionary<string, object> cmdParams)
+        {
+            foreach (var cp in cmdParams)
+            {
+
+                IDbDataParameter p = null;
+                if (cmd.Parameters.Contains(cp.Key))
+                    p = (IDbDataParameter)cmd.Parameters[cp.Key];
+                else
+                {
+                    p = cmd.CreateParameter();
+                    cmd.Parameters.Add(p);
+                }
+
+                p.ParameterName = cp.Key;
+                p.Value = cp.Value ?? DBNull.Value;
+            }
+        }
 
         /// <summary>
         /// Начинает новую транзакцию базы данных для текущего соединения.
@@ -2280,6 +2234,65 @@ namespace RuntimeStuff
             }
         }
 
+        private static string EscapeString(string value)
+        {
+            return value.Replace("'", "''");
+        }
+
+        private static string ReplaceParameterToken(string sql, string token, string replacement)
+        {
+            return Regex.Replace(
+                sql,
+                $@"(?<![\w@]){Regex.Escape(token)}(?!\w)",
+                replacement,
+                RegexOptions.CultureInvariant);
+        }
+
+        private static string ToSqlLiteral(
+            object value,
+            string dateFormat,
+            string stringPrefix,
+            string stringSuffix,
+            string nullValue,
+            string trueValue,
+            string falseValue)
+        {
+            if (value == null || value == DBNull.Value)
+                return nullValue;
+
+            switch (value)
+            {
+                case string s:
+                    return $"{stringPrefix}{EscapeString(s)}{stringSuffix}";
+
+                case char c:
+                    return $"{stringPrefix}{EscapeString(c.ToString())}{stringSuffix}";
+
+                case bool b:
+                    return b ? trueValue : falseValue;
+
+                case DateTime dt:
+                    return $"{stringPrefix}{dt.ToString(dateFormat, CultureInfo.InvariantCulture)}{stringSuffix}";
+
+                case DateTimeOffset dto:
+                    return $"{stringPrefix}{dto.ToString(dateFormat, CultureInfo.InvariantCulture)}{stringSuffix}";
+
+                case Guid g:
+                    return $"{stringPrefix}{g}{stringSuffix}";
+
+                case Enum e:
+                    return Convert.ToInt64(e).ToString(CultureInfo.InvariantCulture);
+
+                case TimeSpan ts:
+                    return $"{stringPrefix}{ts.ToString("c", CultureInfo.InvariantCulture)}{stringSuffix}";
+
+                case IFormattable formattable:
+                    return formattable.ToString(null, CultureInfo.InvariantCulture);
+
+                default:
+                    return $"{stringPrefix}{EscapeString(value.ToString())}{stringSuffix}";
+            }
+        }
         private void BeginConnection()
         {
             BeginConnection(Connection);

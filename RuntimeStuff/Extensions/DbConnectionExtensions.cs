@@ -14,6 +14,40 @@ namespace RuntimeStuff.Extensions
     /// </summary>
     public static class DbConnectionExtensions
     {
+
+        /// <summary>
+        /// Открывает соединение, если оно ещё не открыто.
+        /// При состоянии Broken соединение сначала закрывается и открывается заново.
+        /// </summary>
+        /// <param name="connection">Соединение с базой данных.</param>
+        /// <returns>Открытое соединение.</returns>
+        /// <exception cref="ArgumentNullException">Если соединение равно null.</exception>
+        /// <exception cref="InvalidOperationException">Если соединение не может быть открыто.</exception>
+        public static IDbConnection OpenConnection(this IDbConnection connection)
+        {
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+
+            try
+            {
+                if (connection.State == ConnectionState.Broken)
+                {
+                    connection.Close();
+                }
+
+                if (connection.State != ConnectionState.Open)
+                {
+                    connection.Open();
+                }
+
+                return connection;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Не удалось открыть соединение с базой данных.", ex);
+            }
+        }
+
         /// <summary>
         /// Создаёт и настраивает команду для выполнения SQL-запроса.
         /// </summary>
