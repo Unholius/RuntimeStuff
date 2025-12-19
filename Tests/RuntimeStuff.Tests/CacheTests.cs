@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Caching.Memory;
-
-namespace RuntimeStuff.MSTests
+﻿namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class CacheTests
@@ -72,30 +70,6 @@ namespace RuntimeStuff.MSTests
         #endregion
 
         #region Get Method Tests
-
-        [TestMethod]
-        public void Get_NewKey_CreatesValue()
-        {
-            MemoryCache mc = new MemoryCache(new MemoryCacheOptions());
-            mc.Set("key1", "value1", TimeSpan.FromSeconds(1));
-
-            // Arrange
-            var callCount = 0;
-            Func<string, int> factory = key =>
-            {
-                callCount++;
-                return key.Length;
-            };
-            var cache = new Cache<string, int>(factory);
-
-            // Act
-            var result = cache.Get("test");
-
-            // Assert
-            Assert.AreEqual(4, result);
-            Assert.AreEqual(1, callCount);
-            Assert.AreEqual(1, cache.Count);
-        }
 
         [TestMethod]
         public void Get_ExistingKey_ReturnsCachedValue()

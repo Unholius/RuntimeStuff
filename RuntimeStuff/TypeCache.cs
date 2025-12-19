@@ -94,7 +94,7 @@ namespace RuntimeStuff
 
         private string _jsonName;
 
-        private Dictionary<string, TypeCache> _members;
+        private TypeCache[] _members;
 
         private MethodInfo[] _methods;
 
@@ -225,14 +225,14 @@ namespace RuntimeStuff
                     SchemaName = _typeCache.SchemaName;
                 }
 
-                Properties = _typeCache?.Properties ?? Members.Values.Where(x => x.IsProperty).ToDictionary(x => x.Name);
+                Properties = _typeCache?.Properties ?? Members.Where(x => x.IsProperty).ToDictionary(x => x.Name);
                 PublicProperties = _typeCache?.PublicProperties ?? Properties.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
                 PrivateProperties = _typeCache?.PrivateProperties ?? Properties.Values.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
                 PublicBasicProperties = _typeCache?.PublicBasicProperties ?? PublicProperties.Values.Where(x => x.IsBasic).ToDictionary(x => x.Name);
                 PublicBasicEnumerableProperties = _typeCache?.PublicBasicEnumerableProperties ?? PublicProperties.Values.Where(x => x.IsBasicCollection).ToDictionary(x => x.Name);
                 PublicEnumerableProperties = _typeCache?.PublicEnumerableProperties ?? PublicProperties.Values.Where(x => x.IsCollection && !x.IsBasicCollection).ToDictionary(x => x.Name);
 
-                Fields = _typeCache?.Fields ?? Members.Values.Where(x => x.IsField).ToDictionary(x => x.Name);
+                Fields = _typeCache?.Fields ?? Members.Where(x => x.IsField).ToDictionary(x => x.Name);
                 PublicFields = _typeCache?.PublicFields ?? Fields.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
                 PrivateFields = _typeCache?.PrivateFields ?? Fields.Values.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
 
@@ -265,11 +265,11 @@ namespace RuntimeStuff
                         .Select(x => x.Value)
                         .ToDictionary(x => x.Name);
 
-                var propsAndFields = Members.Where(x => x.Value.IsProperty || x.Value.IsField).GroupBy(x => x.Key, StringComparison.OrdinalIgnoreCase.ToStringComparer());
+                var propsAndFields = Members.Where(x => x.IsProperty || x.IsField).GroupBy(x => x.Name, StringComparison.OrdinalIgnoreCase.ToStringComparer());
                 foreach (var pf in propsAndFields)
                 {
-                    _setters[pf.Key] = pf.Select(x => x.Value.Setter).ToArray();
-                    _getters[pf.Key] = pf.Select(x => x.Value.Getter).ToArray();
+                    _setters[pf.Key] = pf.Select(x => x.Setter).ToArray();
+                    _getters[pf.Key] = pf.Select(x => x.Getter).ToArray();
                 }
 
                 // Рекурсивная загрузка членов класса
@@ -628,7 +628,7 @@ namespace RuntimeStuff
         /// <summary>
         ///     Все члены типа (свойства, поля, методы, события)
         /// </summary>
-        public Dictionary<string, TypeCache> Members
+        public TypeCache[] Members
         {
             get
             {
@@ -1230,13 +1230,13 @@ namespace RuntimeStuff
 
                 // Ищем по совпадению имени
                 if (mx == null)
-                    mx = Members.Values.FirstOrDefault(x =>
+                    mx = Members.FirstOrDefault(x =>
                         f(x)?.Equals(name, nameComparison) == true &&
                         (membersFilter == null || membersFilter(x)));
 
                 // Ищем по совпадению с удалением специальных символов
                 if (mx == null)
-                    mx = Members.Values.FirstOrDefault(x =>
+                    mx = Members.FirstOrDefault(x =>
                         Regex.Replace($"{f(x)}", "[ \\-_\\.]", string.Empty).Equals(
                             Regex.Replace(name, "[ \\-_\\.]", string.Empty),
                             nameComparison) && (membersFilter == null || membersFilter(x)));
@@ -1339,13 +1339,13 @@ namespace RuntimeStuff
             if (_columns != null)
                 return _columns;
 
-            _columns = Members.Values.Where(x => x.HasAttributeOfType("ColumnAttribute", "KeyAttribute", "ForeignKeyAttribute"))
+            _columns = Members.Where(x => x.HasAttributeOfType("ColumnAttribute", "KeyAttribute", "ForeignKeyAttribute"))
                 .ToArray();
 
             if (_columns.Length > 0)
                 return _columns;
 
-            _columns = Members.Values.Where(x =>
+            _columns = Members.Where(x =>
                     x.IsProperty &&
                     x.IsPublic &&
                     x.IsBasic &&
@@ -1368,7 +1368,7 @@ namespace RuntimeStuff
             if (_pks != null)
                 return _pks;
 
-            _pks = Members.Values.Where(x => x.IsPrimaryKey)
+            _pks = Members.Where(x => x.IsPrimaryKey)
                 .ToArray();
 
             return _pks;
@@ -1386,7 +1386,7 @@ namespace RuntimeStuff
             if (_fks != null)
                 return _fks;
 
-            _fks = Members.Values.Where(x => x.IsForeignKey)
+            _fks = Members.Where(x => x.IsForeignKey)
                 .ToArray();
 
             return _fks;
@@ -1401,7 +1401,7 @@ namespace RuntimeStuff
             if (_tables != null)
                 return _tables;
 
-            _tables = Members.Values.Where(x =>
+            _tables = Members.Where(x =>
                 x.IsProperty &&
                 x.IsPublic &&
                 x.IsCollection &&
@@ -1419,7 +1419,7 @@ namespace RuntimeStuff
         ///     Получить все члены типа (свойства, поля, события)
         /// </summary>
         /// <returns>Массив информации о членах</returns>
-        internal Dictionary<string, TypeCache> GetChildMembersInternal()
+        internal TypeCache[] GetChildMembersInternal()
         {
             var members =
                 GetProperties().Concat(
@@ -1428,7 +1428,7 @@ namespace RuntimeStuff
                     .Select(m => Create(m, this))
                     .ToArray();
 
-            return members.ToDictionary(x => x.Name);
+            return members.ToArray();
         }
 
         /// <summary>
