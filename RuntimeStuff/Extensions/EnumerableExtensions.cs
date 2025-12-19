@@ -483,5 +483,48 @@ namespace RuntimeStuff.Extensions
                     yield return element;
             }
         }
+
+        /// <summary>
+        /// Преобразует последовательность в словарь, игнорируя повторяющиеся ключи.
+        /// </summary>
+        /// <typeparam name="TSource">Тип элементов последовательности.</typeparam>
+        /// <typeparam name="TKey">Тип ключа словаря.</typeparam>
+        /// <typeparam name="TValue">Тип значения словаря.</typeparam>
+        /// <param name="source">Исходная последовательность.</param>
+        /// <param name="keySelector">Функция для получения ключа.</param>
+        /// <param name="valueSelector">Функция для получения значения.</param>
+        /// <returns>Словарь с уникальными ключами.</returns>
+        public static Dictionary<TKey, TValue> ToDictionaryDistinct<TSource, TKey, TValue>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TKey> keySelector,
+            Func<TSource, TValue> valueSelector)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (keySelector == null) throw new ArgumentNullException(nameof(keySelector));
+            if (valueSelector == null) throw new ArgumentNullException(nameof(valueSelector));
+
+            var dict = new Dictionary<TKey, TValue>();
+            foreach (var item in source)
+            {
+                var key = keySelector(item);
+                if (!dict.ContainsKey(key))
+                {
+                    dict[key] = valueSelector(item);
+                }
+            }
+
+            return dict;
+        }
+
+        /// <summary>
+        /// Преобразует последовательность в словарь, игнорируя повторяющиеся ключи.
+        /// Значение совпадает с элементом последовательности.
+        /// </summary>
+        public static Dictionary<TKey, TSource> ToDictionaryDistinct<TSource, TKey>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TKey> keySelector)
+        {
+            return source.ToDictionaryDistinct(keySelector, x => x);
+        }
     }
 }

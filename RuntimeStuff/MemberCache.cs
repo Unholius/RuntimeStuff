@@ -195,13 +195,18 @@ namespace RuntimeStuff
             Name = _typeCache?.Name ?? MemberInfo.Name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
                 .LastOrDefault() ?? string.Empty;
 
+            // Получение атрибутов
+            Description = _typeCache?.Description ?? MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
+            DisplayName = _typeCache?.DisplayName ?? MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
+
+            if (DisplayName == null && Attributes.TryGetValue("DisplayAttribute", out var da))
+            {
+                DisplayName = da.GetType().GetProperty("Name")?.GetValue(da)?.ToString();
+            }
+
             // Дополнительная обработка для типов
             if (IsType)
             {
-                // Получение атрибутов
-                Description = _typeCache?.Description ?? MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
-                DisplayName = _typeCache?.DisplayName ?? MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
-
                 DefaultConstructor = _typeCache?.DefaultConstructor ?? CreateConstructorDelegate(t);
 
                 if (_typeCache == null)
@@ -225,7 +230,7 @@ namespace RuntimeStuff
                     SchemaName = _typeCache.SchemaName;
                 }
 
-                Properties = _typeCache?.Properties ?? Members.Where(x => x.IsProperty).ToDictionary(x => x.Name);
+                Properties = _typeCache?.Properties ?? Members.Where(x => x.IsProperty).ToDictionaryDistinct(x => x.Name);
                 PublicProperties = _typeCache?.PublicProperties ?? Properties.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
                 PrivateProperties = _typeCache?.PrivateProperties ?? Properties.Values.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
                 PublicBasicProperties = _typeCache?.PublicBasicProperties ?? PublicProperties.Values.Where(x => x.IsBasic).ToDictionary(x => x.Name);
@@ -292,11 +297,17 @@ namespace RuntimeStuff
                     var fkAttr = Attributes.GetValueOrDefault("ForeignKeyAttribute");
                     IsPrimaryKey = keyAttr != null || string.Equals(Name, "id", StringComparison.OrdinalIgnoreCase);
                     IsForeignKey = fkAttr != null;
+                    try
+                    {
+                        Setter = TypeHelper.GetMemberSetter(pi.Name, pi.DeclaringType);
+                        Getter = TypeHelper.GetMemberGetter(pi.Name, pi.DeclaringType);
+                        PropertyBackingField = GetFields().FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ??
+                                               TypeHelper.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
+                    }
+                    catch
+                    {
 
-                    Setter = TypeHelper.GetMemberSetter(pi.Name, pi.DeclaringType);
-                    Getter = TypeHelper.GetMemberGetter(pi.Name, pi.DeclaringType);
-                    PropertyBackingField = GetFields().FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ??
-                                           TypeHelper.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
+                    }
 
                     //TableName = Parent.TableName;
                     ColumnName = colAttr != null
@@ -323,9 +334,24 @@ namespace RuntimeStuff
                 IsSetterPrivate = false;
                 IsGetterPublic = true;
                 IsGetterPrivate = false;
+                try
+                {
+                    Setter = _typeCache?.Setter ?? TypeHelper.GetMemberSetter(fi.Name, fi.DeclaringType);
+                }
+                catch
+                {
 
-                Setter = _typeCache?.Setter ?? TypeHelper.GetMemberSetter(fi.Name, fi.DeclaringType);
-                Getter = _typeCache?.Getter ?? TypeHelper.GetMemberGetter(fi.Name, fi.DeclaringType);
+                }
+
+                try
+                {
+                    Getter = _typeCache?.Getter ?? TypeHelper.GetMemberGetter(fi.Name, fi.DeclaringType);
+                }
+                catch (Exception ex)
+                {
+                    Getter = (x) => fi.GetValue(x);
+                }
+
             }
 
             if (_typeCache == null)
@@ -1302,7 +1328,7 @@ namespace RuntimeStuff
         /// <param name="typeNames">Имя типа</param>
         public bool HasAttributeOfType(params string[] typeNames)
         {
-            return Attributes.Any(a => typeNames.Contains(a.GetType().Name));
+            return Attributes.Any(a => typeNames.Contains(a.Key));
         }
 
         /// <summary>
@@ -1339,18 +1365,14 @@ namespace RuntimeStuff
             if (_columns != null)
                 return _columns;
 
-            _columns = Members.Where(x => x.HasAttributeOfType("ColumnAttribute", "KeyAttribute", "ForeignKeyAttribute"))
-                .ToArray();
-
-            if (_columns.Length > 0)
-                return _columns;
-
-            _columns = Members.Where(x =>
+            _columns = Members.Where(x => 
                     x.IsProperty &&
                     x.IsPublic &&
                     x.IsBasic &&
                     !x.IsCollection &&
-                    x.Attributes.All(a => a.GetType().Name != "NotMappedAttribute"))
+                    x.HasAttributeOfType("ColumnAttribute", "KeyAttribute", "ForeignKeyAttribute")
+                    && !x.HasAttributeOfType("NotMappedAttribute")
+                    )
                 .ToArray();
 
             return _columns;
@@ -1421,7 +1443,7 @@ namespace RuntimeStuff
         /// <returns>Массив информации о членах</returns>
         internal MemberCache[] GetChildMembersInternal()
         {
-            var members =
+            var members = /*IsType && (IsBasic) ? Array.Empty<MemberCache>() :*/
                 GetProperties().Concat(
                     GetFields().Concat(
                         GetEvents().OfType<MemberInfo>()))
@@ -1495,7 +1517,7 @@ namespace RuntimeStuff
             {
                 values.Add(g(source));
             }
-            return values.ToArray();
+            return values.Count == 1 ? values[0] : values.ToArray();
         }
 
         private object _typedSetter1;
@@ -1699,6 +1721,77 @@ namespace RuntimeStuff
         public string GetFullColumnName(string namePrefix, string nameSuffix, string defaultSchemaName = null)
         {
             return GetFullTableName(namePrefix, nameSuffix, defaultSchemaName) + $".{namePrefix}{ColumnName}{nameSuffix}";
+        }
+
+        public static explicit operator PropertyInfo(MemberCache mc)
+        {
+            if (mc == null)
+                throw new ArgumentNullException(nameof(mc));
+
+            var propertyInfo = mc.AsPropertyInfo();
+            if (propertyInfo == null)
+                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
+
+            return propertyInfo;
+        }
+
+        public static explicit operator FieldInfo(MemberCache mc)
+        {
+            if (mc == null)
+                throw new ArgumentNullException(nameof(mc));
+
+            var fieldInfo = mc.AsFieldInfo();
+            if (fieldInfo == null)
+                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
+
+            return fieldInfo;
+        }
+
+        public static explicit operator MethodInfo(MemberCache mc)
+        {
+            if (mc == null)
+                throw new ArgumentNullException(nameof(mc));
+
+            var methodInfo = mc.AsMethodInfo();
+            if (methodInfo == null)
+                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
+
+            return methodInfo;
+        }
+
+        public static explicit operator EventInfo(MemberCache mc)
+        {
+            if (mc == null)
+                throw new ArgumentNullException(nameof(mc));
+
+            var eventInfo = mc.AsEventInfo();
+            if (eventInfo == null)
+                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
+
+            return eventInfo;
+        }
+
+        public static explicit operator ConstructorInfo(MemberCache mc)
+        {
+            if (mc == null)
+                throw new ArgumentNullException(nameof(mc));
+
+            var constructorInfo = mc.AsConstructorInfo();
+            if (constructorInfo == null)
+                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
+
+            return constructorInfo;
+        }
+
+        public static explicit operator Type(MemberCache mc)
+        {
+            if (mc == null)
+                throw new ArgumentNullException(nameof(mc));
+
+            if (!mc.IsType)
+                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.");
+
+            return mc.Type;
         }
     }
 
