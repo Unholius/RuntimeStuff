@@ -89,17 +89,19 @@ namespace RuntimeStuff.Extensions
         /// <param name="con">Экземпляр соединения с БД.</param>
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
+        /// <param name="dbTransaction">Транзакция</param>
         /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
-        public static IDbCommand CreateCommand(this IDbConnection con, string query, IEnumerable<(string, object)> cmdParams = null) => DbClient.Create(con).CreateCommand(query, cmdParams);
+        public static IDbCommand CreateCommand(this IDbConnection con, string query, IEnumerable<(string, object)> cmdParams = null, IDbTransaction dbTransaction = null) => DbClient.Create(con).CreateCommand(query, cmdParams, dbTransaction);
 
         /// <summary>
         /// Создаёт и настраивает команду для выполнения SQL-запроса.
         /// </summary>
         /// <param name="con">Экземпляр соединения с БД.</param>
         /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
         /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
         /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
-        public static IDbCommand CreateCommand(this IDbConnection con, string query, params (string, object)[] cmdParams) => DbClient.Create(con).CreateCommand(query, cmdParams);
+        public static IDbCommand CreateCommand(this IDbConnection con, string query, IDbTransaction dbTransaction = null, params (string, object)[] cmdParams) => DbClient.Create(con).CreateCommand(query, cmdParams, dbTransaction);
 
         /// <summary>
         /// Создаёт команду для SQL-запроса, принимая параметры в виде словаря.
@@ -115,7 +117,7 @@ namespace RuntimeStuff.Extensions
         /// Выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
         /// с использованием коллекции параметров в виде <see cref="KeyValuePair{String, Object}"/>.
         /// </summary>
-
+        /// <param name="con"></param>
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Коллекция параметров SQL-команды.</param>
         /// <returns>Количество затронутых строк.</returns>
@@ -161,6 +163,17 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T">Тип результата.</typeparam>
         /// <param name="con">Соединение с БД.</param>
         /// <param name="query">SQL-запрос.</param>
+        /// <param name="cmdParams">Параметры команды.</param>
+        /// <returns>Значение типа <typeparamref name="T"/>.</returns>
+        public static T ExecuteScalar<T>(this IDbConnection con, string query, params (string, object)[] cmdParams) => DbClient.Create(con).ExecuteScalar<T>(query, null, cmdParams);
+
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает одно скалярное значение.
+        /// </summary>
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="con">Соединение с БД.</param>
+        /// <param name="query">SQL-запрос.</param>
         /// <param name="dbTransaction">Транзакция</param>
         /// <param name="cmdParams">Параметры команды.</param>
         /// <returns>Значение типа <typeparamref name="T"/>.</returns>
@@ -169,12 +182,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.
         /// </summary>
-        public static T ExecuteScalar<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression) => DbClient.Create(con).ExecuteScalar(whereExpression);
-
-        /// <summary>
-        /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.
-        /// </summary>
-        public static T ExecuteScalar<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams) => DbClient.Create(con).ExecuteScalar<T>(query, cmdParams);
+        public static T ExecuteScalar<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IDbTransaction dbTransaction = null) => DbClient.Create(con).ExecuteScalar<T>(query, cmdParams, dbTransaction);
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос и возвращает скалярное значение.

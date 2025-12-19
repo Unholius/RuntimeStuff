@@ -134,6 +134,18 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Создаёт команду для SQL-запроса, принимая параметры в виде словаря.
+        /// </summary>
+        /// <param name="query">SQL-запрос.</param>
+        /// <param name="cmdParams">Параметры команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        /// <returns>Команда <see cref="IDbCommand"/>.</returns>
+        public IDbCommand CreateCommand(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IDbTransaction dbTransaction)
+        {
+            return CreateCommand(Connection, query, dbTransaction, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
+        }
+
+        /// <summary>
         /// Создаёт и настраивает команду для выполнения SQL-запроса.
         /// </summary>
         /// <param name="query">Текст SQL-команды.</param>
@@ -153,7 +165,7 @@ namespace RuntimeStuff
         /// <param name="dbTransaction">Транзакция</param>
         /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
         /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
-        public IDbCommand CreateCommand(IDbConnection connection, string query, IDbTransaction dbTransaction, params (string, object)[] cmdParams)
+        private IDbCommand CreateCommand(IDbConnection connection, string query, IDbTransaction dbTransaction, params (string, object)[] cmdParams)
         {
             var cmd = connection.CreateCommand();
             cmd.CommandText = query;
@@ -176,18 +188,6 @@ namespace RuntimeStuff
             LogCommand(cmd);
 
             return cmd;
-        }
-
-        /// <summary>
-        /// Создаёт команду для SQL-запроса, принимая параметры в виде словаря.
-        /// </summary>
-        /// <param name="query">SQL-запрос.</param>
-        /// <param name="cmdParams">Параметры команды.</param>
-        /// <param name="dbTransaction">Транзакция</param>
-        /// <returns>Команда <see cref="IDbCommand"/>.</returns>
-        public IDbCommand CreateCommand(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IDbTransaction dbTransaction)
-        {
-            return CreateCommand(Connection, query, dbTransaction, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
         }
 
         /// <summary>
