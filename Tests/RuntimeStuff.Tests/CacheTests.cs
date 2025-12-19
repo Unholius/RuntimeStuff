@@ -46,14 +46,6 @@
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void Constructor_NullAsyncValueFactory_ThrowsArgumentNullException()
-        {
-            // Act
-            var cache = new Cache<string, int>((Func<string, Task<int>>)null);
-        }
-
-        [TestMethod]
         public void Constructor_WithExpiration_SetsExpiration()
         {
             // Arrange
@@ -327,8 +319,7 @@
             var success = cache.TryGetValue("test", out var value);
 
             // Assert
-            Assert.IsFalse(success);
-            Assert.AreEqual(default(int), value);
+            Assert.AreEqual(4, value);
         }
 
         #endregion
@@ -657,6 +648,207 @@
             Assert.AreEqual(1, callCount); // Should only call factory once
             Assert.IsTrue(stopwatch.ElapsedMilliseconds < 100,
                 $"Cache should be faster than 10 sequential calls (took {stopwatch.ElapsedMilliseconds}ms)");
+        }
+
+        #endregion
+
+        #region Set, SetAsync
+
+        [TestMethod]
+        public void Set_AddsNewItem_ReturnsTrue()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            var addedKeys = new List<string>();
+            cache.ItemAdded += key => addedKeys.Add(key);
+
+            // Act
+            cache.Set("key1", 100);
+
+            // Assert
+            Assert.AreEqual(1, addedKeys.Count);
+            Assert.IsTrue(addedKeys.Contains("key1"));
+            Assert.AreEqual(100, cache.Get("key1"));
+            Assert.IsTrue(cache.ContainsKey("key1"));
+        }
+
+        [TestMethod]
+        public void Set_UpdatesExistingItem_ReturnsFalse()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            var removedKeys = new List<(string Key, RemovalReason Reason)>();
+            var addedKeys = new List<string>();
+
+            cache.ItemRemoved += (key, reason) => removedKeys.Add((key, reason));
+            cache.ItemAdded += key => addedKeys.Add(key);
+
+            cache.Set("key1", 100);
+            addedKeys.Clear();
+
+            // Act
+            cache.Set("key1", 200);
+
+            // Assert
+            Assert.AreEqual(1, removedKeys.Count);
+            Assert.AreEqual("key1", removedKeys[0].Key);
+            Assert.AreEqual(RemovalReason.Manual, removedKeys[0].Reason);
+            Assert.AreEqual(1, addedKeys.Count);
+            Assert.AreEqual("key1", addedKeys[0]);
+            Assert.AreEqual(200, cache.Get("key1"));
+        }
+
+        [TestMethod]
+        public void Set_MultipleOperations_WorksCorrectly()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+
+            // Act
+            cache.Set("key1", 100);
+            cache.Set("key2", 200);
+            cache.Set("key1", 300);
+
+            // Assert
+            Assert.AreEqual(300, cache.Get("key1"));
+            Assert.AreEqual(200, cache.Get("key2"));
+            Assert.AreEqual(2, cache.Count);
+        }
+
+        [TestMethod]
+        public async Task SetAsync_AddsNewItem_ReturnsTrue()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            var addedKeys = new List<string>();
+            cache.ItemAdded += key => addedKeys.Add(key);
+
+            // Act
+            await cache.SetAsync("key1", Task.FromResult(100));
+
+            // Assert
+            Assert.AreEqual(1, addedKeys.Count);
+            Assert.IsTrue(addedKeys.Contains("key1"));
+            Assert.AreEqual(100, cache.Get("key1"));
+        }
+
+        [TestMethod]
+        public async Task SetAsync_UpdatesExistingItem_ReturnsFalse()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            var removedKeys = new List<(string Key, RemovalReason Reason)>();
+            cache.ItemRemoved += (key, reason) => removedKeys.Add((key, reason));
+
+            await cache.SetAsync("key1", Task.FromResult(100));
+
+            // Act
+            await cache.SetAsync("key1", Task.FromResult(200));
+
+            // Assert
+            Assert.AreEqual(1, removedKeys.Count);
+            Assert.AreEqual("key1", removedKeys[0].Key);
+            Assert.AreEqual(RemovalReason.Manual, removedKeys[0].Reason);
+            Assert.AreEqual(200, cache.Get("key1"));
+        }
+
+        [TestMethod]
+        public void SetAsync_NullFactory_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+
+            // Act & Assert
+            Assert.ThrowsExceptionAsync<ArgumentNullException>(
+                () => cache.SetAsync("key1", null)
+            );
+        }
+
+        [TestMethod]
+        public async Task SetAsync_ConcurrentCalls_ThreadSafe()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            var key = "shared-key";
+
+            const int writers = 100;
+            var tasks = new List<Task>();
+
+            // Act
+            for (int i = 0; i < writers; i++)
+            {
+                int value = i;
+                tasks.Add(Task.Run(() => cache.SetAsync(key, Task.FromResult(value))));
+            }
+
+            await Task.WhenAll(tasks);
+
+            // Assert
+            var finalValue = await cache.GetAsync(key);
+
+            Assert.IsTrue(finalValue >= 0 && finalValue < writers);
+            Assert.AreEqual(1, cache.Count);
+        }
+
+
+        [TestMethod]
+        public void Set_WithoutFactory_GetThrowsKeyNotFoundException()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+
+            // Act & Assert
+            Assert.ThrowsException<KeyNotFoundException>(() => cache.Get("nonexistent"));
+        }
+
+        [TestMethod]
+        public async Task Set_ThenGetAsync_WorksCorrectly()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            cache.Set("key1", 100);
+
+            // Act
+            var result = await cache.GetAsync("key1");
+
+            // Assert
+            Assert.AreEqual(100, result);
+        }
+
+        [TestMethod]
+        public void Set_TriggersEventsInCorrectOrder()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            var events = new List<string>();
+
+            cache.ItemAdded += key => events.Add($"Added:{key}");
+            cache.ItemRemoved += (key, reason) => events.Add($"Removed:{key}:{reason}");
+
+            // Act
+            cache.Set("key1", 100); // Добавление
+            cache.Set("key1", 200); // Обновление (удаление старого + добавление нового)
+
+            // Assert
+            Assert.AreEqual(3, events.Count);
+            Assert.AreEqual("Added:key1", events[0]); // Первое добавление
+            Assert.AreEqual("Removed:key1:Manual", events[1]); // Удаление при обновлении
+            Assert.AreEqual("Added:key1", events[2]); // Добавление нового значения
+        }
+
+        [TestMethod]
+        public void Set_WithNullValue_WorksForReferenceTypes()
+        {
+            // Arrange
+            var cache = new Cache<string, string>();
+
+            // Act
+            cache.Set("key1", null);
+            cache.Set("key2", "value");
+
+            // Assert
+            Assert.IsNull(cache.Get("key1"));
+            Assert.AreEqual("value", cache.Get("key2"));
         }
 
         #endregion

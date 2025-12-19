@@ -758,7 +758,7 @@ namespace RuntimeStuff
         public T First<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams,
             IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null) where T : class, new()
+            Action<string, object, MemberCache, T> setter = null) where T : class, new()
         {
             return ToList(query, cmdParams, columnToPropertyMap, converter, setter, 1)?.FirstOrDefault();
         }
@@ -774,7 +774,7 @@ namespace RuntimeStuff
         /// <param name="setter">Пользовательская логика присвоения значения свойству.</param>
         /// <param name="orderByExpression">Порядок сортировки</param>
         /// <returns>Первый объект типа <typeparamref name="T"/> или <c>null</c>, если результат пустой.</returns>
-        public T First<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
+        public T First<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
         {
             return ToList(whereExpression, converter, setter, 1, orderByExpression)?.FirstOrDefault();
         }
@@ -813,7 +813,7 @@ namespace RuntimeStuff
         /// после чего возвращает <c>FirstOrDefault()</c>.
         /// </remarks>
         public T First<T>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null,
-            Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null)
+            Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null)
             where T : class, new()
         {
             return ToList(query, cmdParams, columnToPropertyMap, converter, setter, 1)?.FirstOrDefault();
@@ -837,16 +837,16 @@ namespace RuntimeStuff
             IEnumerable<KeyValuePair<string, object>> cmdParams,
             IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null, CancellationToken token = default) where T : class, new()
+            Action<string, object, MemberCache, T> setter = null, CancellationToken token = default) where T : class, new()
         {
             return (await ToListAsync(query, cmdParams, columnToPropertyMap, converter, setter, 1, token))?.FirstOrDefault();
         }
 
         /// <summary>
-        /// Асинхронная версия метода <see cref="First{T}(IDbConnection, Expression{Func{T, bool}}, Func{object, Type, object}, Action{string, object, TypeCache, T})"/>.
+        /// Асинхронная версия метода <see cref="First{T}(IDbConnection, Expression{Func{T, bool}}, Func{object, Type, object}, Action{string, object, MemberCache, T})"/>.
         /// </summary>
         public async Task<T> FirstAsync<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
+            Action<string, object, MemberCache, T> setter = null, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
         {
             return (await ToListAsync(whereExpression, converter, setter, 1, orderByExpression, token))?.FirstOrDefault();
         }
@@ -858,7 +858,7 @@ namespace RuntimeStuff
             IEnumerable<(string, object)> cmdParams = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null, CancellationToken token = default) where T : class, new()
+            Action<string, object, MemberCache, T> setter = null, CancellationToken token = default) where T : class, new()
         {
             return (await ToListAsync(query, cmdParams, columnToPropertyMap, converter, setter, 1, token))?.FirstOrDefault();
         }
@@ -878,7 +878,7 @@ namespace RuntimeStuff
         /// </returns>
         public Dictionary<string, object> GetParams<T>(T item, params string[] propertyNames) where T : class
         {
-            return TypeCache.Create<T>().ToDictionary(item, propertyNames);
+            return MemberCache.Create<T>().ToDictionary(item, propertyNames);
         }
 
         /// <summary>
@@ -920,7 +920,7 @@ namespace RuntimeStuff
             {
                 query += $"; {queryGetId}";
                 id = ExecuteScalar<object>(query, GetParams(item));
-                var mi = TypeCache.Create<T>();
+                var mi = MemberCache.Create<T>();
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
                     mi.PrimaryKeys.First().Value.SetValue(item, TypeHelper.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
             }
@@ -970,7 +970,7 @@ namespace RuntimeStuff
             {
                 query += $"; {queryGetId}";
                 id = await ExecuteScalarAsync<object>(query, GetParams(item), token);
-                var mi = TypeCache.Create<T>();
+                var mi = MemberCache.Create<T>();
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
                     mi.PrimaryKeys.First().Value.SetValue(item, TypeHelper.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
             }
@@ -1003,7 +1003,7 @@ namespace RuntimeStuff
                     var query = SqlQueryBuilder.GetInsertQuery(insertColumns);
                     if (!string.IsNullOrWhiteSpace(queryGetId))
                         query += $"; {queryGetId}";
-                    var typeCache = TypeCache.Create<T>();
+                    var typeCache = MemberCache.Create<T>();
                     var pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = CreateCommand(Connection, query))
@@ -1064,7 +1064,7 @@ namespace RuntimeStuff
                     var query = SqlQueryBuilder.GetInsertQuery(insertColumns);
                     if (!string.IsNullOrWhiteSpace(queryGetId))
                         query += $"; {queryGetId}";
-                    var typeCache = TypeCache.Create<T>();
+                    var typeCache = MemberCache.Create<T>();
                     var pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = CreateCommand(Connection, query))
@@ -1147,10 +1147,10 @@ namespace RuntimeStuff
         /// <list type="bullet">
         /// <item><description>Имя столбца</description></item>
         /// <item><description>Значение столбца после конвертации</description></item>
-        /// <item><description>Информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>Информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>Объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <returns>Коллекция типа <typeparamref name="TList"/>, содержащая объекты <typeparamref name="TItem"/> с заполненными свойствами на основе данных из базы.</returns>
@@ -1161,7 +1161,7 @@ namespace RuntimeStuff
         /// Метод автоматически открывает подключение к базе данных с помощью <see cref="BeginConnection(IDbConnection)"/> и закрывает его после выполнения запроса <see cref="CloseConnection(IDbConnection)"/>.
         /// Для каждого ряда результата создается новый объект <typeparamref name="TItem"/>. Все свойства заполняются в соответствии с <paramref name="columnToPropertyMap"/> или сопоставлением по имени.
         /// </remarks>
-        public TList ToCollection<TList, TItem>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, TItem> setter = null, int maxRows = -1) where TList : ICollection<TItem>, new() where TItem : class, new()
+        public TList ToCollection<TList, TItem>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, TItem> setter = null, int maxRows = -1) where TList : ICollection<TItem>, new() where TItem : class, new()
         {
             if (string.IsNullOrWhiteSpace(query))
                 query = SqlQueryBuilder.GetSelectQuery<TItem>();
@@ -1262,10 +1262,10 @@ namespace RuntimeStuff
         /// <list type="bullet">
         /// <item><description>имя столбца</description></item>
         /// <item><description>значение столбца после конвертации</description></item>
-        /// <item><description>информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <param name="ct">Токен отмены <see cref="CancellationToken"/> для асинхронной операции.</param>
@@ -1286,7 +1286,7 @@ namespace RuntimeStuff
         /// <item>Закрывает подключение после выполнения запроса через <see cref="CloseConnection(IDbConnection)"/>.</item>
         /// </list>
         /// </remarks>
-        public async Task<TList> ToCollectionAsync<TList, TItem>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, TItem> setter = null, int maxRows = -1, CancellationToken ct = default) where TList : ICollection<TItem>, new() where TItem : class, new()
+        public async Task<TList> ToCollectionAsync<TList, TItem>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, TItem> setter = null, int maxRows = -1, CancellationToken ct = default) where TList : ICollection<TItem>, new() where TItem : class, new()
         {
             if (string.IsNullOrWhiteSpace(query))
                 query = SqlQueryBuilder.GetSelectQuery<TItem>();
@@ -1607,7 +1607,7 @@ namespace RuntimeStuff
         /// </remarks>
         public Dictionary<TKey, TValue> ToDictionary<TKey, TValue, T>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(TypeCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetTypeCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetTypeCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(MemberCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetTypeCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetTypeCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
             return ToDictionary<TKey, TValue>(query);
         }
 
@@ -1699,7 +1699,7 @@ namespace RuntimeStuff
         /// </remarks>
         public Task<Dictionary<TKey, TValue>> ToDictionaryAsync<T, TKey, TValue>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null, CancellationToken token = default)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(TypeCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetTypeCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetTypeCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(MemberCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetTypeCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetTypeCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
             return ToDictionaryAsync<TKey, TValue>(query, (IEnumerable<(string, object)>)null, token);
         }
 
@@ -1881,7 +1881,7 @@ namespace RuntimeStuff
         /// <see cref="KeyValuePair{String, String}"/>, в последовательности кортежей
         /// <c>(string, object)</c> и <c>(string, string)</c>, и передающей их основной реализации.
         /// </remarks>
-        public List<T> ToList<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1) where T : class, new()
+        public List<T> ToList<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1) where T : class, new()
         {
             return ToList(query, cmdParams?.Select(x => (x.Key, x.Value)), columnToPropertyMap?.Select(x => (x.Key, x.Value)), converter, setter, maxRows);
         }
@@ -1927,7 +1927,7 @@ namespace RuntimeStuff
         /// После формирования запроса управление передаётся основной реализации метода <c>ToList</c>,
         /// работающей с параметрами и сопоставлением колонок.
         /// </remarks>
-        public List<T> ToList<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
+        public List<T> ToList<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
         {
             var query = (SqlQueryBuilder.GetSelectQuery<T>() + " " + SqlQueryBuilder.GetWhereClause(whereExpression) + " " + SqlQueryBuilder.GetOrderBy(orderByExpression)).Trim();
 
@@ -1983,7 +1983,7 @@ namespace RuntimeStuff
         /// <item>применение пользовательского конвертера и setter'а.</item>
         /// </list>
         /// </remarks>
-        public List<T> ToList<T>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1) where T : class, new()
+        public List<T> ToList<T>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1) where T : class, new()
         {
             return ToCollection<List<T>, T>(query, cmdParams, columnToPropertyMap, converter, setter, maxRows);
         }
@@ -2014,10 +2014,10 @@ namespace RuntimeStuff
         /// <list type="bullet">
         /// <item><description>имя столбца</description></item>
         /// <item><description>значение столбца после конвертации</description></item>
-        /// <item><description>информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <param name="ct">Токен отмены <see cref="CancellationToken"/> для асинхронной операции.</param>
@@ -2026,7 +2026,7 @@ namespace RuntimeStuff
         /// Этот метод является перегрузкой метода <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, TypeCache, T}, CancellationToken)"/>,
         /// преобразующей <see cref="KeyValuePair{String, Object}"/> параметры в кортежи <c>(string, object)</c> перед вызовом основной реализации.
         /// </remarks>
-        public Task<List<T>> ToListAsync<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
+        public Task<List<T>> ToListAsync<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
         {
             return ToListAsync(query, cmdParams?.Select(x => (x.Key, x.Value)), columnToPropertyMap?.Select(x => (x.Key, x.Value)), converter, setter, maxRows, ct);
         }
@@ -2055,10 +2055,10 @@ namespace RuntimeStuff
         /// <list type="bullet">
         /// <item><description>имя столбца</description></item>
         /// <item><description>значение столбца после конвертации</description></item>
-        /// <item><description>информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <param name="ct">Токен отмены <see cref="CancellationToken"/> для асинхронной операции.</param>
@@ -2067,7 +2067,7 @@ namespace RuntimeStuff
         /// Внутри используется метод <see cref="ToCollectionAsync{TList, TItem}"/> для выполнения SQL-запроса и построения коллекции.
         /// Каждая строка результата запроса преобразуется в объект <typeparamref name="T"/> с заполнением всех свойств.
         /// </remarks>
-        public Task<List<T>> ToListAsync<T>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
+        public Task<List<T>> ToListAsync<T>(string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
         {
             return ToCollectionAsync<List<T>, T>(query, cmdParams, columnToPropertyMap, converter, setter, maxRows, ct);
         }
@@ -2089,10 +2089,10 @@ namespace RuntimeStuff
         /// <list type="bullet">
         /// <item><description>имя столбца</description></item>
         /// <item><description>значение столбца после конвертации</description></item>
-        /// <item><description>информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <param name="orderByExpression">Порядок сортировки</param>
@@ -2101,7 +2101,7 @@ namespace RuntimeStuff
         /// Метод генерирует SQL-запрос SELECT с WHERE-клауза на основе <paramref name="whereExpression"/>.
         /// Использует перегрузку <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, TypeCache, T}, CancellationToken)"/> для выполнения запроса и построения коллекции.
         /// </remarks>
-        public Task<List<T>> ToListAsync<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
+        public Task<List<T>> ToListAsync<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
         {
             var query = (SqlQueryBuilder.GetSelectQuery<T>() + " " + SqlQueryBuilder.GetWhereClause(whereExpression) + " " + SqlQueryBuilder.GetOrderBy(orderByExpression)).Trim();
 
@@ -2192,7 +2192,7 @@ namespace RuntimeStuff
                 using (StartTransaction())
                 {
                     var query = SqlQueryBuilder.GetUpdateQuery(updateColumns);
-                    var typeCache = TypeCache.Create<T>();
+                    var typeCache = MemberCache.Create<T>();
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = CreateCommand(Connection, query))
                     {
@@ -2238,7 +2238,7 @@ namespace RuntimeStuff
                 using (StartTransaction())
                 {
                     var query = SqlQueryBuilder.GetUpdateQuery(updateColumns);
-                    var typeCache = TypeCache.Create<T>();
+                    var typeCache = MemberCache.Create<T>();
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = CreateCommand(Connection, query))
                     {
@@ -2360,18 +2360,18 @@ namespace RuntimeStuff
             return map;
         }
 
-        private Dictionary<int, (TypeCache propInfoEx, Action<T, object> propSetter)> GetReaderFieldToPropertyMap<T>(IDataReader reader, IEnumerable<(string, string)> customMap = null, bool onlyFromCustomMap = true)
+        private Dictionary<int, (MemberCache propInfoEx, Action<T, object> propSetter)> GetReaderFieldToPropertyMap<T>(IDataReader reader, IEnumerable<(string, string)> customMap = null, bool onlyFromCustomMap = true)
         {
             var customMapDic = customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
-            var map = new Dictionary<int, (TypeCache propInfoEx, Action<T, object> propSetter)>();
-            var typeInfoEx = TypeCache.Create(typeof(T));
+            var map = new Dictionary<int, (MemberCache propInfoEx, Action<T, object> propSetter)>();
+            var typeInfoEx = MemberCache.Create(typeof(T));
             var columnsCount = reader.FieldCount;
 
             for (var i = 0; i < columnsCount; i++)
             {
                 var colIndex = i;
                 var colName = reader.GetName(i);
-                TypeCache propInfoEx;
+                MemberCache propInfoEx;
                 if (customMap != null)
                 {
                     propInfoEx = typeInfoEx.PublicBasicProperties.GetValueOrDefault(customMapDic.GetValueOrDefault(colName, IgnoreCaseComparer), IgnoreCaseComparer);

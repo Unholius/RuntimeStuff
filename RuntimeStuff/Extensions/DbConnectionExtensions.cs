@@ -366,7 +366,7 @@ namespace RuntimeStuff.Extensions
         /// <see cref="KeyValuePair{String, String}"/>, в последовательности кортежей
         /// <c>(string, object)</c> и <c>(string, string)</c>, и передающей их основной реализации.
         /// </remarks>
-        public static List<T> ToList<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1) where T : class, new()
+        public static List<T> ToList<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1) where T : class, new()
             => DbClient.Create(con).ToList(query, cmdParams, columnToPropertyMap, converter, setter, maxRows);
 
         /// <summary>
@@ -410,7 +410,7 @@ namespace RuntimeStuff.Extensions
         /// После формирования запроса управление передаётся основной реализации метода <c>ToList</c>,
         /// работающей с параметрами и сопоставлением колонок.
         /// </remarks>
-        public static List<T> ToList<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
+        public static List<T> ToList<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
             => DbClient.Create(con).ToList(whereExpression, converter, setter, maxRows, orderByExpression);
 
         /// <summary>
@@ -462,7 +462,7 @@ namespace RuntimeStuff.Extensions
         /// <item>применение пользовательского конвертера и setter'а.</item>
         /// </list>
         /// </remarks>
-        public static List<T> ToList<T>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1) where T : class, new()
+        public static List<T> ToList<T>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1) where T : class, new()
             => DbClient.Create(con).ToList(query, cmdParams, columnToPropertyMap, converter, setter, maxRows);
 
         /// <summary>
@@ -490,10 +490,10 @@ namespace RuntimeStuff.Extensions
         /// <list type="bullet">
         /// <item><description>Имя столбца</description></item>
         /// <item><description>Значение столбца после конвертации</description></item>
-        /// <item><description>Информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>Информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>Объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <returns>Коллекция типа <typeparamref name="TList"/>, содержащая объекты <typeparamref name="TItem"/> с заполненными свойствами на основе данных из базы.</returns>
@@ -504,7 +504,7 @@ namespace RuntimeStuff.Extensions
         /// Метод автоматически открывает подключение к базе данных с помощью <see cref="BeginConnection(IDbConnection)"/> и закрывает его после выполнения запроса <see cref="CloseConnection(IDbConnection)"/>.
         /// Для каждого ряда результата создается новый объект <typeparamref name="TItem"/>. Все свойства заполняются в соответствии с <paramref name="columnToPropertyMap"/> или сопоставлением по имени.
         /// </remarks>
-        public static TList ToCollection<TList, TItem>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, TItem> setter = null, int maxRows = -1) where TList : ICollection<TItem>, new() where TItem : class, new()
+        public static TList ToCollection<TList, TItem>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, TItem> setter = null, int maxRows = -1) where TList : ICollection<TItem>, new() where TItem : class, new()
             => DbClient.Create(con).ToCollection<TList, TItem>(query, cmdParams, columnToPropertyMap, converter, setter, maxRows);
 
         /// <summary>
@@ -595,10 +595,10 @@ namespace RuntimeStuff.Extensions
         /// <list type="bullet">
         /// <item><description>имя столбца</description></item>
         /// <item><description>значение столбца после конвертации</description></item>
-        /// <item><description>информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <param name="ct">Токен отмены <see cref="CancellationToken"/> для асинхронной операции.</param>
@@ -607,7 +607,7 @@ namespace RuntimeStuff.Extensions
         /// Этот метод является перегрузкой метода <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, TypeCache, T}, CancellationToken)"/>,
         /// преобразующей <see cref="KeyValuePair{String, Object}"/> параметры в кортежи <c>(string, object)</c> перед вызовом основной реализации.
         /// </remarks>
-        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, string query = null, IEnumerable<KeyValuePair<string, object>> cmdParams = null, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
+        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, string query = null, IEnumerable<KeyValuePair<string, object>> cmdParams = null, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
             => DbClient.Create(con).ToListAsync(query, cmdParams, columnToPropertyMap, converter, setter, maxRows, ct);
 
         /// <summary>
@@ -634,10 +634,10 @@ namespace RuntimeStuff.Extensions
         /// <list type="bullet">
         /// <item><description>имя столбца</description></item>
         /// <item><description>значение столбца после конвертации</description></item>
-        /// <item><description>информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <param name="ct">Токен отмены <see cref="CancellationToken"/> для асинхронной операции.</param>
@@ -646,7 +646,7 @@ namespace RuntimeStuff.Extensions
         /// Внутри используется метод <see cref="ToCollectionAsync{TList, TItem}"/> для выполнения SQL-запроса и построения коллекции.
         /// Каждая строка результата запроса преобразуется в объект <typeparamref name="T"/> с заполнением всех свойств.
         /// </remarks>
-        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
+        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
             => DbClient.Create(con).ToListAsync(query, cmdParams, columnToPropertyMap, converter, setter, maxRows, ct);
 
         /// <summary>
@@ -666,10 +666,10 @@ namespace RuntimeStuff.Extensions
         /// <list type="bullet">
         /// <item><description>имя столбца</description></item>
         /// <item><description>значение столбца после конвертации</description></item>
-        /// <item><description>информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <param name="orderByExpression">Порядок сортировки</param>
@@ -678,7 +678,7 @@ namespace RuntimeStuff.Extensions
         /// Метод генерирует SQL-запрос SELECT с WHERE-клауза на основе <paramref name="whereExpression"/>.
         /// Использует перегрузку <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, TypeCache, T}, CancellationToken)"/> для выполнения запроса и построения коллекции.
         /// </remarks>
-        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
+        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
             => DbClient.Create(con).ToListAsync(whereExpression, converter, setter, maxRows, orderByExpression ?? Array.Empty<(Expression<Func<T, object>>, bool)>(), token);
 
         /// <summary>
@@ -713,7 +713,7 @@ namespace RuntimeStuff.Extensions
         /// </remarks>
         public static T First<T>(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null) where T : class, new()
+            Action<string, object, MemberCache, T> setter = null) where T : class, new()
             => DbClient.Create(con).First(query, cmdParams, columnToPropertyMap, converter, setter);
 
         /// <summary>
@@ -727,7 +727,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="setter">Пользовательская логика присвоения значения свойству.</param>
         /// <param name="orderByExpression">Порядок сортировки</param>
         /// <returns>Первый объект типа <typeparamref name="T"/> или <c>null</c>, если результат пустой.</returns>
-        public static T First<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
+        public static T First<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
             => DbClient.Create(con).First(whereExpression, converter, setter, orderByExpression);
 
         /// <summary>
@@ -764,7 +764,7 @@ namespace RuntimeStuff.Extensions
         /// после чего возвращает <c>FirstOrDefault()</c>.
         /// </remarks>
         public static T First<T>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null,
-            Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null)
+            Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null)
             where T : class, new()
             => DbClient.Create(con).First(query, cmdParams, columnToPropertyMap, converter, setter);
 
@@ -786,14 +786,14 @@ namespace RuntimeStuff.Extensions
             IEnumerable<KeyValuePair<string, object>> cmdParams,
             IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null, CancellationToken token = default) where T : class, new()
+            Action<string, object, MemberCache, T> setter = null, CancellationToken token = default) where T : class, new()
             => DbClient.Create(con).FirstAsync(query, cmdParams, columnToPropertyMap, converter, setter, token);
 
         /// <summary>
-        /// Асинхронная версия метода <see cref="First{T}(IDbConnection, Expression{Func{T, bool}}, Func{object, Type, object}, Action{string, object, TypeCache, T})"/>.
+        /// Асинхронная версия метода <see cref="First{T}(IDbConnection, Expression{Func{T, bool}}, Func{object, Type, object}, Action{string, object, MemberCache, T})"/>.
         /// </summary>
         public static Task<T> FirstAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
+            Action<string, object, MemberCache, T> setter = null, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
             => DbClient.Create(con).FirstAsync(whereExpression, converter, setter, orderByExpression, token);
 
         /// <summary>
@@ -803,7 +803,7 @@ namespace RuntimeStuff.Extensions
             IEnumerable<(string, object)> cmdParams = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null, CancellationToken token = default) where T : class, new()
+            Action<string, object, MemberCache, T> setter = null, CancellationToken token = default) where T : class, new()
             => DbClient.Create(con).FirstAsync(query, cmdParams, columnToPropertyMap, converter, setter, token);
 
         /// <summary>
@@ -835,10 +835,10 @@ namespace RuntimeStuff.Extensions
         /// <list type="bullet">
         /// <item><description>имя столбца</description></item>
         /// <item><description>значение столбца после конвертации</description></item>
-        /// <item><description>информацию о свойстве <see cref="TypeCache"/></description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
         /// <item><description>объект, в который нужно установить значение</description></item>
         /// </list>
-        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="TypeCache.SetValue"/>.
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
         /// </param>
         /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
         /// <param name="ct">Токен отмены <see cref="CancellationToken"/> для асинхронной операции.</param>
@@ -859,7 +859,7 @@ namespace RuntimeStuff.Extensions
         /// <item>Закрывает подключение после выполнения запроса через <see cref="CloseConnection(IDbConnection)"/>.</item>
         /// </list>
         /// </remarks>
-        public static Task<TList> ToCollectionAsync<TList, TItem>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, TypeCache, TItem> setter = null, int maxRows = -1, CancellationToken ct = default) where TList : ICollection<TItem>, new() where TItem : class, new()
+        public static Task<TList> ToCollectionAsync<TList, TItem>(this IDbConnection con, string query = null, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, TItem> setter = null, int maxRows = -1, CancellationToken ct = default) where TList : ICollection<TItem>, new() where TItem : class, new()
             => DbClient.Create(con).ToCollectionAsync<TList, TItem>(query, cmdParams, columnToPropertyMap, converter, setter, maxRows, ct);
 
         /// <summary>

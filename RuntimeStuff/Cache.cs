@@ -42,6 +42,14 @@ namespace RuntimeStuff
         private readonly Func<TKey, Task<TValue>> _asyncFactory;
         private readonly ConcurrentDictionary<TKey, Lazy<Task<(TValue Value, DateTime Created)>>> _cache;
         private readonly TimeSpan? _expiration;
+        private readonly bool _hasFactory;
+
+        public Cache()
+        {
+            _cache = new ConcurrentDictionary<TKey, Lazy<Task<(TValue Value, DateTime Created)>>>();
+            _expiration = null;
+            _hasFactory = false;
+        }
 
         /// <summary>
         /// Создаёт кэш с асинхронной фабрикой значений.
@@ -53,6 +61,7 @@ namespace RuntimeStuff
             _cache = new ConcurrentDictionary<TKey, Lazy<Task<(TValue Value, DateTime Created)>>>();
             _asyncFactory = valueFactory ?? throw new ArgumentNullException(nameof(valueFactory));
             _expiration = expiration;
+            _hasFactory = true;
         }
 
         /// <summary>
@@ -164,6 +173,16 @@ namespace RuntimeStuff
         /// <returns>Значение кэша.</returns>
         public async Task<TValue> GetAsync(TKey key)
         {
+            // Режим без фабрики — работаем как обычный словарь
+            if (!_hasFactory)
+            {
+                if (TryGetValue(key, out var existing))
+                    return existing;
+
+                throw new KeyNotFoundException(
+                    $"The given key '{key}' was not present in the cache.");
+            }
+
             while (true)
             {
                 var lazy = _cache.GetOrAdd(
@@ -201,6 +220,36 @@ namespace RuntimeStuff
 
                 return entry.Value;
             }
+        }
+
+        public void Set(TKey key, TValue value)
+        {
+            var lazy = new Lazy<Task<(TValue, DateTime)>>(
+                () => Task.FromResult((value, DateTime.UtcNow)),
+                LazyThreadSafetyMode.ExecutionAndPublication);
+
+            _cache.AddOrUpdate(
+                key,
+                k =>
+                {
+                    OnItemAdded(k);
+                    return lazy;
+                },
+                (k, old) =>
+                {
+                    OnItemRemoved(k, RemovalReason.Manual);
+                    OnItemAdded(k);
+                    return lazy;
+                });
+        }
+
+        public async Task SetAsync(TKey key, Task<TValue> valueTask)
+        {
+            if (valueTask == null)
+                throw new ArgumentNullException(nameof(valueTask));
+
+            var value = await valueTask.ConfigureAwait(false);
+            Set(key, value);
         }
 
         /// <summary>
@@ -252,24 +301,95 @@ namespace RuntimeStuff
         public bool TryGetValue(TKey key, out TValue value)
         {
             value = default;
-            if (_cache.TryGetValue(key, out var lazy))
+
+            if (!_cache.TryGetValue(key, out var lazy))
+                return false;
+
+            try
             {
-                if (!lazy.IsValueCreated)
-                    return false;
-
-                var task = lazy.Value;
-                if (!task.IsCompleted)
-                    return false;
-
-                var entry = task.Result;
-                if (_expiration != null && DateTime.UtcNow - entry.Created >= _expiration)
-                    return false;
-
+                var entry = lazy.Value.GetAwaiter().GetResult();
                 value = entry.Value;
                 return true;
             }
-            return false;
+            catch
+            {
+                return false;
+            }
         }
+
+        /// <summary>
+        /// Пытается асинхронно получить значение из кэша по указанному ключу.
+        /// </summary>
+        /// <typeparam name="TKey">
+        /// Тип ключа, используемого для идентификации значения в кэше.
+        /// </typeparam>
+        /// <typeparam name="TValue">
+        /// Тип значения, хранящегося в кэше.
+        /// </typeparam>
+        /// <param name="key">
+        /// Ключ элемента кэша.
+        /// </param>
+        /// <param name="cancellationToken">
+        /// Токен отмены, используемый для отмены асинхронной операции.
+        /// </param>
+        /// <returns>
+        /// Кортеж, содержащий результат операции:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// <see langword="true"/> и значение — если элемент найден и актуален;
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see langword="false"/> и значение по умолчанию — если элемент отсутствует,
+        /// просрочен или при получении произошла ошибка.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </returns>
+        /// <remarks>
+        /// Метод не генерирует исключений при ошибках получения значения
+        /// или истечении срока действия элемента. Все такие ситуации
+        /// интерпретируются как неуспешная попытка получения.
+        /// <para/>
+        /// Если срок жизни элемента ограничен и истёк на момент обращения,
+        /// элемент будет удалён из кэша с причиной
+        /// <see cref="RemovalReason.Expired"/>.
+        /// </remarks>
+        /// <exception cref="OperationCanceledException">
+        /// Выбрасывается, если операция была отменена
+        /// через <paramref name="cancellationToken"/>.
+        /// </exception>
+        public async Task<(bool Success, TValue Value)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
+        {
+            if (!_cache.TryGetValue(key, out var lazy))
+                return (false, default);
+
+            (TValue Value, DateTime Created) entry;
+
+            try
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                entry = await lazy.Value.ConfigureAwait(false);
+            }
+            catch
+            {
+                return (false, default);
+            }
+
+            if (_expiration != null &&
+                DateTime.UtcNow - entry.Created >= _expiration)
+            {
+                if (_cache.TryRemove(key, out _))
+                    OnItemRemoved(key, RemovalReason.Expired);
+
+                return (false, default);
+            }
+
+            return (true, entry.Value);
+        }
+
 
         /// <summary>
         /// Вызывает событие добавления элемента.
