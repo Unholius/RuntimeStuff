@@ -3,7 +3,7 @@
 namespace RuntimeStuff.MSTests
 {
     [TestClass]
-    public class MemberInfoExTests
+    public class TypeCacheTests
     {
 
         public class TestClass

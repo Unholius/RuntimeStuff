@@ -87,7 +87,7 @@ namespace RuntimeStuff.Builders
         /// </remarks>
         public static string GetWhereClause<T>(string namePrefix = "[", string nameSuffix = "]", string paramPrefix = "@")
         {
-            var mi = MemberInfoEx.Create(typeof(T));
+            var mi = TypeCache.Create(typeof(T));
             var keys = mi.PrimaryKeys.Values.ToArray();
             if (keys.Length == 0)
                 keys = mi.PublicBasicProperties.Values.ToArray();
@@ -122,7 +122,7 @@ namespace RuntimeStuff.Builders
         /// Метод не добавляет пробелов в начале или конце имён, а также не проверяет корректность
         /// переданных данных. Предполагается, что имена колонок и параметры уже валидированы.
         /// </remarks>
-        public static string GetWhereClause(MemberInfoEx[] whereProperties, string namePrefix = "[", string nameSuffix = "]", string paramPrefix = "@")
+        public static string GetWhereClause(TypeCache[] whereProperties, string namePrefix = "[", string nameSuffix = "]", string paramPrefix = "@")
         {
             var whereClause = new StringBuilder("WHERE ");
 
@@ -154,7 +154,7 @@ namespace RuntimeStuff.Builders
         /// </typeparam>
         /// <param name="selectColumns">
         /// Набор выражений <c>x => x.Property</c>, указывающих, какие колонки включить в SELECT.
-        /// Если не указано ни одной колонки, используется полный набор колонок из <see cref="MemberInfoEx"/>.
+        /// Если не указано ни одной колонки, используется полный набор колонок из <see cref="TypeCache"/>.
         /// </param>
         /// <returns>
         /// Строка SQL-запроса SELECT.
@@ -179,7 +179,7 @@ namespace RuntimeStuff.Builders
         /// </param>
         /// <param name="selectColumns">
         /// Набор выражений <c>x => x.Property</c>, указывающих колонки, которые следует включить в SELECT.
-        /// Если список пуст — используются все колонки, описанные в <see cref="MemberInfoEx"/>.
+        /// Если список пуст — используются все колонки, описанные в <see cref="TypeCache"/>.
         /// </param>
         /// <returns>
         /// Строка SQL-запроса SELECT.
@@ -189,8 +189,8 @@ namespace RuntimeStuff.Builders
         /// </remarks>
         public static string GetSelectQuery<T>(string namePrefix, string nameSuffix, params Expression<Func<T, object>>[] selectColumns)
         {
-            var mi = MemberInfoEx.Create<T>();
-            var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x=>x.GetMemberInfoEx()).ToArray() ?? Array.Empty<MemberInfoEx>();
+            var mi = TypeCache.Create<T>();
+            var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x=>x.GetMemberInfoEx()).ToArray() ?? Array.Empty<TypeCache>();
             if (members.Length == 0)
                 members = mi.ColumnProperties.Values.ToArray().Concat(mi.PrimaryKeys.Values).ToArray();
             if (members.Length == 0)
@@ -206,11 +206,11 @@ namespace RuntimeStuff.Builders
         /// <param name="selectColumns">Колонки, которые нужно выбрать.</param>
         /// <returns>Строка SQL-запроса <c>SELECT</c>.</returns>
         /// <remarks>
-        /// Используется перегрузка метода <see cref="GetSelectQuery(string, string, MemberInfoEx, MemberInfoEx[])"/>,
+        /// Используется перегрузка метода <see cref="GetSelectQuery(string, string, TypeCache, TypeCache[])"/>,
         /// которая добавляет префикс и суффикс для имен колонок в виде квадратных скобок [ ].  
         /// Если список колонок пуст, возвращается пустая строка.
         /// </remarks>
-        public static string GetSelectQuery(MemberInfoEx typeInfo, params MemberInfoEx[] selectColumns)
+        public static string GetSelectQuery(TypeCache typeInfo, params TypeCache[] selectColumns)
         {
             return GetSelectQuery("[", "]", typeInfo, selectColumns);
         }
@@ -228,7 +228,7 @@ namespace RuntimeStuff.Builders
         /// <c>SELECT [Column1], [Column2], ... FROM [TableName]</c>, где имена колонок и таблицы
         /// обрамляются указанными префиксом и суффиксом.
         /// </remarks>
-        public static string GetSelectQuery(string namePrefix, string nameSuffix, MemberInfoEx typeInfo, params MemberInfoEx[] selectColumns)
+        public static string GetSelectQuery(string namePrefix, string nameSuffix, TypeCache typeInfo, params TypeCache[] selectColumns)
         {
             if (selectColumns.Length == 0)
                 return "";
@@ -274,7 +274,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Строка с SQL-запросом UPDATE.</returns>
         public static string GetUpdateQuery<T>(string namePrefix, string nameSuffix, string paramPrefix, params Expression<Func<T, object>>[] updateColumns) where T : class
         {
-            var mi = MemberInfoEx.Create(typeof(T));
+            var mi = TypeCache.Create(typeof(T));
             var query = new StringBuilder("UPDATE ")
                 .Append(mi.GetFullTableName(namePrefix, nameSuffix, null))
                 .Append(" SET ");
@@ -335,7 +335,7 @@ namespace RuntimeStuff.Builders
         public static string GetInsertQuery<T>(string namePrefix, string nameSuffix, string paramPrefix, params Expression<Func<T, object>>[] insertColumns) where T : class
         {
             var query = new StringBuilder("INSERT INTO ");
-            var mi = MemberInfoEx.Create<T>();
+            var mi = TypeCache.Create<T>();
             query
                 .Append(mi.GetFullTableName(namePrefix, nameSuffix))
                 .Append(" (");
@@ -410,7 +410,7 @@ namespace RuntimeStuff.Builders
         /// </remarks>
         public static string GetDeleteQuery<T>(string namePrefix, string nameSuffix) where T : class
         {
-            var mi = MemberInfoEx.Create<T>();
+            var mi = TypeCache.Create<T>();
             var query = new StringBuilder("DELETE FROM ").Append(mi.GetFullTableName(namePrefix, nameSuffix));
             return query.ToString();
         }
@@ -470,14 +470,14 @@ namespace RuntimeStuff.Builders
         /// Суффикс, добавляемый после имени столбца (например, закрывающая кавычка).
         /// </param>
         /// <param name="orderBy">
-        /// Набор кортежей, где первый элемент — <see cref="MemberInfoEx"/> с информацией о поле,
+        /// Набор кортежей, где первый элемент — <see cref="TypeCache"/> с информацией о поле,
         /// второй — направление сортировки (<c>true</c> = ASC, <c>false</c> = DESC).
         /// </param>
         /// <returns>
         /// Строка SQL ORDER BY.
         /// Если коллекция пуста, возвращается пустая строка.
         /// </returns>
-        public static string GetOrderBy(string namePrefix, string nameSuffix, params (MemberInfoEx, bool)[] orderBy)
+        public static string GetOrderBy(string namePrefix, string nameSuffix, params (TypeCache, bool)[] orderBy)
         {
             if (orderBy == null || orderBy.Length == 0)
                 return "";
@@ -548,7 +548,7 @@ namespace RuntimeStuff.Builders
 
         private static string VisitMember(MemberExpression me)
         {
-            var mi = MemberInfoEx.Create(me.Member);
+            var mi = TypeCache.Create(me.Member);
             // x => x.Prop
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
                 return _namePrefix + mi.ColumnName + _nameSuffix;

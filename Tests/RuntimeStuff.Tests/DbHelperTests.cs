@@ -1,13 +1,12 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Data.SqlClient;
 using System.Data;
-using RuntimeStuff;
+using System.Data.SqlClient;
+using RuntimeStuff.MSTests.Models;
 
-namespace DbHelperIntegrationTests
+namespace RuntimeStuff.MSTests
 {
-    
-    public class DbHelperIntegrationTests
+
+    [TestClass]
+    public partial class DbHelperIntegrationTests
     {
         private static string _connectionString;
 
@@ -20,61 +19,6 @@ namespace DbHelperIntegrationTests
 
             // Создаем тестовые таблицы
             CreateTestTables();
-        }
-
-        [Table("TestTable")]
-        public class TestClass
-        {
-            // Числовые типы
-            [Key] public int IdInt { get; set; } = -1;
-            public long? ColBigInt { get; set; }
-            public short? ColSmallInt { get; set; }
-            public byte? ColTinyInt { get; set; }
-            public bool? ColBit { get; set; }
-
-            public decimal? ColDecimal { get; set; }
-            public decimal? ColNumeric { get; set; }
-            public decimal? ColMoney { get; set; }
-            public decimal? ColSmallMoney { get; set; }
-            public double? ColFloat { get; set; }
-            public float? ColReal { get; set; }
-
-            // Дата и время
-            public DateTime? ColDate { get; set; }
-            public TimeSpan? ColTime { get; set; }
-            public DateTime? ColDateTime { get; set; }
-            public DateTime? ColDateTime2 { get; set; }
-            public DateTime? ColSmallDateTime { get; set; }
-            public DateTimeOffset? ColDateTimeOffset { get; set; }
-
-            // Строки
-            public string? ColChar { get; set; }
-            public string? ColVarChar { get; set; }
-            public string? ColVarCharMax { get; set; }
-
-            public string? ColNChar { get; set; }
-            public string? ColNVarChar { get; set; }
-            public string? ColNVarCharMax { get; set; }
-
-            // Бинарные
-            public byte[]? ColBinary { get; set; }
-            public byte[]? ColVarBinary { get; set; }
-            public byte[]? ColVarBinaryMax { get; set; }
-
-            // Специальные
-            public Guid ColUniqueIdentifier { get; set; }
-            public byte[] ColRowVersion { get; set; } = Array.Empty<byte>();
-
-            public string? ColXml { get; set; }
-            public string? ColJson { get; set; }
-
-            public object? ColSqlVariant { get; set; }
-
-            // Computed column (только чтение)
-            public int? ColComputed { get; private set; }
-
-            // Nullable пример
-            public int? ColNullableInt { get; set; }
         }
 
 
@@ -157,16 +101,16 @@ namespace DbHelperIntegrationTests
         {
             using var db = DbClient.Create<SqlConnection>(_connectionString);
 
-            var record = db.Insert<TestClass>();
+            var record = db.Insert<DtoTestClass>();
             Assert.IsNotNull(record);
             Assert.IsTrue(record.IdInt >= 0);
             Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
 
-            var recordNull = db.First<TestClass>(x => x.IdInt < 0);
+            var recordNull = db.First<DtoTestClass>(x => x.IdInt < 0);
             Assert.IsNull(recordNull);
             Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
 
-            var record2 = db.First<TestClass>(x => x.IdInt == record.IdInt);
+            var record2 = db.First<DtoTestClass>(x => x.IdInt == record.IdInt);
             Assert.AreEqual(record2.IdInt, record.IdInt);
             Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
 
@@ -175,7 +119,7 @@ namespace DbHelperIntegrationTests
             Assert.AreEqual(1, count);
             Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
 
-            var record3 = db.First<TestClass>(x => x.IdInt == record.IdInt);
+            var record3 = db.First<DtoTestClass>(x => x.IdInt == record.IdInt);
             Assert.AreEqual("123", record3.ColNVarCharMax);
             Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
 
@@ -183,14 +127,14 @@ namespace DbHelperIntegrationTests
             Assert.AreEqual(1, count);
             Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
 
-            recordNull = db.First<TestClass>(x => x.IdInt == record3.IdInt);
+            recordNull = db.First<DtoTestClass>(x => x.IdInt == record3.IdInt);
             Assert.IsNull(recordNull);
             Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
 
-            var insertRows = new List<TestClass>();
+            var insertRows = new List<DtoTestClass>();
             for (var i = 0; i < 10; i++)
             {
-                insertRows.Add(new TestClass
+                insertRows.Add(new DtoTestClass
                 {
                     ColNVarCharMax = $"Test {i}"
                 });
@@ -199,8 +143,27 @@ namespace DbHelperIntegrationTests
             count = db.InsertRange(insertRows);
             Assert.AreEqual(insertRows.Count, count);
 
-            count = db.Delete<TestClass>(x => x.IdInt >= 0);
+            count = db.Delete<DtoTestClass>(x => x.IdInt >= 0);
             Assert.AreEqual(insertRows.Count, count);
         }
+
+        [TestMethod]
+        public void DbClient_Test_02()
+        {
+            using var db = DbClient.Create<SqlConnection>(_connectionString);
+
+            var insertRows = new List<DtoTestClass>();
+            for (var i = 0; i < 1_000; i++)
+            {
+                insertRows.Add(new DtoTestClass
+                {
+                    ColNVarCharMax = $"Test {i}"
+                });
+            }
+
+            var count = db.InsertRange(insertRows);
+            var dbCount = db.ExecuteScalar("SELECT COUNT(*) FROM [TestTable]");
+        }
+
     }
 }
