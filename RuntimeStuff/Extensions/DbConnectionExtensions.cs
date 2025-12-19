@@ -69,7 +69,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Коллекция параметров SQL-команды.</param>
         /// <returns>Задача, возвращающая количество затронутых строк.</returns>
-        public static Task<int> ExecuteNonQueryAsync(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams) => DbClient.Create(con).ExecuteNonQueryAsync(query, cmdParams);
+        public static Task<int> ExecuteNonQueryAsync(this IDbConnection con, string query, IEnumerable<KeyValuePair<string, object>> cmdParams, CancellationToken token = default) => DbClient.Create(con).ExecuteNonQueryAsync(query, cmdParams, token);
 
         /// <summary>
         /// Асинхронно выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
@@ -79,7 +79,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="query">Текст SQL-команды.</param>
         /// <param name="cmdParams">Массив параметров SQL-команды в формате (имя, значение).</param>
         /// <returns>Задача, возвращающая количество затронутых строк.</returns>
-        public static Task<int> ExecuteNonQueryAsync(this IDbConnection con, string query, params (string, object)[] cmdParams) => DbClient.Create(con).ExecuteNonQueryAsync(query, cmdParams);
+        public static Task<int> ExecuteNonQueryAsync(this IDbConnection con, string query, (string, object)[] cmdParams, CancellationToken token = default) => DbClient.Create(con).ExecuteNonQueryAsync(query, cmdParams, token);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает одно скалярное значение.
@@ -200,8 +200,8 @@ namespace RuntimeStuff.Extensions
         /// Метод строит SQL-запрос на основе переданных селекторов и фильтра (если указан),
         /// выполняет его через подключение <paramref name="con"/> и возвращает результаты в виде словаря.
         /// </remarks>
-        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<T, TKey, TValue>(this IDbConnection con, Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
-            => DbClient.Create(con).ToDictionaryAsync(keySelector, valueSelector, whereExpression);
+        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<T, TKey, TValue>(this IDbConnection con, Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null, CancellationToken token = default)
+            => DbClient.Create(con).ToDictionaryAsync(keySelector, valueSelector, whereExpression, token);
 
         /// <summary>
         /// Преобразует результат выполнения SQL-запроса в словарь <see cref="Dictionary{TKey, TValue}"/>, используя первые два столбца результата.
@@ -539,6 +539,37 @@ namespace RuntimeStuff.Extensions
             => DbClient.Create(con).ToDataTable(query, cmdParams, columnMap, maxRows);
 
         /// <summary>
+        /// Выполняет SQL-запрос и преобразует результирующий набор данных в <see cref="DataTable"/>.
+        /// </summary>
+        /// <param name="con">
+        /// Подключение к базе данных, через которое будет выполняться запрос.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Не может быть <c>null</c> или пустой строкой.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса в виде кортежей (<c>имя</c>, <c>значение</c>).
+        /// Может быть <c>null</c>, если параметры не требуются.
+        /// </param>
+        /// <param name="columnMap">
+        /// Коллекция сопоставлений полей результата с именами столбцов DataTable:
+        /// (<c>имя столбца в базе</c>, <c>имя столбца в DataTable</c>).
+        /// Если <c>null</c>, используются имена из результата запроса.
+        /// </param>
+        /// <param name="maxRows">
+        /// Максимальное количество строк, которое необходимо загрузить.
+        /// Если значение <c>-1</c> (по умолчанию), загружаются все строки.
+        /// </param>
+        /// <returns>
+        /// Заполненный объект <see cref="DataTable"/>, содержащий строки результата запроса.
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// Генерируется, если параметр <paramref name="query"/> не указан.
+        /// </exception>
+        public static Task<DataTable> ToDataTableAsync(this IDbConnection con, string query, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnMap = null, int maxRows = -1, CancellationToken token = default)
+            => DbClient.Create(con).ToDataTableAsync(query, cmdParams, columnMap, maxRows, token);
+
+        /// <summary>
         /// Асинхронно преобразует результат выполнения SQL-запроса в список объектов заданного типа <typeparamref name="T"/>,
         /// используя коллекцию параметров в виде <see cref="KeyValuePair{String, Object}"/>.
         /// </summary>
@@ -647,8 +678,8 @@ namespace RuntimeStuff.Extensions
         /// Метод генерирует SQL-запрос SELECT с WHERE-клауза на основе <paramref name="whereExpression"/>.
         /// Использует перегрузку <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, TypeCache, T}, CancellationToken)"/> для выполнения запроса и построения коллекции.
         /// </remarks>
-        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
-            => DbClient.Create(con).ToListAsync(whereExpression, converter, setter, maxRows, orderByExpression);
+        public static Task<List<T>> ToListAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null, Action<string, object, TypeCache, T> setter = null, int maxRows = -1, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
+            => DbClient.Create(con).ToListAsync(whereExpression, converter, setter, maxRows, orderByExpression ?? Array.Empty<(Expression<Func<T, object>>, bool)>(), token);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает первый объект типа <typeparamref name="T"/> из результата,
@@ -755,15 +786,15 @@ namespace RuntimeStuff.Extensions
             IEnumerable<KeyValuePair<string, object>> cmdParams,
             IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null) where T : class, new()
-            => DbClient.Create(con).FirstAsync(query, cmdParams, columnToPropertyMap, converter, setter);
+            Action<string, object, TypeCache, T> setter = null, CancellationToken token = default) where T : class, new()
+            => DbClient.Create(con).FirstAsync(query, cmdParams, columnToPropertyMap, converter, setter, token);
 
         /// <summary>
         /// Асинхронная версия метода <see cref="First{T}(IDbConnection, Expression{Func{T, bool}}, Func{object, Type, object}, Action{string, object, TypeCache, T})"/>.
         /// </summary>
         public static Task<T> FirstAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null, params (Expression<Func<T, object>>, bool)[] orderByExpression) where T : class, new()
-            => DbClient.Create(con).FirstAsync(whereExpression, converter, setter, orderByExpression);
+            Action<string, object, TypeCache, T> setter = null, (Expression<Func<T, object>>, bool)[] orderByExpression = null, CancellationToken token = default) where T : class, new()
+            => DbClient.Create(con).FirstAsync(whereExpression, converter, setter, orderByExpression, token);
 
         /// <summary>
         /// Асинхронная версия метода <see cref="First{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, TypeCache, T})"/>.
@@ -772,8 +803,8 @@ namespace RuntimeStuff.Extensions
             IEnumerable<(string, object)> cmdParams = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
             Func<object, Type, object> converter = null,
-            Action<string, object, TypeCache, T> setter = null) where T : class, new()
-            => DbClient.Create(con).FirstAsync(query, cmdParams, columnToPropertyMap, converter, setter);
+            Action<string, object, TypeCache, T> setter = null, CancellationToken token = default) where T : class, new()
+            => DbClient.Create(con).FirstAsync(query, cmdParams, columnToPropertyMap, converter, setter, token);
 
         /// <summary>
         /// Асинхронно преобразует результат выполнения SQL-запроса в коллекцию объектов заданного типа.
@@ -845,8 +876,8 @@ namespace RuntimeStuff.Extensions
         /// Массив выражений <c>x =&gt; x.Property</c>, задающий список обновляемых колонок.
         /// </param>
         /// <returns>Объект задачи, представляющий асинхронную операцию обновления.</returns>
-        public static Task<int> UpdateRangeAsync<T>(this IDbConnection con, IEnumerable<T> list, params Expression<Func<T, object>>[] updateColumns) where T : class
-            => DbClient.Create(con).UpdateRangeAsync(list, updateColumns);
+        public static Task<int> UpdateRangeAsync<T>(this IDbConnection con, IEnumerable<T> list, Expression<Func<T, object>>[] updateColumns, CancellationToken token) where T : class
+            => DbClient.Create(con).UpdateRangeAsync(list, updateColumns, token);
 
         /// <summary>
         /// Асинхронно обновляет один объект в базе данных,
@@ -860,8 +891,8 @@ namespace RuntimeStuff.Extensions
         /// Если передано <c>null</c> или массив пуст — обновляются все публичные простые свойства.
         /// </param>
         /// <returns>Объект задачи, представляющий асинхронное выполнение UPDATE.</returns>
-        public static Task<int> UpdateAsync<T>(this IDbConnection con, T item, params Expression<Func<T, object>>[] updateColumns) where T : class
-            => DbClient.Create(con).UpdateAsync(item, updateColumns);
+        public static Task<int> UpdateAsync<T>(this IDbConnection con, T item, Expression<Func<T, object>>[] updateColumns = null, CancellationToken token = default) where T : class
+            => DbClient.Create(con).UpdateAsync(item, updateColumns, token);
 
         /// <summary>
         /// Асинхронно обновляет один объект с возможностью указания выражения WHERE.
@@ -874,8 +905,8 @@ namespace RuntimeStuff.Extensions
         /// Если <c>null</c>, WHERE формируется на основе ключевых полей сущности (если предусмотрено).</param>
         /// <param name="updateColumns">Список обновляемых колонок.</param>
         /// <returns>Задача, представляющая выполнение команды UPDATE.</returns>
-        public static Task<int> UpdateAsync<T>(this IDbConnection con, T item, Expression<Func<T, bool>> whereExpression, params Expression<Func<T, object>>[] updateColumns) where T : class
-            => DbClient.Create(con).UpdateAsync(item, whereExpression, updateColumns);
+        public static Task<int> UpdateAsync<T>(this IDbConnection con, T item, Expression<Func<T, bool>> whereExpression, Expression<Func<T, object>>[] updateColumns = null, CancellationToken token = default) where T : class
+            => DbClient.Create(con).UpdateAsync(item, whereExpression, updateColumns, token);
 
         /// <summary>
         /// Выполняет обновление набора объектов с возможностью указания условия WHERE.
@@ -933,8 +964,8 @@ namespace RuntimeStuff.Extensions
         /// <returns>
         /// Значение первичного ключа, если оно получено, иначе — <c>null</c>.
         /// </returns>
-        public static Task<object> InsertAsync<T>(this IDbConnection con, string queryGetId = "SELECT SCOPE_IDENTITY()", params Action<T>[] insertColumns) where T : class
-            => DbClient.Create(con).InsertAsync(queryGetId, insertColumns);
+        public static Task<object> InsertAsync<T>(this IDbConnection con, string queryGetId = "SELECT SCOPE_IDENTITY()", Action<T>[] insertColumns = null, CancellationToken token = default) where T : class
+            => DbClient.Create(con).InsertAsync(queryGetId, insertColumns, token);
 
         /// <summary>
         /// Выполняет INSERT указанного объекта в базу данных и при необходимости
@@ -959,8 +990,8 @@ namespace RuntimeStuff.Extensions
         /// <param name="queryGetId">Запрос для получения идентификатора (например, SCOPE_IDENTITY). Если пустой — идентификатор не считывается.</param>
         /// <param name="insertColumns">Список свойств, которые необходимо вставить. Если не указаны — вставляются все свойства, кроме первичного ключа.</param>
         /// <returns>Задача, возвращающая значение первичного ключа или <c>null</c>.</returns>
-        public static Task<object> InsertAsync<T>(this IDbConnection con, T item, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
-            => DbClient.Create(con).InsertAsync(item, queryGetId, insertColumns);
+        public static Task<object> InsertAsync<T>(this IDbConnection con, T item, string queryGetId = "SELECT SCOPE_IDENTITY()", Expression<Func<T, object>>[] insertColumns = null, CancellationToken token = default) where T : class
+            => DbClient.Create(con).InsertAsync(item, queryGetId, insertColumns, token);
 
         /// <summary>
         /// Выполняет пакетную вставку коллекции объектов в базу данных внутри одной транзакции.
@@ -996,8 +1027,8 @@ namespace RuntimeStuff.Extensions
         /// Все вставки выполняются в одной транзакции.
         /// Если одна из вставок завершится ошибкой, транзакция не будет зафиксирована.
         /// </remarks>
-        public static Task<int> InsertRangeAsync<T>(this IDbConnection con, IEnumerable<T> list, string queryGetId = "SELECT SCOPE_IDENTITY()", params Expression<Func<T, object>>[] insertColumns) where T : class
-            => DbClient.Create(con).InsertRangeAsync(list, queryGetId, insertColumns);
+        public static Task<int> InsertRangeAsync<T>(this IDbConnection con, IEnumerable<T> list, string queryGetId = "SELECT SCOPE_IDENTITY()", Expression<Func<T, object>>[] insertColumns = null, CancellationToken token = default) where T : class
+            => DbClient.Create(con).InsertRangeAsync(list, queryGetId, insertColumns, token);
 
         /// <summary>
         /// Выполняет удаление записей из таблицы, соответствующей типу <typeparamref name="T"/>,
@@ -1064,8 +1095,8 @@ namespace RuntimeStuff.Extensions
         ///
         /// Использует асинхронный ExecuteNonQueryAsync.
         /// </remarks>
-        public static Task<int> DeleteAsync<T>(this IDbConnection con, T item) where T : class
-            => DbClient.Create(con).DeleteAsync(item);
+        public static Task<int> DeleteAsync<T>(this IDbConnection con, T item, CancellationToken token = default) where T : class
+            => DbClient.Create(con).DeleteAsync(item, token);
 
         /// <summary>
         /// Асинхронно удаляет из базы данных все объекты указанного типа <typeparamref name="T"/>, переданные в коллекции <paramref name="list"/>.
@@ -1086,8 +1117,8 @@ namespace RuntimeStuff.Extensions
         /// </list>
         /// Если при удалении любого элемента возникает исключение, транзакция не фиксируется и все изменения откатываются.
         /// </remarks>
-        public static Task<int> DeleteRangeAsync<T>(this IDbConnection con, IEnumerable<T> list) where T : class
-            => DbClient.Create(con).DeleteRangeAsync(list);
+        public static Task<int> DeleteRangeAsync<T>(this IDbConnection con, IEnumerable<T> list, CancellationToken token = default) where T : class
+            => DbClient.Create(con).DeleteRangeAsync(list, token);
 
         /// <summary>
         /// Асинхронно выполняет удаление записей из таблицы, соответствующей типу <typeparamref name="T"/>,
@@ -1103,7 +1134,7 @@ namespace RuntimeStuff.Extensions
         /// DELETE FROM [Table] WHERE ...
         /// </code>
         /// </remarks>
-        public static Task<int> DeleteAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression) where T : class
-            => DbClient.Create(con).DeleteAsync(whereExpression);
+        public static Task<int> DeleteAsync<T>(this IDbConnection con, Expression<Func<T, bool>> whereExpression, CancellationToken token = default) where T : class
+            => DbClient.Create(con).DeleteAsync(whereExpression, token);
     }
 }

@@ -456,6 +456,8 @@ namespace RuntimeStuff.Builders
         /// </returns>
         public static string GetOrderBy<T>(string namePrefix, string nameSuffix, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
+            if (orderBy == null)
+                return "";
             var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetTypeCache(), x.Item2)).ToArray();
             return GetOrderBy(namePrefix, nameSuffix, props);
         }

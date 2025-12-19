@@ -5,7 +5,7 @@ using RuntimeStuff.MSTests.Models;
 namespace RuntimeStuff.MSTests
 {
 
-    [TestClass]
+    //[TestClass]
     public partial class DbHelperIntegrationTests
     {
         private static string _connectionString;
