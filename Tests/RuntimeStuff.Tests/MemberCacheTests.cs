@@ -235,6 +235,10 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.AreEqual("TestTable", memberCache.TableName);
+            if (memberCache.Properties[nameof(ClassWithAttributes.Name)].TableName == null)
+            {
+
+            }
             Assert.AreEqual("TestTable", memberCache.Properties[nameof(ClassWithAttributes.Name)].TableName);
             Assert.AreEqual("dbo", memberCache.SchemaName);
         }

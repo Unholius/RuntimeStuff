@@ -284,6 +284,10 @@ namespace RuntimeStuff
             // Дополнительная обработка для свойств
             if (pi != null)
             {
+                if (Parent == null && pi?.DeclaringType != null)
+                {
+                    Parent = Create(pi.DeclaringType);
+                }
                 PropertyType = pi.PropertyType;
                 IsSetterPublic = pi.GetSetMethod()?.IsPublic == true;
                 IsSetterPrivate = pi.GetSetMethod()?.IsPrivate == true;
