@@ -1709,7 +1709,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="memberInfo">Информация о члене класса</param>
         /// <returns>Расширенная информация о члене класса</returns>
-        public static MemberCache GetTypeCache(this MemberInfo memberInfo)
+        public static MemberCache GetMemberCache(this MemberInfo memberInfo)
         {
             return MemberCache.Create(memberInfo);
         }

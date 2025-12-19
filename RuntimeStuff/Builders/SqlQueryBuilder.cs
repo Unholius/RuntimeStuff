@@ -190,7 +190,7 @@ namespace RuntimeStuff.Builders
         public static string GetSelectQuery<T>(string namePrefix, string nameSuffix, params Expression<Func<T, object>>[] selectColumns)
         {
             var mi = MemberCache.Create<T>();
-            var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x=>x.GetTypeCache()).ToArray() ?? Array.Empty<MemberCache>();
+            var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x=>x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
             if (members.Length == 0)
                 members = mi.ColumnProperties.Values.ToArray().Concat(mi.PrimaryKeys.Values).ToArray();
             if (members.Length == 0)
@@ -458,7 +458,7 @@ namespace RuntimeStuff.Builders
         {
             if (orderBy == null)
                 return "";
-            var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetTypeCache(), x.Item2)).ToArray();
+            var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetMemberCache(), x.Item2)).ToArray();
             return GetOrderBy(namePrefix, nameSuffix, props);
         }
 

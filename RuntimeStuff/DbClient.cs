@@ -1607,7 +1607,7 @@ namespace RuntimeStuff
         /// </remarks>
         public Dictionary<TKey, TValue> ToDictionary<TKey, TValue, T>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(MemberCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetTypeCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetTypeCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(MemberCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetMemberCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetMemberCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
             return ToDictionary<TKey, TValue>(query);
         }
 
@@ -1699,7 +1699,7 @@ namespace RuntimeStuff
         /// </remarks>
         public Task<Dictionary<TKey, TValue>> ToDictionaryAsync<T, TKey, TValue>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null, CancellationToken token = default)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(MemberCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetTypeCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetTypeCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(MemberCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetMemberCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetMemberCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
             return ToDictionaryAsync<TKey, TValue>(query, (IEnumerable<(string, object)>)null, token);
         }
 
