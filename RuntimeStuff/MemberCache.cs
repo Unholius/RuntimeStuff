@@ -353,7 +353,7 @@ namespace RuntimeStuff
                 {
                     Getter = _typeCache?.Getter ?? TypeHelper.GetMemberGetter(fi.Name, fi.DeclaringType);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Getter = (x) => fi.GetValue(x);
                 }
@@ -1735,10 +1735,7 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(mc));
 
             var propertyInfo = mc.AsPropertyInfo();
-            if (propertyInfo == null)
-                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
-
-            return propertyInfo;
+            return propertyInfo ?? throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
         }
 
         public static explicit operator FieldInfo(MemberCache mc)
@@ -1747,10 +1744,7 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(mc));
 
             var fieldInfo = mc.AsFieldInfo();
-            if (fieldInfo == null)
-                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
-
-            return fieldInfo;
+            return fieldInfo ?? throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
         }
 
         public static explicit operator MethodInfo(MemberCache mc)
@@ -1759,10 +1753,7 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(mc));
 
             var methodInfo = mc.AsMethodInfo();
-            if (methodInfo == null)
-                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
-
-            return methodInfo;
+            return methodInfo ?? throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
         }
 
         public static explicit operator EventInfo(MemberCache mc)
@@ -1771,10 +1762,7 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(mc));
 
             var eventInfo = mc.AsEventInfo();
-            if (eventInfo == null)
-                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
-
-            return eventInfo;
+            return eventInfo ?? throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
         }
 
         public static explicit operator ConstructorInfo(MemberCache mc)
@@ -1783,10 +1771,7 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(mc));
 
             var constructorInfo = mc.AsConstructorInfo();
-            if (constructorInfo == null)
-                throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
-
-            return constructorInfo;
+            return constructorInfo ?? throw new InvalidCastException($"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
         }
 
         public static explicit operator Type(MemberCache mc)
