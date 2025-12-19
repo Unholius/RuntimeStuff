@@ -306,20 +306,91 @@
         }
 
         [TestMethod]
-        public void TryGetValue_ExpiredKey_ReturnsFalse()
+        public void GetOrDefault_KeyExists_ReturnsValue()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
-            var expiration = TimeSpan.FromMilliseconds(50);
-            var cache = new Cache<string, int>(factory, expiration);
-            cache.Get("test");
-            Thread.Sleep(100); // Wait for expiration
+            var cache = new Cache<string, int>();
+            cache.Set("a", 42);
 
             // Act
-            var success = cache.TryGetValue("test", out var value);
+            int value = cache.GetOrDefault("a", -1);
 
             // Assert
-            Assert.AreEqual(4, value);
+            Assert.AreEqual(42, value);
+        }
+
+        [TestMethod]
+        public void GetOrDefault_KeyDoesNotExist_ReturnsDefaultValue()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+
+            // Act
+            int value = cache.GetOrDefault("missing", -1);
+
+            // Assert
+            Assert.AreEqual(-1, value);
+        }
+
+        [TestMethod]
+        public async Task GetOrDefaultAsync_KeyExists_ReturnsValue()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            await cache.SetAsync("a", Task.FromResult(100));
+
+            // Act
+            int value = await cache.GetOrDefaultAsync("a", -1);
+
+            // Assert
+            Assert.AreEqual(100, value);
+        }
+
+        [TestMethod]
+        public async Task GetOrDefaultAsync_KeyDoesNotExist_ReturnsDefaultValue()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+
+            // Act
+            int value = await cache.GetOrDefaultAsync("missing", -1);
+
+            // Assert
+            Assert.AreEqual(-1, value);
+        }
+
+        [TestMethod]
+        public async Task GetOrDefaultAsync_ValueExpired_ReturnsDefaultValue()
+        {
+            // Arrange
+            var cache = new Cache<string, int>(expiration: TimeSpan.FromMilliseconds(50));
+            cache.Set("a", 123);
+
+            // Wait for expiration
+            await Task.Delay(200);
+
+            // Act
+            int value = await cache.GetOrDefaultAsync("a", -1);
+
+            // Assert
+            Assert.AreEqual(-1, value);
+        }
+
+        [TestMethod]
+        public void GetOrDefault_ValueExpired_ReturnsDefaultValue()
+        {
+            // Arrange
+            var cache = new Cache<string, int>(expiration: TimeSpan.FromMilliseconds(50));
+            cache.Set("a", 123);
+
+            // Wait for expiration
+            Task.Delay(100).Wait();
+
+            // Act
+            int value = cache.GetOrDefault("a", -1);
+
+            // Assert
+            Assert.AreEqual(-1, value);
         }
 
         #endregion

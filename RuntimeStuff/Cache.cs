@@ -44,11 +44,12 @@ namespace RuntimeStuff
         private readonly TimeSpan? _expiration;
         private readonly bool _hasFactory;
 
-        public Cache()
+        public Cache(TimeSpan? expiration = null)
         {
             _cache = new ConcurrentDictionary<TKey, Lazy<Task<(TValue Value, DateTime Created)>>>();
             _expiration = null;
             _hasFactory = false;
+            _expiration = expiration;
         }
 
         /// <summary>
@@ -167,6 +168,40 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Получает значение из кэша по указанному ключу
+        /// либо возвращает заданное значение по умолчанию.
+        /// </summary>
+        /// <typeparam name="TKey">
+        /// Тип ключа, используемого для идентификации значения в кэше.
+        /// </typeparam>
+        /// <typeparam name="TValue">
+        /// Тип значения, хранящегося в кэше.
+        /// </typeparam>
+        /// <param name="key">
+        /// Ключ элемента кэша.
+        /// </param>
+        /// <param name="defaultValue">
+        /// Значение, которое будет возвращено, если элемент отсутствует в кэше
+        /// или не может быть получен.
+        /// </param>
+        /// <returns>
+        /// Значение из кэша, если оно найдено;
+        /// в противном случае — <paramref name="defaultValue"/>.
+        /// </returns>
+        /// <remarks>
+        /// Метод является удобной обёрткой над
+        /// <see cref="TryGetValue(TKey, out TValue)"/>
+        /// и не генерирует исключений при отсутствии элемента.
+        /// </remarks>
+        public TValue GetOrDefault(TKey key, TValue defaultValue)
+        {
+            if (TryGetValue(key, out var value))
+                return value;
+
+            return defaultValue;
+        }
+
+        /// <summary>
         /// Асинхронно получает значение из кэша или создаёт его.
         /// </summary>
         /// <param name="key">Ключ.</param>
@@ -222,10 +257,91 @@ namespace RuntimeStuff
             }
         }
 
+        /// <summary>
+        /// Асинхронно получает значение из кэша по указанному ключу
+        /// либо возвращает заданное значение по умолчанию.
+        /// </summary>
+        /// <typeparam name="TKey">
+        /// Тип ключа, используемого для идентификации значения в кэше.
+        /// </typeparam>
+        /// <typeparam name="TValue">
+        /// Тип значения, хранящегося в кэше.
+        /// </typeparam>
+        /// <param name="key">
+        /// Ключ элемента кэша.
+        /// </param>
+        /// <param name="defaultValue">
+        /// Значение, которое будет возвращено, если элемент отсутствует в кэше,
+        /// просрочен или не может быть получен.
+        /// </param>
+        /// <returns>
+        /// Значение из кэша, если оно найдено и актуально;
+        /// в противном случае — <paramref name="defaultValue"/>.
+        /// </returns>
+        /// <remarks>
+        /// Метод является удобной обёрткой над
+        /// <see cref="TryGetValueAsync(TKey, System.Threading.CancellationToken)"/>
+        /// и не генерирует исключений при отсутствии элемента.
+        /// </remarks>
+        public async Task<TValue> GetOrDefaultAsync(TKey key, TValue defaultValue)
+        {
+            if (!_cache.TryGetValue(key, out var lazy))
+                return defaultValue;
+
+            (TValue Value, DateTime Created) entry;
+
+            try
+            {
+                entry = await lazy.Value.ConfigureAwait(false);
+            }
+            catch
+            {
+                return defaultValue;
+            }
+
+            var elapsed = DateTime.UtcNow - entry.Created;
+            if (_expiration != null && elapsed >= _expiration)
+            {
+                _cache.TryRemove(key, out _);
+                OnItemRemoved(key, RemovalReason.Expired);
+                return defaultValue;
+            }
+
+            return entry.Value;
+        }
+
+        /// <summary>
+        /// Добавляет или обновляет значение в кэше по указанному ключу.
+        /// </summary>
+        /// <typeparam name="TKey">
+        /// Тип ключа, используемого для идентификации значения в кэше.
+        /// </typeparam>
+        /// <typeparam name="TValue">
+        /// Тип значения, хранящегося в кэше.
+        /// </typeparam>
+        /// <param name="key">
+        /// Ключ элемента кэша.
+        /// </param>
+        /// <param name="value">
+        /// Значение, которое будет сохранено в кэше.
+        /// </param>
+        /// <remarks>
+        /// Если элемент с указанным ключом уже существует в кэше, он будет заменён новым значением,
+        /// при этом будет вызвано событие <see cref="OnItemRemoved"/> с причиной
+        /// <see cref="RemovalReason.Manual"/> и затем <see cref="OnItemAdded"/>.
+        /// <para/>
+        /// Если элемента с указанным ключом ещё нет, он будет добавлен,
+        /// и будет вызвано событие <see cref="OnItemAdded"/>.
+        /// <para/>
+        /// Значение сохраняется в виде <see cref="Lazy{Task}"/>, чтобы поддерживать
+        /// асинхронный доступ через <see cref="TryGetValueAsync(TKey, CancellationToken)"/>.
+        /// </remarks>
         public void Set(TKey key, TValue value)
         {
-            var lazy = new Lazy<Task<(TValue, DateTime)>>(
-                () => Task.FromResult((value, DateTime.UtcNow)),
+            // Создаём Lazy с Task, фиксируя время создания сразу
+            var v = (value, DateTime.UtcNow);
+            var lazy = new Lazy<Task<(TValue Value, DateTime Created)>>(
+                () => Task.FromResult(v),
                 LazyThreadSafetyMode.ExecutionAndPublication);
 
             _cache.AddOrUpdate(
@@ -243,6 +359,37 @@ namespace RuntimeStuff
                 });
         }
 
+        /// <summary>
+        /// Асинхронно добавляет или обновляет значение в кэше по указанному ключу.
+        /// </summary>
+        /// <typeparam name="TKey">
+        /// Тип ключа, используемого для идентификации значения в кэше.
+        /// </typeparam>
+        /// <typeparam name="TValue">
+        /// Тип значения, хранящегося в кэше.
+        /// </typeparam>
+        /// <param name="key">
+        /// Ключ элемента кэша.
+        /// </param>
+        /// <param name="valueTask">
+        /// Задача, возвращающая значение для сохранения в кэше.
+        /// </param>
+        /// <returns>
+        /// Задача <see cref="Task"/>, представляющая асинхронную операцию добавления или обновления.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="valueTask"/> равна <see langword="null"/>.
+        /// </exception>
+        /// <remarks>
+        /// Метод ожидает завершения <paramref name="valueTask"/> и сохраняет результат в кэше,
+        /// вызывая внутренний метод <see cref="Set(TKey, TValue)"/>.
+        /// <para/>
+        /// Если элемент с указанным ключом уже существует, он будет заменён новым значением,
+        /// при этом будет вызвано событие <see cref="OnItemRemoved"/> с причиной
+        /// <see cref="RemovalReason.Manual"/> и затем <see cref="OnItemAdded"/>.
+        /// Если элемента с указанным ключом ещё нет, он будет добавлен,
+        /// и будет вызвано событие <see cref="OnItemAdded"/>.
+        /// </remarks>
         public async Task SetAsync(TKey key, Task<TValue> valueTask)
         {
             if (valueTask == null)
@@ -305,16 +452,27 @@ namespace RuntimeStuff
             if (!_cache.TryGetValue(key, out var lazy))
                 return false;
 
+            (TValue Value, DateTime Created) entry;
+
             try
             {
-                var entry = lazy.Value.GetAwaiter().GetResult();
-                value = entry.Value;
-                return true;
+                entry = lazy.Value.GetAwaiter().GetResult(); // синхронно получаем Task
             }
             catch
             {
                 return false;
             }
+
+            if (_expiration != null && DateTime.UtcNow - entry.Created >= _expiration)
+            {
+                if (_cache.TryRemove(key, out _))
+                    OnItemRemoved(key, RemovalReason.Expired);
+
+                return false;
+            }
+
+            value = entry.Value;
+            return true;
         }
 
         /// <summary>
