@@ -289,6 +289,8 @@ namespace RuntimeStuff
                 IsSetterPrivate = pi.GetSetMethod()?.IsPrivate == true;
                 IsGetterPublic = pi.GetGetMethod()?.IsPublic == true;
                 IsGetterPrivate = pi.GetGetMethod()?.IsPrivate == true;
+                TableName = Parent?.TableName;
+                SchemaName = Parent?.SchemaName;
 
                 if (_typeCache == null)
                 {
