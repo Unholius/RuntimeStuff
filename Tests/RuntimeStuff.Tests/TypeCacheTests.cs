@@ -24,7 +24,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void GetNonExistedMemberByNameShouldReturnNull()
         {
-            var memberInfo = typeof(TestClass).GetMemberInfoEx();
+            var memberInfo = typeof(TestClass).GetTypeCache();
             var m = memberInfo.GetMember("Имя");
             Assert.IsNull(m);
         }
@@ -32,7 +32,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void GetMemberByColumnName()
         {
-            var memberInfo = typeof(TestClass).GetMemberInfoEx();
+            var memberInfo = typeof(TestClass).GetTypeCache();
             var m = memberInfo.GetMember("namE", MemberNameType.ColumnName);
             Assert.IsNotNull(m);
             Assert.AreEqual(nameof(TestClass.Id), m.Name);
@@ -41,14 +41,14 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void GetMemberByColumnNameWithDifferentCase()
         {
-            var memberInfo = typeof(TestClass).GetMemberInfoEx();
+            var memberInfo = typeof(TestClass).GetTypeCache();
             var m = memberInfo.GetMember("name");
         }
 
         [TestMethod]
         public void MemberSameNames_Test_01()
         {
-            var mi = typeof(TestClass02).GetMemberInfoEx();
+            var mi = typeof(TestClass02).GetTypeCache();
             var x = new TestClass02();
             mi.SetValue(x, "prop", "123");
         }

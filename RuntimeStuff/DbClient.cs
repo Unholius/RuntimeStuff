@@ -274,6 +274,30 @@ namespace RuntimeStuff
             return CreateCommand(Connection, query, cmdParams?.ToArray() ?? Array.Empty<(string, object)>());
         }
 
+        /// <summary>
+        /// Заполняет коллекцию параметров команды базы данных
+        /// значениями из указанного словаря.
+        /// </summary>
+        /// <param name="cmd">
+        /// Команда базы данных, параметры которой будут обновлены или добавлены.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Словарь параметров, где ключ — имя параметра,
+        /// значение — соответствующее значение параметра.
+        /// </param>
+        /// <remarks>
+        /// Если параметр с указанным именем уже существует в коллекции
+        /// <see cref="IDbCommand.Parameters"/>, его значение будет обновлено.
+        /// В противном случае создаётся новый параметр и добавляется в команду.
+        /// <para/>
+        /// Значение <see langword="null"/> автоматически преобразуется
+        /// в <see cref="DBNull.Value"/>, как требуется для параметров
+        /// команд баз данных.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="cmd"/> или
+        /// <paramref name="cmdParams"/> равны <see langword="null"/>.
+        /// </exception>
         public void SetParameterCollection(IDbCommand cmd, Dictionary<string, object> cmdParams)
         {
             foreach (var cp in cmdParams)
@@ -1464,7 +1488,7 @@ namespace RuntimeStuff
         /// </remarks>
         public Dictionary<TKey, TValue> ToDictionary<TKey, TValue, T>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(TypeCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetMemberInfoEx(), ExpressionHelper.GetMemberInfo(valueSelector).GetMemberInfoEx()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(TypeCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetTypeCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetTypeCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
             return ToDictionary<TKey, TValue>(query);
         }
 
@@ -1556,7 +1580,7 @@ namespace RuntimeStuff
         /// </remarks>
         public Task<Dictionary<TKey, TValue>> ToDictionaryAsync<T, TKey, TValue>(Expression<Func<T, TKey>> keySelector, Expression<Func<T, TValue>> valueSelector, Expression<Func<T, bool>> whereExpression = null)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(TypeCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetMemberInfoEx(), ExpressionHelper.GetMemberInfo(valueSelector).GetMemberInfoEx()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(TypeCache.Create<T>(), ExpressionHelper.GetMemberInfo(keySelector).GetTypeCache(), ExpressionHelper.GetMemberInfo(valueSelector).GetTypeCache()) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
             return ToDictionaryAsync<TKey, TValue>(query);
         }
 
