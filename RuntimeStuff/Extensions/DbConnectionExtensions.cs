@@ -16,11 +16,6 @@ namespace RuntimeStuff.Extensions
     /// </summary>
     public static class DbConnectionExtensions
     {
-        public static Func<string, object, PropertyInfo, object, object> ToFunc(this DbClient.DbValueConverter d)
-        {
-            return(f, v, p, i) => d(f, v, p, i);
-        }
-
         /// <summary>
         /// Открывает соединение, если оно ещё не открыто.
         /// При состоянии Broken соединение сначала закрывается и открывается заново.
@@ -272,6 +267,13 @@ namespace RuntimeStuff.Extensions
         {
             return DbClient.Create(con).ExecuteScalar(query, cmdParams, dbTransaction);
         }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.
+        /// </summary>
+        public static T ExecuteScalar<T>(this IDbConnection con, string query,
+            object cmdParams, IDbTransaction dbTransaction = null) =>
+            DbClient.Create(con).ExecuteScalar<T>(query, cmdParams, dbTransaction);
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.

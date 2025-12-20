@@ -575,6 +575,14 @@ namespace RuntimeStuff
         /// <summary>
         /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.
         /// </summary>
+        public T ExecuteScalar<T>(string query, object cmdParams, IDbTransaction dbTransaction = null)
+        {
+            return ExecuteScalar<T>(query, GetParams(cmdParams), dbTransaction);
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.
+        /// </summary>
         public T ExecuteScalar<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IDbTransaction dbTransaction = null)
         {
             return ExecuteScalar<T>(query, dbTransaction, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
@@ -615,6 +623,21 @@ namespace RuntimeStuff
         {
             return ExecuteScalarAsync<T>(query, cmdParams?.Select(x => (x.Key, x.Value)), dbTransaction, token);
         }
+
+        /// <summary>
+        /// Асинхронно выполняет SQL-запрос и возвращает скалярное значение.
+        /// </summary>
+        /// <typeparam name="T">Тип результата.</typeparam>
+        /// <param name="query">SQL-запрос.</param>
+        /// <param name="cmdParams">Параметры команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <returns>Значение типа <typeparamref name="T"/>.</returns>
+        public Task<T> ExecuteScalarAsync<T>(string query, object cmdParams, IDbTransaction dbTransaction, CancellationToken token = default)
+        {
+            return ExecuteScalarAsync<T>(query, GetParams(cmdParams), dbTransaction, token);
+        }
+
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос и возвращает скалярное значение.
