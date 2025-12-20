@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using RuntimeStuff.Extensions;
 using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff.Builders
@@ -162,6 +163,22 @@ namespace RuntimeStuff.Builders
         public static string GetSelectQuery<T>(params Expression<Func<T, object>>[] selectColumns)
         {
             return GetSelectQuery("[", "]", selectColumns);
+        }
+
+        /// <summary>
+        /// Формирует SQL-запрос SELECT для указанного типа сущности с выборкой заданных столбцов.
+        /// </summary>
+        /// <remarks>Если не указать ни одного столбца, запрос может быть некорректным или не содержать
+        /// нужных данных. Метод предназначен для генерации запросов к базам данных, где имена столбцов соответствуют
+        /// свойствам типа T.</remarks>
+        /// <typeparam name="T">Тип сущности, для которой строится запрос SELECT.</typeparam>
+        /// <typeparam name="TProp">Тип значения выбираемых столбцов.</typeparam>
+        /// <param name="selectColumns">Массив выражений, определяющих столбцы, которые будут включены в SELECT-запрос. Не может содержать
+        /// null-значения.</param>
+        /// <returns>Строка, содержащая сформированный SQL-запрос SELECT с указанными столбцами.</returns>
+        public static string GetSelectQuery<T, TProp>(params Expression<Func<T, TProp>>[] selectColumns)
+        {
+            return GetSelectQuery("[", "]", MemberCache.Create<T>(), selectColumns.Select(x=>x.GetMemberCache()).ToArray());
         }
 
         /// <summary>

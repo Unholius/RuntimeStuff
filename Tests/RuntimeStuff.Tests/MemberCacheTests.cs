@@ -1,10 +1,6 @@
-﻿using System;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Runtime.Serialization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace RuntimeStuff.MSTests
 {
@@ -581,6 +577,23 @@ namespace RuntimeStuff.MSTests
         }
 
         #endregion
+
+        [TestMethod]
+        public void AnonymousType_Test()
+        {
+            // Arrange
+            var anonymousObject = new { Id = 1, Name = "Anonymous" };
+            var type = anonymousObject.GetType();
+            // Act
+            var memberCache = MemberCache.Create(type);
+            var idMember = memberCache["Id"];
+            var nameMember = memberCache["Name"];
+            // Assert
+            Assert.IsNotNull(idMember);
+            Assert.IsNotNull(nameMember);
+            Assert.AreEqual(1, idMember.GetValue(anonymousObject));
+            Assert.AreEqual("Anonymous", nameMember.GetValue(anonymousObject));
+        }
 
         #region Вспомогательные классы для тестов
 

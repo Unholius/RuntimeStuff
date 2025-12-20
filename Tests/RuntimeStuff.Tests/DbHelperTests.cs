@@ -165,5 +165,12 @@ namespace RuntimeStuff.MSTests
             var dbCount = db.ExecuteScalar("SELECT COUNT(*) FROM [TestTable]");
         }
 
+        [TestMethod]
+        public void DbClient_ExecuteScalar_WhereExpression_Test()
+        {
+            using var db = DbClient.Create<SqlConnection>(_connectionString);
+
+            var result = db.ExecuteScalar<DtoTestClass, int>(x => x.IdInt, x => x.ColNVarCharMax == "Test 0");
+        }
     }
 }

@@ -2,7 +2,6 @@
 using RuntimeStuff.Helpers;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics;
@@ -24,9 +23,17 @@ namespace RuntimeStuff
     /// получить доступ к специфичным для него свойствам и методам. Это может быть полезно при необходимости
     /// использовать расширенные возможности конкретного провайдера базы данных.</remarks>
     /// <typeparam name="T">Тип подключения к базе данных, реализующий интерфейс IDbConnection и имеющий конструктор без параметров.</typeparam>
-    public class DbClient<T> : DbClient where T : IDbConnection, new()
+    public partial class DbClient<T> : DbClient where T : IDbConnection, new()
     {
+        private static readonly Cache<IDbConnection, DbClient<T>> _clientCache =
+            new Cache<IDbConnection, DbClient<T>>(con => new DbClient<T>((T)con));
+
+
         public DbClient() : base(new T())
+        {
+        }
+
+        public DbClient(T con) : base(con)
         {
         }
 
@@ -43,6 +50,25 @@ namespace RuntimeStuff
             get => (T)base.Connection;
             set => base.Connection = value;
         }
+
+        /// <summary>
+        /// Создаёт новый экземпляр клиента базы данных для указанного типа подключения.
+        /// </summary>
+        /// <typeparam name="T">Тип подключения к базе данных, реализующий интерфейс IDbConnection и имеющий конструктор без параметров.</typeparam>
+        /// <param name="connectionString">Строка подключения, используемая для установления соединения с базой данных. Не может быть null или пустой.</param>
+        /// <returns>Экземпляр DbClient{T}, настроенный для работы с указанной строкой подключения.</returns>
+        public static DbClient<T> Create(string connectionString)
+        {
+            var con = new T() { ConnectionString = connectionString };
+            var dbClient = _clientCache.Get(con);
+            return dbClient;
+        }
+
+        public static DbClient<T> Create(T con)
+        {
+            var dbClient = _clientCache.Get(con);
+            return dbClient;
+        }
     }
 
     /// <summary>
@@ -57,12 +83,17 @@ namespace RuntimeStuff
     /// команд и сопоставление колонок с помощью выражений и пользовательских маппингов. Для асинхронных операций
     /// используются стандартные Task-методы. Для корректной работы требуется, чтобы используемые типы сущностей
     /// имели публичные конструкторы без параметров и свойства с публичными сеттерами.</remarks>
-    public class DbClient : IDisposable
+    public partial class DbClient : IDisposable
     {
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
         private readonly AsyncLocal<IDbTransaction> _tr = new AsyncLocal<IDbTransaction>();
 
         private bool _disposed;
+
+        private static readonly Cache<IDbConnection, DbClient> _clientCache =
+            new Cache<IDbConnection, DbClient>(con => new DbClient(con));
+
+        private event Action<IDbCommand> CommandExecuted;
 
         public DbClient()
         {
@@ -83,7 +114,6 @@ namespace RuntimeStuff
         {
             Dispose(false);
         }
-
 
         public IDbConnection Connection { get; set; }
 
@@ -110,7 +140,8 @@ namespace RuntimeStuff
         /// <returns>Экземпляр DbClient{T}, настроенный для работы с указанной строкой подключения.</returns>
         public static DbClient<T> Create<T>(string connectionString) where T : IDbConnection, new()
         {
-            return new DbClient<T>(connectionString);
+            var dbClient = DbClient<T>.Create(connectionString);
+            return dbClient;
         }
 
         /// <summary>
@@ -121,7 +152,8 @@ namespace RuntimeStuff
         /// <returns>Новый экземпляр DbClient, связанный с указанным подключением.</returns>
         public static DbClient Create(IDbConnection connection)
         {
-            return new DbClient(connection);
+            var dbClient = _clientCache.Get(connection);
+            return dbClient;
         }
 
         /// <summary>
@@ -133,62 +165,7 @@ namespace RuntimeStuff
             return new DbClient();
         }
 
-        /// <summary>
-        /// Создаёт команду для SQL-запроса, принимая параметры в виде словаря.
-        /// </summary>
-        /// <param name="query">SQL-запрос.</param>
-        /// <param name="cmdParams">Параметры команды.</param>
-        /// <param name="dbTransaction">Транзакция</param>
-        /// <returns>Команда <see cref="IDbCommand"/>.</returns>
-        public IDbCommand CreateCommand(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IDbTransaction dbTransaction)
-        {
-            return CreateCommand(Connection, query, dbTransaction, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
-        }
-
-        /// <summary>
-        /// Создаёт и настраивает команду для выполнения SQL-запроса.
-        /// </summary>
-        /// <param name="query">Текст SQL-команды.</param>
-        /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
-        /// <param name="dbTransaction">Транзакция</param>
-        /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
-        public IDbCommand CreateCommand(string query, IEnumerable<(string, object)> cmdParams = null, IDbTransaction dbTransaction = null)
-        {
-            return CreateCommand(Connection, query, dbTransaction, cmdParams?.ToArray() ?? Array.Empty<(string, object)>());
-        }
-
-        /// <summary>
-        /// Создаёт и настраивает команду для выполнения SQL-запроса.
-        /// </summary>
-        /// <param name="connection">Экземпляр соединения с БД.</param>
-        /// <param name="query">Текст SQL-команды.</param>
-        /// <param name="dbTransaction">Транзакция</param>
-        /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
-        /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
-        private IDbCommand CreateCommand(IDbConnection connection, string query, IDbTransaction dbTransaction, params (string, object)[] cmdParams)
-        {
-            var cmd = connection.CreateCommand();
-            cmd.CommandText = query;
-            cmd.CommandTimeout = DefaultCommandTimeout;
-            cmd.CommandType = CommandType.Text;
-            cmd.Transaction = dbTransaction;
-
-            if (cmdParams != null)
-                foreach (var cp in cmdParams)
-                {
-                    var p = cmd.CreateParameter();
-                    p.ParameterName = cp.Item1;
-                    p.Value = cp.Item2 ?? DBNull.Value;
-                    cmd.Parameters.Add(p);
-                }
-
-            if (_tr != null)
-                cmd.Transaction = _tr.Value;
-
-            LogCommand(cmd);
-
-            return cmd;
-        }
+        #region Delete
 
         /// <summary>
         /// Выполняет удаление записей из таблицы, соответствующей типу <typeparamref name="T"/>,
@@ -331,15 +308,26 @@ namespace RuntimeStuff
             }
         }
 
+        #endregion Delete
+
+        #region Transaction
+
         /// <summary>
-        /// Освобождает все ресурсы, используемые данным экземпляром класса.
+        /// Начинает новую транзакцию базы данных для текущего соединения.
         /// </summary>
-        /// <remarks>Вызывайте этот метод, когда объект больше не нужен, чтобы явно освободить управляемые
-        /// и неуправляемые ресурсы. После вызова Dispose объект не должен использоваться повторно.</remarks>
-        public void Dispose()
+        /// <remarks>Перед вызовом этого метода убедитесь, что предыдущая транзакция завершена.
+        /// Одновременно может быть активна только одна транзакция на соединение.</remarks>
+        /// <returns>Объект, представляющий новую транзакцию базы данных. Возвращаемое значение реализует интерфейс
+        /// IDbTransaction и должно быть явно завершено вызовом Commit или Rollback.</returns>
+        /// <exception cref="InvalidOperationException">Выбрасывается, если транзакция уже была начата для текущего соединения.</exception>
+        public IDbTransaction StartTransaction()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            if (_tr.Value != null)
+                throw new InvalidOperationException("Транзакция уже была начата.");
+
+            BeginConnection();
+            _tr.Value = Connection.BeginTransaction();
+            return _tr.Value;
         }
 
         /// <summary>
@@ -358,6 +346,23 @@ namespace RuntimeStuff
             _tr.Value.Dispose();
             _tr.Value = null;
             CloseConnection();
+        }
+
+        #endregion Transaction
+
+        #region ExecuteNonQuery
+
+        /// <summary>
+        /// Выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
+        /// с использованием коллекции параметров в виде <see cref="KeyValuePair{String, Object}"/>.
+        /// </summary>
+        /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="queryParams">Коллекция параметров SQL-команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        /// <returns>Количество затронутых строк.</returns>
+        public int ExecuteNonQuery(string query, object queryParams, IDbTransaction dbTransaction = null)
+        {
+            return ExecuteNonQuery(query, GetParams(queryParams), dbTransaction);
         }
 
         /// <summary>
@@ -383,11 +388,12 @@ namespace RuntimeStuff
         /// <returns>Количество затронутых строк.</returns>
         public int ExecuteNonQuery(string query, IDbTransaction dbTransaction = null, params (string, object)[] cmdParams)
         {
-            using (var cmd = CreateCommand(Connection, query, dbTransaction, cmdParams))
+            using (var cmd = CreateCommand(query, dbTransaction, cmdParams))
             {
                 BeginConnection(Connection);
 
                 var i = cmd.ExecuteNonQuery();
+                CommandExecuted?.Invoke(cmd);
                 CloseConnection(Connection);
                 return i;
             }
@@ -415,6 +421,20 @@ namespace RuntimeStuff
         /// <param name="dbTransaction">Транзакция</param>
         /// <param name="token"></param>
         /// <returns>Задача, возвращающая количество затронутых строк.</returns>
+        public Task<int> ExecuteNonQueryAsync(string query, object cmdParams, IDbTransaction dbTransaction, CancellationToken token = default)
+        {
+            return ExecuteNonQueryAsync(query, GetParams(cmdParams), dbTransaction, token);
+        }
+
+        /// <summary>
+        /// Асинхронно выполняет SQL-команду, не возвращающую результирующий набор (INSERT, UPDATE, DELETE),
+        /// с использованием коллекции параметров в виде <see cref="KeyValuePair{String, Object}"/>.
+        /// </summary>
+        /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="cmdParams">Коллекция параметров SQL-команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        /// <param name="token"></param>
+        /// <returns>Задача, возвращающая количество затронутых строк.</returns>
         public Task<int> ExecuteNonQueryAsync(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IDbTransaction dbTransaction, CancellationToken token = default)
         {
             return ExecuteNonQueryAsync(query, cmdParams.Select(x => (x.Key, x.Value)).ToArray(), dbTransaction, token);
@@ -431,12 +451,13 @@ namespace RuntimeStuff
         /// <returns>Задача, возвращающая количество затронутых строк.</returns>
         public async Task<int> ExecuteNonQueryAsync(string query, (string, object)[] cmdParams = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
         {
-            using (var cmd = (DbCommand)CreateCommand(Connection, query, dbTransaction, cmdParams))
+            using (var cmd = (DbCommand)CreateCommand(query, dbTransaction, cmdParams))
             {
                 try
                 {
                     await BeginConnectionAsync(token);
                     var i = await cmd.ExecuteNonQueryAsync(token);
+                    CommandExecuted?.Invoke(cmd);
                     return i;
                 }
                 catch (Exception ex)
@@ -450,6 +471,10 @@ namespace RuntimeStuff
             }
         }
 
+        #endregion
+
+        #region ExecuteScalar
+
         /// <summary>
         /// Выполняет SQL-запрос и возвращает одно скалярное значение.
         /// </summary>
@@ -459,6 +484,17 @@ namespace RuntimeStuff
         public object ExecuteScalar(string query, IDbTransaction dbTransaction = null, params (string, object)[] cmdParams)
         {
             return ExecuteScalar<object>(query, dbTransaction, cmdParams);
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает одно скалярное значение.
+        /// </summary>
+        /// <param name="query">SQL-запрос.</param>
+        /// <param name="cmdParams">Параметры команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        public object ExecuteScalar(string query, object cmdParams, IDbTransaction dbTransaction = null)
+        {
+            return ExecuteScalar<object>(query, GetParams(cmdParams), dbTransaction);
         }
 
         /// <summary>
@@ -482,12 +518,13 @@ namespace RuntimeStuff
         /// <returns>Значение типа <typeparamref name="T"/>.</returns>
         public T ExecuteScalar<T>(string query, IDbTransaction dbTransaction = null, params (string, object)[] cmdParams)
         {
-            using (var cmd = CreateCommand(Connection, query, dbTransaction, cmdParams))
+            using (var cmd = CreateCommand(query, dbTransaction, cmdParams))
             {
                 try
                 {
                     BeginConnection();
                     var v = cmd.ExecuteScalar();
+                    CommandExecuted?.Invoke(cmd);
                     return (T)ChangeType(v, typeof(T));
                 }
                 catch (Exception ex)
@@ -502,12 +539,22 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Выполняет SQL-запрос и возвращает скалярное значение, принимая параметры в виде словаря.
+        /// Выполняет SQL-запрос, выбирающий одно скалярное значение из столбца, определённого выражением
+        /// propertySelector, для сущностей типа T, удовлетворяющих условию whereExpression.
         /// </summary>
-        public T ExecuteScalar<T>(Expression<Func<T, bool>> whereExpression)
+        /// <remarks>Метод формирует SQL-запрос на основе переданных выражений и выполняет его для
+        /// получения одного значения. Используйте этот метод для получения агрегированных или одиночных значений из
+        /// базы данных без необходимости загружать всю сущность.</remarks>
+        /// <typeparam name="T">Тип сущности, из которой выполняется выборка.</typeparam>
+        /// <typeparam name="TProp">Тип значения столбца, возвращаемого запросом.</typeparam>
+        /// <param name="propertySelector">Выражение, определяющее столбец сущности T, значение которого требуется получить. Не может быть равно null.</param>
+        /// <param name="whereExpression">Выражение, определяющее условие фильтрации для выборки сущностей типа T. Не может быть равно null.</param>
+        /// <returns>Скалярное значение типа TProp, полученное из выбранного столбца. Если ни одна запись не удовлетворяет
+        /// условию, возвращается значение по умолчанию для типа TProp.</returns>
+        public TProp ExecuteScalar<T, TProp>(Expression<Func<T, TProp>> propertySelector, Expression<Func<T, bool>> whereExpression)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery<T>() + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
-            return ExecuteScalar<T>(query);
+            var query = (SqlQueryBuilder.GetSelectQuery<T, TProp>(propertySelector) + " " + SqlQueryBuilder.GetWhereClause(whereExpression)).Trim();
+            return ExecuteScalar<TProp>(query);
         }
 
         /// <summary>
@@ -516,6 +563,28 @@ namespace RuntimeStuff
         public T ExecuteScalar<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IDbTransaction dbTransaction = null)
         {
             return ExecuteScalar<T>(query, dbTransaction, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает одно скалярное значение.
+        /// </summary>
+        /// <param name="query">SQL-запрос.</param>
+        /// <param name="cmdParams">Параметры команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        public Task<object> ExecuteScalarAsync(string query, object cmdParams, IDbTransaction dbTransaction = null)
+        {
+            return ExecuteScalarAsync<object>(query, GetParams(cmdParams), dbTransaction);
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает одно скалярное значение.
+        /// </summary>
+        /// <param name="query">SQL-запрос.</param>
+        /// <param name="cmdParams">Параметры команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        public Task<T> ExecuteScalarAsync<T>(string query, object cmdParams, IDbTransaction dbTransaction = null)
+        {
+            return ExecuteScalarAsync<T>(query, GetParams(cmdParams), dbTransaction);
         }
 
         /// <summary>
@@ -543,7 +612,7 @@ namespace RuntimeStuff
         /// <returns>Значение типа <typeparamref name="T"/>.</returns>
         public async Task<T> ExecuteScalarAsync<T>(string query, IEnumerable<(string, object)> cmdParams = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
         {
-            using (var cmd = CreateCommand(Connection, query, dbTransaction, cmdParams?.ToArray()))
+            using (var cmd = CreateCommand(query, dbTransaction, cmdParams?.ToArray()))
             {
                 try
                 {
@@ -551,9 +620,16 @@ namespace RuntimeStuff
                     object value;
 
                     if (cmd is DbCommand dbcmd)
+                    {
                         value = await dbcmd.ExecuteScalarAsync(token);
+                    }
                     else
+                    {
                         value = cmd.ExecuteScalar();
+                    }
+
+                    CommandExecuted?.Invoke(cmd);
+
                     return (T)ChangeType(value, typeof(T));
                 }
                 catch (Exception ex)
@@ -566,6 +642,10 @@ namespace RuntimeStuff
                 }
             }
         }
+
+        #endregion
+
+        #region First
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает первый объект типа <typeparamref name="T"/> из результата,
@@ -602,6 +682,43 @@ namespace RuntimeStuff
             Action<string, object, MemberCache, T> setter = null) where T : class, new()
         {
             return ToList(query, cmdParams, columnToPropertyMap, converter, setter, 1)?.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает первый объект типа <typeparamref name="T"/> из результата,
+        /// или <c>null</c>, если результат пустой.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, создаваемого на основе строки результата.
+        /// Должен быть ссылочным типом с публичным конструктором без параметров.
+        /// </typeparam>
+        /// <param name="query">SQL-запрос для выборки данных.</param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса в виде <see cref="KeyValuePair{String, Object}"/>.
+        /// Может быть <c>null</c>, если параметры отсутствуют.
+        /// </param>
+        /// <param name="columnToPropertyMap">
+        /// Карта сопоставления колонок и свойств объекта: имя колонки → имя свойства.
+        /// Если <c>null</c>, используется автомаппинг по совпадению имён.
+        /// </param>
+        /// <param name="converter">
+        /// Пользовательская функция преобразования значения поля в тип свойства.
+        /// Если не указано, используется стандартный <c>DefaultConverter</c>.
+        /// </param>
+        /// <param name="setter">
+        /// Пользовательская логика присвоения значения свойству.
+        /// Если не указано — используется <c>prop.SetValue(item, value)</c>.
+        /// </param>
+        /// <returns>Первый объект типа <typeparamref name="T"/> или <c>null</c>, если результат пустой.</returns>
+        /// <remarks>
+        /// Метод использует <see cref="ToList"/> с ограничением на 1 запись, после чего возвращает <c>FirstOrDefault()</c>.
+        /// </remarks>
+        public T First<T>(string query, object cmdParams,
+            IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
+            Func<object, Type, object> converter = null,
+            Action<string, object, MemberCache, T> setter = null) where T : class, new()
+        {
+            return ToList(query, GetParams(cmdParams), columnToPropertyMap, converter, setter, 1)?.FirstOrDefault();
         }
 
         /// <summary>
@@ -681,6 +798,28 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Выполняет SQL-запрос и возвращает первый объект типа <typeparamref name="T"/> из результата асинхронно,
+        /// или <c>null</c>, если результат пустой.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта, создаваемого на основе строки результата.</typeparam>
+        /// <param name="query">SQL-запрос для выборки данных.</param>
+        /// <param name="cmdParams">Параметры запроса в виде кортежей или <see cref="KeyValuePair{String, Object}"/>.</param>
+        /// <param name="columnToPropertyMap">Сопоставление колонок и свойств объекта.</param>
+        /// <param name="converter">Функция преобразования значений полей в свойства объекта.</param>
+        /// <param name="setter">Пользовательская логика присвоения значений свойствам.</param>
+        /// <param name="token"></param>
+        /// <returns>Задача, результатом которой является первый объект типа <typeparamref name="T"/> или <c>null</c>.</returns>
+        /// <remarks>Метод использует <see cref="ToListAsync"/> с ограничением на 1 запись и возвращает <c>FirstOrDefault()</c>.</remarks>
+        public async Task<T> FirstAsync<T>(string query,
+            object cmdParams,
+            IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
+            Func<object, Type, object> converter = null,
+            Action<string, object, MemberCache, T> setter = null, CancellationToken token = default) where T : class, new()
+        {
+            return (await ToListAsync(query, GetParams(cmdParams), columnToPropertyMap, converter, setter, 1, token))?.FirstOrDefault();
+        }
+
+        /// <summary>
         /// Асинхронная версия метода <see cref="First{T}(IDbConnection, Expression{Func{T, bool}}, Func{object, Type, object}, Action{string, object, MemberCache, T})"/>.
         /// </summary>
         public async Task<T> FirstAsync<T>(Expression<Func<T, bool>> whereExpression, Func<object, Type, object> converter = null,
@@ -699,6 +838,125 @@ namespace RuntimeStuff
             Action<string, object, MemberCache, T> setter = null, CancellationToken token = default) where T : class, new()
         {
             return (await ToListAsync(query, cmdParams, columnToPropertyMap, converter, setter, 1, token))?.FirstOrDefault();
+        }
+
+        #endregion First
+
+        #region Command
+
+        /// <summary>
+        /// Создаёт команду для SQL-запроса, принимая параметры в виде словаря.
+        /// </summary>
+        /// <param name="query">SQL-запрос.</param>
+        /// <param name="cmdParams">Параметры команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        /// <returns>Команда <see cref="IDbCommand"/>.</returns>
+        public IDbCommand CreateCommand(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IDbTransaction dbTransaction)
+        {
+            return CreateCommand(Connection, query, dbTransaction, DefaultCommandTimeout, cmdParams?.Select(x => (x.Key, x.Value)).ToArray());
+        }
+
+        /// <summary>
+        /// Создаёт и настраивает команду для выполнения SQL-запроса.
+        /// </summary>
+        /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
+        public IDbCommand CreateCommand(string query, IEnumerable<(string, object)> cmdParams = null, IDbTransaction dbTransaction = null)
+        {
+            return CreateCommand(Connection, query, dbTransaction, DefaultCommandTimeout, cmdParams?.ToArray() ?? Array.Empty<(string, object)>());
+        }
+
+        /// <summary>
+        /// Создаёт и настраивает команду для выполнения SQL-запроса.
+        /// </summary>
+        /// <param name="connection">Экземпляр соединения с БД.</param>
+        /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        /// <param name="commandTimeOut"></param>
+        /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
+        /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
+        public IDbCommand CreateCommand(string query, IDbTransaction dbTransaction, params (string, object)[] cmdParams)
+        {
+            return CreateCommand(Connection, query, dbTransaction, DefaultCommandTimeout, cmdParams);
+        }
+
+        /// <summary>
+        /// Создаёт и настраивает команду для выполнения SQL-запроса.
+        /// </summary>
+        /// <param name="connection">Экземпляр соединения с БД.</param>
+        /// <param name="query">Текст SQL-команды.</param>
+        /// <param name="dbTransaction">Транзакция</param>
+        /// <param name="commandTimeOut"></param>
+        /// <param name="cmdParams">Параметры команды в формате (имя, значение).</param>
+        /// <returns>Готовая команда <see cref="IDbCommand"/>.</returns>
+        public IDbCommand CreateCommand(IDbConnection connection, string query, IDbTransaction dbTransaction, int commandTimeOut, params (string, object)[] cmdParams)
+        {
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = query;
+            cmd.CommandTimeout = commandTimeOut;
+            cmd.CommandType = CommandType.Text;
+            cmd.Transaction = dbTransaction;
+
+            if (cmdParams != null)
+                foreach (var cp in cmdParams)
+                {
+                    var p = cmd.CreateParameter();
+                    p.ParameterName = cp.Item1;
+                    p.Value = cp.Item2 ?? DBNull.Value;
+                    cmd.Parameters.Add(p);
+                }
+
+            if (_tr != null)
+                cmd.Transaction = _tr.Value;
+
+            LogCommand(cmd);
+
+            return cmd;
+        }
+
+        /// <summary>
+        /// Заполняет коллекцию параметров команды базы данных
+        /// значениями из указанного словаря.
+        /// </summary>
+        /// <param name="cmd">
+        /// Команда базы данных, параметры которой будут обновлены или добавлены.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Словарь параметров, где ключ — имя параметра,
+        /// значение — соответствующее значение параметра.
+        /// </param>
+        /// <remarks>
+        /// Если параметр с указанным именем уже существует в коллекции
+        /// <see cref="IDbCommand.Parameters"/>, его значение будет обновлено.
+        /// В противном случае создаётся новый параметр и добавляется в команду.
+        /// <para/>
+        /// Значение <see langword="null"/> автоматически преобразуется
+        /// в <see cref="DBNull.Value"/>, как требуется для параметров
+        /// команд баз данных.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="cmd"/> или
+        /// <paramref name="cmdParams"/> равны <see langword="null"/>.
+        /// </exception>
+        public static void SetParameterCollection(IDbCommand cmd, Dictionary<string, object> cmdParams)
+        {
+            foreach (var cp in cmdParams)
+            {
+
+                IDbDataParameter p;
+                if (cmd.Parameters.Contains(cp.Key))
+                    p = (IDbDataParameter)cmd.Parameters[cp.Key];
+                else
+                {
+                    p = cmd.CreateParameter();
+                    cmd.Parameters.Add(p);
+                }
+
+                p.ParameterName = cp.Key;
+                p.Value = cp.Value ?? DBNull.Value;
+            }
         }
 
         /// <summary>
@@ -761,7 +1019,7 @@ namespace RuntimeStuff
         /// Метод не выполняет команду <see cref="IDbCommand"/> — он только
         /// формирует SQL с текущими значениями параметров.
         /// </remarks>
-        public string GetRawSql(IDbCommand command, string paramNamePrefix = "@", string dateFormat = "yyyyMMdd", string stringPrefix = "'", string stringSuffix = "'", string nullValue = "NULL", string trueValue = "1", string falseValue = "0")
+        public static string GetRawSql(IDbCommand command, string paramNamePrefix = "@", string dateFormat = "yyyyMMdd", string stringPrefix = "'", string stringSuffix = "'", string nullValue = "NULL", string trueValue = "1", string falseValue = "0")
         {
             if (command == null)
                 throw new ArgumentNullException(nameof(command));
@@ -785,6 +1043,10 @@ namespace RuntimeStuff
 
             return sql;
         }
+
+        #endregion Command
+
+        #region Insert
 
         /// <summary>
         /// Создает новый объект типа <typeparamref name="T"/>, заполняет его с помощью переданных действий
@@ -913,13 +1175,14 @@ namespace RuntimeStuff
                     var typeCache = MemberCache.Create<T>();
                     var pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
                     var queryParams = new Dictionary<string, object>();
-                    using (var cmd = CreateCommand(Connection, query, dbTransaction))
+                    using (var cmd = CreateCommand(query, dbTransaction))
                     {
                         foreach (var item in list)
                         {
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
                             var id = cmd.ExecuteScalar();
+                            CommandExecuted?.Invoke(cmd);
                             if (pk != null && id != null)
                             {
                                 pk.SetValue(item, TypeHelper.ChangeType(id, pk.PropertyType));
@@ -975,7 +1238,7 @@ namespace RuntimeStuff
                     var typeCache = MemberCache.Create<T>();
                     var pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
                     var queryParams = new Dictionary<string, object>();
-                    using (var cmd = CreateCommand(Connection, query, dbTransaction))
+                    using (var cmd = CreateCommand(query, dbTransaction))
                     {
                         if (!(cmd is DbCommand dbCmd))
                             throw new NullReferenceException(nameof(dbCmd));
@@ -985,6 +1248,7 @@ namespace RuntimeStuff
                             SetParameterCollection(cmd, queryParams);
 
                             var id = await dbCmd.ExecuteScalarAsync(token);
+                            CommandExecuted?.Invoke(cmd);
                             if (pk != null && id != null)
                             {
                                 pk.SetValue(item, TypeHelper.ChangeType(id, pk.PropertyType));
@@ -1010,66 +1274,153 @@ namespace RuntimeStuff
             }
         }
 
+        #endregion Insert
+
+        #region ToCollection
+
         /// <summary>
-        /// Заполняет коллекцию параметров команды базы данных
-        /// значениями из указанного словаря.
+        /// Преобразует результат выполнения SQL-запроса в коллекцию объектов заданного типа.
         /// </summary>
-        /// <param name="cmd">
-        /// Команда базы данных, параметры которой будут обновлены или добавлены.
+        /// <typeparam name="TList">Тип коллекции, которая будет возвращена. Должна реализовывать <see cref="ICollection{TItem}"/> и иметь публичный конструктор без параметров.</typeparam>
+        /// <typeparam name="TItem">Тип элементов коллекции. Должен быть ссылочным типом и иметь публичный конструктор без параметров.</typeparam>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Если значение <c>null</c> или пустое, будет автоматически сгенерирован SELECT-запрос для типа <typeparamref name="TItem"/> с помощью <see cref="SqlQueryBuilder.GetSelectQuery{TItem}"/>.
         /// </param>
         /// <param name="cmdParams">
-        /// Словарь параметров, где ключ — имя параметра,
-        /// значение — соответствующее значение параметра.
+        /// Коллекция параметров для SQL-запроса в виде кортежей (имя параметра, значение). Может быть <c>null</c>, если параметры не требуются.
         /// </param>
-        /// <remarks>
-        /// Если параметр с указанным именем уже существует в коллекции
-        /// <see cref="IDbCommand.Parameters"/>, его значение будет обновлено.
-        /// В противном случае создаётся новый параметр и добавляется в команду.
-        /// <para/>
-        /// Значение <see langword="null"/> автоматически преобразуется
-        /// в <see cref="DBNull.Value"/>, как требуется для параметров
-        /// команд баз данных.
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="cmd"/> или
-        /// <paramref name="cmdParams"/> равны <see langword="null"/>.
+        /// <param name="columnToPropertyMap">
+        /// Коллекция сопоставлений между именами столбцов результата SQL-запроса и свойствами объекта <typeparamref name="TItem"/>.
+        /// Формат: (имя столбца, имя свойства). Если <c>null</c>, используется автоматическое сопоставление по именам.
+        /// </param>
+        /// <param name="converter">
+        /// Функция для преобразования значения столбца в тип свойства. Принимает исходное значение и <see cref="Type"/> целевого свойства, возвращает преобразованное значение.
+        /// Если <c>null</c>, используется <see cref="DbReaderValueConvertor"/>.
+        /// </param>
+        /// <param name="setter">
+        /// Действие для установки значения свойства объекта. Принимает:
+        /// <list type="bullet">
+        /// <item><description>Имя столбца</description></item>
+        /// <item><description>Значение столбца после конвертации</description></item>
+        /// <item><description>Информацию о свойстве <see cref="MemberCache"/></description></item>
+        /// <item><description>Объект, в который нужно установить значение</description></item>
+        /// </list>
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
+        /// </param>
+        /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
+        /// <returns>Коллекция типа <typeparamref name="TList"/>, содержащая объекты <typeparamref name="TItem"/> с заполненными свойствами на основе данных из базы.</returns>
+        /// <exception cref="Exception">
+        /// Выбрасывается, если установка значения свойства не удалась. Внутри исключения хранится исходное исключение и информация о столбце, значении и свойстве.
         /// </exception>
-        public void SetParameterCollection(IDbCommand cmd, Dictionary<string, object> cmdParams)
+        /// <remarks>
+        /// Метод автоматически открывает подключение к базе данных с помощью <see cref="BeginConnection(IDbConnection)"/> и закрывает его после выполнения запроса <see cref="CloseConnection(IDbConnection)"/>.
+        /// Для каждого ряда результата создается новый объект <typeparamref name="TItem"/>. Все свойства заполняются в соответствии с <paramref name="columnToPropertyMap"/> или сопоставлением по имени.
+        /// </remarks>
+        public TList ToCollection<TList, TItem>(string query,
+            object cmdParams,
+            IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null,
+            Action<string, object, MemberCache, TItem> setter = null, int maxRows = -1)
+            where TList : ICollection<TItem>, new() where TItem : class, new()
         {
-            foreach (var cp in cmdParams)
-            {
-
-                IDbDataParameter p;
-                if (cmd.Parameters.Contains(cp.Key))
-                    p = (IDbDataParameter)cmd.Parameters[cp.Key];
-                else
-                {
-                    p = cmd.CreateParameter();
-                    cmd.Parameters.Add(p);
-                }
-
-                p.ParameterName = cp.Key;
-                p.Value = cp.Value ?? DBNull.Value;
-            }
+            return ToCollection<TList, TItem>(query, GetParams(cmdParams),
+                columnToPropertyMap, converter, setter, maxRows);
         }
 
         /// <summary>
-        /// Начинает новую транзакцию базы данных для текущего соединения.
+        /// Преобразует результат выполнения SQL-запроса в коллекцию объектов заданного типа.
         /// </summary>
-        /// <remarks>Перед вызовом этого метода убедитесь, что предыдущая транзакция завершена.
-        /// Одновременно может быть активна только одна транзакция на соединение.</remarks>
-        /// <returns>Объект, представляющий новую транзакцию базы данных. Возвращаемое значение реализует интерфейс
-        /// IDbTransaction и должно быть явно завершено вызовом Commit или Rollback.</returns>
-        /// <exception cref="InvalidOperationException">Выбрасывается, если транзакция уже была начата для текущего соединения.</exception>
-        public IDbTransaction StartTransaction()
+        /// <typeparam name="TList">Тип коллекции, которая будет возвращена. Должна реализовывать <see cref="ICollection{TItem}"/> и иметь публичный конструктор без параметров.</typeparam>
+        /// <typeparam name="TItem">Тип элементов коллекции. Должен быть ссылочным типом и иметь публичный конструктор без параметров.</typeparam>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Если значение <c>null</c> или пустое, будет автоматически сгенерирован SELECT-запрос для типа <typeparamref name="TItem"/> с помощью <see cref="SqlQueryBuilder.GetSelectQuery{TItem}"/>.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров для SQL-запроса в виде кортежей (имя параметра, значение). Может быть <c>null</c>, если параметры не требуются.
+        /// </param>
+        /// <param name="columnToPropertyMap">
+        /// Коллекция сопоставлений между именами столбцов результата SQL-запроса и свойствами объекта <typeparamref name="TItem"/>.
+        /// Формат: (имя столбца, имя свойства). Если <c>null</c>, используется автоматическое сопоставление по именам.
+        /// </param>
+        /// <param name="converter">
+        /// Функция для преобразования значения столбца в тип свойства. Принимает исходное значение и <see cref="Type"/> целевого свойства, возвращает преобразованное значение.
+        /// Если <c>null</c>, используется <see cref="DbReaderValueConvertor"/>.
+        /// </param>
+        /// <param name="setter">
+        /// Действие для установки значения свойства объекта. Принимает:
+        /// <list type="bullet">
+        /// <item><description>Имя столбца</description></item>
+        /// <item><description>Значение столбца после конвертации</description></item>
+        /// <item><description>Информацию о свойстве <see cref="MemberCache"/></description></item>
+        /// <item><description>Объект, в который нужно установить значение</description></item>
+        /// </list>
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
+        /// </param>
+        /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
+        /// <returns>Коллекция типа <typeparamref name="TList"/>, содержащая объекты <typeparamref name="TItem"/> с заполненными свойствами на основе данных из базы.</returns>
+        /// <exception cref="Exception">
+        /// Выбрасывается, если установка значения свойства не удалась. Внутри исключения хранится исходное исключение и информация о столбце, значении и свойстве.
+        /// </exception>
+        /// <remarks>
+        /// Метод автоматически открывает подключение к базе данных с помощью <see cref="BeginConnection(IDbConnection)"/> и закрывает его после выполнения запроса <see cref="CloseConnection(IDbConnection)"/>.
+        /// Для каждого ряда результата создается новый объект <typeparamref name="TItem"/>. Все свойства заполняются в соответствии с <paramref name="columnToPropertyMap"/> или сопоставлением по имени.
+        /// </remarks>
+        public Task<TList> ToCollectionAsync<TList, TItem>(string query,
+            object cmdParams,
+            IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null,
+            Action<string, object, MemberCache, TItem> setter = null, int maxRows = -1)
+            where TList : ICollection<TItem>, new() where TItem : class, new()
         {
-            if (_tr.Value != null)
-                throw new InvalidOperationException("Транзакция уже была начата.");
-
-            BeginConnection();
-            _tr.Value = Connection.BeginTransaction();
-            return _tr.Value;
+            return ToCollectionAsync<TList, TItem>(query, GetParams(cmdParams),
+                columnToPropertyMap, converter, setter, maxRows);
         }
+
+        /// <summary>
+        /// Преобразует результат выполнения SQL-запроса в коллекцию объектов заданного типа.
+        /// </summary>
+        /// <typeparam name="TList">Тип коллекции, которая будет возвращена. Должна реализовывать <see cref="ICollection{TItem}"/> и иметь публичный конструктор без параметров.</typeparam>
+        /// <typeparam name="TItem">Тип элементов коллекции. Должен быть ссылочным типом и иметь публичный конструктор без параметров.</typeparam>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Если значение <c>null</c> или пустое, будет автоматически сгенерирован SELECT-запрос для типа <typeparamref name="TItem"/> с помощью <see cref="SqlQueryBuilder.GetSelectQuery{TItem}"/>.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров для SQL-запроса в виде кортежей (имя параметра, значение). Может быть <c>null</c>, если параметры не требуются.
+        /// </param>
+        /// <param name="columnToPropertyMap">
+        /// Коллекция сопоставлений между именами столбцов результата SQL-запроса и свойствами объекта <typeparamref name="TItem"/>.
+        /// Формат: (имя столбца, имя свойства). Если <c>null</c>, используется автоматическое сопоставление по именам.
+        /// </param>
+        /// <param name="converter">
+        /// Функция для преобразования значения столбца в тип свойства. Принимает исходное значение и <see cref="Type"/> целевого свойства, возвращает преобразованное значение.
+        /// Если <c>null</c>, используется <see cref="DbReaderValueConvertor"/>.
+        /// </param>
+        /// <param name="setter">
+        /// Действие для установки значения свойства объекта. Принимает:
+        /// <list type="bullet">
+        /// <item><description>Имя столбца</description></item>
+        /// <item><description>Значение столбца после конвертации</description></item>
+        /// <item><description>Информацию о свойстве <see cref="MemberCache"/></description></item>
+        /// <item><description>Объект, в который нужно установить значение</description></item>
+        /// </list>
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
+        /// </param>
+        /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
+        /// <returns>Коллекция типа <typeparamref name="TList"/>, содержащая объекты <typeparamref name="TItem"/> с заполненными свойствами на основе данных из базы.</returns>
+        /// <exception cref="Exception">
+        /// Выбрасывается, если установка значения свойства не удалась. Внутри исключения хранится исходное исключение и информация о столбце, значении и свойстве.
+        /// </exception>
+        /// <remarks>
+        /// Метод автоматически открывает подключение к базе данных с помощью <see cref="BeginConnection(IDbConnection)"/> и закрывает его после выполнения запроса <see cref="CloseConnection(IDbConnection)"/>.
+        /// Для каждого ряда результата создается новый объект <typeparamref name="TItem"/>. Все свойства заполняются в соответствии с <paramref name="columnToPropertyMap"/> или сопоставлением по имени.
+        /// </remarks>
+        public TList ToCollection<TList, TItem>(string query,
+            IEnumerable<KeyValuePair<string, object>> cmdParams,
+            IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null,
+            Action<string, object, MemberCache, TItem> setter = null, int maxRows = -1)
+            where TList : ICollection<TItem>, new() where TItem : class, new()
+        {
+            return ToCollection<TList, TItem>(query, cmdParams?.Select(x=>(x.Key, x.Value)).ToArray(), columnToPropertyMap, converter, setter, maxRows);
+        }
+
 
         /// <summary>
         /// Преобразует результат выполнения SQL-запроса в коллекцию объектов заданного типа.
@@ -1127,6 +1478,7 @@ namespace RuntimeStuff
 
                     using (var r = cmd.ExecuteReader())
                     {
+                        CommandExecuted?.Invoke(cmd);
                         var map = GetReaderFieldToPropertyMap<TItem>(r, columnToPropertyMap);
                         var valueConverter = converter ?? DbReaderValueConvertor;
                         var valueFactory = setter ?? ((colName, colValue, prop, item) => { prop.SetValue(item, colValue); });
@@ -1246,12 +1598,13 @@ namespace RuntimeStuff
             {
                 try
                 {
-                    await BeginConnectionAsync();
+                    await BeginConnectionAsync(ct);
 
                     var list = new TList();
 
                     using (var r = await cmd.ExecuteReaderAsync(ct))
                     {
+                        CommandExecuted?.Invoke(cmd);
                         var map = GetReaderFieldToPropertyMap<TItem>(r, columnToPropertyMap);
                         var valueConverter = converter ?? DbReaderValueConvertor;
                         var valueFactory = setter ?? ((colName, colValue, prop, item) => { prop.SetValue(item, colValue); });
@@ -1307,6 +1660,136 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Асинхронно преобразует результат выполнения SQL-запроса в коллекцию объектов заданного типа.
+        /// </summary>
+        /// <typeparam name="TList">
+        /// Тип коллекции, которая будет возвращена. Должна реализовывать <see cref="ICollection{TItem}"/> и иметь публичный конструктор без параметров.
+        /// </typeparam>
+        /// <typeparam name="TItem">
+        /// Тип элементов коллекции. Должен быть ссылочным типом и иметь публичный конструктор без параметров.
+        /// </typeparam>
+        /// <param name="con">Объект подключения к базе данных <see cref="IDbConnection"/>. Метод автоматически открывает и закрывает соединение.</param>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Если значение <c>null</c> или пустое, будет автоматически сгенерирован SELECT-запрос для типа <typeparamref name="TItem"/> с помощью <see cref="SqlQueryBuilder.GetSelectQuery{TItem}"/>.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров для SQL-запроса в виде кортежей <c>(имя параметра, значение)</c>. Может быть <c>null</c>, если параметры не требуются.
+        /// </param>
+        /// <param name="columnToPropertyMap">
+        /// Коллекция сопоставлений между именами столбцов результата SQL-запроса и свойствами объекта <typeparamref name="TItem"/>.
+        /// Формат: <c>(имя столбца, имя свойства)</c>. Если <c>null</c>, используется автоматическое сопоставление по именам.
+        /// </param>
+        /// <param name="converter">
+        /// Функция для преобразования значения столбца в тип свойства. Принимает исходное значение и <see cref="Type"/> целевого свойства, возвращает преобразованное значение.
+        /// Если <c>null</c>, используется <see cref="DbReaderValueConvertor"/>.
+        /// </param>
+        /// <param name="setter">
+        /// Действие для установки значения свойства объекта. Принимает:
+        /// <list type="bullet">
+        /// <item><description>имя столбца</description></item>
+        /// <item><description>значение столбца после конвертации</description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
+        /// <item><description>объект, в который нужно установить значение</description></item>
+        /// </list>
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
+        /// </param>
+        /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
+        /// <param name="ct">Токен отмены <see cref="CancellationToken"/> для асинхронной операции.</param>
+        /// <returns>
+        /// Задача <see cref="Task"/> с результатом в виде коллекции типа <typeparamref name="TList"/>,
+        /// содержащей объекты <typeparamref name="TItem"/> с заполненными свойствами на основе данных из базы.
+        /// </returns>
+        /// <exception cref="Exception">
+        /// Выбрасывается, если установка значения свойства не удалась. Внутри исключения хранится исходное исключение и информация о столбце, значении и свойстве.
+        /// </exception>
+        /// <remarks>
+        /// Метод:
+        /// <list type="bullet">
+        /// <item>Асинхронно открывает подключение к базе данных с помощью <see cref="BeginConnectionAsync(IDbConnection)"/>.</item>
+        /// <item>Выполняет SQL-запрос и читает результат с помощью <see cref="DbDataReader"/>.</item>
+        /// <item>Для каждой строки создаёт новый объект <typeparamref name="TItem"/> и заполняет его свойства, используя сопоставление столбцов и свойств.</item>
+        /// <item>Поддерживает кастомные конвертеры значений и кастомные setter-и для свойств.</item>
+        /// <item>Закрывает подключение после выполнения запроса через <see cref="CloseConnection(IDbConnection)"/>.</item>
+        /// </list>
+        /// </remarks>
+        public Task<TList> ToCollectionAsync<TList, TItem>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<(string, string)> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, TItem> setter = null, int maxRows = -1, CancellationToken ct = default) where TList : ICollection<TItem>, new() where TItem : class, new()
+        {
+            return ToCollectionAsync<TList, TItem>(query, cmdParams?.Select(x=>(x.Key, x.Value)).ToArray(), columnToPropertyMap, converter, setter, maxRows, ct);
+        }
+
+        #endregion ToCollection
+
+        #region ToDataTable
+
+        /// <summary>
+        /// Выполняет SQL-запрос и преобразует результирующий набор данных в <see cref="DataTable"/>.
+        /// </summary>
+        /// <param name="con">
+        /// Подключение к базе данных, через которое будет выполняться запрос.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Не может быть <c>null</c> или пустой строкой.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса в виде кортежей (<c>имя</c>, <c>значение</c>).
+        /// Может быть <c>null</c>, если параметры не требуются.
+        /// </param>
+        /// <param name="columnMap">
+        /// Коллекция сопоставлений полей результата с именами столбцов DataTable:
+        /// (<c>имя столбца в базе</c>, <c>имя столбца в DataTable</c>).
+        /// Если <c>null</c>, используются имена из результата запроса.
+        /// </param>
+        /// <param name="maxRows">
+        /// Максимальное количество строк, которое необходимо загрузить.
+        /// Если значение <c>-1</c> (по умолчанию), загружаются все строки.
+        /// </param>
+        /// <returns>
+        /// Заполненный объект <see cref="DataTable"/>, содержащий строки результата запроса.
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// Генерируется, если параметр <paramref name="query"/> не указан.
+        /// </exception>
+        public DataTable ToDataTable(string query, object cmdParams,
+            IEnumerable<(string, string)> columnMap = null, int maxRows = -1)
+        {
+            return ToDataTable(query, GetParams(cmdParams), columnMap, maxRows);
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и преобразует результирующий набор данных в <see cref="DataTable"/>.
+        /// </summary>
+        /// <param name="con">
+        /// Подключение к базе данных, через которое будет выполняться запрос.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Не может быть <c>null</c> или пустой строкой.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса в виде кортежей (<c>имя</c>, <c>значение</c>).
+        /// Может быть <c>null</c>, если параметры не требуются.
+        /// </param>
+        /// <param name="columnMap">
+        /// Коллекция сопоставлений полей результата с именами столбцов DataTable:
+        /// (<c>имя столбца в базе</c>, <c>имя столбца в DataTable</c>).
+        /// Если <c>null</c>, используются имена из результата запроса.
+        /// </param>
+        /// <param name="maxRows">
+        /// Максимальное количество строк, которое необходимо загрузить.
+        /// Если значение <c>-1</c> (по умолчанию), загружаются все строки.
+        /// </param>
+        /// <returns>
+        /// Заполненный объект <see cref="DataTable"/>, содержащий строки результата запроса.
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// Генерируется, если параметр <paramref name="query"/> не указан.
+        /// </exception>
+        public DataTable ToDataTable(string query, IEnumerable<KeyValuePair<string, object>> cmdParams,
+            IEnumerable<(string, string)> columnMap = null, int maxRows = -1)
+        {
+            return  ToDataTable(query, cmdParams?.Select(x=>(x.Key, x.Value)).ToArray(), columnMap, maxRows);
+        }
+
+        /// <summary>
         /// Выполняет SQL-запрос и преобразует результирующий набор данных в <see cref="DataTable"/>.
         /// </summary>
         /// <param name="con">
@@ -1350,6 +1833,7 @@ namespace RuntimeStuff
 
                     using (var r = cmd.ExecuteReader())
                     {
+                        CommandExecuted?.Invoke(cmd);
                         var map = GetReaderFieldToPropertyMap(r, columnMap);
                         foreach (var kv in map)
                         {
@@ -1428,6 +1912,74 @@ namespace RuntimeStuff
         /// <exception cref="NullReferenceException">
         /// Генерируется, если параметр <paramref name="query"/> не указан.
         /// </exception>
+        public Task<DataTable> ToDataTableAsync(string query, object cmdParams,
+            IEnumerable<(string, string)> columnMap = null, int maxRows = -1)
+        {
+            return ToDataTableAsync(query, GetParams(cmdParams), columnMap, maxRows);
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и преобразует результирующий набор данных в <see cref="DataTable"/>.
+        /// </summary>
+        /// <param name="con">
+        /// Подключение к базе данных, через которое будет выполняться запрос.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Не может быть <c>null</c> или пустой строкой.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса в виде кортежей (<c>имя</c>, <c>значение</c>).
+        /// Может быть <c>null</c>, если параметры не требуются.
+        /// </param>
+        /// <param name="columnMap">
+        /// Коллекция сопоставлений полей результата с именами столбцов DataTable:
+        /// (<c>имя столбца в базе</c>, <c>имя столбца в DataTable</c>).
+        /// Если <c>null</c>, используются имена из результата запроса.
+        /// </param>
+        /// <param name="maxRows">
+        /// Максимальное количество строк, которое необходимо загрузить.
+        /// Если значение <c>-1</c> (по умолчанию), загружаются все строки.
+        /// </param>
+        /// <returns>
+        /// Заполненный объект <see cref="DataTable"/>, содержащий строки результата запроса.
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// Генерируется, если параметр <paramref name="query"/> не указан.
+        /// </exception>
+        public Task<DataTable> ToDataTableAsync(string query, IEnumerable<KeyValuePair<string, object>> cmdParams,
+            IEnumerable<(string, string)> columnMap = null, int maxRows = -1)
+        {
+            return ToDataTableAsync(query, cmdParams?.Select(x => (x.Key, x.Value)).ToArray(), columnMap, maxRows);
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и преобразует результирующий набор данных в <see cref="DataTable"/>.
+        /// </summary>
+        /// <param name="con">
+        /// Подключение к базе данных, через которое будет выполняться запрос.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Не может быть <c>null</c> или пустой строкой.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса в виде кортежей (<c>имя</c>, <c>значение</c>).
+        /// Может быть <c>null</c>, если параметры не требуются.
+        /// </param>
+        /// <param name="columnMap">
+        /// Коллекция сопоставлений полей результата с именами столбцов DataTable:
+        /// (<c>имя столбца в базе</c>, <c>имя столбца в DataTable</c>).
+        /// Если <c>null</c>, используются имена из результата запроса.
+        /// </param>
+        /// <param name="maxRows">
+        /// Максимальное количество строк, которое необходимо загрузить.
+        /// Если значение <c>-1</c> (по умолчанию), загружаются все строки.
+        /// </param>
+        /// <returns>
+        /// Заполненный объект <see cref="DataTable"/>, содержащий строки результата запроса.
+        /// </returns>
+        /// <exception cref="NullReferenceException">
+        /// Генерируется, если параметр <paramref name="query"/> не указан.
+        /// </exception>
         public async Task<DataTable> ToDataTableAsync(string query, IEnumerable<(string, object)> cmdParams = null, IEnumerable<(string, string)> columnMap = null, int maxRows = -1, CancellationToken token = default)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -1446,6 +1998,7 @@ namespace RuntimeStuff
 
                     using (var r = await dbCmd.ExecuteReaderAsync(token))
                     {
+                        CommandExecuted?.Invoke(cmd);
                         var map = GetReaderFieldToPropertyMap(r, columnMap);
                         foreach (var kv in map)
                         {
@@ -1494,6 +2047,48 @@ namespace RuntimeStuff
                     CloseConnection();
                 }
             }
+        }
+
+        #endregion ToDataTable
+
+        #region ToDictionary
+
+        /// <summary>
+        /// Выполняет SQL-запрос и преобразует результат в словарь <see cref="Dictionary{TKey, TValue}"/>,
+        /// используя первые два столбца результата, с поддержкой передачи параметров в виде
+        /// коллекции <see cref="KeyValuePair{String, Object}"/>.
+        /// </summary>
+        /// <typeparam name="TKey">
+        /// Тип ключа словаря. Значение первого столбца результата будет преобразовано в этот тип.
+        /// </typeparam>
+        /// <typeparam name="TValue">
+        /// Тип значения словаря. Значение второго столбца результата будет преобразовано в этот тип.
+        /// </typeparam>
+        /// <param name="con">
+        /// Подключение к базе данных <see cref="IDbConnection"/>.
+        /// Метод самостоятельно открывает и закрывает соединение.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос, который должен возвращать как минимум два столбца: ключ и значение.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса, где ключ — имя параметра, а значение — его значение.
+        /// Может быть <c>null</c>, если параметры не используются.
+        /// </param>
+        /// <returns>
+        /// Словарь <see cref="Dictionary{TKey, TValue}"/>, где ключи и значения получены
+        /// из первых двух колонок результата SQL-запроса.
+        /// </returns>
+        /// <exception cref="Exception">
+        /// Выбрасывается, если значение в первом столбце равно <c>null</c> или <see cref="DBNull.Value"/>.
+        /// </exception>
+        /// <remarks>
+        /// Метод является удобной перегрузкой, преобразующей коллекцию <see cref="KeyValuePair{String, Object}"/>
+        /// в массив кортежей <c>(string, object)</c> и передающей его основной реализации.
+        /// </remarks>
+        public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(string query, object cmdParams)
+        {
+            return ToDictionary<TKey, TValue>(query, GetParams(cmdParams));
         }
 
         /// <summary>
@@ -1583,7 +2178,7 @@ namespace RuntimeStuff
         /// </remarks>
         public Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(string query, params (string, object)[] cmdParams)
         {
-            using (var cmd = CreateCommand(Connection, query, null, cmdParams))
+            using (var cmd = CreateCommand(query, null, cmdParams))
             {
                 try
                 {
@@ -1593,6 +2188,7 @@ namespace RuntimeStuff
 
                     using (var r = cmd.ExecuteReader())
                     {
+                        CommandExecuted?.Invoke(cmd);
                         while (r.Read())
                         {
                             var rawKey = r.GetValue(0);
@@ -1621,6 +2217,44 @@ namespace RuntimeStuff
                     CloseConnection();
                 }
             }
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и преобразует результат в словарь <see cref="Dictionary{TKey, TValue}"/>,
+        /// используя первые два столбца результата, с поддержкой передачи параметров в виде
+        /// коллекции <see cref="KeyValuePair{String, Object}"/>.
+        /// </summary>
+        /// <typeparam name="TKey">
+        /// Тип ключа словаря. Значение первого столбца результата будет преобразовано в этот тип.
+        /// </typeparam>
+        /// <typeparam name="TValue">
+        /// Тип значения словаря. Значение второго столбца результата будет преобразовано в этот тип.
+        /// </typeparam>
+        /// <param name="con">
+        /// Подключение к базе данных <see cref="IDbConnection"/>.
+        /// Метод самостоятельно открывает и закрывает соединение.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос, который должен возвращать как минимум два столбца: ключ и значение.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса, где ключ — имя параметра, а значение — его значение.
+        /// Может быть <c>null</c>, если параметры не используются.
+        /// </param>
+        /// <returns>
+        /// Словарь <see cref="Dictionary{TKey, TValue}"/>, где ключи и значения получены
+        /// из первых двух колонок результата SQL-запроса.
+        /// </returns>
+        /// <exception cref="Exception">
+        /// Выбрасывается, если значение в первом столбце равно <c>null</c> или <see cref="DBNull.Value"/>.
+        /// </exception>
+        /// <remarks>
+        /// Метод является удобной перегрузкой, преобразующей коллекцию <see cref="KeyValuePair{String, Object}"/>
+        /// в массив кортежей <c>(string, object)</c> и передающей его основной реализации.
+        /// </remarks>
+        public Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(string query, object cmdParams)
+        {
+            return ToDictionaryAsync<TKey, TValue>(query, GetParams(cmdParams));
         }
 
         /// <summary>
@@ -1737,7 +2371,7 @@ namespace RuntimeStuff
         /// </remarks>
         public async Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(string query, IEnumerable<(string, object)> cmdParams = null, CancellationToken ct = default)
         {
-            using (var cmd = CreateCommand(Connection, query, null, cmdParams?.ToArray()))
+            using (var cmd = CreateCommand(query, null, cmdParams?.ToArray()))
             {
                 try
                 {
@@ -1748,6 +2382,7 @@ namespace RuntimeStuff
                     if (cmd is DbCommand dbcmd)
                         using (var r = await dbcmd.ExecuteReaderAsync(ct))
                         {
+                            CommandExecuted?.Invoke(cmd);
                             while (await r.ReadAsync(ct))
                             {
                                 var rawKey = r.GetValue(0);
@@ -1778,6 +2413,63 @@ namespace RuntimeStuff
                     CloseConnection();
                 }
             }
+        }
+
+        #endregion ToDictionary
+
+        #region ToList
+
+        /// <summary>
+        /// Выполняет SQL-запрос и преобразует результат в список объектов типа
+        /// <typeparamref name="T"/>, поддерживая передачу параметров и сопоставление колонок
+        /// через коллекции <see cref="KeyValuePair{String, Object}"/> и <see cref="KeyValuePair{String, String}"/>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объектов, создаваемых на основе строк результата запроса.
+        /// Должен быть ссылочным типом с публичным конструктором без параметров.
+        /// </typeparam>
+        /// <param name="con">
+        /// Подключение к базе данных <see cref="IDbConnection"/>.
+        /// Метод сам открывает и закрывает соединение.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос, который должен возвращать данные, используемые
+        /// для наполнения объектов типа <typeparamref name="T"/>.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров запроса, где ключ — имя параметра SQL,
+        /// а значение — объект значения параметра.
+        /// Может быть <c>null</c>, если параметры отсутствуют.
+        /// </param>
+        /// <param name="columnToPropertyMap">
+        /// Карта сопоставления: имя колонки → имя свойства объекта.
+        /// Используется, если имена колонок запроса не совпадают с именами свойств типа <typeparamref name="T"/>.
+        /// Может быть <c>null</c>.
+        /// </param>
+        /// <param name="converter">
+        /// Пользовательский преобразователь значений.
+        /// Если не указан, используется стандартный <c>DefaultConverter</c>.
+        /// </param>
+        /// <param name="setter">
+        /// Пользовательская логика установки значения свойства.
+        /// Если не указана — используется стандартная установка через <c>prop.SetValue()</c>.
+        /// </param>
+        /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
+        /// <returns>
+        /// Список объектов типа <typeparamref name="T"/>, созданных на основе строк результата запроса.
+        /// </returns>
+        /// <remarks>
+        /// Этот метод является перегрузкой, преобразующей параметры и карту колонок,
+        /// переданные в виде <see cref="KeyValuePair{String, Object}"/> и
+        /// <see cref="KeyValuePair{String, String}"/>, в последовательности кортежей
+        /// <c>(string, object)</c> и <c>(string, string)</c>, и передающей их основной реализации.
+        /// </remarks>
+        public List<T> ToList<T>(string query, object cmdParams,
+            IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null,
+            Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null,
+            int maxRows = -1) where T : class, new()
+        {
+            return ToList(query, GetParams(cmdParams), columnToPropertyMap, converter, setter, maxRows);
         }
 
         /// <summary>
@@ -1970,6 +2662,49 @@ namespace RuntimeStuff
         /// Этот метод является перегрузкой метода <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, TypeCache, T}, CancellationToken)"/>,
         /// преобразующей <see cref="KeyValuePair{String, Object}"/> параметры в кортежи <c>(string, object)</c> перед вызовом основной реализации.
         /// </remarks>
+        public Task<List<T>> ToListAsync<T>(string query, object cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
+        {
+            return ToListAsync<T>(query, GetParams(cmdParams), columnToPropertyMap, converter, setter, maxRows, ct);
+        }
+
+        /// <summary>
+        /// Асинхронно преобразует результат выполнения SQL-запроса в список объектов заданного типа <typeparamref name="T"/>,
+        /// используя коллекцию параметров в виде <see cref="KeyValuePair{String, Object}"/>.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов списка. Должен быть ссылочным типом и иметь публичный конструктор без параметров.</typeparam>
+        /// <param name="con">Объект подключения к базе данных <see cref="IDbConnection"/>. Метод автоматически открывает и закрывает соединение.</param>
+        /// <param name="query">
+        /// SQL-запрос для выполнения. Если значение <c>null</c> или пустое, будет автоматически сгенерирован SELECT-запрос для типа <typeparamref name="T"/>.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Коллекция параметров для SQL-запроса в виде <see cref="IEnumerable{KeyValuePair{String, Object}}"/>.
+        /// Если параметров нет, можно передать <c>null</c>.
+        /// </param>
+        /// <param name="columnToPropertyMap">
+        /// Коллекция сопоставлений между именами столбцов результата SQL-запроса и свойствами объекта <typeparamref name="T"/>.
+        /// Формат: <c>Key = имя столбца, Value = имя свойства</c>. Может быть <c>null</c>, если нужно сопоставление по имени.
+        /// </param>
+        /// <param name="converter">
+        /// Функция для преобразования значения столбца в тип свойства. Принимает исходное значение и <see cref="Type"/> целевого свойства, возвращает преобразованное значение.
+        /// Если <c>null</c>, используется стандартный <see cref="DbReaderValueConvertor"/>.
+        /// </param>
+        /// <param name="setter">
+        /// Действие для установки значения свойства объекта. Принимает:
+        /// <list type="bullet">
+        /// <item><description>имя столбца</description></item>
+        /// <item><description>значение столбца после конвертации</description></item>
+        /// <item><description>информацию о свойстве <see cref="MemberCache"/></description></item>
+        /// <item><description>объект, в который нужно установить значение</description></item>
+        /// </list>
+        /// Если <c>null</c>, используется стандартный setter, который вызывает <see cref="MemberCache.SetValue"/>.
+        /// </param>
+        /// <param name="maxRows">Максимальное количество строк для возврата, -1 - все</param>
+        /// <param name="ct">Токен отмены <see cref="CancellationToken"/> для асинхронной операции.</param>
+        /// <returns>Задача <see cref="Task"/> с результатом в виде списка <see cref="List{T}"/> объектов <typeparamref name="T"/>.</returns>
+        /// <remarks>
+        /// Этот метод является перегрузкой метода <see cref="ToListAsync{T}(IDbConnection, string, IEnumerable{(string, object)}, IEnumerable{(string, string)}, Func{object, Type, object}, Action{string, object, TypeCache, T}, CancellationToken)"/>,
+        /// преобразующей <see cref="KeyValuePair{String, Object}"/> параметры в кортежи <c>(string, object)</c> перед вызовом основной реализации.
+        /// </remarks>
         public Task<List<T>> ToListAsync<T>(string query, IEnumerable<KeyValuePair<string, object>> cmdParams, IEnumerable<KeyValuePair<string, string>> columnToPropertyMap = null, Func<object, Type, object> converter = null, Action<string, object, MemberCache, T> setter = null, int maxRows = -1, CancellationToken ct = default) where T : class, new()
         {
             return ToListAsync(query, cmdParams?.Select(x => (x.Key, x.Value)), columnToPropertyMap?.Select(x => (x.Key, x.Value)), converter, setter, maxRows, ct);
@@ -2052,6 +2787,10 @@ namespace RuntimeStuff
             return ToListAsync(query, null, (IEnumerable<(string, string)>)null, converter, setter, maxRows, token);
         }
 
+        #endregion ToList
+
+        #region Update
+
         /// <summary>
         /// Синхронно обновляет один объект, используя указанный набор обновляемых колонок.
         /// </summary>
@@ -2061,7 +2800,7 @@ namespace RuntimeStuff
         /// <param name="updateColumns">Массив обновляемых свойств.</param>
         public int Update<T>(T item, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] updateColumns) where T : class
         {
-            return Update(item, dbTransaction, updateColumns);
+            return Update(item, (Expression<Func<T, bool>>)null, updateColumns);
         }
 
         /// <summary>
@@ -2139,13 +2878,14 @@ namespace RuntimeStuff
                     var query = SqlQueryBuilder.GetUpdateQuery(updateColumns);
                     var typeCache = MemberCache.Create<T>();
                     var queryParams = new Dictionary<string, object>();
-                    using (var cmd = CreateCommand(Connection, query, dbTransaction))
+                    using (var cmd = CreateCommand(query, dbTransaction))
                     {
                         foreach (var item in list)
                         {
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
                             count += cmd.ExecuteNonQuery();
+                            CommandExecuted?.Invoke(cmd);
                         }
                     }
 
@@ -2186,7 +2926,7 @@ namespace RuntimeStuff
                     var query = SqlQueryBuilder.GetUpdateQuery(updateColumns);
                     var typeCache = MemberCache.Create<T>();
                     var queryParams = new Dictionary<string, object>();
-                    using (var cmd = CreateCommand(Connection, query, dbTransaction))
+                    using (var cmd = CreateCommand(query, dbTransaction))
                     {
                         if (!(cmd is DbCommand dbCmd))
                             throw new NullReferenceException(nameof(dbCmd));
@@ -2196,6 +2936,7 @@ namespace RuntimeStuff
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
                             count += await dbCmd.ExecuteNonQueryAsync(token);
+                            CommandExecuted?.Invoke(cmd);
                         }
                     }
 
@@ -2214,6 +2955,21 @@ namespace RuntimeStuff
                 CloseConnection();
             }
         }
+
+        #endregion Update
+
+        /// <summary>
+        /// Освобождает все ресурсы, используемые данным экземпляром класса.
+        /// </summary>
+        /// <remarks>Вызывайте этот метод, когда объект больше не нужен, чтобы явно освободить управляемые
+        /// и неуправляемые ресурсы. После вызова Dispose объект не должен использоваться повторно.</remarks>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #region Privates
 
         protected virtual void Dispose(bool disposing)
         {
@@ -2464,5 +3220,7 @@ namespace RuntimeStuff
 
             _tr.Value?.Rollback();
         }
+
+        #endregion Privates
     }
 }

@@ -51,6 +51,14 @@ namespace RuntimeStuff.Extensions
         public static MemberInfo GetMemberInfo(this Expression expr) => ExpressionHelper.GetMemberInfo(expr);
 
         /// <summary>
+        /// Возвращает кэш сведений о члене, представленном в заданном выражении.
+        /// </summary>
+        /// <param name="expr">Выражение, содержащее ссылку на член, для которого требуется получить кэш сведений. Не должно быть равно
+        /// null.</param>
+        /// <returns>Объект MemberCache, содержащий сведения о члене, извлечённом из выражения.</returns>
+        public static MemberCache GetMemberCache(this Expression expr) => ExpressionHelper.GetMemberCache(expr);
+
+        /// <summary>
         /// Возвращает имя свойства, представленного указанным выражением.
         /// </summary>
         /// <remarks>
