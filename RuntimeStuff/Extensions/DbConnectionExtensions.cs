@@ -442,7 +442,7 @@ namespace RuntimeStuff.Extensions
         /// в массив кортежей <c>(string, object)</c> и передающей его основной реализации.
         /// </remarks>
         public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IDbConnection con, string query,
-            IEnumerable<KeyValuePair<string, object>> cmdParams = null)
+            IEnumerable<KeyValuePair<string, object>> cmdParams)
             => DbClient.Create(con).ToDictionary<TKey, TValue>(query, cmdParams);
 
         /// <summary>
