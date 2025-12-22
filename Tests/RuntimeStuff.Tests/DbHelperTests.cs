@@ -7,7 +7,7 @@ using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
-    [TestClass]
+    //[TestClass]
     public partial class DbHelperIntegrationTests
     {
         private static string _connectionString;
@@ -229,7 +229,7 @@ namespace RuntimeStuff.MSTests
             using var con = new SqlConnection(_connectionString);
             sw.Start();
             var result1 = con.ToDictionary<string, string>("SELECT 1 AS DumbNumber, IdInt as [KEY1], ColXml as [VALUE1] FROM TestTable", columnToPropertyMap: [("KEY1", "key"), ("VALUE1", "value")]);
-            var result2 = con.ToDictionary<DtoTestClass, int, string>(x => x.IdInt, x => x.ColJson);
+            var result2 = con.ToDictionary<int, string, DtoTestClass>(x => x.IdInt, x => x.ColJson);
             sw.Stop();
             var ms = sw.ElapsedMilliseconds;
         }

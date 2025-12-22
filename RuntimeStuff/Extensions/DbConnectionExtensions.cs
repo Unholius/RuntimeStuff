@@ -850,7 +850,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="offsetRows">Количество пропускаемых строк</param>
         /// <param name="itemFactory">Фабрика для создания пар ключ-значение (опционально)</param>
         /// <returns>Словарь с результатами запроса</returns>
-        public static Dictionary<TKey, TValue> ToDictionary<TFrom, TKey, TValue>(this IDbConnection connection, Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
+        public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue, TFrom>(this IDbConnection connection, Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
             return connection.AsDbClient().ToDictionary(keySelector, valueSelector, whereExpression, fetchRows, offsetRows, itemFactory);
         }
@@ -869,7 +869,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="offsetRows">Количество пропускаемых строк</param>
         /// <param name="itemFactory">Фабрика для создания пар ключ-значение (опционально)</param>
         /// <returns>Задача, возвращающая словарь с результатами запроса</returns>
-        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TFrom, TKey, TValue>(this IDbConnection connection, Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
+        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue, TFrom>(this IDbConnection connection, Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
             return connection.AsDbClient().ToDictionaryAsync(keySelector, valueSelector, whereExpression, fetchRows, offsetRows, itemFactory);
         }

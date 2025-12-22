@@ -1000,7 +1000,7 @@ namespace RuntimeStuff
                 offsetRows, itemFactory).ConfigureAwait(ConfigureAwait)).ToDictionary(x => x.Key, x => x.Value);
         }
 
-        public Dictionary<TKey, TValue> ToDictionary<TFrom, TKey, TValue>(Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
+        public Dictionary<TKey, TValue> ToDictionary<TKey, TValue, TFrom>(Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, typeof(TFrom).GetMemberCache(), keySelector.GetMemberCache(), valueSelector.GetMemberCache()) + " " +
                          SqlQueryBuilder.GetWhereClause(whereExpression, Options)).Trim();
@@ -1009,7 +1009,7 @@ namespace RuntimeStuff
                 offsetRows, itemFactory).ToDictionary(x => x.Key, x => x.Value);
         }
 
-        public async Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TFrom, TKey, TValue>(Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
+        public async Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue, TFrom>(Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, typeof(TFrom).GetMemberCache(), keySelector.GetMemberCache(), valueSelector.GetMemberCache()) + " " +
                          SqlQueryBuilder.GetWhereClause(whereExpression, Options)).Trim();
