@@ -9,7 +9,7 @@ namespace RuntimeStuff.DI
     {
         public static IServiceCollection AddFilterBuilder(this IServiceCollection services)
         {
-            services.AddTransient<StringFilterBuilder>(sp =>
+            services.AddTransient(sp =>
             {
                 var options = sp.GetRequiredService<IOptions<FilterBuilderOptions>>().Value;
                 return new StringFilterBuilder(options);

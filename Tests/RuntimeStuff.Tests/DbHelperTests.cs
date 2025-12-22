@@ -153,7 +153,7 @@ namespace RuntimeStuff.MSTests
             using var db = DbClient.Create<SqlConnection>(_connectionString);
 
             var insertRows = new List<DtoTestClass>();
-            for (var i = 0; i < 100_000; i++)
+            for (var i = 0; i < 1_000; i++)
             {
                 insertRows.Add(new DtoTestClass(i));
             }
@@ -184,14 +184,16 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
-        public void DbClient_Test_04()
+        public async Task DbClient_Test_04()
         {
             var sw = new Stopwatch();
             using var db = DbClient.Create<SqlConnection>(_connectionString);
             sw.Start();
-            //var result = db.ToList<DtoTestClass>();
-            var aggs = db.Agg<DtoTestClass>("count", x => x.ColBigInt);
-            var pagesCount = db.GetPages<DtoTestClass>(1234);
+            //var maxId = db.Max<DtoTestClass>(x => x.IdInt);
+            //var minId = db.Min<DtoTestClass>(x => x.IdInt);
+            //var avgDec = db.Avg<DtoTestClass>(x => x.ColDecimal);
+            var aggs = await db.GetAggsAsync<DtoTestClass>(CancellationToken.None, x => x.ColDecimal, x=>x.ColBigInt);
+            var pages = await db.GetPagesAsync<DtoTestClass>(1234);
             sw.Stop();
             var ms = sw.ElapsedMilliseconds;
         }

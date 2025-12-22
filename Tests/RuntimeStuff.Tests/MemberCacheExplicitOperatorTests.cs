@@ -32,7 +32,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(property);
 
             // Act
-            PropertyInfo propertyInfo = (PropertyInfo)memberCache;
+            PropertyInfo propertyInfo = memberCache;
 
             // Assert
             Assert.IsNotNull(propertyInfo);
@@ -49,7 +49,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(field);
 
             // Act
-            PropertyInfo propertyInfo = (PropertyInfo)memberCache;
+            PropertyInfo propertyInfo = memberCache;
 
             // Assert - ожидается исключение
         }
@@ -81,7 +81,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(field);
 
             // Act
-            FieldInfo fieldInfo = (FieldInfo)memberCache;
+            FieldInfo fieldInfo = memberCache;
 
             // Assert
             Assert.IsNotNull(fieldInfo);
@@ -99,7 +99,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(property);
 
             // Act
-            FieldInfo fieldInfo = (FieldInfo)memberCache;
+            FieldInfo fieldInfo = memberCache;
 
             // Assert - ожидается исключение
         }
@@ -131,7 +131,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(method);
 
             // Act
-            MethodInfo methodInfo = (MethodInfo)memberCache;
+            MethodInfo methodInfo = memberCache;
 
             // Assert
             Assert.IsNotNull(methodInfo);
@@ -149,7 +149,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(property);
 
             // Act
-            MethodInfo methodInfo = (MethodInfo)memberCache;
+            MethodInfo methodInfo = memberCache;
 
             // Assert - ожидается исключение
         }
@@ -181,7 +181,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(eventInfo);
 
             // Act
-            EventInfo eventInfoResult = (EventInfo)memberCache;
+            EventInfo eventInfoResult = memberCache;
 
             // Assert
             Assert.IsNotNull(eventInfoResult);
@@ -198,7 +198,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(property);
 
             // Act
-            EventInfo eventInfo = (EventInfo)memberCache;
+            EventInfo eventInfo = memberCache;
 
             // Assert - ожидается исключение
         }
@@ -230,7 +230,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(constructor);
 
             // Act
-            ConstructorInfo constructorInfo = (ConstructorInfo)memberCache;
+            ConstructorInfo constructorInfo = memberCache;
 
             // Assert
             Assert.IsNotNull(constructorInfo);
@@ -246,7 +246,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(constructor);
 
             // Act
-            ConstructorInfo constructorInfo = (ConstructorInfo)memberCache;
+            ConstructorInfo constructorInfo = memberCache;
 
             // Assert
             Assert.IsNotNull(constructorInfo);
@@ -264,7 +264,7 @@ namespace RuntimeStuff.Tests
             var memberCache = MemberCache.Create(property);
 
             // Act
-            ConstructorInfo constructorInfo = (ConstructorInfo)memberCache;
+            ConstructorInfo constructorInfo = memberCache;
 
             // Assert - ожидается исключение
         }
@@ -333,15 +333,15 @@ namespace RuntimeStuff.Tests
             switch (memberCache.MemberType)
             {
                 case MemberTypes.Property:
-                    PropertyInfo propInfo = (PropertyInfo)memberCache;
+                    PropertyInfo propInfo = memberCache;
                     result = $"Property: {propInfo.Name}";
                     break;
                 case MemberTypes.Field:
-                    FieldInfo fieldInfo = (FieldInfo)memberCache;
+                    FieldInfo fieldInfo = memberCache;
                     result = $"Field: {fieldInfo.Name}";
                     break;
                 case MemberTypes.Method:
-                    MethodInfo methodInfo = (MethodInfo)memberCache;
+                    MethodInfo methodInfo = memberCache;
                     result = $"Method: {methodInfo.Name}";
                     break;
             }
@@ -359,7 +359,7 @@ namespace RuntimeStuff.Tests
             // Act & Assert
             Assert.ThrowsException<ArgumentNullException>(() =>
             {
-                PropertyInfo propertyInfo = (PropertyInfo)memberCache;
+                PropertyInfo propertyInfo = memberCache;
             });
         }
 
@@ -393,7 +393,7 @@ namespace RuntimeStuff.Tests
             {
                 // Если IsProperty == true, то приведение должно работать
                 Assert.IsTrue(member.IsProperty);
-                PropertyInfo propertyInfo = (PropertyInfo)member;
+                PropertyInfo propertyInfo = member;
                 Assert.IsNotNull(propertyInfo);
             }
 
@@ -404,7 +404,7 @@ namespace RuntimeStuff.Tests
                 Assert.IsFalse(member.IsProperty);
                 Assert.ThrowsException<InvalidCastException>(() =>
                 {
-                    PropertyInfo propertyInfo = (PropertyInfo)member;
+                    PropertyInfo propertyInfo = member;
                 });
             }
         }

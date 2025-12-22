@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Reflection;
 using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff.MSTests
@@ -594,6 +595,16 @@ namespace RuntimeStuff.MSTests
             Assert.IsNotNull(nameMember);
             Assert.AreEqual(1, idMember.GetValue(anonymousObject));
             Assert.AreEqual("Anonymous", nameMember.GetValue(anonymousObject));
+        }
+
+        public void Test_Implicit_Operators()
+        {
+            var mc = MemberCache.Create(typeof(SimpleClass));
+            PropInfo(mc);
+        }
+
+        private void PropInfo(PropertyInfo propertyInfo)
+        {
         }
 
         #region Вспомогательные классы для тестов

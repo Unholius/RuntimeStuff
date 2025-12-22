@@ -40,8 +40,8 @@ public class DtoTestClass
         ColUniqueIdentifier = Guid.NewGuid();
         ColXml = $"<root><value>{seed}</value></root>";
         ColJson = $"{{ \"value\": {seed} }}";
-        ColSqlVariant = seed % 2 == 0 ? (object)seed : (object)$"Str{seed}";
-        ColNullableInt = seed % 3 == 0 ? (int?)null : seed;
+        ColSqlVariant = seed % 2 == 0 ? seed : $"Str{seed}";
+        ColNullableInt = seed % 3 == 0 ? null : seed;
     }
 
     // Числовые типы

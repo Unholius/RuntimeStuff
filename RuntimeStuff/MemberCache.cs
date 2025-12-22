@@ -14,7 +14,7 @@ using RuntimeStuff.Helpers;
 namespace RuntimeStuff
 {
     /// <summary>
-    ///     v.2025.12.20 (RS) <br/>
+    ///     v.2025.12.22 (RS) <br/>
     ///     Представляет расширенную обёртку над <see cref="MemberInfo" />, предоставляющую унифицированный доступ к
     ///     дополнительной информации и операциям для членов типа .NET<br />
     ///     (свойств, методов, полей, событий, конструкторов и самих типов).
@@ -1743,7 +1743,7 @@ namespace RuntimeStuff
                    $".{namePrefix}{ColumnName}{nameSuffix}";
         }
 
-        public static explicit operator PropertyInfo(MemberCache mc)
+        public static implicit operator PropertyInfo(MemberCache mc)
         {
             if (mc == null)
                 throw new ArgumentNullException(nameof(mc));
@@ -1753,7 +1753,7 @@ namespace RuntimeStuff
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
         }
 
-        public static explicit operator FieldInfo(MemberCache mc)
+        public static implicit operator FieldInfo(MemberCache mc)
         {
             if (mc == null)
                 throw new ArgumentNullException(nameof(mc));
@@ -1763,7 +1763,7 @@ namespace RuntimeStuff
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
         }
 
-        public static explicit operator MethodInfo(MemberCache mc)
+        public static implicit operator MethodInfo(MemberCache mc)
         {
             if (mc == null)
                 throw new ArgumentNullException(nameof(mc));
@@ -1773,7 +1773,7 @@ namespace RuntimeStuff
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
         }
 
-        public static explicit operator EventInfo(MemberCache mc)
+        public static implicit operator EventInfo(MemberCache mc)
         {
             if (mc == null)
                 throw new ArgumentNullException(nameof(mc));
@@ -1783,7 +1783,7 @@ namespace RuntimeStuff
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
         }
 
-        public static explicit operator ConstructorInfo(MemberCache mc)
+        public static implicit operator ConstructorInfo(MemberCache mc)
         {
             if (mc == null)
                 throw new ArgumentNullException(nameof(mc));
@@ -1793,7 +1793,7 @@ namespace RuntimeStuff
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
         }
 
-        public static explicit operator Type(MemberCache mc)
+        public static implicit operator Type(MemberCache mc)
         {
             if (mc == null)
                 throw new ArgumentNullException(nameof(mc));
@@ -1910,7 +1910,7 @@ namespace RuntimeStuff
             var memberCache = MemberInfoCache.GetOrAdd(typeof(T), x => new MemberCache(typeof(T)));
             var result = MemberInfoCacheT.GetOrAdd(typeof(T), x => new MemberCache<T>(memberCache));
 
-            return (MemberCache<T>)result;
+            return result;
         }
     }
 }
