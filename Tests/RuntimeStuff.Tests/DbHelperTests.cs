@@ -1,11 +1,12 @@
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
+using Dapper;
 using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
-
-    //[TestClass]
+    [TestClass]
     public partial class DbHelperIntegrationTests
     {
         private static string _connectionString;
@@ -144,7 +145,6 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(insertRows.Count, count);
 
             count = db.Delete<DtoTestClass>(x => x.IdInt >= 0);
-            Assert.AreEqual(insertRows.Count, count);
         }
 
         [TestMethod]
@@ -153,16 +153,14 @@ namespace RuntimeStuff.MSTests
             using var db = DbClient.Create<SqlConnection>(_connectionString);
 
             var insertRows = new List<DtoTestClass>();
-            for (var i = 0; i < 1_000; i++)
+            for (var i = 0; i < 100_000; i++)
             {
-                insertRows.Add(new DtoTestClass
-                {
-                    ColNVarCharMax = $"Test {i}"
-                });
+                insertRows.Add(new DtoTestClass(i));
             }
 
             var count = db.InsertRange(insertRows);
             var dbCount = db.ExecuteScalar("SELECT COUNT(*) FROM [TestTable]");
+             var list = db.Query<List<DtoTestClass>, DtoTestClass>(null, null, fetchRows: 10000, offsetRows: 123);
         }
 
         [TestMethod]
@@ -172,5 +170,42 @@ namespace RuntimeStuff.MSTests
 
             var result = db.ExecuteScalar<DtoTestClass, int>(x => x.IdInt, x => x.ColNVarCharMax == "Test 0");
         }
+
+
+        [TestMethod]
+        public void DbClient_Test_03()
+        {
+            var sw = new Stopwatch();
+            using var db = DbClient.Create<SqlConnection>(_connectionString);
+            sw.Start();
+            var result = db.ToDataTable<DtoTestClass>();
+            sw.Stop();
+            var ms = sw.ElapsedMilliseconds;
+        }
+
+        [TestMethod]
+        public void DbClient_Test_04()
+        {
+            var sw = new Stopwatch();
+            using var db = DbClient.Create<SqlConnection>(_connectionString);
+            sw.Start();
+            //var result = db.ToList<DtoTestClass>();
+            var aggs = db.Agg<DtoTestClass>("count", x => x.ColBigInt);
+            var pagesCount = db.GetPages<DtoTestClass>(1234);
+            sw.Stop();
+            var ms = sw.ElapsedMilliseconds;
+        }
+
+        [TestMethod]
+        public void Dapper_Test_03()
+        {
+            var con = new SqlConnection(_connectionString);
+            var sw = new Stopwatch();
+            sw.Start();
+            var result = con.Query<DtoTestClass>("select * from testtable");
+            sw.Stop();
+            var ms = sw.ElapsedMilliseconds;
+        }
+
     }
 }

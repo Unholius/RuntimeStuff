@@ -1125,15 +1125,20 @@ namespace RuntimeStuff.Helpers
         /// var value = PropertyHelper.GetMemberValue(person, "Name"); // "Alice"
         /// </code>
         /// </summary>
-        public static object GetMemberValue(this object source, string propertyName, Type tryConvertToType = null, bool throwIfSourceIsNull = true)
+        public static object GetMemberValue(this object source, string propertyName, Type tryConvertToType = null, bool throwOnError = true)
         {
             if (source == null)
-                if (throwIfSourceIsNull)
+                if (throwOnError)
                     throw new ArgumentNullException(nameof(source));
                 else
                     return null;
 
             var getter = GetMemberGetter(propertyName, source.GetType());
+            if (getter == null)
+                return throwOnError
+                    ? new NullReferenceException(
+                        $"Своство {propertyName} отсутствует в типе {source.GetType().FullName}!")
+                    : null;
             return tryConvertToType != null
                 ? ChangeType(getter(source), tryConvertToType)
                 : getter(source);
@@ -1673,7 +1678,7 @@ namespace RuntimeStuff.Helpers
                 });
         }
 
-        private static Func<object[], object> CreateFactory(ConstructorInfo ctor)
+        public static Func<object[], object> CreateFactory(ConstructorInfo ctor)
         {
             var argsParam = Expression.Parameter(typeof(object[]), "args");
 

@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff.MSTests
 {
@@ -503,7 +504,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(SimpleClass);
 
             // Act
-            var instance = MemberCache.CreateInstance<SimpleClass>(type);
+            var instance = TypeHelper.New<SimpleClass>(type);
 
             // Assert
             Assert.IsNotNull(instance);
@@ -517,7 +518,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(TestClassWithConstructor);
 
             // Act
-            var instance = (TestClassWithConstructor)MemberCache.CreateInstance(type, "Test", 42);
+            var instance = (TestClassWithConstructor)MemberCache.New(type, "Test", 42);
 
             // Assert
             Assert.IsNotNull(instance);

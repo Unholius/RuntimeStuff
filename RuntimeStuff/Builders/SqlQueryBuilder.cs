@@ -178,7 +178,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Строка, содержащая сформированный SQL-запрос SELECT с указанными столбцами.</returns>
         public static string GetSelectQuery<T, TProp>(params Expression<Func<T, TProp>>[] selectColumns)
         {
-            return GetSelectQuery("[", "]", MemberCache.Create<T>(), selectColumns.Select(x=>x.GetMemberCache()).ToArray());
+            return GetSelectQuery("[", "]", MemberCache<T>.Create(), selectColumns.Select(x=>x.GetMemberCache()).ToArray());
         }
 
         /// <summary>
@@ -206,7 +206,7 @@ namespace RuntimeStuff.Builders
         /// </remarks>
         public static string GetSelectQuery<T>(string namePrefix, string nameSuffix, params Expression<Func<T, object>>[] selectColumns)
         {
-            var mi = MemberCache.Create<T>();
+            var mi = MemberCache<T>.Create();
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x=>x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
             if (members.Length == 0)
                 members = mi.ColumnProperties.Values.ToArray().Concat(mi.PrimaryKeys.Values).ToArray();
@@ -352,7 +352,7 @@ namespace RuntimeStuff.Builders
         public static string GetInsertQuery<T>(string namePrefix, string nameSuffix, string paramPrefix, params Expression<Func<T, object>>[] insertColumns) where T : class
         {
             var query = new StringBuilder("INSERT INTO ");
-            var mi = MemberCache.Create<T>();
+            var mi = MemberCache<T>.Create();
             query
                 .Append(mi.GetFullTableName(namePrefix, nameSuffix))
                 .Append(" (");
@@ -427,7 +427,7 @@ namespace RuntimeStuff.Builders
         /// </remarks>
         public static string GetDeleteQuery<T>(string namePrefix, string nameSuffix) where T : class
         {
-            var mi = MemberCache.Create<T>();
+            var mi = MemberCache<T>.Create();
             var query = new StringBuilder("DELETE FROM ").Append(mi.GetFullTableName(namePrefix, nameSuffix));
             return query.ToString();
         }
@@ -516,6 +516,103 @@ namespace RuntimeStuff.Builders
                 query.Remove(query.Length - 2, 2);
 
             return query.ToString();
+        }
+
+        /// <summary>
+        /// Позволяет переопределить шаблон SQL-фрагмента
+        /// для постраничного ограничения выборки (OFFSET / FETCH).
+        /// </summary>
+        /// <remarks>
+        /// Если значение не задано, используется стандартный шаблон:
+        /// <c>OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY</c>.
+        /// <para/>
+        /// Параметры форматирования:
+        /// <list type="bullet">
+        /// <item><description><c>{0}</c> — количество пропускаемых строк (offset)</description></item>
+        /// <item><description><c>{1}</c> — количество выбираемых строк (fetch)</description></item>
+        /// </list>
+        /// </remarks>
+        public static string OverrideOffsetRowsTemplate { get; set; }
+
+        /// <summary>
+        /// Формирует SQL-фрагмент ограничения выборки с учётом
+        /// типа подключения и наличия сортировки.
+        /// </summary>
+        /// <param name="fetchRows">
+        /// Количество строк, которые необходимо выбрать.
+        /// </param>
+        /// <param name="offsetRows">
+        /// Количество строк, которые необходимо пропустить.
+        /// </param>
+        /// <param name="query">
+        /// Исходный SQL-запрос. Используется для определения,
+        /// присутствует ли в нём предложение <c>ORDER BY</c>.
+        /// </param>
+        /// <param name="connectionType">
+        /// Тип подключения к базе данных, используемый для выбора
+        /// диалекта SQL (например, MySQL или SQL Server).
+        /// </param>
+        /// <param name="entityType">
+        /// Тип сущности, на основе которого может быть автоматически
+        /// сформировано предложение <c>ORDER BY</c>.
+        /// </param>
+        /// <param name="namePrefix">Префикс для имени колонки</param>
+        /// <param name="nameSuffix">Суффикс для имени колонки</param>
+        /// <returns>
+        /// SQL-фрагмент с предложением <c>ORDER BY</c> (при необходимости)
+        /// и ограничением выборки (<c>OFFSET</c>/<c>FETCH</c> или <c>LIMIT</c>).
+        /// </returns>
+        /// <remarks>
+        /// Если в исходном запросе отсутствует предложение <c>ORDER BY</c>,
+        /// оно будет автоматически добавлено на основе первичных ключей
+        /// или всех колонок сущности, определяемых через
+        /// <see cref="MemberCache"/>.
+        /// <para/>
+        /// Для типа подключения <c>MySqlConnection</c> используется
+        /// синтаксис <c>LIMIT {fetch} OFFSET {offset}</c>.
+        /// Для остальных типов применяется стандартный шаблон
+        /// или значение <see cref="OverrideOffsetRowsTemplate"/>, если оно задано.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Может быть выброшено, если <paramref name="entityType"/> равен
+        /// <see langword="null"/> и требуется автоматическое формирование
+        /// предложения <c>ORDER BY</c>.
+        /// </exception>
+        public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, Type connectionType = null, Type entityType = null, string namePrefix="[", string nameSuffix="]")
+        {
+            if (fetchRows < 0 || offsetRows < 0)
+                return query;
+
+            var offsetRowsFetchNextRowsOnly =
+                OverrideOffsetRowsTemplate ?? "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
+
+            var clause = new StringBuilder(query);
+
+            switch (connectionType?.Name.ToLower())
+            {
+                case "mysqlconnection":
+                    offsetRowsFetchNextRowsOnly = "LIMIT {1} OFFSET {0}";
+                    break;
+            }
+
+            if (query?.Contains("ORDER BY", StringComparison.OrdinalIgnoreCase) != true)
+            {
+                var mi = MemberCache.Create(entityType);
+
+                clause.Append(" ORDER BY ");
+                clause.Append(string.Join(", ",
+                    mi.PrimaryKeys.Count > 0
+                        ? mi.PrimaryKeys.Values.Select(x => namePrefix + x.ColumnName + nameSuffix)
+                        : mi.ColumnProperties.Values.Select(x => namePrefix + x.ColumnName + nameSuffix)));
+                clause.Append(" ");
+            }
+
+            clause.Append(string.Format(
+                offsetRowsFetchNextRowsOnly,
+                offsetRows,
+                fetchRows));
+
+            return clause.ToString().Trim();
         }
 
         #region PRIVATE
