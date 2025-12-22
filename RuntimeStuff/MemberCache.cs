@@ -773,6 +773,11 @@ namespace RuntimeStuff
         public Dictionary<string, MemberCache> Properties { get; }
 
         /// <summary>
+        /// Все доступные конструкторы
+        /// </summary>
+        public ConstructorInfo[] Constructors => GetConstructors();
+
+        /// <summary>
         ///     Тип, через который был получен этот член
         /// </summary>
         public override Type ReflectedType => MemberInfo.ReflectedType;
@@ -1068,14 +1073,22 @@ namespace RuntimeStuff
                     return c;
                 var pNoDef = c.GetParameters().Where(p => !p.HasDefaultValue).ToArray();
 
-                if (pNoDef.Length == ctorArgs.Length && All(ctorArgs, (_, i) =>
-                        TypeHelper.IsImplements(args[i]?.GetType(), pNoDef[i].ParameterType)))
+                if (pNoDef.Length == ctorArgs.Length && All(ctorArgs, (_, i) => TypeHelper.IsImplements(args[i]?.GetType(), pNoDef[i].ParameterType)))
                 {
                     Array.Resize(ref ctorArgs, pAll.Length);
                     for (var i = pNoDef.Length; i < pAll.Length; i++)
                         ctorArgs[i] = pAll[i].DefaultValue;
                     return c;
                 }
+            }
+
+
+            var ctor = Constructors.FirstOrDefault(x => x.GetParameters().Length == args.Length);
+            if (ctor != null)
+            {
+                var ctorParameters = ctor.GetParameters();
+                ctorArgs = ctorParameters.Select((x, i) => TypeHelper.ChangeType(args[i], x.ParameterType)).ToArray();
+                return ctor;
             }
 
             return null;
@@ -1117,6 +1130,28 @@ namespace RuntimeStuff
         public object New()
         {
             return IsBasic ? TypeHelper.Default(Type) : DefaultConstructor();
+        }
+
+        /// <summary>
+        ///     Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
+        /// </summary>
+        /// <param name="type">Тип, экземпляр которого нужно создать.</param>
+        /// <param name="ctorArgs">Аргументы конструктора.</param>
+        /// <returns>Созданный экземпляр указанного типа.</returns>
+        public object New(params object[] ctorArgs)
+        {
+            return MemberCache.New(typeof(Type), ctorArgs);
+        }
+
+        /// <summary>
+        ///     Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
+        /// </summary>
+        /// <param name="type">Тип, экземпляр которого нужно создать.</param>
+        /// <param name="ctorArgs">Аргументы конструктора.</param>
+        /// <returns>Созданный экземпляр указанного типа.</returns>
+        public T New<T>(params object[] ctorArgs)
+        {
+            return TypeHelper.ChangeType<T>(MemberCache.New(Type, ctorArgs));
         }
 
         /// <summary>
@@ -1181,6 +1216,7 @@ namespace RuntimeStuff
                 }
 
             var ctor = typeInfo.GetConstructorByArgs(ref ctorArgs);
+
 
             if (ctor == null && type.IsValueType)
                 return TypeHelper.Default(type);
@@ -1620,7 +1656,7 @@ namespace RuntimeStuff
             if (_constructors != null)
                 return _constructors;
 
-            _constructors = _type.GetConstructors(DefaultBindingFlags);
+            _constructors = _type.GetConstructors(DefaultBindingFlags).OrderBy(c => c.GetParameters().Length).ToArray();
             return _constructors;
         }
 
@@ -1894,16 +1930,16 @@ namespace RuntimeStuff
 
         public MemberCache() : base(typeof(T))
         {
-            New = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
+            DefaultConstructor = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
         }
 
         public MemberCache(MemberInfo memberInfo) : base(memberInfo)
         {
-            New = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
+            DefaultConstructor = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
         }
 
         private T DefaultValue { get; }
-        public new Func<T> New { get; }
+        public new Func<T> DefaultConstructor { get; }
 
         public static MemberCache<T> Create()
         {

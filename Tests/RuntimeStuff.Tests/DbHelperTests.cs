@@ -2,6 +2,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using Dapper;
+using RuntimeStuff.Extensions;
 using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
@@ -199,6 +200,41 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
+        public async Task DbClient_ToDictionary_Test_01()
+        {
+            Func<object[], string[], KeyValuePair<string, string>> itemFactory = (objs, names) =>
+            {
+                return new KeyValuePair<string, string>(
+                    objs[1]?.ToString() ?? string.Empty,
+                    objs[2]?.ToString() ?? string.Empty);
+            };
+            var sw = new Stopwatch();
+            using var db = DbClient.Create<SqlConnection>(_connectionString);
+            sw.Start();
+            var result = await db.ToListAsync<KeyValuePair<string, string>>("SELECT 1 AS DumbNumber, IdInt as [KEY1], ColXml as [VALUE1] FROM TestTable", columnToPropertyMap: [("KEY1", "key"), ("VALUE1","value")]);
+            sw.Stop();
+            var ms = sw.ElapsedMilliseconds;
+        }
+
+        [TestMethod]
+        public void DbClient_ToDictionary_Test_02()
+        {
+            Func<object[], string[], KeyValuePair<string, string>> itemFactory = (objs, names) =>
+            {
+                return new KeyValuePair<string, string>(
+                    objs[1]?.ToString() ?? string.Empty,
+                    objs[2]?.ToString() ?? string.Empty);
+            };
+            var sw = new Stopwatch();
+            using var con = new SqlConnection(_connectionString);
+            sw.Start();
+            var result1 = con.ToDictionary<string, string>("SELECT 1 AS DumbNumber, IdInt as [KEY1], ColXml as [VALUE1] FROM TestTable", columnToPropertyMap: [("KEY1", "key"), ("VALUE1", "value")]);
+            var result2 = con.ToDictionary<DtoTestClass, int, string>(x => x.IdInt, x => x.ColJson);
+            sw.Stop();
+            var ms = sw.ElapsedMilliseconds;
+        }
+
+        [TestMethod]
         public void Dapper_Test_03()
         {
             var con = new SqlConnection(_connectionString);
@@ -208,6 +244,5 @@ namespace RuntimeStuff.MSTests
             sw.Stop();
             var ms = sw.ElapsedMilliseconds;
         }
-
     }
 }
