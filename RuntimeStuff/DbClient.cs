@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -713,29 +714,38 @@ namespace RuntimeStuff
             var parameters = new Dictionary<string, object>();
             if (cmdParams == null)
                 return parameters;
-
+            var memberCache = MemberCache.Create(cmdParams.GetType());
             switch (cmdParams)
             {
-                case IEnumerable<(string, object)> tuple:
-                    parameters = propertyNames?.Any() == true
-                        ? tuple.Where(x => propertyNames.Contains(x.Item1)).ToDictionary(x => x.Item1, x => x.Item2)
-                        : tuple.ToDictionary(x => x.Item1, x => x.Item2);
+                case KeyValuePair<string, object> kvp:
                     break;
 
-                case Dictionary<string, object> dic:
-                    parameters = propertyNames?.Any() == true
-                        ? dic.Where(x => propertyNames.Contains(x.Key)).ToDictionary(x => x.Key, x => x.Value)
-                        : dic;
-                    break;
-
-                case IEnumerable<KeyValuePair<string, object>> kvp:
-                    parameters = propertyNames?.Any() == true
-                        ? kvp.Where(x => propertyNames.Contains(x.Key)).ToDictionary(x => x.Key, x => x.Value)
-                        : kvp.ToDictionary(x => x.Key, x => x.Value);
+                case IEnumerable e:
+                {
+                    memberCache = MemberCache.Create(memberCache.ElementType);
+                    var key = memberCache.GetMember("Key", MemberNameType.Name) ?? memberCache.GetMember("Item1", MemberNameType.Name);
+                    var val = memberCache.GetMember("Value", MemberNameType.Name) ?? memberCache.GetMember("Item2", MemberNameType.Name);
+                    foreach (var i in e)
+                    {
+                        parameters[key.GetValue<string>(i)] = val.GetValue(i);
+                    }
+                }
                     break;
 
                 default:
-                    parameters = MemberCache.Create(cmdParams.GetType()).ToDictionary(cmdParams, propertyNames);
+                {
+                    if (memberCache.IsTuple)
+                    {
+                        var key = memberCache.GetMember("Key", MemberNameType.Name) ?? memberCache.GetMember("Item1", MemberNameType.Name);
+                        var val = memberCache.GetMember("Value", MemberNameType.Name) ?? memberCache.GetMember("Item2", MemberNameType.Name);
+
+                        parameters[key.GetValue<string>(cmdParams)] = val.GetValue(cmdParams);
+                    }
+                    else
+                    {
+                        parameters = memberCache.ToDictionary(cmdParams, propertyNames);
+                    }
+                }
                     break;
             }
 
