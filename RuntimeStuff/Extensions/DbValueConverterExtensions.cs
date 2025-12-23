@@ -50,6 +50,11 @@ namespace RuntimeStuff.Extensions
             return (f, v, p, item) => converter(f, v, p, item);
         }
 
+        public static DbClient.DbValueConverter<T> ToTypedConverter<T>(this Func<string, object, PropertyInfo, object, object> converter)
+        {
+            return (f, v, p, item) => converter(f, v, p, item);
+        }
+
         /// <summary>
         /// Преобразует универсальную функцию в делегат
         /// <see cref="DbClient.DbValueConverter"/>.

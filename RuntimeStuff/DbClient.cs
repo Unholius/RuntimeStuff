@@ -68,6 +68,8 @@ namespace RuntimeStuff
         public delegate object DbValueConverter<in T>(string fieldName, object fieldValue, PropertyInfo propertyInfo,
             T item);
 
+        public static DbValueConverter TrimStringSpaces = (name, value, info, item) => value is string s ? s.Trim(new char[] { '\uFEFF', '\u200B', ' ', '\r', '\n', '\t' }) : value;
+
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
 
         private static readonly Cache<IDbConnection, DbClient> ClientCache =
