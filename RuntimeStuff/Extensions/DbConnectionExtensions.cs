@@ -34,6 +34,31 @@ namespace RuntimeStuff.Extensions
             return DbClient.Create(connection);
         }
 
+        /// <summary>
+        /// Открыть соединение
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
+        public static IDbConnection OpenConnection(this IDbConnection connection)
+        {
+            if (connection == null)
+                throw new ArgumentNullException(nameof(connection));
+
+            try
+            {
+                if (connection.State == ConnectionState.Broken) connection.Close();
+
+                if (connection.State != ConnectionState.Open) connection.Open();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Не удалось открыть соединение с базой данных.", ex);
+            }
+            return connection;
+        }
+
         #region Insert
 
         /// <summary>
