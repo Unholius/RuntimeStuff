@@ -623,6 +623,61 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Возвращает делегат, позволяющий установить значение указанного поля или свойства объекта типа <typeparamref
+        /// name="T"/> по имени члена.
+        /// </summary>
+        /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
+        /// значение будет <see langword="null"/>. Делегат использует отражение и может иметь меньшую производительность
+        /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
+        /// <typeparam name="T">Тип объекта, для которого требуется получить установщик члена.</typeparam>
+        /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
+        /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
+        /// типа <typeparamref name="T"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
+        /// не поддерживает установку значения.</returns>
+        public static Action<object, object> GetMemberSetter<T>(string memberName)
+        {
+            var member = FindMember(typeof(T), memberName);
+            switch (member)
+            {
+                case FieldInfo fi:
+                    return FieldSetterCache.Get(fi);
+                    break;
+
+                case PropertyInfo pi:
+                    return PropertySetterCache.Get(pi);
+                    break;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Возвращает делегат, позволяющий получить значение указанного поля или свойства объекта заданного типа по
+        /// имени.
+        /// </summary>
+        /// <remarks>Если указанный член не существует или не поддерживается для чтения, возвращаемое
+        /// значение будет null. Метод поддерживает все поля и свойства. Делегат не выполняет проверку
+        /// типов во время выполнения; некорректное использование может привести к исключениям.</remarks>
+        /// <typeparam name="T">Тип объекта, содержащего поле или свойство, к которому требуется получить доступ.</typeparam>
+        /// <param name="memberName">Имя поля или свойства, значение которого необходимо получить. Не может быть null или пустой строкой.</param>
+        /// <returns>Делегат, принимающий объект типа <typeparamref name="T"/> и возвращающий значение указанного поля или
+        /// свойства. Возвращает null, если член с заданным именем не найден.</returns>
+        public static Func<object, object> GetMemberGetter<T>(string memberName)
+        {
+            var member = FindMember(typeof(T), memberName);
+            switch (member)
+            {
+                case FieldInfo fi:
+                    return FieldGetterCache.Get(fi);
+                    break;
+
+                case PropertyInfo pi:
+                    return PropertyGetterCache.Get(pi);
+                    break;
+            }
+            return null;
+        }
+
+        /// <summary>
         ///     Возвращает отображение имён полей указанного типа на объекты <see cref="FieldInfo" />.
         /// </summary>
         /// <param name="type">Тип, поля которого требуется получить.</param>
