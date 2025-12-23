@@ -9,102 +9,38 @@ using RuntimeStuff.Helpers;
 namespace RuntimeStuff.Extensions
 {
     /// <summary>
-    /// Предоставляет методы расширения для работы с последовательностями <see cref="IEnumerable{T}"/>,
-    /// включая итерацию, объединение, сортировку, преобразование иерархических данных,
-    /// поиск индексов элементов и проверку условий для элементов.
+    ///     Предоставляет методы расширения для работы с последовательностями <see cref="IEnumerable{T}" />,
+    ///     включая итерацию, объединение, сортировку, преобразование иерархических данных,
+    ///     поиск индексов элементов и проверку условий для элементов.
     /// </summary>
     /// <remarks>
-    /// Эти методы расширяют возможности LINQ и операций с коллекциями, предоставляя дополнительный функционал,
-    /// такой как сортировка по свойствам, иерархическое "сплющивание" данных и предикаты на основе индексов.
-    /// Все методы являются статическими и предназначены для использования в качестве методов расширения
-    /// для типов, реализующих IEnumerable.
-    /// Потокобезопасность зависит от используемой коллекции и переданных делегатов.
-    /// Передача null в качестве аргументов может вызвать исключения; подробности см. в документации к каждому методу.
+    ///     Эти методы расширяют возможности LINQ и операций с коллекциями, предоставляя дополнительный функционал,
+    ///     такой как сортировка по свойствам, иерархическое "сплющивание" данных и предикаты на основе индексов.
+    ///     Все методы являются статическими и предназначены для использования в качестве методов расширения
+    ///     для типов, реализующих IEnumerable.
+    ///     Потокобезопасность зависит от используемой коллекции и переданных делегатов.
+    ///     Передача null в качестве аргументов может вызвать исключения; подробности см. в документации к каждому методу.
     /// </remarks>
     public static class EnumerableExtensions
     {
         /// <summary>
-        /// Выполняет указанное действие для каждого элемента последовательности
-        /// и возвращает исходную последовательность.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип элементов последовательности.
-        /// </typeparam>
-        /// <param name="source">
-        /// Исходная последовательность элементов.
-        /// </param>
-        /// <param name="action">
-        /// Действие, выполняемое для каждого элемента последовательности.
-        /// </param>
-        /// <returns>
-        /// Исходная последовательность <paramref name="source"/>,
-        /// что позволяет использовать метод в цепочках вызовов.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="source"/> или <paramref name="action"/> равны <c>null</c>.
-        /// </exception>
-        public static IEnumerable<T> ForEach<T>(this IEnumerable<T> source, Action<T> action)
-        {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (action == null) throw new ArgumentNullException(nameof(action));
-            foreach (var item in source) action(item);
-            return source;
-        }
-
-        /// <summary>
-        /// Преобразует элементы последовательности в строку, соединяя их
-        /// с использованием указанного разделителя.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип элементов последовательности.
-        /// </typeparam>
-        /// <param name="source">
-        /// Последовательность элементов, которые будут объединены в строку.
-        /// </param>
-        /// <param name="separator">
-        /// Разделитель, который будет использоваться между элементами строки.
-        /// По умолчанию используется запятая и пробел (<c>", "</c>).
-        /// </param>
-        /// <returns>
-        /// Строка, содержащая элементы последовательности, разделённые указанным разделителем.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="source"/> равна <c>null</c>.
-        /// </exception>
-        public static string ToJoinedString<T>(this IEnumerable<T> source, string separator = ", ")
-        {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            var sb = new StringBuilder();
-            var first = true;
-            foreach (var item in source)
-            {
-                if (!first)
-                    sb.Append(separator);
-                sb.Append(item);
-                first = false;
-            }
-
-            return sb.ToString();
-        }
-
-        /// <summary>
-        /// Добавляет элемент в коллекцию.
+        ///     Добавляет элемент в коллекцию.
         /// </summary>
         /// <param name="e">
-        /// Коллекция, в которую необходимо добавить элемент.
+        ///     Коллекция, в которую необходимо добавить элемент.
         /// </param>
         /// <param name="item">
-        /// Добавляемый элемент.
+        ///     Добавляемый элемент.
         /// </param>
         /// <param name="index">
-        /// Индекс, по которому необходимо вставить элемент.
-        /// Если значение равно <c>-1</c>, элемент добавляется в конец коллекции.
+        ///     Индекс, по которому необходимо вставить элемент.
+        ///     Если значение равно <c>-1</c>, элемент добавляется в конец коллекции.
         /// </param>
         /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="e"/> равен <c>null</c>.
+        ///     Выбрасывается, если <paramref name="e" /> равен <c>null</c>.
         /// </exception>
         /// <exception cref="InvalidOperationException">
-        /// Выбрасывается, если коллекция не поддерживает добавление элементов.
+        ///     Выбрасывается, если коллекция не поддерживает добавление элементов.
         /// </exception>
         public static void Add(this IEnumerable e, object item, int index = -1)
         {
@@ -114,24 +50,16 @@ namespace RuntimeStuff.Extensions
             if (e is IList list)
             {
                 if (index == -1)
-                {
                     list.Add(item);
-                }
                 else
-                {
                     list.Insert(index, item);
-                }
             }
             else if (e is IList<object> genericList)
             {
                 if (index == -1)
-                {
                     genericList.Add(item);
-                }
                 else
-                {
                     genericList.Insert(index, item);
-                }
             }
             else
             {
@@ -140,16 +68,39 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
-        /// Удаляет все элементы из коллекции.
+        ///     Определяет, удовлетворяют ли все элементы коллекции условию.
+        /// </summary>
+        /// <typeparam name="TSource">Тип элементов коллекции.</typeparam>
+        /// <param name="source">Исходная коллекция.</param>
+        /// <param name="predicate">Функция условия, принимающая элемент и его индекс.</param>
+        /// <returns>True, если все элементы удовлетворяют условию; иначе — false.</returns>
+        public static bool All<TSource>(this IEnumerable<TSource> source, Func<TSource, int, bool> predicate)
+        {
+            if (source == null) throw new NullReferenceException("source");
+
+            if (predicate == null) throw new NullReferenceException("predicate");
+
+            var i = 0;
+            foreach (var item in source)
+            {
+                if (!predicate(item, i)) return false;
+                i++;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        ///     Удаляет все элементы из коллекции.
         /// </summary>
         /// <param name="e">
-        /// Коллекция, которую необходимо очистить.
+        ///     Коллекция, которую необходимо очистить.
         /// </param>
         /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="e"/> равен <c>null</c>.
+        ///     Выбрасывается, если <paramref name="e" /> равен <c>null</c>.
         /// </exception>
         /// <exception cref="InvalidOperationException">
-        /// Выбрасывается, если коллекция не поддерживает операцию очистки.
+        ///     Выбрасывается, если коллекция не поддерживает операцию очистки.
         /// </exception>
         public static void Clear(this IEnumerable e)
         {
@@ -172,21 +123,41 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
-        ///     Сортирует последовательность по указанным свойствам в заданном порядке.
+        ///     Определяет, содержит ли последовательность элемент, удовлетворяющий указанному условию.
         /// </summary>
-        /// <typeparam name="T">Тип элементов последовательности.</typeparam>
-        /// <param name="source">Исходная коллекция.</param>
-        /// <param name="order">Порядок сортировки.</param>
-        /// <param name="propertyNames">Имена свойств для сортировки.</param>
-        /// <returns>Отсортированная коллекция.</returns>
-        public static IOrderedEnumerable<T> Sort<T>(this IEnumerable<T> source, ListSortDirection order, params string[] propertyNames) where T : class
+        /// <remarks>
+        ///     Если параметр <paramref name="match" /> равен null, будет выброшено исключение
+        ///     <see
+        ///         cref="ArgumentNullException" />
+        ///     . Метод перебирает все элементы последовательности до первого
+        ///     совпадения.
+        /// </remarks>
+        /// <typeparam name="T">Тип элементов в последовательности.</typeparam>
+        /// <param name="e">Последовательность элементов, в которой выполняется поиск.</param>
+        /// <param name="match">Функция условия, определяющая, какой элемент считается подходящим. Не должна быть равна null.</param>
+        /// <returns>
+        ///     Значение <see langword="true" />, если хотя бы один элемент последовательности удовлетворяет условию; в противном
+        ///     случае — <see langword="false" />.
+        /// </returns>
+        public static bool Contains<T>(this IEnumerable<T> e, Func<T, bool> match)
         {
-            return SortHelper.Sort(source, order, propertyNames);
+            return e.FirstOrDefault(match) != null;
         }
 
-        public static IOrderedEnumerable<T> Sort<T>(this IEnumerable<T> source, ListSortDescriptionCollection sortDescription) where T : class
+        /// <summary>
+        ///     Возвращает уникальные элементы последовательности по заданному ключу.
+        ///     Аналог LINQ DistinctBy из .NET 6+.
+        /// </summary>
+        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
         {
-            return SortHelper.Sort(source, sortDescription);
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (keySelector == null) throw new ArgumentNullException(nameof(keySelector));
+
+            var seenKeys = new HashSet<TKey>();
+
+            foreach (var element in source)
+                if (seenKeys.Add(keySelector(element)))
+                    yield return element;
         }
 
         public static IEnumerable<T> Filter<T>(this IEnumerable<T> source, string filterExpression) where T : class
@@ -197,42 +168,6 @@ namespace RuntimeStuff.Extensions
         public static IEnumerable<T> FilterByText<T>(this IEnumerable<T> source, string text) where T : class
         {
             return FilterHelper.FilterByText(source, text);
-        }
-
-        /// <summary>
-        ///     Сортирует последовательность по указанным свойствам по возрастанию.
-        /// </summary>
-        public static IOrderedEnumerable<T> SortAsc<T>(this IEnumerable<T> source, params string[] propertyNames)
-            where T : class
-        {
-            return Sort(source, ListSortDirection.Ascending, propertyNames);
-        }
-
-        /// <summary>
-        ///     Дополняет сортировку (ThenBy) по указанным свойствам по возрастанию.
-        /// </summary>
-        public static IOrderedEnumerable<T> SortAsc<T>(this IOrderedEnumerable<T> source, params string[] propertyNames)
-            where T : class
-        {
-            return Sort(source, ListSortDirection.Ascending, propertyNames);
-        }
-
-        /// <summary>
-        ///     Сортирует последовательность по указанным свойствам по убыванию.
-        /// </summary>
-        public static IOrderedEnumerable<T> SortDesc<T>(this IEnumerable<T> source, params string[] propertyNames)
-            where T : class
-        {
-            return Sort(source, ListSortDirection.Descending, propertyNames);
-        }
-
-        /// <summary>
-        ///     Дополняет сортировку (ThenByDescending) по указанным свойствам по убыванию.
-        /// </summary>
-        public static IOrderedEnumerable<T> SortDesc<T>(this IOrderedEnumerable<T> source, params string[] propertyNames)
-            where T : class
-        {
-            return Sort(source, ListSortDirection.Descending, propertyNames);
         }
 
         /// <summary>
@@ -259,6 +194,34 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
+        ///     Выполняет указанное действие для каждого элемента последовательности
+        ///     и возвращает исходную последовательность.
+        /// </summary>
+        /// <typeparam name="T">
+        ///     Тип элементов последовательности.
+        /// </typeparam>
+        /// <param name="source">
+        ///     Исходная последовательность элементов.
+        /// </param>
+        /// <param name="action">
+        ///     Действие, выполняемое для каждого элемента последовательности.
+        /// </param>
+        /// <returns>
+        ///     Исходная последовательность <paramref name="source" />,
+        ///     что позволяет использовать метод в цепочках вызовов.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        ///     Выбрасывается, если <paramref name="source" /> или <paramref name="action" /> равны <c>null</c>.
+        /// </exception>
+        public static IEnumerable<T> ForEach<T>(this IEnumerable<T> source, Action<T> action)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (action == null) throw new ArgumentNullException(nameof(action));
+            foreach (var item in source) action(item);
+            return source;
+        }
+
+        /// <summary>
         ///     Возвращает индекс первого элемента, удовлетворяющего условию.
         /// </summary>
         /// <typeparam name="T">Тип элементов коллекции.</typeparam>
@@ -272,65 +235,49 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
-        /// Определяет, содержит ли последовательность элемент, удовлетворяющий указанному условию.
-        /// </summary>
-        /// <remarks>Если параметр <paramref name="match"/> равен null, будет выброшено исключение <see
-        /// cref="ArgumentNullException"/>. Метод перебирает все элементы последовательности до первого
-        /// совпадения.</remarks>
-        /// <typeparam name="T">Тип элементов в последовательности.</typeparam>
-        /// <param name="e">Последовательность элементов, в которой выполняется поиск.</param>
-        /// <param name="match">Функция условия, определяющая, какой элемент считается подходящим. Не должна быть равна null.</param>
-        /// <returns>Значение <see langword="true"/>, если хотя бы один элемент последовательности удовлетворяет условию; в противном
-        /// случае — <see langword="false"/>.</returns>
-        public static bool Contains<T>(this IEnumerable<T> e, Func<T, bool> match)
-        {
-            return e.FirstOrDefault(match) != null;
-        }
-
-        /// <summary>
-        /// Возвращает индекс первого вхождения указанного элемента в последовательности, 
-        /// начиная с заданной позиции.
+        ///     Возвращает индекс первого вхождения указанного элемента в последовательности,
+        ///     начиная с заданной позиции.
         /// </summary>
         /// <typeparam name="T">Тип элементов в последовательности.</typeparam>
         /// <param name="e">Последовательность, в которой выполняется поиск.</param>
         /// <param name="item">Элемент, индекс которого необходимо найти.</param>
         /// <param name="fromIndex">Начальный индекс, с которого начинается поиск (нумерация с нуля).</param>
         /// <returns>
-        /// Индекс первого вхождения элемента, если он найден; 
-        /// в противном случае — <c>-1</c>.
+        ///     Индекс первого вхождения элемента, если он найден;
+        ///     в противном случае — <c>-1</c>.
         /// </returns>
         /// <exception cref="ArgumentNullException">
-        /// Если <paramref name="e"/> имеет значение <c>null</c>.
+        ///     Если <paramref name="e" /> имеет значение <c>null</c>.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Если <paramref name="fromIndex"/> меньше нуля.
+        ///     Если <paramref name="fromIndex" /> меньше нуля.
         /// </exception>
         public static int IndexOf<T>(this IEnumerable<T> e, T item, int fromIndex)
         {
-            return IndexOf(e, item, fromIndex, EqualityComparer<T>.Default);
+            return e.IndexOf(item, fromIndex, EqualityComparer<T>.Default);
         }
 
         /// <summary>
-        /// Возвращает индекс первого вхождения указанного элемента в последовательности, 
-        /// начиная с заданной позиции и используя заданный компаратор для сравнения элементов.
+        ///     Возвращает индекс первого вхождения указанного элемента в последовательности,
+        ///     начиная с заданной позиции и используя заданный компаратор для сравнения элементов.
         /// </summary>
         /// <typeparam name="T">Тип элементов в последовательности.</typeparam>
         /// <param name="e">Последовательность, в которой выполняется поиск.</param>
         /// <param name="item">Элемент, индекс которого необходимо найти.</param>
         /// <param name="fromIndex">Начальный индекс, с которого начинается поиск (нумерация с нуля).</param>
         /// <param name="comparer">
-        /// Объект <see cref="IEqualityComparer{T}"/>, используемый для сравнения элементов.  
-        /// Если значение <c>null</c>, используется <see cref="EqualityComparer{T}.Default"/>.
+        ///     Объект <see cref="IEqualityComparer{T}" />, используемый для сравнения элементов.
+        ///     Если значение <c>null</c>, используется <see cref="EqualityComparer{T}.Default" />.
         /// </param>
         /// <returns>
-        /// Индекс первого вхождения элемента, если он найден; 
-        /// в противном случае — <c>-1</c>.
+        ///     Индекс первого вхождения элемента, если он найден;
+        ///     в противном случае — <c>-1</c>.
         /// </returns>
         /// <exception cref="ArgumentNullException">
-        /// Если <paramref name="e"/> имеет значение <c>null</c>.
+        ///     Если <paramref name="e" /> имеет значение <c>null</c>.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Если <paramref name="fromIndex"/> меньше нуля.
+        ///     Если <paramref name="fromIndex" /> меньше нуля.
         /// </exception>
         public static int IndexOf<T>(this IEnumerable<T> e, T item, int fromIndex, IEqualityComparer<T> comparer)
         {
@@ -343,7 +290,7 @@ namespace RuntimeStuff.Extensions
             if (comparer == null)
                 comparer = EqualityComparer<T>.Default;
 
-            int index = 0;
+            var index = 0;
             foreach (var element in e)
             {
                 if (index >= fromIndex && comparer.Equals(element, item))
@@ -353,39 +300,6 @@ namespace RuntimeStuff.Extensions
             }
 
             return -1;
-        }
-
-        /// <summary>
-        /// Преобразует каждый элемент последовательности, выполняя дополнительное действие.
-        /// </summary>
-        /// <typeparam name="TSource">Тип элементов исходной последовательности.</typeparam>
-        /// <typeparam name="TResult">Тип элементов результирующей последовательности.</typeparam>
-        /// <param name="source">Исходная последовательность.</param>
-        /// <param name="selector">Функция преобразования элемента в результат.</param>
-        /// <param name="doAction">
-        /// Действие, выполняемое для каждого элемента (элемент и его индекс).
-        /// </param>
-        /// <returns>Новая последовательность с результатами преобразования.</returns>
-        /// <exception cref="ArgumentNullException">
-        /// Если <paramref name="source"/> или <paramref name="selector"/> равен <c>null</c>.
-        /// </exception>
-        public static IEnumerable<TResult> SelectDo<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, Action<TResult, int> doAction = null)
-        {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
-            return selector == null ? throw new ArgumentNullException(nameof(selector)) : SelectDoIterator(source, selector, doAction);
-        }
-
-        private static IEnumerable<TResult> SelectDoIterator<TSource, TResult>(IEnumerable<TSource> source, Func<TSource, TResult> selector, Action<TResult, int> doAction)
-        {
-            var index = 0;
-            foreach (var item in source)
-            {
-                var result = selector(item);
-                doAction?.Invoke(result, index);
-                yield return selector(item);
-                index++;
-            }
         }
 
         /// <summary>
@@ -444,48 +358,82 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
-        ///     Определяет, удовлетворяют ли все элементы коллекции условию.
+        ///     Преобразует каждый элемент последовательности, выполняя дополнительное действие.
         /// </summary>
-        /// <typeparam name="TSource">Тип элементов коллекции.</typeparam>
+        /// <typeparam name="TSource">Тип элементов исходной последовательности.</typeparam>
+        /// <typeparam name="TResult">Тип элементов результирующей последовательности.</typeparam>
+        /// <param name="source">Исходная последовательность.</param>
+        /// <param name="selector">Функция преобразования элемента в результат.</param>
+        /// <param name="doAction">
+        ///     Действие, выполняемое для каждого элемента (элемент и его индекс).
+        /// </param>
+        /// <returns>Новая последовательность с результатами преобразования.</returns>
+        /// <exception cref="ArgumentNullException">
+        ///     Если <paramref name="source" /> или <paramref name="selector" /> равен <c>null</c>.
+        /// </exception>
+        public static IEnumerable<TResult> SelectDo<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector, Action<TResult, int> doAction = null)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            return selector == null ? throw new ArgumentNullException(nameof(selector)) : SelectDoIterator(source, selector, doAction);
+        }
+
+        /// <summary>
+        ///     Сортирует последовательность по указанным свойствам в заданном порядке.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов последовательности.</typeparam>
         /// <param name="source">Исходная коллекция.</param>
-        /// <param name="predicate">Функция условия, принимающая элемент и его индекс.</param>
-        /// <returns>True, если все элементы удовлетворяют условию; иначе — false.</returns>
-        public static bool All<TSource>(this IEnumerable<TSource> source, Func<TSource, int, bool> predicate)
+        /// <param name="order">Порядок сортировки.</param>
+        /// <param name="propertyNames">Имена свойств для сортировки.</param>
+        /// <returns>Отсортированная коллекция.</returns>
+        public static IOrderedEnumerable<T> Sort<T>(this IEnumerable<T> source, ListSortDirection order, params string[] propertyNames) where T : class
         {
-            if (source == null) throw new NullReferenceException("source");
+            return SortHelper.Sort(source, order, propertyNames);
+        }
 
-            if (predicate == null) throw new NullReferenceException("predicate");
-
-            var i = 0;
-            foreach (var item in source)
-            {
-                if (!predicate(item, i)) return false;
-                i++;
-            }
-
-            return true;
+        public static IOrderedEnumerable<T> Sort<T>(this IEnumerable<T> source, ListSortDescriptionCollection sortDescription) where T : class
+        {
+            return SortHelper.Sort(source, sortDescription);
         }
 
         /// <summary>
-        /// Возвращает уникальные элементы последовательности по заданному ключу.
-        /// Аналог LINQ DistinctBy из .NET 6+.
+        ///     Сортирует последовательность по указанным свойствам по возрастанию.
         /// </summary>
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+        public static IOrderedEnumerable<T> SortAsc<T>(this IEnumerable<T> source, params string[] propertyNames)
+            where T : class
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (keySelector == null) throw new ArgumentNullException(nameof(keySelector));
-
-            var seenKeys = new HashSet<TKey>();
-
-            foreach (var element in source)
-            {
-                if (seenKeys.Add(keySelector(element)))
-                    yield return element;
-            }
+            return source.Sort(ListSortDirection.Ascending, propertyNames);
         }
 
         /// <summary>
-        /// Преобразует последовательность в словарь, игнорируя повторяющиеся ключи.
+        ///     Дополняет сортировку (ThenBy) по указанным свойствам по возрастанию.
+        /// </summary>
+        public static IOrderedEnumerable<T> SortAsc<T>(this IOrderedEnumerable<T> source, params string[] propertyNames)
+            where T : class
+        {
+            return source.Sort(ListSortDirection.Ascending, propertyNames);
+        }
+
+        /// <summary>
+        ///     Сортирует последовательность по указанным свойствам по убыванию.
+        /// </summary>
+        public static IOrderedEnumerable<T> SortDesc<T>(this IEnumerable<T> source, params string[] propertyNames)
+            where T : class
+        {
+            return source.Sort(ListSortDirection.Descending, propertyNames);
+        }
+
+        /// <summary>
+        ///     Дополняет сортировку (ThenByDescending) по указанным свойствам по убыванию.
+        /// </summary>
+        public static IOrderedEnumerable<T> SortDesc<T>(this IOrderedEnumerable<T> source, params string[] propertyNames)
+            where T : class
+        {
+            return source.Sort(ListSortDirection.Descending, propertyNames);
+        }
+
+        /// <summary>
+        ///     Преобразует последовательность в словарь, игнорируя повторяющиеся ключи.
         /// </summary>
         /// <typeparam name="TSource">Тип элементов последовательности.</typeparam>
         /// <typeparam name="TKey">Тип ключа словаря.</typeparam>
@@ -507,24 +455,68 @@ namespace RuntimeStuff.Extensions
             foreach (var item in source)
             {
                 var key = keySelector(item);
-                if (!dict.ContainsKey(key))
-                {
-                    dict[key] = valueSelector(item);
-                }
+                if (!dict.ContainsKey(key)) dict[key] = valueSelector(item);
             }
 
             return dict;
         }
 
         /// <summary>
-        /// Преобразует последовательность в словарь, игнорируя повторяющиеся ключи.
-        /// Значение совпадает с элементом последовательности.
+        ///     Преобразует последовательность в словарь, игнорируя повторяющиеся ключи.
+        ///     Значение совпадает с элементом последовательности.
         /// </summary>
         public static Dictionary<TKey, TSource> ToDictionaryDistinct<TSource, TKey>(
             this IEnumerable<TSource> source,
             Func<TSource, TKey> keySelector)
         {
             return source.ToDictionaryDistinct(keySelector, x => x);
+        }
+
+        /// <summary>
+        ///     Преобразует элементы последовательности в строку, соединяя их
+        ///     с использованием указанного разделителя.
+        /// </summary>
+        /// <typeparam name="T">
+        ///     Тип элементов последовательности.
+        /// </typeparam>
+        /// <param name="source">
+        ///     Последовательность элементов, которые будут объединены в строку.
+        /// </param>
+        /// <param name="separator">
+        ///     Разделитель, который будет использоваться между элементами строки.
+        ///     По умолчанию используется запятая и пробел (<c>", "</c>).
+        /// </param>
+        /// <returns>
+        ///     Строка, содержащая элементы последовательности, разделённые указанным разделителем.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        ///     Выбрасывается, если <paramref name="source" /> равна <c>null</c>.
+        /// </exception>
+        public static string ToJoinedString<T>(this IEnumerable<T> source, string separator = ", ")
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            var sb = new StringBuilder();
+            var first = true;
+            foreach (var item in source)
+            {
+                if (!first)
+                    sb.Append(separator);
+                sb.Append(item);
+                first = false;
+            }
+
+            return sb.ToString();
+        }
+        private static IEnumerable<TResult> SelectDoIterator<TSource, TResult>(IEnumerable<TSource> source, Func<TSource, TResult> selector, Action<TResult, int> doAction)
+        {
+            var index = 0;
+            foreach (var item in source)
+            {
+                var result = selector(item);
+                doAction?.Invoke(result, index);
+                yield return selector(item);
+                index++;
+            }
         }
     }
 }
