@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace RuntimeStuff.Tests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class MemberCacheExplicitOperatorTests

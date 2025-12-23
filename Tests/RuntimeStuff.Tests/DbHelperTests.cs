@@ -1,7 +1,6 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
-using Dapper;
 using RuntimeStuff.Extensions;
 using RuntimeStuff.MSTests.Models;
 
@@ -80,9 +79,6 @@ namespace RuntimeStuff.MSTests
 
     -- Специальные типы
     ColSqlVariant        SQL_VARIANT,
-    ColHierarchyId       HIERARCHYID,
-    ColGeography         GEOGRAPHY,
-    ColGeometry          GEOMETRY,
 
     -- Вычисляемое поле
     ColComputed AS (ColSmallInt * 2),
@@ -227,11 +223,16 @@ namespace RuntimeStuff.MSTests
             };
             var sw = new Stopwatch();
             using var con = new SqlConnection(_connectionString);
+            //sw.Start();
+            //var result1 = con.ToDictionary<string, string>("SELECT 1 AS DumbNumber, IdInt as [KEY1], ColXml as [VALUE1] FROM TestTable", columnToPropertyMap: [("KEY1", "key"), ("VALUE1", "value")]);
+            //var result2 = con.ToDictionary<int, string, DtoTestClass>(x => x.IdInt, x => x.ColJson);
+            //sw.Stop();
+            //var ms = sw.ElapsedMilliseconds;
+
             sw.Start();
-            var result1 = con.ToDictionary<string, string>("SELECT 1 AS DumbNumber, IdInt as [KEY1], ColXml as [VALUE1] FROM TestTable", columnToPropertyMap: [("KEY1", "key"), ("VALUE1", "value")]);
-            var result2 = con.ToDictionary<int, string, DtoTestClass>(x => x.IdInt, x => x.ColJson);
+            var result = con.ToList<DtoTestClass>("select top 10000 * from testtable");
             sw.Stop();
-            var ms = sw.ElapsedMilliseconds;
+            var ms2 = sw.ElapsedMilliseconds;
         }
 
         [TestMethod]
@@ -239,10 +240,15 @@ namespace RuntimeStuff.MSTests
         {
             var con = new SqlConnection(_connectionString);
             var sw = new Stopwatch();
-            sw.Start();
-            var result = con.Query<DtoTestClass>("select * from testtable");
-            sw.Stop();
-            var ms = sw.ElapsedMilliseconds;
+
+            var mc = MemberCache<DtoTestClass>.Create();
+            foreach (var p in mc.Properties)
+            {
+                sw.Restart();
+                var result = con.ToList<DtoTestClass>($"select * from testtable");
+                sw.Stop();
+                var ms2 = sw.ElapsedMilliseconds;
+            }
         }
     }
 }

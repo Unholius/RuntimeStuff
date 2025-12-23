@@ -1,8 +1,11 @@
 ﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics;
 using System.Reflection;
+using FastMember;
 using RuntimeStuff.Helpers;
+using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
@@ -20,6 +23,104 @@ namespace RuntimeStuff.MSTests
             public string PublicField;
             public event EventHandler TestEvent;
         }
+
+        public class TestClassForSetterAndGetters
+        {
+            // =========================
+            // AUTO PROPERTIES
+            // =========================
+
+            // public get / public set
+            public string PublicAutoPropertyPublicGetPublicSet { get; set; }
+
+            // public get / private set
+            public string PublicAutoPropertyPublicGetPrivateSet { get; private set; }
+
+            // private get / public set
+            private string PrivateAutoPropertyPrivateGetPublicSet { get; set; }
+
+            // private get / private set
+            private string PrivateAutoPropertyPrivateGetPrivateSet { get; set; }
+
+            // readonly auto property (C# 9+)
+            public string PublicReadonlyAutoProperty { get; }
+
+            // =========================
+            // PROPERTIES WITH BACKING FIELDS
+            // =========================
+
+            private string _privateFieldForPublicProperty;
+
+            public string PublicPropertyWithPrivateField
+            {
+                get => _privateFieldForPublicProperty;
+                private set => _privateFieldForPublicProperty = value;
+            }
+
+            // =========================
+            // FIELDS
+            // =========================
+
+            public string PublicField;
+            internal string InternalField;
+            protected string ProtectedField;
+            private string PrivateField;
+
+            // readonly fields
+            public readonly string PublicReadonlyField;
+            private readonly string PrivateReadonlyField;
+
+            // const (нельзя менять ни при каких условиях)
+            public const string ConstField = "CONST";
+
+            // =========================
+            // STATIC MEMBERS
+            // =========================
+
+            public static string PublicStaticField;
+            private static string PrivateStaticField;
+
+            public static string PublicStaticProperty { get; private set; }
+
+            // =========================
+            // STRUCT-LIKE SCENARIO
+            // =========================
+
+            public readonly KeyValuePair<string, string> ReadonlyStructProperty;
+            private readonly KeyValuePair<string, string> PrivateReadonlyStructField;
+
+            // =========================
+            // CONSTRUCTOR
+            // =========================
+
+            public TestClassForSetterAndGetters()
+            {
+                PublicAutoPropertyPublicGetPublicSet = "init_public_public";
+                PublicAutoPropertyPublicGetPrivateSet = "init_public_private";
+                PrivateAutoPropertyPrivateGetPublicSet = "init_private_public";
+                PrivateAutoPropertyPrivateGetPrivateSet = "init_private_private";
+
+                PublicReadonlyAutoProperty = "init_readonly_auto";
+
+                _privateFieldForPublicProperty = "init_backing_field";
+
+                PublicField = "init_public_field";
+                InternalField = "init_internal_field";
+                ProtectedField = "init_protected_field";
+                PrivateField = "init_private_field";
+
+                PublicReadonlyField = "init_public_readonly";
+                PrivateReadonlyField = "init_private_readonly";
+
+                PublicStaticField = "init_public_static";
+                PrivateStaticField = "init_private_static";
+                PublicStaticProperty = "init_public_static_prop";
+
+                ReadonlyStructProperty = new KeyValuePair<string, string>("k1", "v1");
+                PrivateReadonlyStructField = new KeyValuePair<string, string>("k2", "v2");
+            }
+        }
+
 
         // Класс с атрибутами
         [Table("TestTable", Schema = "dbo")]
@@ -595,6 +696,98 @@ namespace RuntimeStuff.MSTests
             Assert.IsNotNull(nameMember);
             Assert.AreEqual(1, idMember.GetValue(anonymousObject));
             Assert.AreEqual("Anonymous", nameMember.GetValue(anonymousObject));
+            var id = memberCache.GetMemberValue<int>(anonymousObject, "Id");
+            Assert.AreEqual(anonymousObject.Id, id);
+        }
+
+        [TestMethod]
+        public void Test_KeyValuePair_01()
+        {
+            object kv = new KeyValuePair<string, string>("123", "456");
+            var keyGetter = TypeHelper.CreatePropertyGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            //var keySetter = TypeHelper.CreateRefPropertySetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            //var keySetter2 = TypeHelper.CreateRefFieldSetter(typeof(KeyValuePair<string, string>).GetField("value", TypeHelper.DefaultBindingFlags));
+            //var mc = MemberCache.Create(kv.GetType());
+            //var key = keyGetter(kv);//mc.GetMemberValue<string>(kv, "Key");
+            //keySetter2(ref kv, "789");
+            //var value = mc["Value"].GetValue(kv);
+        }
+
+        [TestMethod]
+        public void Speed_Test()
+        {
+            var count = 1_000_000;
+
+            var x = new DtoTestClass();
+            var mc = MemberCache.Create(typeof(DtoTestClass));
+            var sw = new Stopwatch();
+            sw.Restart();
+            var s = mc.Properties[nameof(DtoTestClass.ColNVarCharMax)].Setter;
+            for (int i = 0; i < count; i++)
+            {
+                //s.SetValue(x, i, (v) => v.ToString());
+                s(x, i.ToString());
+                mc.SetMemberValue(x, "ColNullableInt", i);
+            }
+            sw.Stop();
+            var elapsed1 = sw.ElapsedMilliseconds;
+
+            sw.Restart();
+            for (int i = 0; i < count; i++)
+            {
+                x.ColNullableInt = i;
+                //mc.SetMemberValue<int?>(x, "ColNullableInt", 123);
+            }
+            sw.Stop();
+            var elapsed2 = sw.ElapsedMilliseconds;
+
+            var ta = TypeAccessor.Create(typeof(DtoTestClass));
+            sw.Restart();
+            for (int i = 0; i < count; i++)
+            {
+                ta[x, nameof(DtoTestClass.ColNVarCharMax)] = i.ToString();
+                //mc.SetMemberValue<int?>(x, "ColNullableInt", 123);
+            }
+            sw.Stop();
+            var elapsed3 = sw.ElapsedMilliseconds;
+        }
+
+        [TestMethod]
+        public void Test_Setters_And_Getters()
+        {
+            var mc = MemberCache.Create(typeof(TestClassForSetterAndGetters));
+            var instance = new TestClassForSetterAndGetters();
+            foreach (var p in mc.Properties.Values)
+            {
+                var setter2 = TypeHelper.CreatePropertySetter(p);
+                var getter2 = TypeHelper.CreatePropertyGetter(p);
+                setter2(instance, "test_value");
+                var val = getter2(instance);
+                Assert.AreEqual("test_value", val);
+            }
+
+            foreach (var f in mc.Fields.Values.Where(x=>x.FieldType == typeof(string)))
+            {
+                var setter2 = TypeHelper.CreateDirectFieldSetter(f);
+                var getter2 = TypeHelper.CreateFieldGetter(f);
+                try
+                {
+                    setter2(instance, "test_value");
+                    var val = getter2(instance);
+                    Assert.AreEqual("test_value", val);
+                }
+                catch (Exception ex)
+                {
+                }
+            }
+
+            object kv = new KeyValuePair<string, string>("key1", "value1");
+            var kvKeyGetter = TypeHelper.CreatePropertyGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            var kvKeySetter = TypeHelper.CreatePropertySetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+
+            var key = kvKeyGetter(kv);
+            kvKeySetter(kv, "key2");
+            Assert.AreEqual("key2", kvKeyGetter(kv));
         }
 
         public void Test_Implicit_Operators()

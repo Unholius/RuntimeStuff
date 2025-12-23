@@ -299,7 +299,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(TestPerson);
 
             // Act
-            var member = TypeHelper.FindMember(type, "name", true);
+            var member = TypeHelper.FindMember(type, "name");
 
             // Assert
             Assert.IsNotNull(member);
@@ -379,144 +379,144 @@ namespace RuntimeStuff.MSTests
 
         #region GetMemberGetter Tests
 
-        [TestMethod]
-        public void GetMemberGetter_ForProperty_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson { Name = "John", Age = 30 };
+        //[TestMethod]
+        //public void GetMemberGetter_ForProperty_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson { Name = "John", Age = 30 };
 
-            // Act
-            var getter = TypeHelper.GetMemberGetter<TestPerson, string>("Name");
-            var result = getter(person);
+        //    // Act
+        //    var getter = TypeHelper.GetMemberGetter<TestPerson, string>("Name");
+        //    var result = getter(person);
 
-            // Assert
-            Assert.AreEqual("John", result);
-        }
+        //    // Assert
+        //    Assert.AreEqual("John", result);
+        //}
 
-        [TestMethod]
-        public void GetMemberGetter_ForField_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson();
+        //[TestMethod]
+        //public void GetMemberGetter_ForField_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
 
-            // Act
-            var getter = TypeHelper.GetMemberGetter<TestPerson, string>("PrivateField");
-            var result = getter(person);
+        //    // Act
+        //    var getter = TypeHelper.GetMemberGetter<TestPerson, string>("PrivateField");
+        //    var result = getter(person);
 
-            // Assert
-            Assert.AreEqual("private", result);
-        }
+        //    // Assert
+        //    Assert.AreEqual("private", result);
+        //}
 
-        [TestMethod]
-        public void GetMemberGetter_NonGeneric_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson { Name = "John" };
+        //[TestMethod]
+        //public void GetMemberGetter_NonGeneric_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson { Name = "John" };
 
-            // Act
-            var getter = TypeHelper.GetMemberGetter<TestPerson>("Name");
-            var result = getter(person);
+        //    // Act
+        //    var getter = TypeHelper.GetMemberGetter<TestPerson>("Name");
+        //    var result = getter(person);
 
-            // Assert
-            Assert.AreEqual("John", result);
-        }
+        //    // Assert
+        //    Assert.AreEqual("John", result);
+        //}
 
-        [TestMethod]
-        public void GetMemberGetter_Universal_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson { Name = "John" };
+        //[TestMethod]
+        //public void GetMemberGetter_Universal_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson { Name = "John" };
 
-            // Act
-            var getter = TypeHelper.GetMemberGetter("Name", typeof(TestPerson));
-            var result = getter(person);
+        //    // Act
+        //    var getter = TypeHelper.GetMemberGetter("Name", typeof(TestPerson));
+        //    var result = getter(person);
 
-            // Assert
-            Assert.AreEqual("John", result);
-        }
+        //    // Assert
+        //    Assert.AreEqual("John", result);
+        //}
 
-        #endregion GetMemberGetter Tests
+        //#endregion GetMemberGetter Tests
 
-        #region GetMemberSetter Tests
+        //#region GetMemberSetter Tests
 
-        [TestMethod]
-        public void GetMemberSetter_ForProperty_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson();
-            var setter = TypeHelper.GetMemberSetter<TestPerson, string>("Name");
+        //[TestMethod]
+        //public void GetMemberSetter_ForProperty_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
+        //    var setter = TypeHelper.GetMemberSetter<TestPerson, string>("Name");
 
-            // Act
-            setter(person, "John");
-            var getter = TypeHelper.GetMemberGetter<TestPerson, string>("Name");
-            var result = getter(person);
+        //    // Act
+        //    setter(person, "John");
+        //    var getter = TypeHelper.GetMemberGetter<TestPerson, string>("Name");
+        //    var result = getter(person);
 
-            // Assert
-            Assert.AreEqual("John", result);
-        }
+        //    // Assert
+        //    Assert.AreEqual("John", result);
+        //}
 
-        [TestMethod]
-        public void GetMemberSetter_ForField_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson();
-            var setter = TypeHelper.GetMemberSetter<TestPerson, string>("PrivateField");
+        //[TestMethod]
+        //public void GetMemberSetter_ForField_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
+        //    var setter = TypeHelper.GetMemberSetter<TestPerson, string>("PrivateField");
 
-            // Act
-            setter(person, "newValue");
-            var getter = TypeHelper.GetMemberGetter<TestPerson, string>("PrivateField");
-            var result = getter(person);
+        //    // Act
+        //    setter(person, "newValue");
+        //    var getter = TypeHelper.GetMemberGetter<TestPerson, string>("PrivateField");
+        //    var result = getter(person);
 
-            // Assert
-            Assert.AreEqual("newValue", result);
-        }
+        //    // Assert
+        //    Assert.AreEqual("newValue", result);
+        //}
 
-        [TestMethod]
-        public void GetMemberSetter_NonGeneric_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson();
-            var setter = TypeHelper.GetMemberSetter<TestPerson>("Name");
+        //[TestMethod]
+        //public void GetMemberSetter_NonGeneric_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
+        //    var setter = TypeHelper.GetMemberSetter<TestPerson>("Name");
 
-            // Act
-            setter(person, "John");
-            var getter = TypeHelper.GetMemberGetter<TestPerson>("Name");
-            var result = getter(person);
+        //    // Act
+        //    setter(person, "John");
+        //    var getter = TypeHelper.GetMemberGetter<TestPerson>("Name");
+        //    var result = getter(person);
 
-            // Assert
-            Assert.AreEqual("John", result);
-        }
+        //    // Assert
+        //    Assert.AreEqual("John", result);
+        //}
 
-        [TestMethod]
-        public void GetMemberSetter_Universal_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson();
-            var setter = TypeHelper.GetMemberSetter("Name", typeof(TestPerson));
+        //[TestMethod]
+        //public void GetMemberSetter_Universal_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
+        //    var setter = TypeHelper.GetMemberSetter("Name", typeof(TestPerson));
 
-            // Act
-            setter(person, "John");
-            var getter = TypeHelper.GetMemberGetter("Name", typeof(TestPerson));
-            var result = getter(person);
+        //    // Act
+        //    setter(person, "John");
+        //    var getter = TypeHelper.GetMemberGetter("Name", typeof(TestPerson));
+        //    var result = getter(person);
 
-            // Assert
-            Assert.AreEqual("John", result);
-        }
+        //    // Assert
+        //    Assert.AreEqual("John", result);
+        //}
 
-        [TestMethod]
-        public void GetMemberSetter_WithExpression_ReturnsDelegate()
-        {
-            // Arrange
-            var person = new TestPerson();
+        //[TestMethod]
+        //public void GetMemberSetter_WithExpression_ReturnsDelegate()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
 
-            // Act
-            var setter = TypeHelper.GetMemberSetter<TestPerson, string>(x => x.Name, out var propertyName);
-            setter(person, "John");
+        //    // Act
+        //    var setter = TypeHelper.GetMemberSetter<TestPerson, string>(x => x.Name, out var propertyName);
+        //    setter(person, "John");
 
-            // Assert
-            Assert.AreEqual("Name", propertyName);
-            Assert.AreEqual("John", person.Name);
-        }
+        //    // Assert
+        //    Assert.AreEqual("Name", propertyName);
+        //    Assert.AreEqual("John", person.Name);
+        //}
 
         #endregion GetMemberSetter Tests
 
@@ -565,46 +565,46 @@ namespace RuntimeStuff.MSTests
 
         #region SetMemberValue Tests
 
-        [TestMethod]
-        public void SetMemberValue_SetsProperty()
-        {
-            // Arrange
-            var person = new TestPerson();
+        //[TestMethod]
+        //public void SetMemberValue_SetsProperty()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
 
-            // Act
-            var result = TypeHelper.SetMemberValue(person, "Name", "John");
+        //    // Act
+        //    var result = TypeHelper.SetMemberValue(person, "Name", "John");
 
-            // Assert
-            Assert.IsTrue(result);
-            Assert.AreEqual("John", person.Name);
-        }
+        //    // Assert
+        //    Assert.IsTrue(result);
+        //    Assert.AreEqual("John", person.Name);
+        //}
 
-        [TestMethod]
-        public void SetMemberValue_ExtensionMethod_SetsProperty()
-        {
-            // Arrange
-            var person = new TestPerson();
+        //[TestMethod]
+        //public void SetMemberValue_ExtensionMethod_SetsProperty()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
 
-            // Act
-            var result = person.SetMemberValue("Name", "John");
+        //    // Act
+        //    var result = person.SetMemberValue("Name", "John");
 
-            // Assert
-            Assert.IsTrue(result);
-            Assert.AreEqual("John", person.Name);
-        }
+        //    // Assert
+        //    Assert.IsTrue(result);
+        //    Assert.AreEqual("John", person.Name);
+        //}
 
-        [TestMethod]
-        public void SetMemberValue_InvalidProperty_ReturnsFalse()
-        {
-            // Arrange
-            var person = new TestPerson();
+        //[TestMethod]
+        //public void SetMemberValue_InvalidProperty_ReturnsFalse()
+        //{
+        //    // Arrange
+        //    var person = new TestPerson();
 
-            // Act
-            var result = TypeHelper.SetMemberValue(person, "NonExistent", "value");
+        //    // Act
+        //    var result = TypeHelper.SetMemberValue(person, "NonExistent", "value");
 
-            // Assert
-            Assert.IsFalse(result);
-        }
+        //    // Assert
+        //    Assert.IsFalse(result);
+        //}
 
         #endregion SetMemberValue Tests
 
@@ -959,32 +959,32 @@ namespace RuntimeStuff.MSTests
 
         #region Cache Tests
 
-        [TestMethod]
-        public void UpdateCache_PrecompilesDelegates()
-        {
-            // Act
-            TypeHelper.UpdateCache<TestPerson>();
+        //[TestMethod]
+        //public void UpdateCache_PrecompilesDelegates()
+        //{
+        //    // Act
+        //    TypeHelper.UpdateCache<TestPerson>();
 
-            // Assert - нет исключения
-            Assert.IsTrue(true);
-        }
+        //    // Assert - нет исключения
+        //    Assert.IsTrue(true);
+        //}
 
         #endregion Cache Tests
 
         #region Static Member Tests
 
-        [TestMethod]
-        public void GetMemberSetter_StaticProperty_SetsValue()
-        {
-            // Arrange
-            var setter = TypeHelper.GetMemberSetter<TestClassWithStatic, string>("StaticProperty");
+        //[TestMethod]
+        //public void GetMemberSetter_StaticProperty_SetsValue()
+        //{
+        //    // Arrange
+        //    var setter = TypeHelper.GetMemberSetter<TestClassWithStatic, string>("StaticProperty");
 
-            // Act
-            setter(default, "newValue");
+        //    // Act
+        //    setter(default, "newValue");
 
-            // Assert
-            Assert.AreEqual("newValue", TestClassWithStatic.StaticProperty);
-        }
+        //    // Assert
+        //    Assert.AreEqual("newValue", TestClassWithStatic.StaticProperty);
+        //}
 
         #endregion Static Member Tests
 

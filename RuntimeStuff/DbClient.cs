@@ -1500,10 +1500,10 @@ namespace RuntimeStuff
             return map;
         }
 
-        private Dictionary<int, (MemberCache propInfoEx, Action<T, object> propSetter)> GetReaderFieldToPropertyMap<T>(IDataReader reader, IEnumerable<(string, string)> customMap = null, IEnumerable<string> columns = null)
+        private Dictionary<int, MemberCache> GetReaderFieldToPropertyMap<T>(IDataReader reader, IEnumerable<(string, string)> customMap = null, IEnumerable<string> columns = null)
         {
             var customMapDic = customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
-            var map = new Dictionary<int, (MemberCache propInfoEx, Action<T, object> propSetter)>();
+            var map = new Dictionary<int, MemberCache>();
             var typeInfoEx = MemberCache.Create(typeof(T));
             var columnsCount = reader.FieldCount;
 
@@ -1518,15 +1518,13 @@ namespace RuntimeStuff
                         customMapDic.GetValueOrDefault(colName, IgnoreCaseComparer), IgnoreCaseComparer);
                     if (propInfoEx == null)
                         continue;
-                    map[colIndex] = (propInfoEx, TypeHelper.GetMemberSetter<T>(propInfoEx.Name));
-                    if (map[colIndex].propInfoEx != null)
-                        continue;
+                    map[colIndex] = propInfoEx;
                 }
 
                 propInfoEx = typeInfoEx.ColumnProperties.GetValueOrDefault(colName, IgnoreCaseComparer);
                 if (propInfoEx != null)
                 {
-                    map[colIndex] = (propInfoEx, TypeHelper.GetMemberSetter<T>(propInfoEx.Name));
+                    map[colIndex] = propInfoEx;
                     continue;
                 }
 
@@ -1534,7 +1532,7 @@ namespace RuntimeStuff
 
                 if (propInfoEx != null)
                 {
-                    map[colIndex] = (propInfoEx, TypeHelper.GetMemberSetter<T>(propInfoEx.Name));
+                    map[colIndex] = propInfoEx;
                     continue;
                 }
 
@@ -1542,7 +1540,7 @@ namespace RuntimeStuff
             }
 
             if (columns?.Any() != true) return map;
-            var itemsToRemove = map.Where(kv => !columns.Contains(kv.Value.propInfoEx.ColumnName)).Select(kv => kv.Key).ToList();
+            var itemsToRemove = map.Where(kv => !columns.Contains(kv.Value.ColumnName)).Select(kv => kv.Key).ToList();
             foreach (var item in itemsToRemove)
             {
                 map.Remove(item);
@@ -1653,7 +1651,25 @@ namespace RuntimeStuff
 
             while (isAsync ? await reader.ReadAsync(ct).ConfigureAwait(ConfigureAwait) : reader.Read())
             {
-                reader.GetValues(readerValues);
+                try
+                {
+                    reader.GetValues(readerValues);
+                }
+                catch
+                {
+                    for (int i = 0; i < reader.FieldCount; i++)
+                    {
+                        try
+                        {
+                            readerValues[i] = reader.GetValue(i);
+                        }
+                        catch (Exception ex)
+                        {
+                            var fieldName = reader.GetName(i);
+                            var dataType = reader.GetFieldType(i);
+                        }
+                    }
+                }
 
                 var item = itemFactory(readerValues, readerColumns);
 
@@ -1661,17 +1677,16 @@ namespace RuntimeStuff
                 {
                     foreach (var kv in map)
                     {
-                        var (propInfo, setter) = kv.Value;
                         var raw = readerValues[kv.Key];
 
                         if (raw == null || raw == DBNull.Value)
                         {
-                            setter(item, null);
+                            kv.Value.Setter(item, null);
                             continue;
                         }
 
-                        var value = valueConverter(reader.GetName(kv.Key), raw, propInfo, item);
-                        setter(item, value);
+                        var value = valueConverter(reader.GetName(kv.Key), raw, kv.Value, item);
+                        kv.Value.Setter(item, value);
                     }
                 }
 

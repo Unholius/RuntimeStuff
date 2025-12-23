@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 
 namespace RuntimeStuff.Helpers
 {
@@ -93,7 +94,7 @@ namespace RuntimeStuff.Helpers
 
             IOrderedEnumerable<T> result = null;
 
-            var accessor = sorts.Select((x, i) => TypeHelper.GetMemberGetter<T>(sorts[i].propertyName)).ToArray();
+            Func<T, object>[] accessor = sorts.Select((x, i) => TypeHelper.PropertyGetterCache.Get(TypeHelper.FindMember(typeof(T), sorts[i].propertyName) as PropertyInfo)).ToArray();
 
             for (var i = 0; i < sorts.Length; i++)
             {

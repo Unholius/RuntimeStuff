@@ -18,6 +18,24 @@ namespace RuntimeStuff.Extensions
     /// </remarks>
     public static class FuncExtensions
     {
+
+        public static Func<T1, R> ConvertFunc<T1, R>(this Func<object, object> func)
+        {
+            if (func == null)
+                throw new ArgumentNullException(nameof(func));
+
+            return arg =>
+            {
+                object result = func(arg);
+
+                // null → default
+                if (result == null)
+                    return default;
+
+                return (R)result;
+            };
+        }
+
         /// <summary>
         ///     Преобразует функцию с типизированным входом и выходом в функцию, принимающую и возвращающую значения типа
         ///     object, с возможностью указать преобразователи для входного и выходного значений.
@@ -110,8 +128,7 @@ namespace RuntimeStuff.Extensions
             return ConvertFunc<T1, R1, object, R2>(func, converter1, resultConverter);
         }
 
-        public static Func<object, R1> ConvertFunc<T1, R1>(
-            this Func<T1, R1> func)
+        public static Func<object, R1> ConvertFunc<T1, R1>(this Func<T1, R1> func)
         {
             return ConvertFunc<T1, R1, object, R1>(func);
         }
