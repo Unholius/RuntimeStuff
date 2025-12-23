@@ -45,6 +45,11 @@ namespace RuntimeStuff.Extensions
             };
         }
 
+        public static DbClient.DbValueConverter<T> ToTypedConverter<T>(this DbClient.DbValueConverter converter)
+        {
+            return (f, v, p, item) => converter(f, v, p, item);
+        }
+
         public static DbClient.DbValueConverter<T> ToTypedConverter<T>(this DbClient.DbValueConverter<object> converter)
         {
             return (f, v, p, item) => converter(f, v, p, item);
