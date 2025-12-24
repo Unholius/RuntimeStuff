@@ -280,7 +280,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="tokenMasks">Маски токенов (префикс, суффикс, функция сериализации).</param>
         public static List<Token> GetTokens(string input, IEnumerable<TokenMask> tokenMasks, bool notMatchedAsTokens = false, Func<Token, object> notMatchedTokenSetTag = null)
         {
-            Token._id = 1;
+            Token.IdInternal = 1;
             var result = new List<Token>();
             var stack = new Stack<(Token Token, string Prefix, string Suffix, Func<Token, string> ContentTransformer)>();
 
@@ -361,7 +361,7 @@ namespace RuntimeStuff.Helpers
                             // Добавление Previous/Next и добавление в дерево
                             if (instantToken.Parent != null)
                             {
-                                var list = instantToken.Parent._children;
+                                var list = instantToken.Parent.ChildrenInternal;
 
                                 if (list.Count > 0)
                                 {
@@ -436,7 +436,7 @@ namespace RuntimeStuff.Helpers
                         // Добавление Previous / Next
                         if (topToken.Parent != null)
                         {
-                            var list = topToken.Parent._children;
+                            var list = topToken.Parent.ChildrenInternal;
 
                             if (list.Count > 0)
                             {
@@ -608,8 +608,8 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         public class Token
         {
-            internal List<Token> _children = new List<Token>();
-            internal static int _id = 1;
+            internal List<Token> ChildrenInternal = new List<Token>();
+            internal static int IdInternal = 1;
 
             /// <summary>
             /// Порядковый идентификатор токена.
@@ -641,8 +641,8 @@ namespace RuntimeStuff.Helpers
 
             internal Token()
             {
-                Id = _id;
-                _id++;
+                Id = IdInternal;
+                IdInternal++;
             }
 
             /// <summary>
@@ -743,8 +743,8 @@ namespace RuntimeStuff.Helpers
                 // если есть родитель — вставляем в его список детей
                 if (Parent != null)
                 {
-                    var list = Parent._children;
-                    var idx = Parent._children.IndexOf(this);
+                    var list = Parent.ChildrenInternal;
+                    var idx = Parent.ChildrenInternal.IndexOf(this);
                     list.Insert(idx, newToken);
                     newToken.Parent = Parent;
                 }
@@ -764,8 +764,8 @@ namespace RuntimeStuff.Helpers
 
                 if (Parent != null)
                 {
-                    var list = Parent._children;
-                    var idx = Parent._children.IndexOf(this);
+                    var list = Parent.ChildrenInternal;
+                    var idx = Parent.ChildrenInternal.IndexOf(this);
                     list.Insert(idx + 1, newToken);
                     newToken.Parent = Parent;
                 }
@@ -779,7 +779,7 @@ namespace RuntimeStuff.Helpers
             /// <summary>
             ///     Дочерние токены.
             /// </summary>
-            public IEnumerable<Token> Children => _children;
+            public IEnumerable<Token> Children => ChildrenInternal;
 
             /// <summary>
             ///     Итоговое содержимое токена, формируется из Text с учетом вложенных токенов и применённых ContentTransformers.
@@ -789,7 +789,7 @@ namespace RuntimeStuff.Helpers
                 get
                 {
                     var result = Text ?? string.Empty;
-                    var children = _children.Where(x => x.Mask != null).ToArray();
+                    var children = ChildrenInternal.Where(x => x.Mask != null).ToArray();
 
                     if (children.Length > 0)
                         foreach (var child in children.OrderByDescending(c => c.ParentStart))

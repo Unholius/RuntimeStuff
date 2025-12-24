@@ -12,7 +12,7 @@ namespace RuntimeStuff.Helpers
     /// </summary>
     /// <remarks>Класс предназначен для упрощения сортировки последовательностей объектов по именам их свойств,
     /// поддерживает сортировку по возрастанию и убыванию, а также последовательную сортировку по нескольким критериям. Все
-    /// методы работают с коллекциями, реализующими интерфейс IEnumerable<T>, и возвращают отсортированные коллекции, не
+    /// методы работают с коллекциями, реализующими интерфейс IEnumerable{T}, и возвращают отсортированные коллекции, не
     /// изменяя исходные данные. Для корректной работы сортировки свойства должны быть доступны для чтения и поддерживать
     /// сравнение значений. Класс потокобезопасен, так как не хранит состояние.</remarks>
     public static class SortHelper
@@ -94,7 +94,7 @@ namespace RuntimeStuff.Helpers
 
             IOrderedEnumerable<T> result = null;
 
-            Func<T, object>[] accessor = sorts.Select((x, i) => Obj.PropertyGetterCache.Get(Obj.FindMember(typeof(T), sorts[i].propertyName) as PropertyInfo)).ToArray();
+            var accessor = sorts.Select((x, i) => Obj.PropertyGetterCache.Get(Obj.FindMember(typeof(T), sorts[i].propertyName) as PropertyInfo)).ToArray<Func<T, object>>();
 
             for (var i = 0; i < sorts.Length; i++)
             {

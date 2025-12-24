@@ -425,7 +425,7 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Преобразует указанный объект в тип <typeparamref name="T">. Если преобразование невозможно, возвращает
+        /// Преобразует указанный объект в тип. Если преобразование невозможно, возвращает
         /// значение по умолчанию.
         /// </summary>
         /// <remarks>Метод не выбрасывает исключения при неудачном преобразовании, а возвращает указанное
@@ -447,6 +447,33 @@ namespace RuntimeStuff.Helpers
             catch
             {
                 return defaultValue;
+            }
+        }
+
+        /// <summary>
+        /// Пытается преобразовать заданное значение к указанному типу T.
+        /// </summary>
+        /// <remarks>Метод не выбрасывает исключения при неудачном преобразовании. Используйте этот метод,
+        /// если не требуется обработка исключений при ошибке преобразования.</remarks>
+        /// <typeparam name="T">Тип, к которому требуется выполнить преобразование.</typeparam>
+        /// <param name="value">Значение, которое требуется преобразовать.</param>
+        /// <param name="result">Если преобразование выполнено успешно, содержит результат преобразования; в противном случае содержит
+        /// значение по умолчанию для типа T.</param>
+        /// <param name="formatProvider">Объект, предоставляющий сведения о форматировании, используемые при преобразовании. Может быть null для
+        /// использования форматирования по умолчанию.</param>
+        /// <returns>Значение <see langword="true"/>, если преобразование прошло успешно; в противном случае — <see
+        /// langword="false"/>.</returns>
+        public static bool TryChangeType<T>(object value, out T result, IFormatProvider formatProvider = null)
+        {
+            try
+            {
+                result = (T)ChangeType(value, typeof(T), formatProvider);
+                return true;
+            }
+            catch
+            {
+                result = default;
+                return false;
             }
         }
 
@@ -749,7 +776,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="type">Тип в котором искать свойство или поле</param>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
         /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
-        /// типа <typeparamref name="T"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
+        /// типа <typeparamref name="{T}"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
         /// не поддерживает установку значения.</returns>
         public static Action<object, object> GetMemberSetter(Type type, string memberName)
         {
@@ -771,7 +798,6 @@ namespace RuntimeStuff.Helpers
         /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
         /// значение будет <see langword="null"/>. Делегат использует отражение и может иметь меньшую производительность
         /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
-        /// <param name="type">Тип в котором искать свойство или поле</param>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
         /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
         /// типа <typeparamref name="T"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
@@ -801,7 +827,7 @@ namespace RuntimeStuff.Helpers
         /// типов во время выполнения; некорректное использование может привести к исключениям.</remarks>
         /// <param name="type">Тип объекта, содержащего поле или свойство, к которому требуется получить доступ.</param>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо получить. Не может быть null или пустой строкой.</param>
-        /// <returns>Делегат, принимающий объект типа <typeparamref name="type"/> и возвращающий значение указанного поля или
+        /// <returns>Делегат, принимающий объект типа и возвращающий значение указанного поля или
         /// свойства. Возвращает null, если член с заданным именем не найден.</returns>
         public static Func<object, object> GetMemberGetter(Type type, string memberName)
         {
@@ -991,58 +1017,6 @@ namespace RuntimeStuff.Helpers
             var visited = new HashSet<object>();
             return GetMembersInternal(obj, memberFilter, recursive, searchInCollections, visited);
         }
-
-        /// <summary>
-        ///     Получает значение указанного свойства объекта по имени с помощью кэшируемого делегата.
-        ///     Позволяет быстро извлекать значения свойств без постоянного использования Reflection.
-        ///     Особенности:
-        ///     - Автоматически создает и кэширует делегат-геттер для типа и имени свойства.
-        ///     - Поддерживает как ссылочные, так и значимые типы свойств (boxing выполняется автоматически).
-        ///     - При повторных вызовах для того же типа и свойства используется уже скомпилированный делегат.
-        ///     Пример:
-        ///     <code>
-        /// var person = new Person { Name = "Alice" };
-        /// var value = PropertyHelper.GetMemberValue(person, "Name"); // "Alice"
-        /// </code>
-        /// </summary>
-        //public static object GetMemberValue(this object source, string memberName, Type tryConvertToType = null, bool throwOnError = true)
-        //{
-        //    if (source == null)
-        //        if (throwOnError)
-        //            throw new ArgumentNullException(nameof(source));
-        //        else
-        //            return null;
-        //    var member = FindMember(source.GetType(), memberName);
-        //    var getter = member is PropertyInfo pi ? PropertyGetterCache.Get(pi) : member is FieldInfo fi ? FieldGetterCache.Get(fi) : null;
-        //    if (getter == null)
-        //        return throwOnError
-        //            ? new NullReferenceException(
-        //                $"Своство {memberName} отсутствует в типе {source.GetType().FullName}!")
-        //            : null;
-        //    return tryConvertToType != null
-        //        ? ChangeType(getter(source), tryConvertToType)
-        //        : getter(source);
-        //}
-
-        /// <summary>
-        ///     Возвращает значение свойства с типизацией результата.<br />
-        ///     Создает и кэширует делегат для быстрого доступа к свойству по имени.<br />
-        ///     Особенности:<br />
-        ///     - Имя свойства реегистронезависимо.<br />
-        ///     - Позволяет получить значение свойства с приведением к нужному типу (Тип должен быть совместимым! Автоматической
-        ///     конвертации типов не происходит!).<br />
-        ///     - Использует кэширование делегатов для повышения производительности.<br />
-        ///     - Генерирует исключение, если свойство не найдено или несовместимо по типу.<br />
-        ///     Пример:
-        ///     <code>
-        /// var person = new Person { Age = 42 };
-        /// int age = PropertyHelper.GetMemberValue&lt;Person, int&gt;(person, "Age"); // 42
-        /// </code>
-        /// </summary>
-        //public static TValue GetMemberValue<TValue>(this object source, string memberName, bool throwIfSourceIsNull = true)
-        //{
-        //    return  (TValue)GetMemberValue(source, memberName, typeof(TValue), throwIfSourceIsNull);
-        //}
 
         /// <summary>
         ///     Возвращает значение по ключу из словаря или добавляет его, если ключ отсутствует.
@@ -1849,7 +1823,7 @@ namespace RuntimeStuff.Helpers
                 while (srcEnumerator.MoveNext())
                 {
                     var srcItem = srcEnumerator.Current;
-                    object dstItem = null;
+                    object dstItem;
                     
                     if (!dstListChanged && dstEnumerator.MoveNext())
                         dstItem = dstEnumerator.Current;
