@@ -948,7 +948,7 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var strings = person.GetMembersOfType<TestPerson, string>().ToList();
+            var strings = person.GetMembersOfType<string>().ToList();
 
             // Assert
             Assert.IsTrue(strings.Count >= 3); // Name + City + Street + private fields
@@ -1062,5 +1062,24 @@ namespace RuntimeStuff.MSTests
         }
 
         #endregion GetCustomAttribute Tests
+
+        #region Get-Set
+
+        public class RecursiveClass
+        {
+            public string Name { get; set; }
+            public RecursiveClass Child { get; set; }
+        }
+
+        [TestMethod]
+        public void Test_Set_01()
+        {
+            var rc = new RecursiveClass();
+            TypeHelper.Set(rc, ["Child", "Child", "Child", "Name"], "ChildName");
+            Assert.AreEqual("ChildName", rc.Child.Child.Child.Name);
+            Assert.AreEqual("ChildName", TypeHelper.Get<string>(rc, ["Child", "Child", "Child", "Name"]));
+        }
+
+        #endregion Get-Set
     }
 }

@@ -12,7 +12,7 @@ using System.Reflection.Emit;
 namespace RuntimeStuff.Helpers
 {
     /// <summary>
-    ///     v.2025.12.23 (RS)<br/>
+    ///     v.2025.12.24 (RS)<br/>
     ///     Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     ///     Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     ///     Особенности:
@@ -623,20 +623,19 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Возвращает делегат, позволяющий установить значение указанного поля или свойства объекта типа <typeparamref
-        /// name="T"/> по имени члена.
+        /// Возвращает делегат, позволяющий установить значение указанного поля или свойства объекта типа по имени члена.
         /// </summary>
         /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
         /// значение будет <see langword="null"/>. Делегат использует отражение и может иметь меньшую производительность
         /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
-        /// <typeparam name="T">Тип объекта, для которого требуется получить установщик члена.</typeparam>
+        /// <param name="type">Тип в котором искать свойство или поле</param>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
         /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
         /// типа <typeparamref name="T"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
         /// не поддерживает установку значения.</returns>
-        public static Action<object, object> GetMemberSetter<T>(string memberName)
+        public static Action<object, object> GetMemberSetter(Type type, string memberName)
         {
-            var member = FindMember(typeof(T), memberName);
+            var member = FindMember(type, memberName);
             switch (member)
             {
                 case FieldInfo fi:
@@ -651,6 +650,20 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Возвращает делегат, позволяющий установить значение указанного поля или свойства объекта типа по имени члена.
+        /// </summary>
+        /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
+        /// значение будет <see langword="null"/>. Делегат использует отражение и может иметь меньшую производительность
+        /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
+        /// <param name="type">Тип в котором искать свойство или поле</param>
+        /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
+        /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
+        /// типа <typeparamref name="T"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
+        /// не поддерживает установку значения.</returns>
+        public static Action<object, object> GetMemberSetter<T>(string memberName) => GetMemberSetter(typeof(T), memberName);
+
+
+        /// <summary>
         /// Возвращает делегат, позволяющий получить значение указанного поля или свойства объекта заданного типа по
         /// имени.
         /// </summary>
@@ -661,9 +674,22 @@ namespace RuntimeStuff.Helpers
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо получить. Не может быть null или пустой строкой.</param>
         /// <returns>Делегат, принимающий объект типа <typeparamref name="T"/> и возвращающий значение указанного поля или
         /// свойства. Возвращает null, если член с заданным именем не найден.</returns>
-        public static Func<object, object> GetMemberGetter<T>(string memberName)
+        public static Func<object, object> GetMemberGetter<T>(string memberName)=> GetMemberGetter(typeof(T),memberName);
+
+        /// <summary>
+        /// Возвращает делегат, позволяющий получить значение указанного поля или свойства объекта заданного типа по
+        /// имени.
+        /// </summary>
+        /// <remarks>Если указанный член не существует или не поддерживается для чтения, возвращаемое
+        /// значение будет null. Метод поддерживает все поля и свойства. Делегат не выполняет проверку
+        /// типов во время выполнения; некорректное использование может привести к исключениям.</remarks>
+        /// <param name="type">Тип объекта, содержащего поле или свойство, к которому требуется получить доступ.</param>
+        /// <param name="memberName">Имя поля или свойства, значение которого необходимо получить. Не может быть null или пустой строкой.</param>
+        /// <returns>Делегат, принимающий объект типа <typeparamref name="type"/> и возвращающий значение указанного поля или
+        /// свойства. Возвращает null, если член с заданным именем не найден.</returns>
+        public static Func<object, object> GetMemberGetter(Type type, string memberName)
         {
-            var member = FindMember(typeof(T), memberName);
+            var member = FindMember(type, memberName);
             switch (member)
             {
                 case FieldInfo fi:
@@ -841,12 +867,11 @@ namespace RuntimeStuff.Helpers
         ///     Получает значения всех полей и свойств типа T из объекта TClass.
         /// </summary>
         /// <typeparam name="T">Тип члена, который ищем.</typeparam>
-        /// <typeparam name="TClass">Тип объекта.</typeparam>
         /// <param name="obj">Объект, из которого извлекаем значения.</param>
         /// <param name="memberFilter">Опциональный фильтр значений.</param>
         /// <param name="recursive">Если true, рекурсивно обходит вложенные объекты.</param>
         /// <param name="searchInCollections">Если true, рекурсивно ищет элементы типа T в коллекциях.</param>
-        public static IEnumerable<T> GetMembersOfType<TClass, T>(this TClass obj, Func<T, bool> memberFilter = null, bool recursive = false, bool searchInCollections = false) where TClass : class
+        public static IEnumerable<T> GetMembersOfType<T>(this object obj, Func<T, bool> memberFilter = null, bool recursive = false, bool searchInCollections = false)
         {
             if (obj == null) throw new ArgumentNullException(nameof(obj));
             var visited = new HashSet<object>();
@@ -1629,6 +1654,197 @@ namespace RuntimeStuff.Helpers
         public static T New<T>(Type type)
         {
             return (T)New(type);
+        }
+
+        /// <summary>
+        /// Устанавливает значение поля или свойства объекта по имени члена.
+        /// </summary>
+        /// <param name="instance">
+        /// Экземпляр объекта, в котором требуется установить значение.
+        /// </param>
+        /// <param name="memberName">
+        /// Имя поля или свойства.
+        /// </param>
+        /// <param name="value">
+        /// Значение, которое необходимо установить.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/>, если значение успешно установлено;
+        /// <see langword="false"/>, если объект равен <see langword="null"/>,
+        /// член не найден или недоступен для записи.
+        /// </returns>
+        public static bool Set(object instance, string memberName, object value)
+        {
+            if (instance == null)
+                return false;
+
+            var setter = GetMemberSetter(instance.GetType(), memberName);
+            if (setter == null)
+                return false;
+
+            setter(instance, value);
+            return true;
+        }
+
+        /// <summary>
+        /// Устанавливает значение вложенного поля или свойства объекта
+        /// по указанному пути к члену.
+        /// </summary>
+        /// <param name="instance">
+        /// Экземпляр объекта, в котором требуется установить значение.
+        /// </param>
+        /// <param name="pathToMemberName">
+        /// Последовательность имён членов, описывающая путь
+        /// к конечному полю или свойству.
+        /// </param>
+        /// <param name="value">
+        /// Значение, которое необходимо установить.
+        /// </param>
+        /// <returns>
+        /// <see langword="true"/>, если значение успешно установлено;
+        /// <see langword="false"/>, если объект равен <see langword="null"/>,
+        /// путь некорректен либо один из членов не найден.
+        /// </returns>
+        /// <remarks>
+        /// Метод поддерживает установку значений во вложенные члены.
+        /// Если промежуточный объект отсутствует (<see langword="null"/>),
+        /// он будет автоматически создан при возможности.
+        /// </remarks>
+        public static bool Set(object instance, IEnumerable<string> pathToMemberName, object value)
+        {
+            if (instance == null)
+                return false;
+
+            var path = pathToMemberName as string[] ?? pathToMemberName.ToArray();
+            if (path.Length == 1)
+            {
+                // Конечный элемент пути
+                return Set(instance, path[0], value);
+            }
+
+            var getter = GetMemberGetter(instance.GetType(), path[0]);
+            if (getter == null)
+                return false;
+
+            var subMemberInstance = Get(instance, path[0]);
+            if (subMemberInstance == null)
+            {
+                var subMember = FindMember(instance.GetType(), path[0]);
+                var subMemberType =
+                    subMember is PropertyInfo pi ? pi.PropertyType :
+                    subMember is FieldInfo fi ? fi.FieldType :
+                    null;
+
+                subMemberInstance = New(subMemberType);
+                Set(instance, path[0], subMemberInstance);
+            }
+
+            return Set(subMemberInstance, path.Skip(1).ToArray(), value);
+        }
+
+
+        /// <summary>
+        /// Возвращает значение поля или свойства объекта по имени члена.
+        /// </summary>
+        /// <param name="instance">
+        /// Экземпляр объекта, из которого требуется получить значение.
+        /// </param>
+        /// <param name="memberName">
+        /// Имя поля или свойства.
+        /// </param>
+        /// <param name="convertToType">
+        /// Тип, в который требуется преобразовать значение.
+        /// Если не задан, возвращается исходное значение.
+        /// </param>
+        /// <returns>
+        /// Значение поля или свойства, приведённое к указанному типу,
+        /// либо <see langword="null"/>, если объект равен <see langword="null"/>
+        /// или член не найден.
+        /// </returns>
+        public static object Get(object instance, string memberName, Type convertToType = null)
+        {
+            if (instance == null)
+                return null;
+
+            var getter = GetMemberGetter(instance.GetType(), memberName);
+            if (getter == null)
+                return null;
+
+            var memberValue = getter(instance);
+            return convertToType == null
+                ? memberValue
+                : ChangeType(memberValue, convertToType);
+        }
+
+        /// <summary>
+        /// Получает значение вложенного поля или свойства объекта
+        /// по указанному пути к члену.
+        /// </summary>
+        /// <param name="instance">
+        /// Экземпляр объекта, из которого требуется получить значение.
+        /// </param>
+        /// <param name="pathToMemberName">
+        /// Последовательность имён членов, описывающая путь
+        /// к конечному полю или свойству.
+        /// </param>
+        /// <param name="convertToType">
+        /// Тип, к которому необходимо привести полученное значение.
+        /// Если равен <see langword="null"/>, преобразование не выполняется.
+        /// </param>
+        /// <returns>
+        /// Значение конечного члена объекта, приведённое к указанному типу,
+        /// либо <see langword="null"/>, если объект равен <see langword="null"/>,
+        /// путь некорректен или один из промежуточных членов имеет значение <see langword="null"/>.
+        /// </returns>
+        /// <remarks>
+        /// Метод поддерживает рекурсивный доступ к вложенным членам.
+        /// Если на любом этапе пути значение равно <see langword="null"/>,
+        /// дальнейший обход прекращается и возвращается <see langword="null"/>.
+        /// </remarks>
+        public static object Get(object instance, IEnumerable<string> pathToMemberName, Type convertToType = null)
+        {
+            if (instance == null)
+                return null;
+
+            var path = pathToMemberName as string[] ?? pathToMemberName.ToArray();
+
+            if (path.Length == 1)
+            {
+                return Get(instance, path[0], convertToType);
+            }
+
+            var getter = GetMemberGetter(instance.GetType(), path[0]);
+            var memberValue = getter?.Invoke(instance);
+
+            return memberValue == null
+                ? null
+                : Get(memberValue, path.Skip(1).ToArray(), convertToType);
+        }
+
+        public static T Get<T>(object instance, IEnumerable<string> pathToMemberName)
+        {
+            return (T)Get(instance, pathToMemberName, typeof(T));
+        }
+
+        /// <summary>
+        /// Возвращает значение поля или свойства объекта по имени члена,
+        /// приведённое к указанному типу.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип возвращаемого значения.
+        /// </typeparam>
+        /// <param name="instance">
+        /// Экземпляр объекта, из которого требуется получить значение.
+        /// </param>
+        /// <param name="memberName">
+        /// Имя поля или свойства.
+        /// </param>
+        /// <returns>
+        /// Значение поля или свойства, приведённое к типу <typeparamref name="T"/>.
+        /// </returns>
+        public static T Get<T>(object instance, string memberName)
+        {
+            return (T)Get(instance, memberName, typeof(T));
         }
 
         private static readonly ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache = new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
