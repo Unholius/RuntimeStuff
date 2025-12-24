@@ -8,6 +8,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
+using RuntimeStuff.Extensions;
 
 namespace RuntimeStuff.Helpers
 {
@@ -254,6 +255,86 @@ namespace RuntimeStuff.Helpers
         public static HashSet<Type> NumberTypes { get; }
 
         /// <summary>
+        /// Хранилище пользовательских конвертеров типов.
+        /// Ключ первого уровня — исходный тип,
+        /// ключ второго уровня — целевой тип,
+        /// значение — функция преобразования.
+        /// </summary>
+        /// <remarks>
+        /// Конвертеры используются при динамическом приведении типов
+        /// (например, в reflection-утилитах или маппинге данных).
+        /// </remarks>
+        public static Dictionary<Type, Dictionary<Type, Func<object, object>>> CustomTypeConverters
+            = new Dictionary<Type, Dictionary<Type, Func<object, object>>>();
+
+
+        /// <summary>
+        /// Регистрирует пользовательский конвертер между двумя типами.
+        /// </summary>
+        /// <typeparam name="TFrom">Исходный тип.</typeparam>
+        /// <typeparam name="TTo">Целевой тип.</typeparam>
+        /// <param name="converter">
+        /// Функция преобразования значения из <typeparamref name="TFrom"/>
+        /// в <typeparamref name="TTo"/>.
+        /// </param>
+        /// <remarks>
+        /// Если конвертер для указанной пары типов уже существует,
+        /// он будет перезаписан.
+        /// </remarks>
+        public static void AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, TTo> converter)
+        {
+            if (!CustomTypeConverters.TryGetValue(typeof(TFrom), out var typeConverters) || typeConverters == null)
+            {
+                typeConverters = new Dictionary<Type, Func<object, object>>();
+                CustomTypeConverters[typeof(TFrom)] = typeConverters;
+            }
+
+            typeConverters[typeof(TTo)] =
+                converter.ConvertFunc(arg => (TFrom)arg);
+        }
+
+
+        /// <summary>
+        /// Возвращает пользовательский конвертер типов в строго типизированном виде.
+        /// </summary>
+        /// <typeparam name="TFrom">Исходный тип.</typeparam>
+        /// <typeparam name="TTo">Целевой тип.</typeparam>
+        /// <returns>
+        /// Функция преобразования из <typeparamref name="TFrom"/> в <typeparamref name="TTo"/>,
+        /// либо <see langword="null"/>, если конвертер не зарегистрирован.
+        /// </returns>
+        public static Func<TFrom, TTo> GetCustomTypeConverter<TFrom, TTo>()
+        {
+            return GetCustomTypeConverter(typeof(TFrom), typeof(TTo))
+                ?.ConvertFunc<TFrom, TTo>();
+        }
+
+
+        /// <summary>
+        /// Возвращает пользовательский конвертер между двумя типами.
+        /// </summary>
+        /// <param name="typeFrom">Исходный тип.</param>
+        /// <param name="typeTo">Целевой тип.</param>
+        /// <returns>
+        /// Функция преобразования значения,
+        /// либо <see langword="null"/>, если конвертер не найден.
+        /// </returns>
+        /// <remarks>
+        /// Возвращаемая функция принимает и возвращает значения типа
+        /// <see cref="object"/> и требует явного приведения типов.
+        /// </remarks>
+        public static Func<object, object> GetCustomTypeConverter(Type typeFrom, Type typeTo)
+        {
+            if (!CustomTypeConverters.TryGetValue(typeFrom, out var typeConverters) || typeConverters == null)
+                return null;
+
+            if (!typeConverters.TryGetValue(typeTo, out var converter) || converter == null)
+                return null;
+
+            return converter;
+        }
+
+        /// <summary>
         ///     Преобразует значение к указанному типу.
         /// </summary>
         /// <param name="value">Значение для преобразования.</param>
@@ -280,6 +361,10 @@ namespace RuntimeStuff.Helpers
             // Быстрый возврат
             if (fromType == toType || toType.IsAssignableFrom(fromType))
                 return value;
+
+            var customConverter = GetCustomTypeConverter(fromType, toType);
+            if (customConverter != null)
+                return customConverter(value);
 
             // Преобразование в строку
             if (toType == typeof(string))

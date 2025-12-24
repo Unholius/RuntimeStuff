@@ -575,6 +575,36 @@ namespace RuntimeStuff
             return mc.Type;
         }
 
+        public static implicit operator MemberCache(PropertyInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        public static implicit operator MemberCache(FieldInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        public static implicit operator MemberCache(MethodInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        public static implicit operator MemberCache(EventInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        public static implicit operator MemberCache(ConstructorInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        public static implicit operator MemberCache(Type memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
         #region Основные свойства
 
         /// <summary>
