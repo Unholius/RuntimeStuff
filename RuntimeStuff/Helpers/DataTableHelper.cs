@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Linq.Expressions;
 using RuntimeStuff;
 using RuntimeStuff.Helpers;
 
@@ -251,5 +252,45 @@ public static class DataTableHelper
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Преобразует коллекцию объектов указанного типа в таблицу данных, где каждая строка соответствует одному элементу
+    /// коллекции, а столбцы — публичным свойствам типа.
+    /// </summary>
+    /// <remarks>Каждое публичное свойство типа <typeparamref name="T"/> становится отдельным столбцом
+    /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value"/>. Название таблицы
+    /// соответствует имени типа <typeparamref name="T"/>.</remarks>
+    /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
+    /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
+    /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства</param>
+    /// <returns>Экземпляр <see cref="DataTable"/>, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
+    /// только с определёнными столбцами.</returns>
+    /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list"/> равен null.</exception>
+    public static DataTable ToDataTable<T>(IEnumerable<T> list, params Expression<Func<T, object>>[] propertySelectors) where T: class
+    {
+        if (list == null) throw new ArgumentNullException(nameof(list));
+        var table = new DataTable(typeof(T).Name);
+        var props = propertySelectors.Any() ? propertySelectors.Select(ExpressionHelper.GetMemberCache).ToArray() : MemberCache.Create(typeof(T)).Properties.Values.ToArray();
+        var pks = new List<DataColumn>();
+        foreach (var prop in props)
+        {
+            var colType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+            var col = AddCol(table, prop.ColumnName, colType);
+            if (prop.IsPrimaryKey)
+                pks.Add(table.Columns[prop.ColumnName]);
+        }
+        table.PrimaryKey = pks.ToArray();
+        foreach (var item in list)
+        {
+            var row = table.NewRow();
+            foreach (var prop in props)
+            {
+                var value = prop.GetValue(item);
+                row[prop.ColumnName] = value ?? DBNull.Value;
+            }
+            table.Rows.Add(row);
+        }
+        return table;
     }
 }

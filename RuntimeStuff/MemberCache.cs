@@ -608,7 +608,7 @@ namespace RuntimeStuff
         public bool CanWrite { get; }
 
         /// <summary>
-        ///     Имя колонки (из атрибута ColumnAttribute)
+        ///     Имя колонки (из атрибута ColumnAttribute), если такого атрибута нет - то имя свойства
         /// </summary>
         public string ColumnName { get; }
 

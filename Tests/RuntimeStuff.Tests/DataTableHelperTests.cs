@@ -447,6 +447,8 @@ public class DataTableHelperTests
             Assert.AreEqual(1, result.Count);
             Assert.AreEqual(1, result[0].Id);
             Assert.AreEqual("Test", result[0].Name);
+
+            var dt = DataTableHelper.ToDataTable(result);
         }
 
         [TestMethod]
