@@ -287,7 +287,7 @@ namespace RuntimeStuff.Extensions
                 throw new ArgumentNullException(nameof(e));
 
             if (fromIndex < 0)
-                throw new ArgumentOutOfRangeException(nameof(fromIndex), "fromIndex не может быть меньше нуля.");
+                throw new ArgumentOutOfRangeException(nameof(fromIndex), @"fromIndex не может быть меньше нуля.");
 
             if (comparer == null)
                 comparer = EqualityComparer<T>.Default;
@@ -510,6 +510,39 @@ namespace RuntimeStuff.Extensions
         public static DataTable ToDataTable<T>(this IEnumerable<T> source, string tableName, params (Expression<Func<T, object>> propertySelector, string columnName)[] columnSelectors) where T : class
         {
             return DataTableHelper.ToDataTable(source, tableName, columnSelectors);
+        }
+
+        /// <summary>
+        /// Вычисляет количество элементов в последовательности, удовлетворяющих заданному условию, определяемому
+        /// предикатом с учетом индекса элемента.
+        /// </summary>
+        /// <remarks>Индекс элемента, передаваемый в предикат, начинается с нуля и увеличивается на
+        /// единицу для каждого следующего элемента последовательности.</remarks>
+        /// <typeparam name="T">Тип элементов в последовательности.</typeparam>
+        /// <param name="source">Последовательность, элементы которой необходимо подсчитать. Не может быть равна null.</param>
+        /// <param name="predicate">Функция-предикат, определяющая условие для подсчета элемента. Принимает элемент и его индекс в
+        /// последовательности. Не может быть равна null.</param>
+        /// <returns>Число элементов в последовательности, для которых предикат возвращает <see langword="true"/>.</returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если параметр <paramref name="source"/> или <paramref name="predicate"/> равен null.</exception>
+        public static int Count<T>(this IEnumerable<T> source, Func<T, int, bool> predicate)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            var count = 0;
+            var index = 0;
+
+            foreach (var item in source)
+            {
+                if (predicate(item, index))
+                    count++;
+                index++;
+            }
+
+            return count;
         }
 
         /// <summary>
