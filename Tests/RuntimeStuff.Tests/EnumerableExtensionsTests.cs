@@ -94,7 +94,7 @@ public class EnumerableExtensionsTests
     public void IndexOf_WithItemAndStartIndex_ThrowsArgumentNullExceptionForNullCollection()
     {
         // Arrange
-        IEnumerable<int> collection = null;
+        IEnumerable<int>? collection = null;
 
         // Act
         collection.IndexOf(1, 0);
@@ -190,7 +190,7 @@ public class EnumerableExtensionsTests
     public void IndexOf_WithIndexedMatchFunction_HandlesNullCollection()
     {
         // Arrange
-        IEnumerable<int> collection = null;
+        IEnumerable<int>? collection = null;
 
         // Act
         var result = collection.IndexOf((x, i) => x > 0);
@@ -286,9 +286,9 @@ public class EnumerableExtensionsTests
         // Arrange
         var items = new List<TestPerson>
         {
-            new TestPerson { Id = 1, Name = "Alice" },
-            new TestPerson { Id = 2, Name = "Bob" },
-            new TestPerson { Id = 3, Name = "Charlie" }
+            new() { Id = 1, Name = "Alice" },
+            new() { Id = 2, Name = "Bob" },
+            new() { Id = 3, Name = "Charlie" }
         };
 
         // Act
@@ -357,7 +357,7 @@ public class EnumerableExtensionsTests
     private class TestPerson
     {
         public int Id { get; set; }
-        public string Name { get; set; }
+        public string? Name { get; set; }
     }
 
     #endregion

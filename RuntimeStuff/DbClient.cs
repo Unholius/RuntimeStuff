@@ -136,7 +136,7 @@ namespace RuntimeStuff
 
         public T Insert<T>(IDbTransaction dbTransaction = null, params Action<T>[] insertColumns) where T : class
         {
-            var item = TypeHelper.New<T>();
+            var item = Obj.New<T>();
             foreach (var a in insertColumns)
                 a(item);
             Insert(item, dbTransaction: dbTransaction);
@@ -158,7 +158,7 @@ namespace RuntimeStuff
                 var mi = MemberCache<T>.Create();
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
                     mi.PrimaryKeys.First().Value.SetValue(item,
-                        TypeHelper.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
+                        Obj.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
             }
 
             return id;
@@ -167,7 +167,7 @@ namespace RuntimeStuff
         public Task<object> InsertAsync<T>(Action<T>[] insertColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
             where T : class
         {
-            var item = TypeHelper.New<T>();
+            var item = Obj.New<T>();
             if (insertColumns == null) return InsertAsync(item, null, dbTransaction, token);
             foreach (var a in insertColumns)
                 a(item);
@@ -189,7 +189,7 @@ namespace RuntimeStuff
                 var mi = MemberCache<T>.Create();
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
                     mi.PrimaryKeys.First().Value.SetValue(item,
-                        TypeHelper.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
+                        Obj.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
             }
 
             return id;
@@ -216,7 +216,7 @@ namespace RuntimeStuff
                             SetParameterCollection(cmd, queryParams);
                             var id = cmd.ExecuteScalar();
                             CommandExecuted?.Invoke(cmd);
-                            if (pk != null && id != null) pk.SetValue(item, TypeHelper.ChangeType(id, pk.PropertyType));
+                            if (pk != null && id != null) pk.SetValue(item, Obj.ChangeType(id, pk.PropertyType));
 
                             count++;
                         }
@@ -263,7 +263,7 @@ namespace RuntimeStuff
 
                             var id = await dbCmd.ExecuteScalarAsync(token).ConfigureAwait(ConfigureAwait);
                             CommandExecuted?.Invoke(cmd);
-                            if (pk != null && id != null) pk.SetValue(item, TypeHelper.ChangeType(id, pk.PropertyType));
+                            if (pk != null && id != null) pk.SetValue(item, Obj.ChangeType(id, pk.PropertyType));
 
                             count++;
                         }
@@ -798,7 +798,7 @@ namespace RuntimeStuff
         }
 
 
-        public async Task<TList> QueryAsync<TList, T>(string query = null, object cmdParams = null, IEnumerable<string> columns = null, IEnumerable<(string, string)> columnToPropertyMap = null, DbValueConverter<T> converter = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], T> itemFactory = null, CancellationToken ct = default(CancellationToken)) where TList : ICollection<T>, new()
+        public async Task<TList> QueryAsync<TList, T>(string query = null, object cmdParams = null, IEnumerable<string> columns = null, IEnumerable<(string, string)> columnToPropertyMap = null, DbValueConverter<T> converter = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], T> itemFactory = null, CancellationToken ct = default) where TList : ICollection<T>, new()
         {
             if (string.IsNullOrEmpty(query))
                 query = SqlQueryBuilder.GetSelectQuery<T>(Options);
@@ -1170,7 +1170,7 @@ namespace RuntimeStuff
         public T Count<TFrom, T>(Expression<Func<TFrom, object>> columnSelector = null) where TFrom : class
         {
             var total = Count(columnSelector);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public async Task<object> CountAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
@@ -1181,13 +1181,13 @@ namespace RuntimeStuff
         public async Task<T> CountAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
             var total = await CountAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public T Max<TFrom, T>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
         {
             var total = Max(columnSelector);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public object Max<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
@@ -1198,7 +1198,7 @@ namespace RuntimeStuff
         public async Task<T> MaxAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
         {
             var total = await MaxAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public async Task<object> MaxAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
@@ -1209,7 +1209,7 @@ namespace RuntimeStuff
         public T Min<TFrom, T>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
         {
             var total = Min(columnSelector);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public object Min<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
@@ -1220,7 +1220,7 @@ namespace RuntimeStuff
         public async Task<T> MinAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
         {
             var total = await MinAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public async Task<object> MinAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
@@ -1231,7 +1231,7 @@ namespace RuntimeStuff
         public T Sum<TFrom, T>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
         {
             var total = Sum(columnSelector);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public object Sum<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
@@ -1242,7 +1242,7 @@ namespace RuntimeStuff
         public async Task<T> SumAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
         {
             var total = await SumAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public async Task<object> SumAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
@@ -1253,7 +1253,7 @@ namespace RuntimeStuff
         public T Avg<TFrom, T>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
         {
             var total = Avg(columnSelector);
-            return TypeHelper.ChangeType<T>(total);
+            return Obj.ChangeType<T>(total);
         }
 
         public object Avg<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
@@ -1283,11 +1283,11 @@ namespace RuntimeStuff
 
             var dic = colNames.Select((x, i)=> (x,
                 (
-                    TypeHelper.ChangeType<long>(result[$"{x}COUNT"]),
-                    TypeHelper.ChangeType<long>(result[$"{x}MIN"]),
-                    TypeHelper.ChangeType<long>(result[$"{x}MAX"]),
-                    TypeHelper.ChangeType<long>(result[$"{x}SUM"]),
-                    TypeHelper.ChangeType<decimal>(result[$"{x}AVG"])))).ToDictionary(key => key.x, val => val.Item2);
+                    Obj.ChangeType<long>(result[$"{x}COUNT"]),
+                    Obj.ChangeType<long>(result[$"{x}MIN"]),
+                    Obj.ChangeType<long>(result[$"{x}MAX"]),
+                    Obj.ChangeType<long>(result[$"{x}SUM"]),
+                    Obj.ChangeType<decimal>(result[$"{x}AVG"])))).ToDictionary(key => key.x, val => val.Item2);
 
             return dic;
         }
@@ -1309,11 +1309,11 @@ namespace RuntimeStuff
 
             var dic = colNames.Select((x, i) => (x,
                 (
-                    TypeHelper.ChangeType<long>(result[$"{x}COUNT"]),
-                    TypeHelper.ChangeType<long>(result[$"{x}MIN"]),
-                    TypeHelper.ChangeType<long>(result[$"{x}MAX"]),
-                    TypeHelper.ChangeType<long>(result[$"{x}SUM"]),
-                    TypeHelper.ChangeType<decimal>(result[$"{x}AVG"])))).ToDictionary(key => key.x, val => val.Item2);
+                    Obj.ChangeType<long>(result[$"{x}COUNT"]),
+                    Obj.ChangeType<long>(result[$"{x}MIN"]),
+                    Obj.ChangeType<long>(result[$"{x}MAX"]),
+                    Obj.ChangeType<long>(result[$"{x}SUM"]),
+                    Obj.ChangeType<decimal>(result[$"{x}AVG"])))).ToDictionary(key => key.x, val => val.Item2);
 
             return dic;
         }
@@ -1467,7 +1467,7 @@ namespace RuntimeStuff
 
         private object ChangeType(object value, Type targetType)
         {
-            return TypeHelper.ChangeType(value, targetType);
+            return Obj.ChangeType(value, targetType);
         }
 
         private void CloseConnection()
@@ -1614,12 +1614,12 @@ namespace RuntimeStuff
                 if (indexes.All(i => i >= 0))
                 {
                     for (int i = 0; i < indexes.Length; i++)
-                        args[i] = TypeHelper.ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
+                        args[i] = Obj.ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
                 }
                 else
                 {
                     for (int i = 0; i < ctorParams.Length; i++)
-                        args[i] = TypeHelper.ChangeType(values[i], ctorParams[i].ParameterType);
+                        args[i] = Obj.ChangeType(values[i], ctorParams[i].ParameterType);
                 }
 
                 return (T)ctor.Invoke(args);
@@ -1679,6 +1679,8 @@ namespace RuntimeStuff
                         {
                             var fieldName = reader.GetName(i);
                             var dataType = reader.GetFieldType(i);
+                            throw new InvalidOperationException(
+                                $"Не удалось получить значение поля '{fieldName}' типа '{dataType?.FullName}'.", ex);
                         }
                     }
                 }

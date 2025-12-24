@@ -16,7 +16,7 @@ namespace RuntimeStuff.MSTests
 
         public class TestPerson
         {
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public int Age { get; set; }
             private string PrivateField = "private";
             protected string ProtectedField = "protected";
@@ -24,16 +24,16 @@ namespace RuntimeStuff.MSTests
             public DateTime BirthDate { get; set; }
             public decimal Salary { get; set; }
             public bool IsEmployed { get; set; }
-            public TestAddress Address { get; set; }
-            public List<string> Hobbies { get; set; }
+            public TestAddress? Address { get; set; }
+            public List<string>? Hobbies { get; set; }
             public string ReadOnlyProperty => "readonly";
             private string PrivateProperty { get; set; } = "privateProp";
         }
 
         public class TestAddress
         {
-            public string City { get; set; }
-            public string Street { get; set; }
+            public string? City { get; set; }
+            public string? Street { get; set; }
         }
 
         public class TestClassWithStatic
@@ -83,7 +83,7 @@ namespace RuntimeStuff.MSTests
             var value = "123";
 
             // Act
-            var result = TypeHelper.ChangeType<int>(value);
+            var result = Obj.ChangeType<int>(value);
 
             // Assert
             Assert.AreEqual(123, result);
@@ -96,7 +96,7 @@ namespace RuntimeStuff.MSTests
             var value = "123.45";
 
             // Act
-            var result = TypeHelper.ChangeType<decimal>(value);
+            var result = Obj.ChangeType<decimal>(value);
 
             // Assert
             Assert.AreEqual(123.45m, result);
@@ -109,7 +109,7 @@ namespace RuntimeStuff.MSTests
             var value = "2023-12-31";
 
             // Act
-            var result = TypeHelper.ChangeType<DateTime>(value);
+            var result = Obj.ChangeType<DateTime>(value);
 
             // Assert
             Assert.AreEqual(new DateTime(2023, 12, 31), result);
@@ -122,7 +122,7 @@ namespace RuntimeStuff.MSTests
             var value = "2023-12-31";
 
             // Act
-            var result = TypeHelper.ChangeType<DateTime?>(value);
+            var result = Obj.ChangeType<DateTime?>(value);
 
             // Assert
             Assert.AreEqual(new DateTime(2023, 12, 31), result);
@@ -132,7 +132,7 @@ namespace RuntimeStuff.MSTests
         public void ChangeType_NullToNullable_ReturnsNull()
         {
             // Act
-            var result = TypeHelper.ChangeType<int?>(null);
+            var result = Obj.ChangeType<int?>(null);
 
             // Assert
             Assert.IsNull(result);
@@ -145,7 +145,7 @@ namespace RuntimeStuff.MSTests
             var value = DBNull.Value;
 
             // Act
-            var result = TypeHelper.ChangeType<int?>(value);
+            var result = Obj.ChangeType<int?>(value);
 
             // Assert
             Assert.IsNull(result);
@@ -158,7 +158,7 @@ namespace RuntimeStuff.MSTests
             var value = 123;
 
             // Act
-            var result = TypeHelper.ChangeType<string>(value);
+            var result = Obj.ChangeType<string>(value);
 
             // Assert
             Assert.AreEqual("123", result);
@@ -171,7 +171,7 @@ namespace RuntimeStuff.MSTests
             var value = "Value2";
 
             // Act
-            var result = TypeHelper.ChangeType<TestEnum>(value);
+            var result = Obj.ChangeType<TestEnum>(value);
 
             // Assert
             Assert.AreEqual(TestEnum.Value2, result);
@@ -184,7 +184,7 @@ namespace RuntimeStuff.MSTests
             var value = 2;
 
             // Act
-            var result = TypeHelper.ChangeType<TestEnum>(value);
+            var result = Obj.ChangeType<TestEnum>(value);
 
             // Assert
             Assert.AreEqual(TestEnum.Value2, result);
@@ -198,7 +198,7 @@ namespace RuntimeStuff.MSTests
             var value = "not-a-number";
 
             // Act
-            TypeHelper.ChangeType<int>(value);
+            Obj.ChangeType<int>(value);
         }
 
         #endregion ChangeType Tests
@@ -213,8 +213,8 @@ namespace RuntimeStuff.MSTests
             var obj2 = 123;
 
             // Act
-            var hash1 = TypeHelper.ComputeHash(obj1, obj2);
-            var hash2 = TypeHelper.ComputeHash(obj1, obj2);
+            var hash1 = Obj.ComputeHash(obj1, obj2);
+            var hash2 = Obj.ComputeHash(obj1, obj2);
 
             // Assert
             Assert.AreEqual(hash1, hash2);
@@ -224,11 +224,11 @@ namespace RuntimeStuff.MSTests
         public void ComputeHash_WithNull_ReturnsHash()
         {
             // Arrange
-            string obj1 = null;
+            string? obj1 = null;
             var obj2 = 123;
 
             // Act
-            var hash = TypeHelper.ComputeHash(obj1, obj2);
+            var hash = Obj.ComputeHash(obj1, obj2);
 
             // Assert
             Assert.IsTrue(hash != 0);
@@ -242,7 +242,7 @@ namespace RuntimeStuff.MSTests
         public void Default_ValueType_ReturnsDefaultValue()
         {
             // Act
-            var result = TypeHelper.Default(typeof(int));
+            var result = Obj.Default(typeof(int));
 
             // Assert
             Assert.AreEqual(0, result);
@@ -252,7 +252,7 @@ namespace RuntimeStuff.MSTests
         public void Default_ReferenceType_ReturnsNull()
         {
             // Act
-            var result = TypeHelper.Default(typeof(string));
+            var result = Obj.Default(typeof(string));
 
             // Assert
             Assert.IsNull(result);
@@ -269,7 +269,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(TestPerson);
 
             // Act
-            var member = TypeHelper.FindMember(type, "Name");
+            var member = Obj.FindMember(type, "Name");
 
             // Assert
             Assert.IsNotNull(member);
@@ -284,7 +284,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(TestPerson);
 
             // Act
-            var member = TypeHelper.FindMember(type, "PrivateField");
+            var member = Obj.FindMember(type, "PrivateField");
 
             // Assert
             Assert.IsNotNull(member);
@@ -299,7 +299,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(TestPerson);
 
             // Act
-            var member = TypeHelper.FindMember(type, "name");
+            var member = Obj.FindMember(type, "name");
 
             // Assert
             Assert.IsNotNull(member);
@@ -313,7 +313,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(TestClassWithInterface);
 
             // Act
-            var member = TypeHelper.FindMember(type, "InterfaceProperty");
+            var member = Obj.FindMember(type, "InterfaceProperty");
 
             // Assert
             Assert.IsNotNull(member);
@@ -328,7 +328,7 @@ namespace RuntimeStuff.MSTests
         public void GetProperties_ReturnsAllProperties()
         {
             // Act
-            var properties = TypeHelper.GetProperties<TestPerson>();
+            var properties = Obj.GetProperties<TestPerson>();
 
             // Assert
             Assert.IsTrue(properties.Any(p => p.Name == "Name"));
@@ -345,7 +345,7 @@ namespace RuntimeStuff.MSTests
         public void GetPropertiesMap_ReturnsDictionary()
         {
             // Act
-            var map = TypeHelper.GetPropertiesMap<TestPerson>();
+            var map = Obj.GetPropertiesMap<TestPerson>();
 
             // Assert
             Assert.IsInstanceOfType(map, typeof(Dictionary<string, PropertyInfo>));
@@ -357,7 +357,7 @@ namespace RuntimeStuff.MSTests
         public void GetProperty_ByName_ReturnsProperty()
         {
             // Act
-            var property = TypeHelper.GetProperty(typeof(TestPerson), "Name");
+            var property = Obj.GetProperty(typeof(TestPerson), "Name");
 
             // Assert
             Assert.IsNotNull(property);
@@ -368,7 +368,7 @@ namespace RuntimeStuff.MSTests
         public void GetProperty_IgnoreCase_ReturnsProperty()
         {
             // Act
-            var property = TypeHelper.GetProperty(typeof(TestPerson), "NAME", StringComparison.OrdinalIgnoreCase);
+            var property = Obj.GetProperty(typeof(TestPerson), "NAME", StringComparison.OrdinalIgnoreCase);
 
             // Assert
             Assert.IsNotNull(property);
@@ -529,7 +529,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Name = "John" };
 
             // Act
-            var value = TypeHelper.GetMemberValue(person, "Name");
+            var value = Obj.Get(person, "Name");
 
             // Assert
             Assert.AreEqual("John", value);
@@ -542,7 +542,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Age = 30 };
 
             // Act
-            var value = person.GetMemberValue<int>("Age");
+            var value = Obj.Get<int>(person, "Age");
 
             // Assert
             Assert.AreEqual(30, value);
@@ -555,7 +555,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Age = 30 };
 
             // Act
-            var value = TypeHelper.GetMemberValue(person, "Age", typeof(string));
+            var value = Obj.Get(person, "Age", typeof(string));
 
             // Assert
             Assert.AreEqual("30", value);
@@ -617,7 +617,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Name = "John", Age = 30 };
 
             // Act
-            var values = TypeHelper.GetPropertyValues(person, "Name", "Age");
+            var values = Obj.GetValues(person, "Name", "Age");
 
             // Assert
             Assert.AreEqual(2, values.Length);
@@ -632,7 +632,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Name = "John", Age = 30 };
 
             // Act
-            var values = TypeHelper.GetPropertyValues<TestPerson, string>(person, "Name", "Age");
+            var values = Obj.GetValues<TestPerson, string>(person, "Name", "Age");
 
             // Assert
             Assert.AreEqual(2, values.Length);
@@ -648,133 +648,133 @@ namespace RuntimeStuff.MSTests
         public void IsBasic_String_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsBasic(typeof(string)));
+            Assert.IsTrue(Obj.IsBasic(typeof(string)));
         }
 
         [TestMethod]
         public void IsBasic_Int_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsBasic(typeof(int)));
+            Assert.IsTrue(Obj.IsBasic(typeof(int)));
         }
 
         [TestMethod]
         public void IsBasic_DateTime_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsBasic(typeof(DateTime)));
+            Assert.IsTrue(Obj.IsBasic(typeof(DateTime)));
         }
 
         [TestMethod]
         public void IsBasic_Class_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(TypeHelper.IsBasic(typeof(TestPerson)));
+            Assert.IsFalse(Obj.IsBasic(typeof(TestPerson)));
         }
 
         [TestMethod]
         public void IsBoolean_Bool_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsBoolean(typeof(bool)));
+            Assert.IsTrue(Obj.IsBoolean(typeof(bool)));
         }
 
         [TestMethod]
         public void IsBoolean_NullableBool_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsBoolean(typeof(bool?)));
+            Assert.IsTrue(Obj.IsBoolean(typeof(bool?)));
         }
 
         [TestMethod]
         public void IsDate_DateTime_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsDate(typeof(DateTime)));
+            Assert.IsTrue(Obj.IsDate(typeof(DateTime)));
         }
 
         [TestMethod]
         public void IsCollection_List_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsCollection(typeof(List<string>)));
+            Assert.IsTrue(Obj.IsCollection(typeof(List<string>)));
         }
 
         [TestMethod]
         public void IsCollection_Array_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsCollection(typeof(string[])));
+            Assert.IsTrue(Obj.IsCollection(typeof(string[])));
         }
 
         [TestMethod]
         public void IsCollection_String_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(TypeHelper.IsCollection(typeof(string)));
+            Assert.IsFalse(Obj.IsCollection(typeof(string)));
         }
 
         [TestMethod]
         public void IsDelegate_Action_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsDelegate(typeof(Action)));
+            Assert.IsTrue(Obj.IsDelegate(typeof(Action)));
         }
 
         [TestMethod]
         public void IsDictionary_Dictionary_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsDictionary(typeof(Dictionary<string, int>)));
+            Assert.IsTrue(Obj.IsDictionary(typeof(Dictionary<string, int>)));
         }
 
         [TestMethod]
         public void IsNullable_NullableInt_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsNullable(typeof(int?)));
+            Assert.IsTrue(Obj.IsNullable(typeof(int?)));
         }
 
         [TestMethod]
         public void IsNullable_String_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsNullable(typeof(string)));
+            Assert.IsTrue(Obj.IsNullable(typeof(string)));
         }
 
         [TestMethod]
         public void IsNullable_Int_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(TypeHelper.IsNullable(typeof(int)));
+            Assert.IsFalse(Obj.IsNullable(typeof(int)));
         }
 
         [TestMethod]
         public void IsNumeric_Int_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsNumeric(typeof(int)));
+            Assert.IsTrue(Obj.IsNumeric(typeof(int)));
         }
 
         [TestMethod]
         public void IsNumeric_Decimal_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsNumeric(typeof(decimal)));
+            Assert.IsTrue(Obj.IsNumeric(typeof(decimal)));
         }
 
         [TestMethod]
         public void IsNumeric_String_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(TypeHelper.IsNumeric(typeof(string)));
+            Assert.IsFalse(Obj.IsNumeric(typeof(string)));
         }
 
         [TestMethod]
         public void IsTuple_ValueTuple_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(TypeHelper.IsTuple(typeof((string, int))));
+            Assert.IsTrue(Obj.IsTuple(typeof((string, int))));
         }
 
         #endregion Type Detection Tests
@@ -785,7 +785,7 @@ namespace RuntimeStuff.MSTests
         public void GetTypeByName_KnownType_ReturnsType()
         {
             // Act
-            var type = TypeHelper.GetTypeByName("System.String");
+            var type = Obj.GetTypeByName("System.String");
 
             // Assert
             Assert.AreEqual(typeof(string), type);
@@ -795,7 +795,7 @@ namespace RuntimeStuff.MSTests
         public void GetTypeByName_ShortName_ReturnsType()
         {
             // Act
-            var type = TypeHelper.GetTypeByName("String");
+            var type = Obj.GetTypeByName("String");
 
             // Assert
             Assert.AreEqual(typeof(string), type);
@@ -805,7 +805,7 @@ namespace RuntimeStuff.MSTests
         public void GetTypeByName_Interface_ReturnsType()
         {
             // Act
-            var type = TypeHelper.GetTypeByName("System.Collections.IEnumerable");
+            var type = Obj.GetTypeByName("System.Collections.IEnumerable");
 
             // Assert
             Assert.AreEqual(typeof(IEnumerable), type);
@@ -816,7 +816,7 @@ namespace RuntimeStuff.MSTests
         public void GetTypeByName_Null_ThrowsException()
         {
             // Act
-            TypeHelper.GetTypeByName(null);
+            Obj.GetTypeByName(null);
         }
 
         #endregion GetTypeByName Tests
@@ -827,7 +827,7 @@ namespace RuntimeStuff.MSTests
         public void New_ReferenceType_CreatesInstance()
         {
             // Act
-            var instance = TypeHelper.New<TestPerson>();
+            var instance = Obj.New<TestPerson>();
 
             // Assert
             Assert.IsNotNull(instance);
@@ -838,7 +838,7 @@ namespace RuntimeStuff.MSTests
         public void New_ValueType_CreatesInstance()
         {
             // Act
-            var instance = TypeHelper.New<TestStruct>(1, "two");
+            var instance = Obj.New<TestStruct>(1, "two");
 
             // Assert
             Assert.IsNotNull(instance);
@@ -849,7 +849,7 @@ namespace RuntimeStuff.MSTests
         public void New_WithType_CreatesInstance()
         {
             // Act
-            var instance = TypeHelper.New(typeof(TestPerson));
+            var instance = Obj.New(typeof(TestPerson));
 
             // Assert
             Assert.IsNotNull(instance);
@@ -927,7 +927,7 @@ namespace RuntimeStuff.MSTests
         public void GetImplementationsOf_InCurrentAssembly_ReturnsTypes()
         {
             // Act
-            var types = TypeHelper.GetImplementationsOf(typeof(ITestInterface), Assembly.GetExecutingAssembly());
+            var types = Obj.GetImplementationsOf(typeof(ITestInterface), Assembly.GetExecutingAssembly());
 
             // Assert
             Assert.IsTrue(types.Any(t => t == typeof(TestClassWithInterface)));
@@ -994,7 +994,7 @@ namespace RuntimeStuff.MSTests
         public void GetBaseTypes_WithIncludeThis_ReturnsType()
         {
             // Act
-            var baseTypes = TypeHelper.GetBaseTypes(typeof(TestPerson), includeThis: true);
+            var baseTypes = Obj.GetBaseTypes(typeof(TestPerson), includeThis: true);
 
             // Assert
             Assert.IsTrue(baseTypes.Contains(typeof(TestPerson)));
@@ -1004,7 +1004,7 @@ namespace RuntimeStuff.MSTests
         public void GetBaseTypes_WithInterfaces_ReturnsInterfaces()
         {
             // Act
-            var baseTypes = TypeHelper.GetBaseTypes(typeof(TestClassWithInterface), getInterfaces: true);
+            var baseTypes = Obj.GetBaseTypes(typeof(TestClassWithInterface), getInterfaces: true);
 
             // Assert
             Assert.IsTrue(baseTypes.Any(t => t.Name.Contains("ITestInterface")));
@@ -1018,7 +1018,7 @@ namespace RuntimeStuff.MSTests
         public void GetLowestProperty_FindsProperty()
         {
             // Act
-            var property = TypeHelper.GetLowestProperty(typeof(TestPerson), "Name");
+            var property = Obj.GetLowestProperty(typeof(TestPerson), "Name");
 
             // Assert
             Assert.IsNotNull(property);
@@ -1029,7 +1029,7 @@ namespace RuntimeStuff.MSTests
         public void GetLowestField_FindsField()
         {
             // Act
-            var field = TypeHelper.GetLowestField(typeof(TestPerson), "PrivateField");
+            var field = Obj.GetLowestField(typeof(TestPerson), "PrivateField");
 
             // Assert
             Assert.IsNotNull(field);
@@ -1054,7 +1054,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithAttribute);
 
             // Act
-            var attribute = TypeHelper.GetCustomAttribute(type, "TestAttribute");
+            var attribute = Obj.GetCustomAttribute(type, "TestAttribute");
 
             // Assert
             Assert.IsNotNull(attribute);
@@ -1067,17 +1067,17 @@ namespace RuntimeStuff.MSTests
 
         public class RecursiveClass
         {
-            public string Name { get; set; }
-            public RecursiveClass Child { get; set; }
+            public string? Name { get; set; }
+            public RecursiveClass? Child { get; set; }
         }
 
         [TestMethod]
         public void Test_Set_01()
         {
             var rc = new RecursiveClass();
-            TypeHelper.Set(rc, ["Child", "Child", "Child", "Name"], "ChildName");
-            Assert.AreEqual("ChildName", rc.Child.Child.Child.Name);
-            Assert.AreEqual("ChildName", TypeHelper.Get<string>(rc, ["Child", "Child", "Child", "Name"]));
+            Obj.Set(rc, ["Child", "Child", "Child", "Name"], "ChildName");
+            Assert.AreEqual("ChildName", rc.Child?.Child?.Child?.Name);
+            Assert.AreEqual("ChildName", Obj.Get<string>(rc, ["Child", "Child", "Child", "Name"]));
         }
 
         #endregion Get-Set

@@ -42,7 +42,7 @@ namespace RuntimeStuff.Helpers
     /// Console.WriteLine(getter(p)); // Bob
     /// </code>
     /// </summary>
-    public static class TypeHelper
+    public static class Obj
     {
         private static readonly string[] DateFormats =
         {
@@ -157,7 +157,7 @@ namespace RuntimeStuff.Helpers
         private static readonly StringComparer OrdinalIgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
         private static readonly ConcurrentDictionary<string, Type> TypeCache = new ConcurrentDictionary<string, Type>(OrdinalIgnoreCaseComparer);
 
-        static TypeHelper()
+        static Obj()
         {
             NullValues = new object[] { null, DBNull.Value, double.NaN, float.NaN };
 
@@ -422,6 +422,32 @@ namespace RuntimeStuff.Helpers
         public static T ChangeType<T>(object value, IFormatProvider formatProvider = null)
         {
             return (T)ChangeType(value, typeof(T), formatProvider);
+        }
+
+        /// <summary>
+        /// Преобразует указанный объект в тип <typeparamref name="T">. Если преобразование невозможно, возвращает
+        /// значение по умолчанию.
+        /// </summary>
+        /// <remarks>Метод не выбрасывает исключения при неудачном преобразовании, а возвращает указанное
+        /// значение по умолчанию. Это может быть полезно для безопасного преобразования типов без необходимости
+        /// обработки исключений.</remarks>
+        /// <typeparam name="T">Тип, в который требуется выполнить преобразование.</typeparam>
+        /// <param name="value">Объект, который необходимо преобразовать.</param>
+        /// <param name="defaultValue">Значение, возвращаемое в случае неудачного преобразования. По умолчанию используется значение по умолчанию
+        /// для типа <typeparamref name="T"/>.</param>
+        /// <param name="formatProvider">Объект, предоставляющий сведения о форматировании, используемые при преобразовании. Может быть равен null.</param>
+        /// <returns>Значение типа <typeparamref name="T"/>, полученное в результате успешного преобразования, либо <paramref
+        /// name="defaultValue"/>, если преобразование не удалось.</returns>
+        public static T TryChangeType<T>(object value, T defaultValue = default, IFormatProvider formatProvider = null)
+        {
+            try
+            {
+                return (T)ChangeType(value, typeof(T), formatProvider);
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
 
         /// <summary>
@@ -725,11 +751,9 @@ namespace RuntimeStuff.Helpers
             {
                 case FieldInfo fi:
                     return FieldSetterCache.Get(fi);
-                    break;
 
                 case PropertyInfo pi:
                     return PropertySetterCache.Get(pi);
-                    break;
             }
             return null;
         }
@@ -779,11 +803,9 @@ namespace RuntimeStuff.Helpers
             {
                 case FieldInfo fi:
                     return FieldGetterCache.Get(fi);
-                    break;
 
                 case PropertyInfo pi:
                     return PropertyGetterCache.Get(pi);
-                    break;
             }
             return null;
         }
@@ -976,24 +998,24 @@ namespace RuntimeStuff.Helpers
         /// var value = PropertyHelper.GetMemberValue(person, "Name"); // "Alice"
         /// </code>
         /// </summary>
-        public static object GetMemberValue(this object source, string memberName, Type tryConvertToType = null, bool throwOnError = true)
-        {
-            if (source == null)
-                if (throwOnError)
-                    throw new ArgumentNullException(nameof(source));
-                else
-                    return null;
-            var member = FindMember(source.GetType(), memberName);
-            var getter = member is PropertyInfo pi ? PropertyGetterCache.Get(pi) : member is FieldInfo fi ? FieldGetterCache.Get(fi) : null;
-            if (getter == null)
-                return throwOnError
-                    ? new NullReferenceException(
-                        $"Своство {memberName} отсутствует в типе {source.GetType().FullName}!")
-                    : null;
-            return tryConvertToType != null
-                ? ChangeType(getter(source), tryConvertToType)
-                : getter(source);
-        }
+        //public static object GetMemberValue(this object source, string memberName, Type tryConvertToType = null, bool throwOnError = true)
+        //{
+        //    if (source == null)
+        //        if (throwOnError)
+        //            throw new ArgumentNullException(nameof(source));
+        //        else
+        //            return null;
+        //    var member = FindMember(source.GetType(), memberName);
+        //    var getter = member is PropertyInfo pi ? PropertyGetterCache.Get(pi) : member is FieldInfo fi ? FieldGetterCache.Get(fi) : null;
+        //    if (getter == null)
+        //        return throwOnError
+        //            ? new NullReferenceException(
+        //                $"Своство {memberName} отсутствует в типе {source.GetType().FullName}!")
+        //            : null;
+        //    return tryConvertToType != null
+        //        ? ChangeType(getter(source), tryConvertToType)
+        //        : getter(source);
+        //}
 
         /// <summary>
         ///     Возвращает значение свойства с типизацией результата.<br />
@@ -1010,10 +1032,10 @@ namespace RuntimeStuff.Helpers
         /// int age = PropertyHelper.GetMemberValue&lt;Person, int&gt;(person, "Age"); // 42
         /// </code>
         /// </summary>
-        public static TValue GetMemberValue<TValue>(this object source, string memberName, bool throwIfSourceIsNull = true)
-        {
-            return  (TValue)GetMemberValue(source, memberName, typeof(TValue), throwIfSourceIsNull);
-        }
+        //public static TValue GetMemberValue<TValue>(this object source, string memberName, bool throwIfSourceIsNull = true)
+        //{
+        //    return  (TValue)GetMemberValue(source, memberName, typeof(TValue), throwIfSourceIsNull);
+        //}
 
         /// <summary>
         ///     Возвращает значение по ключу из словаря или добавляет его, если ключ отсутствует.
@@ -1349,12 +1371,12 @@ namespace RuntimeStuff.Helpers
         /// <param name="source">Исходный объект</param>
         /// <param name="memberNames">Имена свойств объекта с учетом регистра</param>
         /// <returns></returns>
-        public static object[] GetPropertyValues<TObject>(TObject source, params string[] memberNames) where TObject : class
+        public static object[] GetValues<TObject>(TObject source, params string[] memberNames) where TObject : class
         {
             var values = new List<object>();
             foreach (var memberName in memberNames)
             {
-                values.Add(GetMemberValue(source, memberName));
+                values.Add(Get(source, memberName));
             }
 
             return values.ToArray();
@@ -1362,16 +1384,16 @@ namespace RuntimeStuff.Helpers
 
         /// <summary>
         ///     Получает значения свойств объекта в указанном порядке и преобразует в указанный тип через
-        ///     <see cref="TypeHelper.ChangeType{T}(object, IFormatProvider)" />
+        ///     <see cref="Obj.ChangeType{T}(object, IFormatProvider)" />
         /// </summary>
         /// <typeparam name="TObject"></typeparam>
         /// <typeparam name="TValue"></typeparam>
         /// <param name="source">Исходный объект</param>
         /// <param name="memberNames">Имена свойств объекта с учетом регистра</param>
         /// <returns></returns>
-        public static TValue[] GetPropertyValues<TObject, TValue>(TObject source, params string[] memberNames) where TObject : class
+        public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames) where TObject : class
         {
-            return GetPropertyValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
+            return GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
         }
 
         /// <summary>

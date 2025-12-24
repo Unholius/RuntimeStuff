@@ -24,7 +24,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsTuple(this Type type)
         {
-            return TypeHelper.IsTuple(type);
+            return Obj.IsTuple(type);
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsNumeric(this Type type)
         {
-            return TypeHelper.IsNumeric(type);
+            return Obj.IsNumeric(type);
         }
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsNullable(this Type type)
         {
-            return TypeHelper.IsNullable(type);
+            return Obj.IsNullable(type);
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsDictionary(this Type type)
         {
-            return TypeHelper.IsDictionary(type);
+            return Obj.IsDictionary(type);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsFloat(this Type type)
         {
-            return TypeHelper.IsFloat(type);
+            return Obj.IsFloat(type);
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsBasic(this Type type)
         {
-            return TypeHelper.IsBasic(type);
+            return Obj.IsBasic(type);
         }
 
         /// <summary>
@@ -72,7 +72,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsBoolean(this Type type)
         {
-            return TypeHelper.IsBoolean(type);
+            return Obj.IsBoolean(type);
         }
 
         /// <summary>
@@ -80,7 +80,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsCollection(this Type type)
         {
-            return TypeHelper.IsCollection(type);
+            return Obj.IsCollection(type);
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsDate(this Type type)
         {
-            return TypeHelper.IsDate(type);
+            return Obj.IsDate(type);
         }
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsDelegate(this Type type)
         {
-            return TypeHelper.IsDelegate(type);
+            return Obj.IsDelegate(type);
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsImplements(this Type type, Type interfaceType)
         {
-            return TypeHelper.IsImplements(type, interfaceType);
+            return Obj.IsImplements(type, interfaceType);
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool IsImplements<TInterface>(this Type type)
         {
-            return TypeHelper.IsImplements<TInterface>(type);
+            return Obj.IsImplements<TInterface>(type);
         }
 
         /// <summary>
@@ -120,7 +120,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static object DefaultValue(this Type type)
         {
-            return TypeHelper.Default(type);
+            return Obj.Default(type);
         }
 
         /// <summary>
@@ -128,7 +128,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static Type[] GetBaseTypes(this Type type, bool includeThis = false, bool getInterfaces = false)
         {
-            return TypeHelper.GetBaseTypes(type, includeThis, getInterfaces);
+            return Obj.GetBaseTypes(type, includeThis, getInterfaces);
         }
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static Type GetCollectionItemType(this Type type)
         {
-            return TypeHelper.GetCollectionItemType(type);
+            return Obj.GetCollectionItemType(type);
         }
 
         /// <summary>
@@ -144,7 +144,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static PropertyInfo[] GetProperties(this Type type)
         {
-            return TypeHelper.GetProperties(type);
+            return Obj.GetProperties(type);
         }
 
         /// <summary>
@@ -153,7 +153,7 @@ namespace RuntimeStuff.Extensions
         public static PropertyInfo GetProperty(this Type type, string propertyName,
             StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
-            return TypeHelper.GetProperty(type, propertyName, stringComparison);
+            return Obj.GetProperty(type, propertyName, stringComparison);
         }
 
         /// <summary>
@@ -161,16 +161,16 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static string[] GetPropertyNames(this Type type)
         {
-            return TypeHelper.GetPropertyNames(type);
+            return Obj.GetPropertyNames(type);
         }
 
-        /// <summary>
-        ///     Получает значение свойства по имени.
-        /// </summary>
-        public static object GetPropertyValue(this object source, string propertyName)
-        {
-            return TypeHelper.GetMemberValue(source, propertyName);
-        }
+        ///// <summary>
+        /////     Получает значение свойства по имени.
+        ///// </summary>
+        //public static object GetPropertyValue(this object source, string propertyName)
+        //{
+        //    return Obj.Get(source, propertyName);
+        //}
 
         /// <summary>
         ///     Получает первый пользовательский атрибут по имени типа.
@@ -178,7 +178,7 @@ namespace RuntimeStuff.Extensions
         public static Attribute GetCustomAttribute(this MemberInfo member, string attributeName,
             StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
-            return TypeHelper.GetCustomAttribute(member, attributeName, stringComparison);
+            return Obj.GetCustomAttribute(member, attributeName, stringComparison);
         }
 
         /// <summary>
@@ -186,7 +186,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static FieldInfo GetField(this Type type, Func<FieldInfo, bool> matchCriteria)
         {
-            return TypeHelper.GetField(type, matchCriteria);
+            return Obj.GetField(type, matchCriteria);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static Type[] GetImplementationsOf(this Type baseType, Assembly fromAssembly)
         {
-            return TypeHelper.GetImplementationsOf(baseType, fromAssembly);
+            return Obj.GetImplementationsOf(baseType, fromAssembly);
         }
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static Type[] GetImplementationsOf(this Type baseType)
         {
-            return TypeHelper.GetImplementationsOf(baseType);
+            return Obj.GetImplementationsOf(baseType);
         }
 
         /// <summary>
@@ -211,7 +211,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static EventInfo GetLowestEvent(this Type type, string name)
         {
-            return TypeHelper.GetLowestEvent(type, name);
+            return Obj.GetLowestEvent(type, name);
         }
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static FieldInfo GetLowestField(this Type type, string name)
         {
-            return TypeHelper.GetLowestField(type, name);
+            return Obj.GetLowestField(type, name);
         }
 
         /// <summary>
@@ -227,7 +227,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static MethodInfo GetLowestMethod(this Type type, string name)
         {
-            return TypeHelper.GetLowestMethod(type, name);
+            return Obj.GetLowestMethod(type, name);
         }
 
         /// <summary>
@@ -235,7 +235,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static PropertyInfo GetLowestProperty(this Type type, string name)
         {
-            return TypeHelper.GetLowestProperty(type, name);
+            return Obj.GetLowestProperty(type, name);
         }
     }
 }

@@ -41,7 +41,7 @@ namespace RuntimeStuff.Extensions
                     if (value != null && !targetType.IsInstanceOfType(value))
                         try
                         {
-                            callArgs[i] = TypeHelper.ChangeType(value, targetType);
+                            callArgs[i] = Obj.ChangeType(value, targetType);
                         }
                         catch
                         {

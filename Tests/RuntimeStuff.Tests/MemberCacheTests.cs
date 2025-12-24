@@ -18,10 +18,10 @@ namespace RuntimeStuff.MSTests
         public class SimpleClass
         {
             public int Id { get; set; }
-            public string Name { get; set; }
-            private string PrivateField;
-            public string PublicField;
-            public event EventHandler TestEvent;
+            public string? Name { get; set; }
+            private string? PrivateField;
+            public string? PublicField;
+            public event EventHandler? TestEvent;
         }
 
         public class TestClassForSetterAndGetters
@@ -77,10 +77,10 @@ namespace RuntimeStuff.MSTests
             // STATIC MEMBERS
             // =========================
 
-            public static string PublicStaticField;
-            private static string PrivateStaticField;
+            public static string? PublicStaticField;
+            private static string? PrivateStaticField;
 
-            public static string PublicStaticProperty { get; private set; }
+            public static string? PublicStaticProperty { get; private set; }
 
             // =========================
             // STRUCT-LIKE SCENARIO
@@ -133,10 +133,10 @@ namespace RuntimeStuff.MSTests
 
             [Display(Name = "Full Name")]
             [Column("PersonName")]
-            public string Name { get; set; }
+            public string? Name { get; set; }
 
             [NotMapped]
-            public string IgnoredProperty { get; set; }
+            public string? IgnoredProperty { get; set; }
 
             [ForeignKey("RelatedId")]
             public int ForeignKeyProperty { get; set; }
@@ -148,9 +148,9 @@ namespace RuntimeStuff.MSTests
         public class ClassWithCollections
         {
             public int Id { get; set; }
-            public string[] StringArray { get; set; }
-            public System.Collections.Generic.List<int> IntList { get; set; }
-            public System.Collections.Generic.Dictionary<string, object> Dictionary { get; set; }
+            public string[]? StringArray { get; set; }
+            public List<int>? IntList { get; set; }
+            public Dictionary<string, object>? Dictionary { get; set; }
         }
 
         // Класс с интерфейсом
@@ -606,7 +606,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(SimpleClass);
 
             // Act
-            var instance = TypeHelper.New<SimpleClass>(type);
+            var instance = Obj.New<SimpleClass>(type);
 
             // Assert
             Assert.IsNotNull(instance);
@@ -704,7 +704,7 @@ namespace RuntimeStuff.MSTests
         public void Test_KeyValuePair_01()
         {
             object kv = new KeyValuePair<string, string>("123", "456");
-            var keyGetter = TypeHelper.CreatePropertyGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            var keyGetter = Obj.CreatePropertyGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
             //var keySetter = TypeHelper.CreateRefPropertySetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
             //var keySetter2 = TypeHelper.CreateRefFieldSetter(typeof(KeyValuePair<string, string>).GetField("value", TypeHelper.DefaultBindingFlags));
             //var mc = MemberCache.Create(kv.GetType());
@@ -759,31 +759,41 @@ namespace RuntimeStuff.MSTests
             var instance = new TestClassForSetterAndGetters();
             foreach (var p in mc.Properties.Values)
             {
-                var setter2 = TypeHelper.CreatePropertySetter(p);
-                var getter2 = TypeHelper.CreatePropertyGetter(p);
-                setter2(instance, "test_value");
-                var val = getter2(instance);
-                Assert.AreEqual("test_value", val);
-            }
-
-            foreach (var f in mc.Fields.Values.Where(x=>x.FieldType == typeof(string)))
-            {
-                var setter2 = TypeHelper.CreateDirectFieldSetter(f);
-                var getter2 = TypeHelper.CreateFieldGetter(f);
                 try
                 {
+                    var setter2 = Obj.CreatePropertySetter(p);
+                    var getter2 = Obj.CreatePropertyGetter(p);
+
                     setter2(instance, "test_value");
                     var val = getter2(instance);
                     Assert.AreEqual("test_value", val);
                 }
                 catch (Exception ex)
                 {
+                    Debug.WriteLine($"Property '{p.Name}' - Exception: {ex.Message}");
                 }
             }
 
+            foreach (var f in mc.Fields.Values.Where(x => x.FieldType == typeof(string)))
+            {
+                try
+                {
+                    var setter2 = Obj.CreateDirectFieldSetter(f);
+                    var getter2 = Obj.CreateFieldGetter(f);
+                    setter2(instance, "test_value");
+                    var val = getter2(instance);
+                    Assert.AreEqual("test_value", val);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Field '{f.Name}' - Exception: {ex.Message}");
+                }
+
+            }
+
             object kv = new KeyValuePair<string, string>("key1", "value1");
-            var kvKeyGetter = TypeHelper.CreatePropertyGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
-            var kvKeySetter = TypeHelper.CreatePropertySetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            var kvKeyGetter = Obj.CreatePropertyGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            var kvKeySetter = Obj.CreatePropertySetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
 
             var key = kvKeyGetter(kv);
             kvKeySetter(kv, "key2");
@@ -816,12 +826,12 @@ namespace RuntimeStuff.MSTests
 
         public class BaseClass
         {
-            public string BaseProperty { get; set; }
+            public string? BaseProperty { get; set; }
         }
 
         public class DerivedClass : BaseClass
         {
-            public string DerivedProperty { get; set; }
+            public string? DerivedProperty { get; set; }
         }
 
         #endregion

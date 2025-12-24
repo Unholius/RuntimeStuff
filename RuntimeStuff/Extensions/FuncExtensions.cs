@@ -551,7 +551,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         /// <remarks>
         ///     Если преобразователь результата не указан, для преобразования значения используется
-        ///     стандартный механизм <see cref="TypeHelper.ChangeType{T}" />. Метод может быть полезен для адаптации функций к
+        ///     стандартный механизм <see cref="Obj.ChangeType{T}" />. Метод может быть полезен для адаптации функций к
         ///     требуемому типу результата, например, при работе с обобщёнными API.
         /// </remarks>
         /// <typeparam name="R1">Тип исходного значения, возвращаемого исходной функцией.</typeparam>
@@ -572,7 +572,7 @@ namespace RuntimeStuff.Extensions
             return () =>
             {
                 var r = func();
-                return resultConverter == null ? TypeHelper.ChangeType<R2>(r) : resultConverter(r);
+                return resultConverter == null ? Obj.ChangeType<R2>(r) : resultConverter(r);
             };
         }
 
@@ -609,8 +609,8 @@ namespace RuntimeStuff.Extensions
         {
             return f =>
             {
-                var r = func(converter1 == null ? TypeHelper.ChangeType<T1>(f) : converter1(f));
-                return resultConverter == null ? TypeHelper.ChangeType<R2>(r) : resultConverter(r);
+                var r = func(converter1 == null ? Obj.ChangeType<T1>(f) : converter1(f));
+                return resultConverter == null ? Obj.ChangeType<R2>(r) : resultConverter(r);
             };
         }
 
@@ -659,10 +659,10 @@ namespace RuntimeStuff.Extensions
             return (t1, t2) =>
             {
                 var r1 = func(
-                    converter1 == null ? TypeHelper.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? TypeHelper.ChangeType<T2>(t2) : converter2(t2)
+                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2)
                 );
-                return r2 == null ? TypeHelper.ChangeType<R2>(r1) : r2(r1);
+                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
             };
         }
 
@@ -714,11 +714,11 @@ namespace RuntimeStuff.Extensions
             return (t1, t2, t3) =>
             {
                 var r1 = func(
-                    converter1 == null ? TypeHelper.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? TypeHelper.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? TypeHelper.ChangeType<T3>(t3) : converter3(t3)
+                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3)
                 );
-                return r2 == null ? TypeHelper.ChangeType<R2>(r1) : r2(r1);
+                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
             };
         }
 
@@ -775,12 +775,12 @@ namespace RuntimeStuff.Extensions
             return (t1, t2, t3, t4) =>
             {
                 var r1 = func(
-                    converter1 == null ? TypeHelper.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? TypeHelper.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? TypeHelper.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? TypeHelper.ChangeType<T4>(t4) : converter4(t4)
+                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4)
                 );
-                return r2 == null ? TypeHelper.ChangeType<R2>(r1) : r2(r1);
+                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
             };
         }
 
@@ -844,13 +844,13 @@ namespace RuntimeStuff.Extensions
             return (t1, t2, t3, t4, t5) =>
             {
                 var r1 = func(
-                    converter1 == null ? TypeHelper.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? TypeHelper.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? TypeHelper.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? TypeHelper.ChangeType<T4>(t4) : converter4(t4),
-                    converter5 == null ? TypeHelper.ChangeType<T5>(t5) : converter5(t5)
+                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
+                    converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5)
                 );
-                return r2 == null ? TypeHelper.ChangeType<R2>(r1) : r2(r1);
+                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
             };
         }
 
@@ -921,14 +921,14 @@ namespace RuntimeStuff.Extensions
             return (t1, t2, t3, t4, t5, t6) =>
             {
                 var r1 = func(
-                    converter1 == null ? TypeHelper.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? TypeHelper.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? TypeHelper.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? TypeHelper.ChangeType<T4>(t4) : converter4(t4),
-                    converter5 == null ? TypeHelper.ChangeType<T5>(t5) : converter5(t5),
-                    converter6 == null ? TypeHelper.ChangeType<T6>(t6) : converter6(t6)
+                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
+                    converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
+                    converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6)
                 );
-                return r2 == null ? TypeHelper.ChangeType<R2>(r1) : r2(r1);
+                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
             };
         }
 
@@ -1010,15 +1010,15 @@ namespace RuntimeStuff.Extensions
             return (t1, t2, t3, t4, t5, t6, t7) =>
             {
                 var r1 = func(
-                    converter1 == null ? TypeHelper.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? TypeHelper.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? TypeHelper.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? TypeHelper.ChangeType<T4>(t4) : converter4(t4),
-                    converter5 == null ? TypeHelper.ChangeType<T5>(t5) : converter5(t5),
-                    converter6 == null ? TypeHelper.ChangeType<T6>(t6) : converter6(t6),
-                    converter7 == null ? TypeHelper.ChangeType<T7>(t7) : converter7(t7)
+                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
+                    converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
+                    converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6),
+                    converter7 == null ? Obj.ChangeType<T7>(t7) : converter7(t7)
                 );
-                return r2 == null ? TypeHelper.ChangeType<R2>(r1) : r2(r1);
+                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
             };
         }
 
@@ -1103,15 +1103,15 @@ namespace RuntimeStuff.Extensions
             return (t1, t2, t3, t4, t5, t6, t7, t8) =>
             {
                 var r1 = func(
-                    converter1 == null ? TypeHelper.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? TypeHelper.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? TypeHelper.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? TypeHelper.ChangeType<T4>(t4) : converter4(t4),
-                    converter5 == null ? TypeHelper.ChangeType<T5>(t5) : converter5(t5),
-                    converter6 == null ? TypeHelper.ChangeType<T6>(t6) : converter6(t6),
-                    converter7 == null ? TypeHelper.ChangeType<T7>(t7) : converter7(t7),
-                    converter8 == null ? TypeHelper.ChangeType<T8>(t8) : converter8(t8));
-                return r2 == null ? TypeHelper.ChangeType<R2>(r1) : r2(r1);
+                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
+                    converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
+                    converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6),
+                    converter7 == null ? Obj.ChangeType<T7>(t7) : converter7(t7),
+                    converter8 == null ? Obj.ChangeType<T8>(t8) : converter8(t8));
+                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
             };
         }
     }

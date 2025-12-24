@@ -701,7 +701,7 @@ namespace RuntimeStuff.Builders
 
         private static string FormatValue(object value)
         {
-            if (TypeHelper.NullValues.Contains(value))
+            if (Obj.NullValues.Contains(value))
                 return "NULL";
 
             // string

@@ -9,7 +9,7 @@ namespace RuntimeStuff.MSTests
     //[TestClass]
     public partial class DbHelperIntegrationTests
     {
-        private static string _connectionString;
+        private static string? _connectionString;
 
         [ClassInitialize]
         public static void ClassInitialize(TestContext context)
@@ -88,10 +88,8 @@ namespace RuntimeStuff.MSTests
 );
 ";
 
-            using (var command = new SqlCommand(createTable1, db.Connection))
-            {
-                command.ExecuteNonQuery();
-            }
+            using var command = new SqlCommand(createTable1, db.Connection);
+            command.ExecuteNonQuery();
         }
 
         [TestMethod]

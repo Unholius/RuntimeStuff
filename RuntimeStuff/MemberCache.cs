@@ -156,23 +156,23 @@ namespace RuntimeStuff
             Type = _type ??
                    throw new NotSupportedException(
                        $"{nameof(MemberCache)}: ({memberInfo.GetType().Name}) not supported!");
-            IsDictionary = _typeCache?.IsDictionary ?? TypeHelper.IsDictionary(_type);
-            IsDelegate = _typeCache?.IsDelegate ?? TypeHelper.IsDelegate(_type);
-            IsFloat = _typeCache?.IsFloat ?? TypeHelper.IsFloat(_type);
-            IsNullable = _typeCache?.IsNullable ?? TypeHelper.IsNullable(_type);
+            IsDictionary = _typeCache?.IsDictionary ?? Obj.IsDictionary(_type);
+            IsDelegate = _typeCache?.IsDelegate ?? Obj.IsDelegate(_type);
+            IsFloat = _typeCache?.IsFloat ?? Obj.IsFloat(_type);
+            IsNullable = _typeCache?.IsNullable ?? Obj.IsNullable(_type);
             if (e != null)
                 _type = e.EventHandlerType;
 
-            IsNumeric = _typeCache?.IsNumeric ?? TypeHelper.IsNumeric(_type);
-            IsBoolean = _typeCache?.IsBoolean ?? TypeHelper.IsBoolean(_type);
-            IsCollection = _typeCache?.IsCollection ?? TypeHelper.IsCollection(_type);
-            ElementType = IsCollection ? _typeCache?.ElementType ?? TypeHelper.GetCollectionItemType(Type) : null;
-            IsBasic = _typeCache?.IsBasic ?? TypeHelper.IsBasic(_type);
+            IsNumeric = _typeCache?.IsNumeric ?? Obj.IsNumeric(_type);
+            IsBoolean = _typeCache?.IsBoolean ?? Obj.IsBoolean(_type);
+            IsCollection = _typeCache?.IsCollection ?? Obj.IsCollection(_type);
+            ElementType = IsCollection ? _typeCache?.ElementType ?? Obj.GetCollectionItemType(Type) : null;
+            IsBasic = _typeCache?.IsBasic ?? Obj.IsBasic(_type);
             IsEnum = _typeCache?.IsEnum ?? _type.IsEnum;
             IsConst = _typeCache?.IsConst ?? (fi != null && fi.IsLiteral && !fi.IsInitOnly);
-            IsBasicCollection = _typeCache?.IsBasicCollection ?? (IsCollection && TypeHelper.IsBasic(ElementType));
+            IsBasicCollection = _typeCache?.IsBasicCollection ?? (IsCollection && Obj.IsBasic(ElementType));
             IsObject = _typeCache?.IsObject ?? _type == typeof(object);
-            IsTuple = _typeCache?.IsTuple ?? TypeHelper.IsTuple(_type);
+            IsTuple = _typeCache?.IsTuple ?? Obj.IsTuple(_type);
             IsProperty = pi != null;
             IsEvent = e != null;
             IsField = fi != null;
@@ -324,7 +324,7 @@ namespace RuntimeStuff
                     try
                     {
                         PropertyBackingField = Parent.GetFields().FirstOrDefault(x => x.Name == $"<{Name}>k__BackingField") ??
-                                               TypeHelper.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
+                                               Obj.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
                     }
                     catch
                     {
@@ -333,10 +333,10 @@ namespace RuntimeStuff
 
                     try
                     {
-                        Setter = TypeHelper.PropertySetterCache.Get(pi);
+                        Setter = Obj.PropertySetterCache.Get(pi);
 
                         if (Setter == null && PropertyBackingField != null)
-                            Setter = TypeHelper.FieldSetterCache.Get(PropertyBackingField);
+                            Setter = Obj.FieldSetterCache.Get(PropertyBackingField);
                     }
                     catch (Exception)
                     {
@@ -345,7 +345,7 @@ namespace RuntimeStuff
 
                     try
                     {
-                        Getter = TypeHelper.PropertyGetterCache.Get(pi);
+                        Getter = Obj.PropertyGetterCache.Get(pi);
                     }
                     catch (Exception)
                     {
@@ -381,7 +381,7 @@ namespace RuntimeStuff
                 FieldType = fi.FieldType;
                 try
                 {
-                    Setter = _typeCache?.Setter ?? TypeHelper.FieldSetterCache.Get(fi);
+                    Setter = _typeCache?.Setter ?? Obj.FieldSetterCache.Get(fi);
                 }
                 catch
                 {
@@ -390,7 +390,7 @@ namespace RuntimeStuff
 
                 try
                 {
-                    Getter = _typeCache?.Getter ?? TypeHelper.FieldGetterCache.Get(fi);
+                    Getter = _typeCache?.Getter ?? Obj.FieldGetterCache.Get(fi);
                 }
                 catch (Exception)
                 {
@@ -622,7 +622,7 @@ namespace RuntimeStuff
                 if (_baseTypes != null)
                     return _baseTypes;
 
-                _baseTypes = TypeHelper.GetBaseTypes(_type, getInterfaces: true);
+                _baseTypes = Obj.GetBaseTypes(_type, getInterfaces: true);
                 return _baseTypes;
             }
         }
@@ -749,7 +749,7 @@ namespace RuntimeStuff
         /// <summary>
         ///     Является ли первичный ключ автоинкрементным (число или Guid)
         /// </summary>
-        public bool IsIdentity => IsPrimaryKey && (TypeHelper.IsNumeric(Type, false) || Type == typeof(Guid));
+        public bool IsIdentity => IsPrimaryKey && (Obj.IsNumeric(Type, false) || Type == typeof(Guid));
 
         /// <summary>
         ///     Является ли тип интерфейсом
@@ -896,7 +896,7 @@ namespace RuntimeStuff
         public Dictionary<string, MemberCache> PublicEnumerableProperties { get; }
 
         /// <summary>
-        ///     Словарь простых (<see cref="TypeHelper.BasicTypes" />) публичных свойств типа (IsPublic && IsProperty && IsBasic)
+        ///     Словарь простых (<see cref="Obj.BasicTypes" />) публичных свойств типа (IsPublic && IsProperty && IsBasic)
         /// </summary>
         public Dictionary<string, MemberCache> PublicBasicProperties { get; }
 
@@ -1213,11 +1213,11 @@ namespace RuntimeStuff
             {
                 var pAll = c.GetParameters();
                 if (pAll.Length == ctorArgs.Length && All(ctorArgs, (_, i) =>
-                        TypeHelper.IsImplements(args[i]?.GetType(), pAll[i].ParameterType)))
+                        Obj.IsImplements(args[i]?.GetType(), pAll[i].ParameterType)))
                     return c;
                 var pNoDef = c.GetParameters().Where(p => !p.HasDefaultValue).ToArray();
 
-                if (pNoDef.Length == ctorArgs.Length && All(ctorArgs, (_, i) => TypeHelper.IsImplements(args[i]?.GetType(), pNoDef[i].ParameterType)))
+                if (pNoDef.Length == ctorArgs.Length && All(ctorArgs, (_, i) => Obj.IsImplements(args[i]?.GetType(), pNoDef[i].ParameterType)))
                 {
                     Array.Resize(ref ctorArgs, pAll.Length);
                     for (var i = pNoDef.Length; i < pAll.Length; i++)
@@ -1231,7 +1231,7 @@ namespace RuntimeStuff
             if (ctor != null)
             {
                 var ctorParameters = ctor.GetParameters();
-                ctorArgs = ctorParameters.Select((x, i) => TypeHelper.ChangeType(args[i], x.ParameterType)).ToArray();
+                ctorArgs = ctorParameters.Select((x, i) => Obj.ChangeType(args[i], x.ParameterType)).ToArray();
                 return ctor;
             }
 
@@ -1273,7 +1273,7 @@ namespace RuntimeStuff
         /// <returns>Созданный экземпляр указанного типа.</returns>
         public object New()
         {
-            return IsBasic ? TypeHelper.Default(Type) : DefaultConstructor();
+            return IsBasic ? Obj.Default(Type) : DefaultConstructor();
         }
 
         /// <summary>
@@ -1293,7 +1293,7 @@ namespace RuntimeStuff
         /// <returns>Созданный экземпляр указанного типа.</returns>
         public T New<T>(params object[] ctorArgs)
         {
-            return TypeHelper.ChangeType<T>(New(Type, ctorArgs));
+            return Obj.ChangeType<T>(New(Type, ctorArgs));
         }
 
         /// <summary>
@@ -1341,7 +1341,7 @@ namespace RuntimeStuff
                 return Activator.CreateInstance(type, ctorArgs.Length);
             }
 
-            if (type.IsEnum) return ctorArgs.FirstOrDefault(x => x?.GetType() == type) ?? TypeHelper.Default(type);
+            if (type.IsEnum) return ctorArgs.FirstOrDefault(x => x?.GetType() == type) ?? Obj.Default(type);
 
             if (type == typeof(string) && ctorArgs.Length == 0)
                 return string.Empty;
@@ -1354,14 +1354,14 @@ namespace RuntimeStuff
                 }
                 catch
                 {
-                    return TypeHelper.Default(type);
+                    return Obj.Default(type);
                 }
 
             var ctor = typeInfo.GetConstructorByArgs(ref ctorArgs);
 
 
             if (ctor == null && type.IsValueType)
-                return TypeHelper.Default(type);
+                return Obj.Default(type);
 
             if (ctor == null)
                 throw new InvalidOperationException(
@@ -1391,7 +1391,7 @@ namespace RuntimeStuff
             if (memberNamesType == MemberNameType.Any || memberNamesType.HasFlag(MemberNameType.Name))
             {
                 // Быстрый поиск свойства
-                var quickProp = TypeHelper.GetLowestProperty(Type, name);
+                var quickProp = Obj.GetLowestProperty(Type, name);
                 if (quickProp != null)
                 {
                     mx = new MemberCache(quickProp);
@@ -1401,7 +1401,7 @@ namespace RuntimeStuff
                 }
 
                 // Быстрый поиск поля
-                var quickField = TypeHelper.GetLowestField(Type, name);
+                var quickField = Obj.GetLowestField(Type, name);
                 if (quickField != null)
                 {
                     mx = new MemberCache(quickField);
@@ -1411,7 +1411,7 @@ namespace RuntimeStuff
                 }
 
                 // Быстрый поиск метода
-                var quickMethod = TypeHelper.GetLowestMethod(Type, name);
+                var quickMethod = Obj.GetLowestMethod(Type, name);
                 if (quickMethod != null)
                 {
                     mx = new MemberCache(quickMethod);
@@ -1421,7 +1421,7 @@ namespace RuntimeStuff
                 }
 
                 // Быстрый поиск события
-                var quickEvent = TypeHelper.GetLowestEvent(Type, name);
+                var quickEvent = Obj.GetLowestEvent(Type, name);
                 if (quickEvent != null)
                 {
                     mx = new MemberCache(quickEvent);
@@ -1676,11 +1676,11 @@ namespace RuntimeStuff
         /// <param name="value">Значение, которое нужно установить.</param>
         /// <param name="valueConverter">
         ///     Конвертор значения в тип свойства, если не указан, то используется
-        ///     <see cref="TypeHelper.ChangeType" />
+        ///     <see cref="Obj.ChangeType" />
         /// </param>
         public virtual void SetValue(object source, object value, Func<object, object> valueConverter = null)
         {
-            Setter(source, valueConverter == null ? TypeHelper.ChangeType(value, Type) : valueConverter(value));
+            Setter(source, valueConverter == null ? Obj.ChangeType(value, Type) : valueConverter(value));
         }
 
         /// <summary>
@@ -1724,7 +1724,7 @@ namespace RuntimeStuff
 
         public virtual T GetMemberValue<T>(object source, string memberName)
         {
-            return TypeHelper.ChangeType<T>(GetValue(source, memberName));
+            return Obj.ChangeType<T>(GetValue(source, memberName));
         }
 
         /// <summary>
@@ -1745,7 +1745,7 @@ namespace RuntimeStuff
         /// <returns>Значение члена, приведённое к типу <typeparamref name="T" />.</returns>
         public T GetValue<T>(object instance)
         {
-            return TypeHelper.ChangeType<T>(Getter(instance));
+            return Obj.ChangeType<T>(Getter(instance));
         }
 
         /// <summary>

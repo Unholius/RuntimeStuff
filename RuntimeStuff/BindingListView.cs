@@ -54,7 +54,7 @@ namespace RuntimeStuff
             _sourceList = new List<T>();
             _sourceFilteredAndSortedList = new List<T>();
             _nodeMap = new Dictionary<T, BindingListViewRow>();
-            Properties = TypeHelper.GetProperties<T>();
+            Properties = Obj.GetProperties<T>();
         }
 
         /// <summary>
@@ -378,7 +378,7 @@ namespace RuntimeStuff
             {
                 for (var i = 0; i < _sourceFilteredAndSortedList.Count; i++)
                 {
-                    var value = TypeHelper.GetMemberValue(_sourceFilteredAndSortedList[i], property.Name);
+                    var value = Obj.Get(_sourceFilteredAndSortedList[i], property.Name);
                     if (Equals(value, key))
                         return i;
                 }
@@ -570,7 +570,7 @@ namespace RuntimeStuff
             var i = 0;
             var rowItem = indexType == IndexType.FilteredSorted ? _sourceFilteredAndSortedList[index] : _sourceList[index];
             foreach (var property in Properties) 
-                values[i++] = TypeHelper.GetMemberValue(rowItem, property.Name);
+                values[i++] = Obj.Get(rowItem, property.Name);
             return values;
         }
 
@@ -596,7 +596,7 @@ namespace RuntimeStuff
                 {
                     var result = new TValue[list.Count];
                     var i = 0;
-                    foreach (var item in list) result[i++] = TypeHelper.GetMemberValue<TValue>(item, propertyName);
+                    foreach (var item in list) result[i++] = Obj.Get<TValue>(item, propertyName);
 
                     return result;
                 }
@@ -604,7 +604,7 @@ namespace RuntimeStuff
                 var set = new HashSet<TValue>();
 
                 foreach (var item in list)
-                    set.Add(TypeHelper.GetMemberValue<TValue>(item, propertyName));
+                    set.Add(Obj.Get<TValue>(item, propertyName));
 
                 return set.ToArray();
             }

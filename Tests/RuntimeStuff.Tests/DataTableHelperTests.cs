@@ -61,7 +61,7 @@ public class DataTableHelperTests
         public void AddCol_NullTable_ThrowsArgumentNullException()
         {
             // Arrange
-            DataTable table = null;
+            DataTable? table = null;
 
             // Act
             DataTableHelper.AddCol(table, "Test", typeof(string));
@@ -141,7 +141,7 @@ public class DataTableHelperTests
             var table = new DataTable();
             DataTableHelper.AddCol(table, "Id", typeof(int));
             DataTableHelper.AddCol(table, "Name", typeof(string));
-            var rowData = new object[] { 1, null };
+            var rowData = new object?[] { 1, null };
 
             // Act
             var row = DataTableHelper.AddRow(table, rowData);
@@ -156,7 +156,7 @@ public class DataTableHelperTests
         public void AddRow_NullTable_ThrowsArgumentNullException()
         {
             // Arrange
-            DataTable table = null;
+            DataTable? table = null;
             var rowData = new object[] { 1, "Test" };
 
             // Act
@@ -194,7 +194,7 @@ public class DataTableHelperTests
         private class TestEntity
         {
             public int Id { get; set; }
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public DateTime Date { get; set; }
         }
 
@@ -251,7 +251,7 @@ public class DataTableHelperTests
         public void AddRowGeneric_NullTable_ThrowsArgumentNullException()
         {
             // Arrange
-            DataTable table = null;
+            DataTable? table = null;
             var entity = new TestEntity();
 
             // Act
@@ -266,7 +266,7 @@ public class DataTableHelperTests
             var table = new DataTable();
 
             // Act
-            DataTableHelper.AddRow(table, (TestEntity)null);
+            DataTableHelper.AddRow(table, (TestEntity?)null);
         }
 
         [TestMethod]
@@ -305,9 +305,9 @@ public class DataTableHelperTests
             DataTableHelper.AddCol(table, "Id", typeof(int));
             DataTableHelper.AddCol(table, "Name", typeof(string));
 
-            DataTableHelper.AddRow(table, new object[] { 1, "A" });
-            DataTableHelper.AddRow(table, new object[] { 2, "B" });
-            DataTableHelper.AddRow(table, new object[] { 3, "C" });
+            DataTableHelper.AddRow(table, [1, "A"]);
+            DataTableHelper.AddRow(table, [2, "B"]);
+            DataTableHelper.AddRow(table, [3, "C"]);
 
             // Act
             var result = DataTableHelper.ToList<int>(table, "Id");
@@ -325,9 +325,9 @@ public class DataTableHelperTests
             DataTableHelper.AddCol(table, "Id", typeof(int));
             DataTableHelper.AddCol(table, "Name", typeof(string));
 
-            DataTableHelper.AddRow(table, new object[] { 1, "A" });
-            DataTableHelper.AddRow(table, new object[] { DBNull.Value, "B" });
-            DataTableHelper.AddRow(table, new object[] { 3, "C" });
+            DataTableHelper.AddRow(table, [1, "A"]);
+            DataTableHelper.AddRow(table, [DBNull.Value, "B"]);
+            DataTableHelper.AddRow(table, [3, "C"]);
 
             // Act
             var result = DataTableHelper.ToList<int>(table, "Id");
@@ -342,7 +342,7 @@ public class DataTableHelperTests
         public void ToList_NullTable_ThrowsArgumentNullException()
         {
             // Arrange
-            DataTable table = null;
+            DataTable? table = null;
 
             // Act
             DataTableHelper.ToList<int>(table, "Id");
@@ -378,7 +378,7 @@ public class DataTableHelperTests
         private class TestEntity
         {
             public int Id { get; set; }
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public DateTime Created { get; set; }
         }
 
@@ -392,8 +392,8 @@ public class DataTableHelperTests
             DataTableHelper.AddCol(table, "Created", typeof(DateTime));
 
             var date = new DateTime(2024, 1, 1);
-            DataTableHelper.AddRow(table, new object[] { 1, "A", date });
-            DataTableHelper.AddRow(table, new object[] { 2, "B", date.AddDays(1) });
+            DataTableHelper.AddRow(table, [1, "A", date]);
+            DataTableHelper.AddRow(table, [2, "B", date.AddDays(1)]);
 
             // Act
             var result = DataTableHelper.ToList<TestEntity>(table);
@@ -417,7 +417,7 @@ public class DataTableHelperTests
             DataTableHelper.AddCol(table, "Name", typeof(string));
             DataTableHelper.AddCol(table, "Created", typeof(DateTime));
 
-            DataTableHelper.AddRow(table, new object[] { 1, DBNull.Value, DateTime.Now });
+            DataTableHelper.AddRow(table, [1, DBNull.Value, DateTime.Now]);
 
             // Act
             var result = DataTableHelper.ToList<TestEntity>(table);
@@ -438,7 +438,7 @@ public class DataTableHelperTests
             DataTableHelper.AddCol(table, "Name", typeof(string));
             DataTableHelper.AddCol(table, "ExtraColumn", typeof(string)); // No property for this
 
-            DataTableHelper.AddRow(table, new object[] { 1, "Test", "ExtraValue" });
+            DataTableHelper.AddRow(table, [1, "Test", "ExtraValue"]);
 
             // Act
             var result = DataTableHelper.ToList<TestEntity>(table);
@@ -449,6 +449,7 @@ public class DataTableHelperTests
             Assert.AreEqual("Test", result[0].Name);
 
             var dt = DataTableHelper.ToDataTable(result);
+            Assert.IsNotNull(dt);
         }
 
         [TestMethod]
@@ -456,7 +457,7 @@ public class DataTableHelperTests
         public void ToListGeneric_NullTable_ThrowsArgumentNullException()
         {
             // Arrange
-            DataTable table = null;
+            DataTable? table = null;
 
             // Act
             DataTableHelper.ToList<TestEntity>(table);
@@ -485,7 +486,7 @@ public class DataTableHelperTests
         private class Product
         {
             public int Id { get; set; }
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public decimal Price { get; set; }
             public bool InStock { get; set; }
         }
@@ -504,9 +505,9 @@ public class DataTableHelperTests
             // Act - Add rows using different methods
             var products = new List<Product>
             {
-                new Product { Id = 1, Name = "Laptop", Price = 999.99m, InStock = true },
-                new Product { Id = 2, Name = "Mouse", Price = 29.99m, InStock = true },
-                new Product { Id = 3, Name = "Keyboard", Price = 89.99m, InStock = false }
+                new() { Id = 1, Name = "Laptop", Price = 999.99m, InStock = true },
+                new() { Id = 2, Name = "Mouse", Price = 29.99m, InStock = true },
+                new() { Id = 3, Name = "Keyboard", Price = 89.99m, InStock = false }
             };
 
             foreach (var product in products)
@@ -515,7 +516,7 @@ public class DataTableHelperTests
             }
 
             // Add one more row using object array
-            DataTableHelper.AddRow(table, new object[] { 4, "Monitor", 199.99m, true });
+            DataTableHelper.AddRow(table, [4, "Monitor", 199.99m, true]);
 
             // Assert - Verify table structure
             Assert.AreEqual(4, table.Columns.Count);
@@ -546,9 +547,9 @@ public class DataTableHelperTests
 
             var products = new List<Product>
             {
-                new Product { Id = 1, Name = "A" },
-                new Product { Id = 2, Name = "B" },
-                new Product { Id = 3, Name = "C" }
+                new() { Id = 1, Name = "A" },
+                new() { Id = 2, Name = "B" },
+                new() { Id = 3, Name = "C" }
             };
 
             foreach (var product in products)

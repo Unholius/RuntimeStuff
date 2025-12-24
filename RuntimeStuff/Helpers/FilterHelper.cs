@@ -71,7 +71,7 @@ namespace RuntimeStuff.Helpers
 
             // если свойства не заданы — берем все публичные
             if (propertyNames == null || propertyNames.Length == 0)
-                propertyNames = TypeHelper.GetProperties<T>()
+                propertyNames = Obj.GetProperties<T>()
                     .Select(p => p.Name)
                     .ToArray();
 
@@ -84,7 +84,7 @@ namespace RuntimeStuff.Helpers
 
                 foreach (var propName in propertyNames)
                 {
-                    var value = item.GetMemberValue(propName);
+                    var value = Obj.Get(item, propName);
                     if (value == null)
                         continue;
 
@@ -403,7 +403,7 @@ namespace RuntimeStuff.Helpers
 
             if (expr is PropertyExpr p)
             {
-                if (TypeHelper.GetProperty(param.Type, p.Name) == null)
+                if (Obj.GetProperty(param.Type, p.Name) == null)
                     throw new FormatException($"Свойство '{p.Name}' не существует в типе '{param.Type}'");
                 return Expression.PropertyOrField(param, p.Name);
             }
@@ -428,7 +428,7 @@ namespace RuntimeStuff.Helpers
                 // --- Авто-приведение константы к типу свойства ---
                 if (b.Op != "Like" && right is ConstantExpression rc && left.Type != rc.Type)
                 {
-                    var converted = TypeHelper.ChangeType(rc.Value, left.Type);
+                    var converted = Obj.ChangeType(rc.Value, left.Type);
                     right = Expression.Constant(converted, left.Type);
                 }
 
@@ -546,13 +546,13 @@ namespace RuntimeStuff.Helpers
                 // Приводим типы нижней и верхней границы
                 if (lower is ConstantExpression lc && left.Type != lc.Type)
                 {
-                    var converted = TypeHelper.ChangeType(lc.Value, left.Type);
+                    var converted = Obj.ChangeType(lc.Value, left.Type);
                     lower = Expression.Constant(converted, left.Type);
                 }
 
                 if (upper is ConstantExpression uc && left.Type != uc.Type)
                 {
-                    var converted = TypeHelper.ChangeType(uc.Value, left.Type);
+                    var converted = Obj.ChangeType(uc.Value, left.Type);
                     upper = Expression.Constant(converted, left.Type);
                 }
 

@@ -10,11 +10,11 @@
         {
             // Arrange
             var callCount = 0;
-            Func<string, int> factory = key =>
+            int factory(string key)
             {
                 callCount++;
                 return key.Length;
-            };
+            }
 
             // Act
             var cache = new Cache<string, int>(factory);
@@ -29,14 +29,14 @@
         public void Constructor_NullValueFactory_ThrowsArgumentNullException()
         {
             // Act
-            var cache = new Cache<string, int>((Func<string, int>)null);
+            var cache = new Cache<string, int>((Func<string, int>?)null);
         }
 
         [TestMethod]
         public void Constructor_WithAsyncValueFactory_CreatesCache()
         {
             // Arrange
-            Func<string, Task<int>> factory = key => Task.FromResult(key.Length);
+            static Task<int> factory(string key) => Task.FromResult(key.Length);
 
             // Act
             var cache = new Cache<string, int>(factory);
@@ -49,7 +49,7 @@
         public void Constructor_WithExpiration_SetsExpiration()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            static int factory(string key) => key.Length;
             var expiration = TimeSpan.FromSeconds(10);
 
             // Act
@@ -68,11 +68,11 @@
         {
             // Arrange
             var callCount = 0;
-            Func<string, int> factory = key =>
+            int factory(string key)
             {
                 callCount++;
                 return key.Length;
-            };
+            }
             var cache = new Cache<string, int>(factory);
             var firstResult = cache.Get("test"); // First call should create
 
@@ -89,7 +89,7 @@
         public void Get_Indexer_ReturnsValue()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
             cache.Get("test"); // Create entry
 
@@ -105,11 +105,11 @@
         {
             // Arrange
             var callCount = 0;
-            Func<string, int> factory = key =>
+            int factory(string key)
             {
                 callCount++;
                 return key.Length;
-            };
+            }
             var expiration = TimeSpan.FromMilliseconds(50);
             var cache = new Cache<string, int>(factory, expiration);
 
@@ -132,12 +132,12 @@
             var callCount = 0;
             var maxExpectedCalls = 10; // В худшем случае фабрика может быть вызвана для каждого потока
 
-            Func<int, string> factory = key =>
+            string factory(int key)
             {
                 Interlocked.Increment(ref callCount);
                 Thread.Sleep(10); // Симулируем работу
                 return $"value{key}";
-            };
+            }
 
             var cache = new Cache<int, string>(factory);
             var tasks = new List<Task<string>>();
@@ -175,12 +175,12 @@
         {
             // Arrange
             var callCount = 0;
-            Func<string, Task<int>> factory = async key =>
+            async Task<int> factory(string key)
             {
                 callCount++;
                 await Task.Delay(1); // Simulate async work
                 return key.Length;
-            };
+            }
             var cache = new Cache<string, int>(factory);
 
             // Act
@@ -197,12 +197,12 @@
         {
             // Arrange
             var callCount = 0;
-            Func<string, Task<int>> factory = async key =>
+            async Task<int> factory(string key)
             {
                 callCount++;
                 await Task.Delay(1);
                 return key.Length;
-            };
+            }
             var cache = new Cache<string, int>(factory);
             var firstResult = await cache.GetAsync("test");
 
@@ -220,12 +220,12 @@
         {
             // Arrange
             var callCount = 0;
-            Func<string, Task<int>> factory = async key =>
+            async Task<int> factory(string key)
             {
                 callCount++;
                 await Task.Delay(1);
                 return key.Length;
-            };
+            }
             var expiration = TimeSpan.FromMilliseconds(50);
             var cache = new Cache<string, int>(factory, expiration);
 
@@ -246,12 +246,12 @@
         {
             // Arrange
             var callCount = 0;
-            Func<int, Task<string>> factory = async key =>
+            async Task<string> factory(int key)
             {
                 Interlocked.Increment(ref callCount);
                 await Task.Delay(10); // Simulate async work
                 return $"value{key}";
-            };
+            }
             var cache = new Cache<int, string>(factory);
             var tasks = new List<Task<string>>();
 
@@ -278,7 +278,7 @@
         public void TryGetValue_ExistingKey_ReturnsTrueAndValue()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
             cache.Get("test");
 
@@ -294,7 +294,7 @@
         public void TryGetValue_NonExistingKey_ReturnsFalse()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
 
             // Act
@@ -401,7 +401,7 @@
         public void Remove_ExistingKey_ReturnsTrue()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
             cache.Get("test");
 
@@ -417,7 +417,7 @@
         public void Remove_NonExistingKey_ReturnsFalse()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
 
             // Act
@@ -431,11 +431,11 @@
         public void Remove_TriggersItemRemovedEvent()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
             cache.Get("test");
 
-            string removedKey = null;
+            string? removedKey = null;
             cache.ItemRemoved += (key, r) => removedKey = key as string;
 
             // Act
@@ -453,7 +453,7 @@
         public void Clear_RemovesAllItems()
         {
             // Arrange
-            Func<int, string> factory = key => $"value{key}";
+            static string factory(int key) => $"value{key}";
             var cache = new Cache<int, string>(factory);
             cache.Get(1);
             cache.Get(2);
@@ -474,10 +474,10 @@
         public void Get_NewKey_TriggersItemAddedEvent()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
 
-            string addedKey = null;
+            string? addedKey = null;
             cache.ItemAdded += key => addedKey = key as string;
 
             // Act
@@ -491,7 +491,7 @@
         public void Get_ExistingKey_DoesNotTriggerItemAddedEvent()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
 
             int eventCount = 0;
@@ -509,10 +509,10 @@
         public void GetAsync_NewKey_TriggersItemAddedEvent()
         {
             // Arrange
-            Func<string, Task<int>> factory = key => Task.FromResult(key.Length);
+            Task<int> factory(string key) => Task.FromResult(key.Length);
             var cache = new Cache<string, int>(factory);
 
-            string addedKey = null;
+            string? addedKey = null;
             cache.ItemAdded += key => addedKey = key as string;
 
             // Act
@@ -531,7 +531,7 @@
         public void ContainsKey_ExistingKey_ReturnsTrue()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
             cache.Get("test");
 
@@ -546,7 +546,7 @@
         public void ContainsKey_NonExistingKey_ReturnsFalse()
         {
             // Arrange
-            Func<string, int> factory = key => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
 
             // Act
@@ -560,7 +560,7 @@
         public void Keys_ReturnsAllKeys()
         {
             // Arrange
-            Func<int, string> factory = key => $"value{key}";
+            static string factory(int key) => $"value{key}";
             var cache = new Cache<int, string>(factory);
             cache.Get(1);
             cache.Get(2);
@@ -580,7 +580,7 @@
         public void Values_ReturnsAllValues()
         {
             // Arrange
-            Func<int, string> factory = key => $"value{key}";
+            static string factory(int key) => $"value{key}";
             var cache = new Cache<int, string>(factory);
             cache.Get(1);
             cache.Get(2);
@@ -600,7 +600,7 @@
         public void GetEnumerator_EnumeratesAllItems()
         {
             // Arrange
-            Func<int, string> factory = key => $"value{key}";
+            static string factory(int key) => $"value{key}";
             var cache = new Cache<int, string>(factory);
             cache.Get(1);
             cache.Get(2);
@@ -622,7 +622,7 @@
         public void Count_ReturnsCorrectNumberOfItems()
         {
             // Arrange
-            Func<int, string> factory = key => $"value{key}";
+            static string factory(int key) => $"value{key}";
             var cache = new Cache<int, string>(factory);
 
             // Act & Assert
@@ -649,7 +649,7 @@
         public void Get_ExceptionInFactory_PropagatesException()
         {
             // Arrange
-            Func<string, int> factory = key => throw new InvalidOperationException("Factory failed");
+            int factory(string key) => throw new InvalidOperationException("Factory failed");
             var cache = new Cache<string, int>(factory);
 
             // Act & Assert
@@ -660,7 +660,7 @@
         public void Get_ValueTypeKeys_WorksCorrectly()
         {
             // Arrange
-            Func<int, string> factory = key => $"value{key}";
+            static string factory(int key) => $"value{key}";
             var cache = new Cache<int, string>(factory);
 
             // Act
@@ -678,7 +678,7 @@
         {
             // Arrange
             var key = new Tuple<int, string>(1, "test");
-            Func<Tuple<int, string>, string> factory = k => $"value{k.Item1}-{k.Item2}";
+            static string factory(Tuple<int, string> k) => $"value{k.Item1}-{k.Item2}";
             var cache = new Cache<Tuple<int, string>, string>(factory);
 
             // Act
@@ -697,12 +697,12 @@
         {
             // Arrange
             var callCount = 0;
-            Func<string, int> factory = key =>
+            int factory(string key)
             {
                 callCount++;
                 Thread.Sleep(10); // Simulate expensive operation
                 return key.Length;
-            };
+            }
             var cache = new Cache<string, int>(factory);
             var stopwatch = new System.Diagnostics.Stopwatch();
 

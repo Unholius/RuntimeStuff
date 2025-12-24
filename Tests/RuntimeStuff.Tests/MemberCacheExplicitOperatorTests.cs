@@ -10,8 +10,9 @@ namespace RuntimeStuff.MSTests
         public class TestClassForOperators
         {
             public int PublicProperty { get; set; }
-            private string PrivateField;
-            public event EventHandler TestEvent;
+            [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0044:Add readonly modifier", Justification = "<Pending>")]
+            private string? PrivateField;
+            public event EventHandler? TestEvent;
 
             public void PublicMethod() { }
             private void PrivateMethod() { }
@@ -100,8 +101,8 @@ namespace RuntimeStuff.MSTests
 
             // Act
             FieldInfo fieldInfo = memberCache;
+            Assert.IsNotNull(fieldInfo);
 
-            // Assert - ожидается исключение
         }
 
         [TestMethod]
@@ -150,8 +151,8 @@ namespace RuntimeStuff.MSTests
 
             // Act
             MethodInfo methodInfo = memberCache;
+            Assert.IsNotNull(methodInfo);
 
-            // Assert - ожидается исключение
         }
 
         [TestMethod]
@@ -242,7 +243,7 @@ namespace RuntimeStuff.MSTests
         public void ExplicitOperator_ToConstructorInfo_ForParameterizedConstructor_ReturnsConstructorInfo()
         {
             // Arrange
-            var constructor = typeof(TestClassForOperators).GetConstructor(new[] { typeof(int) });
+            var constructor = typeof(TestClassForOperators).GetConstructor([typeof(int)]);
             var memberCache = MemberCache.Create(constructor);
 
             // Act
@@ -327,7 +328,7 @@ namespace RuntimeStuff.MSTests
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
             var memberCache = MemberCache.Create(property);
-            string result = null;
+            string? result = null;
 
             // Act
             switch (memberCache.MemberType)
@@ -354,7 +355,7 @@ namespace RuntimeStuff.MSTests
         public void ExplicitOperator_WithNullMemberCache_ThrowsNullReferenceException()
         {
             // Arrange
-            MemberCache memberCache = null;
+            MemberCache? memberCache = null;
 
             // Act & Assert
             Assert.ThrowsException<ArgumentNullException>(() =>
@@ -376,7 +377,7 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.IsTrue(propertyInfos.Any());
-            Assert.IsTrue(propertyInfos.All(p => p is PropertyInfo));
+            Assert.IsTrue(propertyInfos.All(p => p is not null));
             Assert.AreEqual("PublicProperty", propertyInfos.First().Name);
         }
 

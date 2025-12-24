@@ -23,7 +23,7 @@ namespace RuntimeStuff.Options
         /// </summary>
         protected OptionsBase()
         {
-            PropertyMap = TypeHelper.GetPropertiesMap(this.GetType());
+            PropertyMap = Obj.GetPropertiesMap(this.GetType());
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace RuntimeStuff.Options
         {
             return typeof(TValue) == typeof(object)
                 ? (TValue)PropertyMap[name].GetValue(this)
-                : TypeHelper.ChangeType<TValue>(PropertyMap[name].GetValue(this));
+                : Obj.ChangeType<TValue>(PropertyMap[name].GetValue(this));
         }
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace RuntimeStuff.Options
 
             try
             {
-                p.SetValue(this, TypeHelper.ChangeType(value, p.PropertyType));
+                p.SetValue(this, Obj.ChangeType(value, p.PropertyType));
             }
             catch
             {

@@ -34,8 +34,8 @@ public class DtoTestClass
         ColNChar = $"NChar{seed}";
         ColNVarChar = $"NVarChar{seed}";
         ColNVarCharMax = new string('Y', seed % 4000);
-        ColBinary = new byte[] { (byte)(seed % 256), (byte)((seed + 1) % 256) };
-        ColVarBinary = new byte[] { (byte)(seed % 256), (byte)((seed + 1) % 256), (byte)((seed + 2) % 256) };
+        ColBinary = [(byte)(seed % 256), (byte)((seed + 1) % 256)];
+        ColVarBinary = [(byte)(seed % 256), (byte)((seed + 1) % 256), (byte)((seed + 2) % 256)];
         ColVarBinaryMax = new byte[seed % 8000];
         ColUniqueIdentifier = Guid.NewGuid();
         ColXml = $"<root><value>{seed}</value></root>";
@@ -82,7 +82,7 @@ public class DtoTestClass
 
     // Специальные
     public Guid ColUniqueIdentifier { get; set; }
-    public byte[] ColRowVersion { get; set; } = Array.Empty<byte>();
+    public byte[] ColRowVersion { get; set; } = [];
 
     public string? ColXml { get; set; }
     public string? ColJson { get; set; }

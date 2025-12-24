@@ -150,5 +150,25 @@ namespace RuntimeStuff.Extensions
 
             return defaultValue(obj);
         }
+
+        /// <summary>
+        /// Возвращает значение, соответствующее первому совпавшему случаю, иначе значение по умолчанию.
+        /// </summary>
+        /// <typeparam name="TWhen">Тип значения для сравнения.</typeparam>
+        /// <typeparam name="TThen">Тип возвращаемого значения.</typeparam>
+        /// <param name="obj">Значение для сравнения.</param>
+        /// <param name="defaultValue">Значение по умолчанию.</param>
+        /// <param name="cases">Массив пар (значение для сравнения, возвращаемое значение).</param>
+        /// <returns>Значение then для первого совпадения или defaultValue.</returns>
+        public static TThen Case<TWhen, TThen>(this TWhen obj, Func<TWhen, TThen> defaultValue, params (Func<TWhen, bool> when, TThen then)[] cases)
+        {
+            foreach (var (when, then) in cases)
+            {
+                if (when(obj))
+                    return then;
+            }
+
+            return defaultValue(obj);
+        }
     }
 }

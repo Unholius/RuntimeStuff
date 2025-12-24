@@ -136,7 +136,7 @@ namespace RuntimeStuff.Helpers
         {
             var propDeclaringType = le.Type.GenericTypeArguments.FirstOrDefault();
             var pi = GetMemberInfo(le.Body);
-            pi = TypeHelper.GetProperty(propDeclaringType, pi?.Name, StringComparison.Ordinal) ?? pi;
+            pi = Obj.GetProperty(propDeclaringType, pi?.Name, StringComparison.Ordinal) ?? pi;
             return pi;
         }
 

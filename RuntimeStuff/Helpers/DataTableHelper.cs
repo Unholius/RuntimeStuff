@@ -154,7 +154,7 @@ public static class DataTableHelper
         var row = table.NewRow();
 
         foreach (DataColumn col in table.Columns)
-            row[col] = TypeHelper.GetMemberValue(item, col.ColumnName, col.DataType, false) ?? DBNull.Value;
+            row[col] = Obj.Get(item, col.ColumnName, col.DataType) ?? DBNull.Value;
 
         table.Rows.Add(row);
         return row;
@@ -202,7 +202,7 @@ public static class DataTableHelper
             if (row[columnName] == DBNull.Value)
                 continue;
 
-            result.Add(TypeHelper.ChangeType<T>(row[columnName]));
+            result.Add(Obj.ChangeType<T>(row[columnName]));
         }
 
         return result;
@@ -245,7 +245,7 @@ public static class DataTableHelper
                 if (value == DBNull.Value)
                     continue;
 
-                prop.SetValue(item, TypeHelper.ChangeType(value, prop.PropertyType));
+                prop.SetValue(item, Obj.ChangeType(value, prop.PropertyType));
             }
 
             result.Add(item);

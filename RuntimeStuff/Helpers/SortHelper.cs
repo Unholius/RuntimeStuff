@@ -94,7 +94,7 @@ namespace RuntimeStuff.Helpers
 
             IOrderedEnumerable<T> result = null;
 
-            Func<T, object>[] accessor = sorts.Select((x, i) => TypeHelper.PropertyGetterCache.Get(TypeHelper.FindMember(typeof(T), sorts[i].propertyName) as PropertyInfo)).ToArray();
+            Func<T, object>[] accessor = sorts.Select((x, i) => Obj.PropertyGetterCache.Get(Obj.FindMember(typeof(T), sorts[i].propertyName) as PropertyInfo)).ToArray();
 
             for (var i = 0; i < sorts.Length; i++)
             {
