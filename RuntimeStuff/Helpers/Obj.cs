@@ -547,8 +547,15 @@ namespace RuntimeStuff.Helpers
             return type?.IsValueType == true ? Activator.CreateInstance(type) : null;
         }
 
-
-
+        /// <summary>
+        /// Выполняет поиск члена с указанным именем в заданном типе и возвращает информацию о найденном члене.
+        /// </summary>
+        /// <remarks>Метод использует внутреннее кэширование для повышения производительности повторных
+        /// запросов. Если член не найден в кэше, выполняется поиск с различными параметрами привязки. Может возвращать
+        /// члены, объявленные как в самом типе, так и унаследованные.</remarks>
+        /// <param name="type">Тип, в котором выполняется поиск члена. Не может быть равен null.</param>
+        /// <param name="name">Имя члена, который требуется найти. Поиск чувствителен к регистру.</param>
+        /// <returns>Объект типа MemberInfo, представляющий найденный член, или null, если член с указанным именем не найден.</returns>
         public static MemberInfo FindMember(Type type, string name)
         {
             if (MemberInfoCache.TryGetValue(type.FullName + "." + name, out var memberInfo))
@@ -1791,6 +1798,89 @@ namespace RuntimeStuff.Helpers
 
             setter(instance, value);
             return true;
+        }
+
+        /// <summary>
+        /// Создаёт новый экземпляр элемента, соответствующего типу элементов указанной коллекции.
+        /// </summary>
+        /// <param name="list">Коллекция, тип элементов которой используется для создания нового экземпляра. Не может быть равна null.</param>
+        /// <returns>Новый экземпляр элемента того же типа, что и элементы коллекции <paramref name="list"/>.</returns>
+        public static object NewItem(IEnumerable list)
+        {
+            var itemType = list.GetType().GetGenericArguments().FirstOrDefault();
+            return New(itemType);
+        }
+
+        /// <summary>
+        /// Копирует значения указанных членов из исходного объекта в целевой объект. Поддерживает копирование как между
+        /// отдельными объектами, так и между коллекциями объектов.
+        /// </summary>
+        /// <remarks>Если оба параметра <paramref name="source"/> и <paramref name="destination"/>
+        /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
+        /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
+        /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
+        /// <typeparam name="TSource">Тип исходного объекта, из которого копируются значения. Должен быть ссылочным типом.</typeparam>
+        /// <typeparam name="TDest">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
+        /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
+        /// <param name="destination">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
+        /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
+        /// свойства исходного объекта.</param>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если параметр <paramref name="source"/> или <paramref name="destination"/> равен null.</exception>
+        /// <exception cref="InvalidOperationException">Выбрасывается, если целевая коллекция не реализует интерфейс IList и не может быть добавлен новый элемент
+        /// при копировании между коллекциями.</exception>
+        public static void Copy<TSource, TDest>(TSource source, TDest destination, params string[] memberNames) where TSource : class where TDest : class
+        {
+            if (source == null || typeof(TSource) == typeof(string))
+                throw new ArgumentNullException(nameof(source));
+
+            if (destination == null || typeof(TDest) == typeof(string))
+                throw new ArgumentNullException(nameof(destination));
+
+            if (memberNames == null || memberNames.Length == 0)
+            {
+                memberNames = GetPropertyNames(source.GetType());
+            }
+
+            if (source is IEnumerable srcList && !(source is string) && destination is IEnumerable dstList && !(destination is string))
+            {
+                var srcEnumerator = srcList.GetEnumerator();
+                var dstEnumerator = dstList.GetEnumerator();
+                var dstListChanged = false;
+                while (srcEnumerator.MoveNext())
+                {
+                    var srcItem = srcEnumerator.Current;
+                    object dstItem = null;
+                    
+                    if (!dstListChanged && dstEnumerator.MoveNext())
+                        dstItem = dstEnumerator.Current;
+                    else
+                    {
+                        dstItem = NewItem(dstList);
+                        if (dstList is IList dstIList)
+                        {
+                            dstListChanged = true;
+                            dstIList.Add(dstItem);
+                        }
+                        else
+                            throw new InvalidOperationException("Destination collection is not IList and cannot add new items.");
+                    }
+                    Copy(srcItem, dstItem);
+                }
+
+                if (srcEnumerator is IDisposable disposableSrc)
+                    disposableSrc.Dispose();
+
+                if (dstEnumerator is IDisposable disposableDst)
+                    disposableDst.Dispose();
+            }
+            else
+            {
+                foreach (var memberName in memberNames)
+                {
+                    var value = Get(source, memberName);
+                    Set(destination, memberName, value);
+                }
+            }
         }
 
         /// <summary>
