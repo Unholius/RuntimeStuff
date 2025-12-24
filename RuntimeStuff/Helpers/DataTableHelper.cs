@@ -263,14 +263,15 @@ public static class DataTableHelper
     /// соответствует имени типа <typeparamref name="T"/>.</remarks>
     /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
     /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
+    /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса</param>
     /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства</param>
     /// <returns>Экземпляр <see cref="DataTable"/>, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
     /// только с определёнными столбцами.</returns>
     /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list"/> равен null.</exception>
-    public static DataTable ToDataTable<T>(IEnumerable<T> list, params Expression<Func<T, object>>[] propertySelectors) where T: class
+    public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName = null, params Expression<Func<T, object>>[] propertySelectors) where T: class
     {
         if (list == null) throw new ArgumentNullException(nameof(list));
-        var table = new DataTable(typeof(T).Name);
+        var table =  new DataTable(tableName ?? typeof(T).Name);
         var props = propertySelectors.Any() ? propertySelectors.Select(ExpressionHelper.GetMemberCache).ToArray() : MemberCache.Create(typeof(T)).Properties.Values.ToArray();
         var pks = new List<DataColumn>();
         foreach (var prop in props)

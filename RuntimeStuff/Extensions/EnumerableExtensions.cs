@@ -2,7 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using RuntimeStuff.Helpers;
 
@@ -470,6 +472,25 @@ namespace RuntimeStuff.Extensions
             Func<TSource, TKey> keySelector)
         {
             return source.ToDictionaryDistinct(keySelector, x => x);
+        }
+
+        /// <summary>
+        /// Преобразует последовательность объектов в экземпляр DataTable с возможностью выбора имени таблицы и набора
+        /// столбцов.
+        /// </summary>
+        /// <remarks>Если параметр columnSelectors не задан, в таблицу будут включены все публичные
+        /// свойства типа T. Метод полезен для экспорта коллекций в табличный вид, например, для последующей
+        /// сериализации или отображения.</remarks>
+        /// <typeparam name="T">Тип элементов в исходной последовательности. Должен быть ссылочным типом.</typeparam>
+        /// <param name="source">Исходная последовательность объектов, которые будут преобразованы в строки таблицы.</param>
+        /// <param name="tableName">Имя создаваемой таблицы. Если не указано, используется имя типа T.</param>
+        /// <param name="columnSelectors">Массив выражений, определяющих, какие свойства или поля типа T будут включены в таблицу в качестве столбцов.
+        /// Если не указано, включаются все публичные свойства.</param>
+        /// <returns>Объект DataTable, содержащий данные из исходной последовательности. Если последовательность пуста,
+        /// возвращается таблица только со структурой столбцов.</returns>
+        public static DataTable ToDataTable<T>(this IEnumerable<T> source, string tableName = null, params Expression<Func<T, object>>[] columnSelectors) where T : class
+        {
+            return DataTableHelper.ToDataTable(source, tableName, columnSelectors);
         }
 
         /// <summary>
