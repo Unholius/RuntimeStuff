@@ -6,7 +6,9 @@ using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
+#if DEBUG
     [TestClass]
+#endif
     public partial class DbHelperIntegrationTests
     {
         private static string? _connectionString;
@@ -255,6 +257,14 @@ namespace RuntimeStuff.MSTests
             //86.3000
             var con = new SqlConnection(_connectionString);
             var x = con.First<DtoTestClass>(x => x.ColMoney > 86m && x.ColMoney < 87m);
+        }
+
+        [TestMethod]
+        public void Test_First_02()
+        {
+            var id = 666;
+            var con = new SqlConnection(_connectionString);
+            var x = con.First<DtoTestClass>(x => x.IdInt >= id);
         }
     }
 }

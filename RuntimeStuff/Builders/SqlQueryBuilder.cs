@@ -316,11 +316,14 @@ namespace RuntimeStuff.Builders
             var right = Visit(be.Right, options, useParams, cmdParams);
             var op = GetSqlOperator(be.NodeType);
 
-            if (be.Left is MemberExpression me && be.Right is UnaryExpression ue && ue.NodeType == ExpressionType.Convert && useParams)
+            if (be.Left is MemberExpression me && useParams)
             {
-                var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
-                right = options.ParamPrefix + paramName;
-                cmdParams[paramName] = (ue.Operand as ConstantExpression)?.Value;
+                if (be.Right is UnaryExpression ue && ue.NodeType == ExpressionType.Convert)
+                {
+                    var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
+                    right = options.ParamPrefix + paramName;
+                    cmdParams[paramName] = (ue.Operand as ConstantExpression)?.Value;
+                }
             }
 
             return $"({left} {op} {right})";
@@ -350,7 +353,9 @@ namespace RuntimeStuff.Builders
             }
 
             var value = GetValue(me);
-            return useParams ? options.ParamPrefix + mi.ColumnName : options.ToSqlLiteral(value); //FormatValue(value, useParams, cmdParams);
+            var paramName = (mi.ColumnName ?? mi.Name) + "_" + (cmdParams.Count + 1);
+            cmdParams[paramName] = value;
+            return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value); //FormatValue(value, useParams, cmdParams);
         }
 
         private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
