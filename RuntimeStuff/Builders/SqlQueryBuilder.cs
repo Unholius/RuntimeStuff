@@ -316,6 +316,13 @@ namespace RuntimeStuff.Builders
             var right = Visit(be.Right, options, useParams, cmdParams);
             var op = GetSqlOperator(be.NodeType);
 
+            if (be.Left is MemberExpression me && be.Right is UnaryExpression ue && ue.NodeType == ExpressionType.Convert && useParams)
+            {
+                var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
+                right = options.ParamPrefix + paramName;
+                cmdParams[paramName] = (ue.Operand as ConstantExpression)?.Value;
+            }
+
             return $"({left} {op} {right})";
         }
 
@@ -339,12 +346,10 @@ namespace RuntimeStuff.Builders
             var mi = MemberCache.Create(me.Member);
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
             {
-                cmdParams[mi.ColumnName] = null;
                 return options.NamePrefix + mi.ColumnName + options.NameSuffix;
             }
 
             var value = GetValue(me);
-            cmdParams[mi.ColumnName] = value;
             return useParams ? options.ParamPrefix + mi.ColumnName : options.ToSqlLiteral(value); //FormatValue(value, useParams, cmdParams);
         }
 

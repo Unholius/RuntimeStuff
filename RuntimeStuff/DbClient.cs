@@ -724,16 +724,26 @@ namespace RuntimeStuff
                 case KeyValuePair<string, object> kvp:
                     break;
 
+                case Dictionary<string, object> dic:
+                    return dic;
+
+                case IDictionary<string, object> idic:
+                    return idic.ToDictionary(x => x.Key, x => x.Value);
+
                 case IEnumerable e:
-                {
-                    memberCache = MemberCache.Create(memberCache.ElementType);
-                    var key = memberCache.GetMember("Key", MemberNameType.Name) ?? memberCache.GetMember("Item1", MemberNameType.Name);
-                    var val = memberCache.GetMember("Value", MemberNameType.Name) ?? memberCache.GetMember("Item2", MemberNameType.Name);
-                    foreach (var i in e)
                     {
-                        parameters[key.GetValue<string>(i)] = val.GetValue(i);
+                        var elementCache = MemberCache.Create(memberCache.ElementType);
+
+                        var key = elementCache.GetMember("Key", MemberNameType.Name) ?? elementCache.GetMember("Item1", MemberNameType.Name);
+                        var val = elementCache.GetMember("Value", MemberNameType.Name) ?? elementCache.GetMember("Item2", MemberNameType.Name);
+                        if (key == null || val == null)
+                            break;
+                        foreach (var i in e)
+                        {
+                            parameters[key.GetValue<string>(i)] = val.GetValue(i);
+                        }
                     }
-                }
+
                     break;
 
                 default:

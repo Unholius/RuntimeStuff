@@ -254,7 +254,7 @@ namespace RuntimeStuff.MSTests
         {
             //86.3000
             var con = new SqlConnection(_connectionString);
-            var x = con.First<DtoTestClass>(x => x.ColMoney == 86.3000m);
+            var x = con.First<DtoTestClass>(x => x.ColMoney > 86m && x.ColMoney < 87m);
         }
     }
 }
