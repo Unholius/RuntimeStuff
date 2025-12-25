@@ -6,7 +6,7 @@ using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
-    //[TestClass]
+    [TestClass]
     public partial class DbHelperIntegrationTests
     {
         private static string? _connectionString;
@@ -247,6 +247,14 @@ namespace RuntimeStuff.MSTests
                 sw.Stop();
                 var ms2 = sw.ElapsedMilliseconds;
             }
+        }
+
+        [TestMethod]
+        public void Test_First_01()
+        {
+            //86.3000
+            var con = new SqlConnection(_connectionString);
+            var x = con.First<DtoTestClass>(x => x.ColMoney == 86.3000m);
         }
     }
 }

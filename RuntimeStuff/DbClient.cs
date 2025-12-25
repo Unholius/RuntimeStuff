@@ -297,11 +297,12 @@ namespace RuntimeStuff
         public int Update<T>(T item, Expression<Func<T, bool>> whereExpression, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] updateColumns) where T : class
         {
             var query = SqlQueryBuilder.GetUpdateQuery(Options, updateColumns);
+            var cmdParams = GetParams(item);
             query += " " + (whereExpression != null
-                ? SqlQueryBuilder.GetWhereClause(whereExpression, Options)
+                ? SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out cmdParams)
                 : SqlQueryBuilder.GetWhereClause<T>(Options));
-
-            return ExecuteNonQuery(query, GetParams(item), dbTransaction);
+                
+            return ExecuteNonQuery(query, cmdParams, dbTransaction);
         }
 
         public Task<int> UpdateAsync<T>(T item, Expression<Func<T, object>>[] updateColumns = null,
@@ -315,12 +316,13 @@ namespace RuntimeStuff
             Expression<Func<T, object>>[] updateColumns = null, IDbTransaction dbTransaction = null,
             CancellationToken token = default) where T : class
         {
+            var cmdParams = GetParams(item);
             var query = SqlQueryBuilder.GetUpdateQuery(Options, updateColumns);
             query += " " + (whereExpression != null
-                ? SqlQueryBuilder.GetWhereClause(whereExpression, Options)
+                ? SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out cmdParams)
                 : SqlQueryBuilder.GetWhereClause<T>(Options));
 
-            return ExecuteNonQueryAsync(query, GetParams(item), dbTransaction, token);
+            return ExecuteNonQueryAsync(query, cmdParams, dbTransaction, token);
         }
 
         public int UpdateRange<T>(IEnumerable<T> list, IDbTransaction dbTransaction = null,

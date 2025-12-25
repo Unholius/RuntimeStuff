@@ -8,132 +8,30 @@ using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff.Builders
 {
-    /// <summary>
-    /// Предоставляет методы для генерации SQL-подобных WHERE-условий
-    /// на основе лямбда-выражений типа <see cref="Expression{TDelegate}"/>.
-    /// </summary>
-    /// <remarks>
-    /// Класс выполняет разбор дерева выражений, поддерживая основные бинарные
-    /// и логические операции, а также значения из замыканий.
-    /// Подходит для генерации простых SQL-условий, однако не является
-    /// полноценным механизмом LINQ-to-SQL.
-    /// </remarks>
     public static class SqlQueryBuilder
     {
-        private static string _namePrefix = "\"";
-        private static string _nameSuffix = "\"";
-
-        /// <summary>
-        /// Генерирует SQL-подобное выражение WHERE на основе переданного лямбда-выражения.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, для которого создаётся условие фильтрации.
-        /// </typeparam>
-        /// <param name="whereExpression">
-        /// Лямбда-выражение вида <c>Expression&lt;Func&lt;T, bool&gt;&gt;</c>, описывающее условие фильтрации.
-        /// </param>
-        /// <param name="namePrefix">
-        /// Префикс, добавляемый к имени поля/свойства (например <c>"\""</c> или <c>"`"</c>).
-        /// По умолчанию используется <c>"\""</c>.
-        /// </param>
-        /// <param name="nameSuffix">
-        /// Суффикс, добавляемый к имени поля/свойства (например <c>"\""</c> или <c>"`"</c>).
-        /// По умолчанию используется <c>"\""</c>.
-        /// </param>
-        /// <returns>
-        /// Строка SQL-подобного WHERE-условия или <c>null</c>, если входное выражение равно <c>null</c>.
-        /// </returns>
-        /// <remarks>
-        /// Метод выполняет разбор дерева выражения, преобразуя бинарные операции, сравнения,
-        /// логические операторы и значения из замыканий в строковое SQL-условие.
-        /// Подходит для генерации простых WHERE-клаузаов, но не является полноценным LINQ-to-SQL.
-        /// </remarks>
-        public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, string namePrefix, string nameSuffix)
+        public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out Dictionary<string, object> cmdParams)
         {
+            cmdParams = new Dictionary<string, object>();
             if (whereExpression == null)
+            {
                 return null;
+            }
 
-            _namePrefix = namePrefix;
-            _nameSuffix = nameSuffix;
-
-            return ("WHERE " + Visit(whereExpression.Body)).Trim();
+            return ("WHERE " + Visit(whereExpression.Body, options, useParams, cmdParams)).Trim();
         }
 
-        public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options)
-        {
-            return GetWhereClause(whereExpression, options.NamePrefix, options.NameSuffix);
-        }
-
-        /// <summary>
-        /// Создает SQL-условие WHERE на основе первичных ключей типа <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности, по которой формируется условие WHERE.</typeparam>
-        /// <param name="namePrefix">Префикс, добавляемый к имени столбца (например, "\"").</param>
-        /// <param name="nameSuffix">Суффикс, добавляемый к имени столбца (например, "\"").</param>
-        /// <param name="paramPrefix">Префикс для параметров SQL (например, "@").</param>
-        /// <returns>
-        /// Строку SQL-условия вида:
-        /// <code>
-        /// WHERE [Id] = @Id
-        /// </code>
-        /// Если первичные ключи отсутствуют — используются все публичные простые свойства.
-        /// </returns>
-        /// <remarks>
-        /// Метод определяет список колонок, используемых в условии WHERE, следующим образом:
-        /// <list type="number">
-        /// <item>
-        /// <description>Если у типа <typeparamref name="T"/> есть первичные ключи, используются только они.</description>
-        /// </item>
-        /// <item>
-        /// <description>Если первичных ключей нет, используются все публичные базовые свойства.</description>
-        /// </item>
-        /// </list>
-        ///
-        /// Генерацию финальной строки выполняет перегрузка <c>GetWhereClause(MemberInfo[] ...)</c>.
-        /// </remarks>
-        public static string GetWhereClause<T>(string namePrefix, string nameSuffix, string paramPrefix)
+        public static string GetWhereClause<T>(SqlProviderOptions options)
         {
             var mi = MemberCache.Create(typeof(T));
             var keys = mi.PrimaryKeys.Values.ToArray();
             if (keys.Length == 0)
                 keys = mi.PublicBasicProperties.Values.ToArray();
 
-            return GetWhereClause(keys, namePrefix, nameSuffix, paramPrefix);
+            return GetWhereClause(keys, options);
         }
 
-        public static string GetWhereClause<T>(SqlProviderOptions options)
-        {
-            return GetWhereClause<T>(options.NamePrefix, options.NameSuffix, options.ParamPrefix);
-        }
-
-        /// <summary>
-        /// Формирует SQL-условие WHERE на основе переданного набора свойств.
-        /// </summary>
-        /// <param name="whereProperties">
-        /// Массив свойств, участвующих в формировании условий выборки.
-        /// Каждое свойство должно содержать имя колонки и имя параметра.
-        /// </param>
-        /// <param name="namePrefix">
-        /// Префикс, добавляемый перед именем колонки.
-        /// По умолчанию: "\"".
-        /// </param>
-        /// <param name="nameSuffix">
-        /// Суффикс, добавляемый после имени колонки.
-        /// По умолчанию: "\"".
-        /// </param>
-        /// <param name="paramPrefix">
-        /// Префикс параметров SQL.
-        /// По умолчанию: "@".
-        /// </param>
-        /// <returns>
-        /// Строка SQL, содержащая конструкцию WHERE с перечислением условий через AND.
-        /// Пример результата: <c>WHERE [Id] = @Id AND [Name] = @Name</c>.
-        /// </returns>
-        /// <remarks>
-        /// Метод не добавляет пробелов в начале или конце имён, а также не проверяет корректность
-        /// переданных данных. Предполагается, что имена колонок и параметры уже валидированы.
-        /// </remarks>
-        public static string GetWhereClause(MemberCache[] whereProperties, string namePrefix, string nameSuffix, string paramPrefix)
+        public static string GetWhereClause(MemberCache[] whereProperties, SqlProviderOptions options)
         {
             var whereClause = new StringBuilder("WHERE ");
 
@@ -142,11 +40,11 @@ namespace RuntimeStuff.Builders
                 var key = whereProperties[i];
 
                 whereClause
-                    .Append(namePrefix)
+                    .Append(options.NamePrefix)
                     .Append(key.ColumnName)
-                    .Append(nameSuffix)
+                    .Append(options.NameSuffix)
                     .Append(" = ")
-                    .Append(paramPrefix)
+                    .Append(options.ParamPrefix)
                     .Append(key.Name);
 
                 if (i < whereProperties.Length - 1)
@@ -156,64 +54,16 @@ namespace RuntimeStuff.Builders
             return whereClause.ToString();
         }
 
-        /// <summary>
-        /// Формирует SQL-запрос SELECT, используя выражения выбора колонок.
-        /// Имена таблиц и колонок заключаются в <c>[]</c>.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип сущности, на основе которой строится запрос SELECT.
-        /// </typeparam>
-        /// <param name="selectColumns">
-        /// Набор выражений <c>x => x.Property</c>, указывающих, какие колонки включить в SELECT.
-        /// Если не указано ни одной колонки, используется полный набор колонок из <see cref="MemberCache"/>.
-        /// </param>
-        /// <returns>
-        /// Строка SQL-запроса SELECT.
-        /// </returns>
         public static string GetSelectQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] selectColumns)
         {
             return GetSelectQuery(options.NamePrefix, options.NameSuffix, selectColumns);
         }
 
-        /// <summary>
-        /// Формирует SQL-запрос SELECT для указанного типа сущности с выборкой заданных столбцов.
-        /// </summary>
-        /// <remarks>Если не указать ни одного столбца, запрос может быть некорректным или не содержать
-        /// нужных данных. Метод предназначен для генерации запросов к базам данных, где имена столбцов соответствуют
-        /// свойствам типа T.</remarks>
-        /// <typeparam name="T">Тип сущности, для которой строится запрос SELECT.</typeparam>
-        /// <typeparam name="TProp">Тип значения выбираемых столбцов.</typeparam>
-        /// <param name="selectColumns">Массив выражений, определяющих столбцы, которые будут включены в SELECT-запрос. Не может содержать
-        /// null-значения.</param>
-        /// <returns>Строка, содержащая сформированный SQL-запрос SELECT с указанными столбцами.</returns>
         public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns)
         {
             return GetSelectQuery(options.NamePrefix, options.NameSuffix, MemberCache<T>.Create(), selectColumns.Select(x=>x.GetMemberCache()).ToArray());
         }
 
-        /// <summary>
-        /// Формирует SQL-запрос SELECT с использованием пользовательских префикса и суффикса
-        /// для имён колонок и таблицы.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип сущности, на основе которой строится запрос SELECT.
-        /// </typeparam>
-        /// <param name="namePrefix">
-        /// Префикс, добавляемый к имени таблицы и колонок (например <c>"\""</c>, <c>"`"</c>, <c>"\""</c>).
-        /// </param>
-        /// <param name="nameSuffix">
-        /// Суффикс, добавляемый к имени таблицы и колонок (например <c>"\""</c>, <c>"`"</c>, <c>"\""</c>).
-        /// </param>
-        /// <param name="selectColumns">
-        /// Набор выражений <c>x => x.Property</c>, указывающих колонки, которые следует включить в SELECT.
-        /// Если список пуст — используются все колонки, описанные в <see cref="MemberCache"/>.
-        /// </param>
-        /// <returns>
-        /// Строка SQL-запроса SELECT.
-        /// </returns>
-        /// <remarks>
-        /// Если не найдено ни одной колонки, формируется запрос вида <c>SELECT * FROM ...</c>.
-        /// </remarks>
         public static string GetSelectQuery<T>(string namePrefix, string nameSuffix, params Expression<Func<T, object>>[] selectColumns)
         {
             var mi = MemberCache<T>.Create();
@@ -226,35 +76,11 @@ namespace RuntimeStuff.Builders
             return GetSelectQuery(namePrefix, nameSuffix, mi, members);
         }
 
-        /// <summary>
-        /// Формирует SQL-запрос <c>SELECT</c> для указанных колонок с использованием стандартных скобок [ ].
-        /// </summary>
-        /// <param name="typeInfo">Информация о типе сущности, из которой выбираются данные.</param>
-        /// <param name="selectColumns">Колонки, которые нужно выбрать.</param>
-        /// <returns>Строка SQL-запроса <c>SELECT</c>.</returns>
-        /// <remarks>
-        /// Используется перегрузка метода <see cref="GetSelectQuery(string, string, MemberCache, MemberCache[])"/>,
-        /// которая добавляет префикс и суффикс для имен колонок в виде квадратных скобок [ ].  
-        /// Если список колонок пуст, возвращается пустая строка.
-        /// </remarks>
         public static string GetSelectQuery(SqlProviderOptions options, MemberCache typeInfo, params MemberCache[] selectColumns)
         {
             return GetSelectQuery(options.NamePrefix, options.NameSuffix, typeInfo, selectColumns);
         }
 
-        /// <summary>
-        /// Формирует SQL-запрос <c>SELECT</c> для указанных колонок с кастомным префиксом и суффиксом имен.
-        /// </summary>
-        /// <param name="namePrefix">Префикс для каждого имени колонки (например, [).</param>
-        /// <param name="nameSuffix">Суффикс для каждого имени колонки (например, ]).</param>
-        /// <param name="typeInfo">Информация о типе сущности, из которой выбираются данные.</param>
-        /// <param name="selectColumns">Колонки, которые нужно выбрать.</param>
-        /// <returns>Строка SQL-запроса <c>SELECT</c>. Если список колонок пуст, возвращается пустая строка.</returns>
-        /// <remarks>
-        /// Метод формирует SQL-запрос вида:
-        /// <c>SELECT [Column1], [Column2], ... FROM [TableName]</c>, где имена колонок и таблицы
-        /// обрамляются указанными префиксом и суффиксом.
-        /// </remarks>
         public static string GetSelectQuery(string namePrefix, string nameSuffix, MemberCache typeInfo, params MemberCache[] selectColumns)
         {
             if (selectColumns.Length == 0)
@@ -279,26 +105,11 @@ namespace RuntimeStuff.Builders
             return query.ToString();
         }
 
-        /// <summary>
-        /// Создает SQL-запрос UPDATE для всех свойств класса T.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности, для которой создается запрос.</typeparam>
-        /// <param name="updateColumns">Свойства, которые нужно обновить. Если не указаны, обновляются все доступные свойства, кроме первичного ключа.</param>
-        /// <returns>Строка с SQL-запросом UPDATE.</returns>
         public static string GetUpdateQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] updateColumns) where T : class
         {
             return GetUpdateQuery(options.NamePrefix, options.NameSuffix, options.ParamPrefix, updateColumns);
         }
 
-        /// <summary>
-        /// Создает SQL-запрос UPDATE для указанных свойств класса T с настраиваемыми префиксами и суффиксами для имен таблиц и параметров.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности, для которой создается запрос.</typeparam>
-        /// <param name="namePrefix">Префикс для имен таблиц и колонок (например, "\"").</param>
-        /// <param name="nameSuffix">Суффикс для имен таблиц и колонок (например, "\"").</param>
-        /// <param name="paramPrefix">Префикс для параметров SQL (например, "@").</param>
-        /// <param name="updateColumns">Свойства, которые нужно обновить. Если не указаны, обновляются все доступные свойства, кроме первичного ключа.</param>
-        /// <returns>Строка с SQL-запросом UPDATE.</returns>
         public static string GetUpdateQuery<T>(string namePrefix, string nameSuffix, string paramPrefix, params Expression<Func<T, object>>[] updateColumns) where T : class
         {
             var mi = MemberCache.Create(typeof(T));
@@ -339,27 +150,11 @@ namespace RuntimeStuff.Builders
             return query.ToString();
         }
 
-        /// <summary>
-        /// Создает SQL-запрос INSERT для всех свойств класса T.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности, для которой создается запрос.</typeparam>
-        /// <param name="options"></param>
-        /// <param name="insertColumns">Свойства, которые нужно вставить. Если не указаны, используются все доступные свойства, кроме первичного ключа.</param>
-        /// <returns>Строка с SQL-запросом INSERT.</returns>
         public static string GetInsertQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] insertColumns) where T : class
         {
             return GetInsertQuery(options.NamePrefix, options.NameSuffix, options.ParamPrefix, insertColumns);
         }
 
-        /// <summary>
-        /// Создает SQL-запрос INSERT для указанных свойств класса T с настраиваемыми префиксами и суффиксами для имен таблиц и параметров.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности, для которой создается запрос.</typeparam>
-        /// <param name="namePrefix">Префикс для имен таблиц и колонок (например, "\"").</param>
-        /// <param name="nameSuffix">Суффикс для имен таблиц и колонок (например, "\"").</param>
-        /// <param name="paramPrefix">Префикс для параметров SQL (например, "@").</param>
-        /// <param name="insertColumns">Свойства, которые нужно вставить. Если не указаны, используются все доступные свойства, кроме первичного ключа.</param>
-        /// <returns>Строка с SQL-запросом INSERT.</returns>
         public static string GetInsertQuery<T>(string namePrefix, string nameSuffix, string paramPrefix, params Expression<Func<T, object>>[] insertColumns) where T : class
         {
             var query = new StringBuilder("INSERT INTO ");
@@ -405,37 +200,11 @@ namespace RuntimeStuff.Builders
             return query.ToString();
         }
 
-        /// <summary>
-        /// Создает SQL-запрос DELETE для таблицы, соответствующей типу <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности, для которой формируется запрос.</typeparam>
-        /// <returns>Строка с SQL-запросом DELETE без условия WHERE.</returns>
-        /// <remarks>
-        /// Метод формирует запрос вида:
-        /// <c>DELETE FROM [TableName]</c>.
-        ///
-        /// Важно: метод не включает предложение WHERE — ответственность по добавлению условия
-        /// лежит на вызывающем коде. Использование без WHERE может привести к удалению всех записей.
-        /// </remarks>
         public static string GetDeleteQuery<T>(SqlProviderOptions options) where T : class
         {
             return GetDeleteQuery<T>(options.NamePrefix, options.NameSuffix);
         }
 
-        /// <summary>
-        /// Создает SQL-запрос DELETE для таблицы, соответствующей типу <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности, для которой формируется запрос.</typeparam>
-        /// <param name="namePrefix">Префикс, добавляемый к имени таблицы (например, "\"").</param>
-        /// <param name="nameSuffix">Суффикс, добавляемый к имени таблицы (например, "\"").</param>
-        /// <returns>Строка с SQL-запросом DELETE без условия WHERE.</returns>
-        /// <remarks>
-        /// Метод формирует запрос вида:
-        /// <c>DELETE FROM [TableName]</c>.
-        ///
-        /// Важно: метод не включает предложение WHERE — ответственность по добавлению условия
-        /// лежит на вызывающем коде. Использование без WHERE может привести к удалению всех записей.
-        /// </remarks>
         public static string GetDeleteQuery<T>(string namePrefix, string nameSuffix) where T : class
         {
             var mi = MemberCache<T>.Create();
@@ -443,45 +212,11 @@ namespace RuntimeStuff.Builders
             return query.ToString();
         }
 
-        /// <summary>
-        /// Формирует SQL-выражение ORDER BY на основе выражений выбора свойств и признаков сортировки.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, свойства которого используются для построения сортировки.
-        /// </typeparam>
-        /// <param name="orderBy">
-        /// Набор кортежей, где первый элемент — выражение, указывающее на свойство,
-        /// второй — направление сортировки (<c>true</c> = ASC, <c>false</c> = DESC).
-        /// </param>
-        /// <returns>
-        /// Строка SQL вида <c>"ORDER BY ..."</c>.
-        /// Если параметр <paramref name="orderBy"/> пуст, возвращается пустая строка.
-        /// </returns>
         public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
             return GetOrderBy(options.NamePrefix, options.NameSuffix, orderBy);
         }
 
-        /// <summary>
-        /// Формирует SQL-выражение ORDER BY на основе выражений выбора свойств и признаков сортировки.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, свойства которого используются для построения сортировки.
-        /// </typeparam>
-        /// <param name="namePrefix">
-        /// Префикс, добавляемый перед именем столбца (например, алиас таблицы).
-        /// </param>
-        /// <param name="nameSuffix">
-        /// Суффикс, добавляемый после имени столбца (например, закрывающая кавычка).
-        /// </param>
-        /// <param name="orderBy">
-        /// Набор кортежей, где первый элемент — выражение, указывающее на свойство,
-        /// второй — направление сортировки (<c>true</c> = ASC, <c>false</c> = DESC).
-        /// </param>
-        /// <returns>
-        /// Строка SQL вида <c>"ORDER BY ..."</c>.
-        /// Если параметр <paramref name="orderBy"/> пуст, возвращается пустая строка.
-        /// </returns>
         public static string GetOrderBy<T>(string namePrefix, string nameSuffix, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
             if (orderBy == null)
@@ -490,23 +225,6 @@ namespace RuntimeStuff.Builders
             return GetOrderBy(namePrefix, nameSuffix, props);
         }
 
-        /// <summary>
-        /// Формирует SQL-выражение ORDER BY на основе информации о полях и направления сортировки.
-        /// </summary>
-        /// <param name="namePrefix">
-        /// Префикс, добавляемый перед именем столбца (например, алиас таблицы).
-        /// </param>
-        /// <param name="nameSuffix">
-        /// Суффикс, добавляемый после имени столбца (например, закрывающая кавычка).
-        /// </param>
-        /// <param name="orderBy">
-        /// Набор кортежей, где первый элемент — <see cref="MemberCache"/> с информацией о поле,
-        /// второй — направление сортировки (<c>true</c> = ASC, <c>false</c> = DESC).
-        /// </param>
-        /// <returns>
-        /// Строка SQL ORDER BY.
-        /// Если коллекция пуста, возвращается пустая строка.
-        /// </returns>
         public static string GetOrderBy(string namePrefix, string nameSuffix, params (MemberCache, bool)[] orderBy)
         {
             if (orderBy == null || orderBy.Length == 0)
@@ -529,66 +247,8 @@ namespace RuntimeStuff.Builders
             return query.ToString();
         }
 
-        /// <summary>
-        /// Позволяет переопределить шаблон SQL-фрагмента
-        /// для постраничного ограничения выборки (OFFSET / FETCH).
-        /// </summary>
-        /// <remarks>
-        /// Если значение не задано, используется стандартный шаблон:
-        /// <c>OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY</c>.
-        /// <para/>
-        /// Параметры форматирования:
-        /// <list type="bullet">
-        /// <item><description><c>{0}</c> — количество пропускаемых строк (offset)</description></item>
-        /// <item><description><c>{1}</c> — количество выбираемых строк (fetch)</description></item>
-        /// </list>
-        /// </remarks>
         public static string OverrideOffsetRowsTemplate { get; set; }
 
-        /// <summary>
-        /// Формирует SQL-фрагмент ограничения выборки с учётом
-        /// типа подключения и наличия сортировки.
-        /// </summary>
-        /// <param name="fetchRows">
-        /// Количество строк, которые необходимо выбрать.
-        /// </param>
-        /// <param name="offsetRows">
-        /// Количество строк, которые необходимо пропустить.
-        /// </param>
-        /// <param name="query">
-        /// Исходный SQL-запрос. Используется для определения,
-        /// присутствует ли в нём предложение <c>ORDER BY</c>.
-        /// </param>
-        /// <param name="connectionType">
-        /// Тип подключения к базе данных, используемый для выбора
-        /// диалекта SQL (например, MySQL или SQL Server).
-        /// </param>
-        /// <param name="entityType">
-        /// Тип сущности, на основе которого может быть автоматически
-        /// сформировано предложение <c>ORDER BY</c>.
-        /// </param>
-        /// <param name="namePrefix">Префикс для имени колонки</param>
-        /// <param name="nameSuffix">Суффикс для имени колонки</param>
-        /// <returns>
-        /// SQL-фрагмент с предложением <c>ORDER BY</c> (при необходимости)
-        /// и ограничением выборки (<c>OFFSET</c>/<c>FETCH</c> или <c>LIMIT</c>).
-        /// </returns>
-        /// <remarks>
-        /// Если в исходном запросе отсутствует предложение <c>ORDER BY</c>,
-        /// оно будет автоматически добавлено на основе первичных ключей
-        /// или всех колонок сущности, определяемых через
-        /// <see cref="MemberCache"/>.
-        /// <para/>
-        /// Для типа подключения <c>MySqlConnection</c> используется
-        /// синтаксис <c>LIMIT {fetch} OFFSET {offset}</c>.
-        /// Для остальных типов применяется стандартный шаблон
-        /// или значение <see cref="OverrideOffsetRowsTemplate"/>, если оно задано.
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">
-        /// Может быть выброшено, если <paramref name="entityType"/> равен
-        /// <see langword="null"/> и требуется автоматическое формирование
-        /// предложения <c>ORDER BY</c>.
-        /// </exception>
         public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, Type connectionType = null, Type entityType = null, string namePrefix="\"", string nameSuffix="\"")
         {
             if (fetchRows < 0 || offsetRows < 0)
@@ -628,101 +288,98 @@ namespace RuntimeStuff.Builders
 
         #region PRIVATE
 
-        private static string Visit(Expression exp)
+        private static string Visit(Expression exp, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
+
             switch (exp)
             {
                 case BinaryExpression be:
-                    return VisitBinary(be);
+                    return VisitBinary(be, options, useParams, cmdParams);
 
                 case MemberExpression me:
-                    return VisitMember(me);
+                    return VisitMember(me, options, useParams, cmdParams);
 
                 case ConstantExpression ce:
-                    return VisitConstant(ce);
+                    return VisitConstant(ce, options, useParams, cmdParams);
 
                 case UnaryExpression ue:
-                    return VisitUnary(ue);
+                    return VisitUnary(ue, options, useParams, cmdParams);
 
                 default:
                     throw new NotSupportedException($"Expression '{exp.NodeType}' is not supported.");
             }
         }
 
-        private static string VisitBinary(BinaryExpression be)
+        private static string VisitBinary(BinaryExpression be, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
-            var left = Visit(be.Left);
-            var right = Visit(be.Right);
+            var left = Visit(be.Left, options, useParams, cmdParams);
+            var right = Visit(be.Right, options, useParams, cmdParams);
             var op = GetSqlOperator(be.NodeType);
 
             return $"({left} {op} {right})";
         }
 
-        private static string VisitUnary(UnaryExpression ue)
+        private static string VisitUnary(UnaryExpression ue, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             switch (ue.NodeType)
             {
                 case ExpressionType.Not:
-                    return $"(NOT {Visit(ue.Operand)})";
+                    return $"(NOT {Visit(ue.Operand, options, useParams, cmdParams)})";
 
                 case ExpressionType.Convert:
-                    return Visit(ue.Operand);
+                    return Visit(ue.Operand, options, useParams, cmdParams);
 
                 default:
                     throw new NotSupportedException($"Unary '{ue.NodeType}' not supported.");
             }
         }
 
-        private static string VisitMember(MemberExpression me)
+        private static string VisitMember(MemberExpression me, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(me.Member);
-            // x => x.Prop
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
-                return _namePrefix + mi.ColumnName + _nameSuffix;
+            {
+                cmdParams[mi.ColumnName] = null;
+                return options.NamePrefix + mi.ColumnName + options.NameSuffix;
+            }
 
-            // значение из замыкания: x => x.Prop == someValue
             var value = GetValue(me);
-            return FormatValue(value);
+            cmdParams[mi.ColumnName] = value;
+            return useParams ? options.ParamPrefix + mi.ColumnName : options.ToSqlLiteral(value); //FormatValue(value, useParams, cmdParams);
         }
 
-        private static string VisitConstant(ConstantExpression ce)
+        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
-            return FormatValue(ce.Value);
+            return options.ToSqlLiteral(ce.Value); //FormatValue(ce.Value);
         }
 
         private static object GetValue(MemberExpression me)
         {
-            // компилируем выражение для получения значения
             var lambda = Expression.Lambda<Func<object>>(
                 Expression.Convert(me, typeof(object))
             );
             return lambda.Compile().Invoke();
         }
 
-        private static string FormatValue(object value)
-        {
-            if (Obj.NullValues.Contains(value))
-                return "NULL";
+        //private static string FormatValue(object value, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
+        //{
+        //    if (Obj.NullValues.Contains(value))
+        //        return options.NullValue;
 
-            // string
-            if (value is string s)
-                return "'" + s.Replace("'", "''") + "'";
+        //    if (value is string s)
+        //        return options.StringPrefix + s.Replace("'", "''") + options.StringSuffix;
 
-            // DateTime
-            if (value is DateTime dt)
-                return "'" + dt.ToString("yyyy-MM-dd HH:mm:ss") + "'";
+        //    if (value is DateTime dt)
+        //        return options.StringPrefix + dt.ToString(options.DateFormat) + options.StringSuffix;
 
-            // bool
-            if (value is bool b)
-                return b ? "1" : "0";
+        //    if (value is bool b)
+        //        return b ? options.TrueValue : options.FalseValue;
 
-            // Enum
-            if (value is Enum)
-                return Convert.ToInt32(value).ToString();
+        //    if (value is Enum)
+        //        return Convert.ToInt32(value).ToString();
 
-            // fallback
-            return value.ToString();
-        }
+        //    return value.ToString();
+        //}
 
         private static string GetSqlOperator(ExpressionType type)
         {

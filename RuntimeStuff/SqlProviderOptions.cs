@@ -15,6 +15,11 @@ namespace RuntimeStuff
             configure?.Invoke(this);
         }
 
+        public static SqlProviderOptions Default { get; } = new SqlProviderOptions()
+        {
+
+        };
+
         public string NamePrefix { get; set; } = "\"";
         public string NameSuffix { get; set; } = "\"";
         public string DateFormat { get; set; } = "yyyyMMddTHH:mm:ss";
@@ -23,7 +28,7 @@ namespace RuntimeStuff
         public string TrueValue { get; set; } = "1";
         public string FalseValue { get; set; } = "0";
         public string NullValue { get; set; } = "NULL";
-        private string StringPrefix { get; set; } = "'";
+        public string StringPrefix { get; set; } = "'";
         public string StringSuffix { get; set; } = "'";
 
         public string ToSqlLiteral(object value)
