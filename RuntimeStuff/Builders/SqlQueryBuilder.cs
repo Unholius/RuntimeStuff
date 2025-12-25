@@ -114,7 +114,7 @@ namespace RuntimeStuff.Builders
         {
             var mi = MemberCache.Create(typeof(T));
             var query = new StringBuilder("UPDATE ")
-                .Append(mi.GetFullTableName(namePrefix, nameSuffix, null))
+                .Append(mi.GetFullTableName(namePrefix, nameSuffix))
                 .Append(" SET ");
 
             var props = updateColumns?.Select(ExpressionHelper.GetPropertyName).ToList()
@@ -163,7 +163,7 @@ namespace RuntimeStuff.Builders
                 .Append(mi.GetFullTableName(namePrefix, nameSuffix))
                 .Append(" (");
 
-            var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName)?.ToArray() ?? Array.Empty<string>();
+            var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
             if (insertCols.Length == 0)
                 insertCols = mi.ColumnProperties.Values.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
 
@@ -300,7 +300,7 @@ namespace RuntimeStuff.Builders
                     return VisitMember(me, options, useParams, cmdParams);
 
                 case ConstantExpression ce:
-                    return VisitConstant(ce, options, useParams, cmdParams);
+                    return VisitConstant(ce, options);
 
                 case UnaryExpression ue:
                     return VisitUnary(ue, options, useParams, cmdParams);
@@ -358,7 +358,7 @@ namespace RuntimeStuff.Builders
             return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value); //FormatValue(value, useParams, cmdParams);
         }
 
-        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
+        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options)
         {
             return options.ToSqlLiteral(ce.Value); //FormatValue(ce.Value);
         }

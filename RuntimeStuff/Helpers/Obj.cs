@@ -775,20 +775,24 @@ namespace RuntimeStuff.Helpers
         /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
         /// <param name="type">Тип в котором искать свойство или поле</param>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
+        /// <param name="memberType">Тип свойства или поля</param>
         /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
         /// типа <typeparamref name="{T}"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
         /// не поддерживает установку значения.</returns>
-        public static Action<object, object> GetMemberSetter(Type type, string memberName)
+        public static Action<object, object> GetMemberSetter(Type type, string memberName, out Type memberType)
         {
             var member = FindMember(type, memberName);
             switch (member)
             {
                 case FieldInfo fi:
+                    memberType = fi.FieldType;
                     return FieldSetterCache.Get(fi);
 
                 case PropertyInfo pi:
+                    memberType = pi.PropertyType;
                     return PropertySetterCache.Get(pi);
             }
+            memberType = null;
             return null;
         }
 
@@ -799,10 +803,11 @@ namespace RuntimeStuff.Helpers
         /// значение будет <see langword="null"/>. Делегат использует отражение и может иметь меньшую производительность
         /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
+        /// <param name="memberType">Тип свойства или поля</param>
         /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
         /// типа <typeparamref name="T"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
         /// не поддерживает установку значения.</returns>
-        public static Action<object, object> GetMemberSetter<T>(string memberName) => GetMemberSetter(typeof(T), memberName);
+        public static Action<object, object> GetMemberSetter<T>(string memberName, out Type memberType) => GetMemberSetter(typeof(T), memberName, out memberType);
 
 
         /// <summary>
@@ -1766,11 +1771,11 @@ namespace RuntimeStuff.Helpers
             if (instance == null)
                 return false;
 
-            var setter = GetMemberSetter(instance.GetType(), memberName);
+            var setter = GetMemberSetter(instance.GetType(), memberName, out var memberType);
             if (setter == null)
                 return false;
 
-            setter(instance, value);
+            setter(instance, value?.GetType() == memberType ? value : ChangeType(value, memberType));
             return true;
         }
 

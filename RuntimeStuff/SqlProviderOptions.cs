@@ -15,11 +15,6 @@ namespace RuntimeStuff
             configure?.Invoke(this);
         }
 
-        public static SqlProviderOptions Default { get; } = new SqlProviderOptions()
-        {
-
-        };
-
         public string NamePrefix { get; set; } = "\"";
         public string NameSuffix { get; set; } = "\"";
         public string DateFormat { get; set; } = "yyyyMMddTHH:mm:ss";
