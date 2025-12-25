@@ -1545,14 +1545,14 @@ namespace RuntimeStuff
                     map[colIndex] = propInfoEx;
                 }
 
-                propInfoEx = typeInfoEx.ColumnProperties.GetValueOrDefault(colName, IgnoreCaseComparer);
+                propInfoEx = typeInfoEx.ColumnProperties.FirstOrDefault(x=>IgnoreCaseComparer.Equals(x.Value.ColumnName, colName)).Value;
                 if (propInfoEx != null)
                 {
                     map[colIndex] = propInfoEx;
                     continue;
                 }
 
-                propInfoEx = typeInfoEx.PublicBasicProperties.GetValueOrDefault(colName, IgnoreCaseComparer);
+                propInfoEx = typeInfoEx.PublicBasicProperties.FirstOrDefault(x => IgnoreCaseComparer.Equals(x.Value.ColumnName, colName)).Value;
 
                 if (propInfoEx != null)
                 {
