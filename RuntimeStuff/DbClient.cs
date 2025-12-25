@@ -411,9 +411,9 @@ namespace RuntimeStuff
 
         public int Delete<T>(Expression<Func<T, bool>> whereExpression) where T : class
         {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>(Options) + " " + SqlQueryBuilder.GetWhereClause(whereExpression, Options))
+            var query = (SqlQueryBuilder.GetDeleteQuery<T>(Options) + " " + SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam))
                 .Trim();
-            return ExecuteNonQuery(query);
+            return ExecuteNonQuery(query, cmdParam);
         }
 
         public int Delete<T>(T item) where T : class
@@ -432,9 +432,9 @@ namespace RuntimeStuff
         public Task<int> DeleteAsync<T>(Expression<Func<T, bool>> whereExpression, IDbTransaction dbTransaction,
             CancellationToken token = default) where T : class
         {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>(Options) + " " + SqlQueryBuilder.GetWhereClause(whereExpression, Options))
+            var query = (SqlQueryBuilder.GetDeleteQuery<T>(Options) + " " + SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParams))
                 .Trim();
-            return ExecuteNonQueryAsync(query, null, dbTransaction, token);
+            return ExecuteNonQueryAsync(query, cmdParams, dbTransaction, token);
         }
 
         public async Task<int> DeleteRangeAsync<T>(IEnumerable<T> list, IDbTransaction dbTransaction,
@@ -545,8 +545,8 @@ namespace RuntimeStuff
         public TProp ExecuteScalar<T, TProp>(Expression<Func<T, TProp>> propertySelector, Expression<Func<T, bool>> whereExpression)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, propertySelector) + " " +
-                         SqlQueryBuilder.GetWhereClause(whereExpression, Options)).Trim();
-            return ExecuteScalar<TProp>(query);
+                         SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
+            return ExecuteScalar<TProp>(query, cmdParam);
         }
 
         public T ExecuteScalar<T>(string query, object cmdParams = null, IDbTransaction dbTransaction = null)
@@ -590,8 +590,8 @@ namespace RuntimeStuff
         public Task<TProp> ExecuteScalarAsync<T, TProp>(Expression<Func<T, TProp>> propertySelector, Expression<Func<T, bool>> whereExpression, CancellationToken token = default)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, propertySelector) + " " +
-                         SqlQueryBuilder.GetWhereClause(whereExpression, Options)).Trim();
-            return ExecuteScalarAsync<TProp>(query, token: token);
+                         SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
+            return ExecuteScalarAsync<TProp>(query, cmdParam, token: token);
         }
 
         public Task<T> ExecuteScalarAsync<T>(string query, object cmdParams = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
@@ -847,19 +847,19 @@ namespace RuntimeStuff
         public DataTable ToDataTable<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, params Expression<Func<TFrom, object>>[] columnSelectors)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, columnSelectors) + " " +
-                         SqlQueryBuilder.GetWhereClause(whereExpression, Options)).Trim();
+                         SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(),
                 typeof(TFrom));
-            return ToDataTables(query).FirstOrDefault();
+            return ToDataTables(query, cmdParam).FirstOrDefault();
         }
 
         public async Task<DataTable> ToDataTableAsync<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, params Expression<Func<TFrom, object>>[] columnSelectors)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, columnSelectors) + " " +
-                         SqlQueryBuilder.GetWhereClause(whereExpression, Options)).Trim();
+                         SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(),
                 typeof(TFrom));
-            return (await ToDataTablesAsync(query).ConfigureAwait(ConfigureAwait)).FirstOrDefault();
+            return (await ToDataTablesAsync(query,cmdParam).ConfigureAwait(ConfigureAwait)).FirstOrDefault();
         }
 
         public DataTable ToDataTable(string query, object cmdParams = null, params (string, string)[] columnMap)
@@ -1017,18 +1017,18 @@ namespace RuntimeStuff
         public Dictionary<TKey, TValue> ToDictionary<TKey, TValue, TFrom>(Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, typeof(TFrom).GetMemberCache(), keySelector.GetMemberCache(), valueSelector.GetMemberCache()) + " " +
-                         SqlQueryBuilder.GetWhereClause(whereExpression, Options)).Trim();
+                         SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(), typeof(TFrom));
-            return ToList(query, null, null, null, null, fetchRows,
+            return ToList(query, cmdParam, null, null, null, fetchRows,
                 offsetRows, itemFactory).ToDictionary(x => x.Key, x => x.Value);
         }
 
         public async Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue, TFrom>(Expression<Func<TFrom, TKey>> keySelector, Expression<Func<TFrom, TValue>> valueSelector, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, typeof(TFrom).GetMemberCache(), keySelector.GetMemberCache(), valueSelector.GetMemberCache()) + " " +
-                         SqlQueryBuilder.GetWhereClause(whereExpression, Options)).Trim();
+                         SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(), typeof(TFrom));
-            return (await ToListAsync(query, null, null, null, null, fetchRows,
+            return (await ToListAsync(query, cmdParam, null, null, null, fetchRows,
                 offsetRows, itemFactory).ConfigureAwait(ConfigureAwait)).ToDictionary(x => x.Key, x => x.Value);
         }
 
@@ -1050,10 +1050,10 @@ namespace RuntimeStuff
             int fetchRows = -1, int offsetRows = 0, Func<object[], string[], T> itemFactory = null,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery<T>(Options) + " " + SqlQueryBuilder.GetWhereClause(whereExpression, Options) +
+            var query = (SqlQueryBuilder.GetSelectQuery<T>(Options) + " " + SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam) +
                          " " + SqlQueryBuilder.GetOrderBy(Options, orderByExpression)).Trim();
 
-            return ToList(query, null, null, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory);
+            return ToList(query, cmdParam, null, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory);
         }
 
         public Task<List<T>> ToListAsync<T>(string query = null, object cmdParams = null,
@@ -1070,10 +1070,10 @@ namespace RuntimeStuff
             int fetchRows = -1, int offsetRows = 0, Func<object[], string[], T> itemFactory = null, CancellationToken ct = default,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery<T>(Options) + " " + SqlQueryBuilder.GetWhereClause(whereExpression, Options) +
+            var query = (SqlQueryBuilder.GetSelectQuery<T>(Options) + " " + SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam) +
                          " " + SqlQueryBuilder.GetOrderBy(Options, orderByExpression)).Trim();
 
-            return ToListAsync(query, null, null, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory,
+            return ToListAsync(query, cmdParam, null, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory,
                 ct);
         }
 
