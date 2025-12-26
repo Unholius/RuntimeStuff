@@ -247,24 +247,15 @@ namespace RuntimeStuff.Builders
             return query.ToString();
         }
 
-        public static string OverrideOffsetRowsTemplate { get; set; }
-
-        public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, Type connectionType = null, Type entityType = null, string namePrefix="\"", string nameSuffix="\"")
+        public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null, string namePrefix="\"", string nameSuffix="\"")
         {
             if (fetchRows < 0 || offsetRows < 0)
                 return query;
 
             var offsetRowsFetchNextRowsOnly =
-                OverrideOffsetRowsTemplate ?? "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
+                options.OverrideOffsetRowsTemplate ?? "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
 
             var clause = new StringBuilder(query);
-
-            switch (connectionType?.Name.ToLower())
-            {
-                case "mysqlconnection":
-                    offsetRowsFetchNextRowsOnly = "LIMIT {1} OFFSET {0}";
-                    break;
-            }
 
             if (query?.Contains("ORDER BY", StringComparison.OrdinalIgnoreCase) != true)
             {

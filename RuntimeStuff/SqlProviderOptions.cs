@@ -23,6 +23,7 @@ namespace RuntimeStuff
         public string TrueValue { get; set; } = "1";
         public string FalseValue { get; set; } = "0";
         public string NullValue { get; set; } = "NULL";
+        public string OverrideOffsetRowsTemplate { get; set; } = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
         public string StringPrefix { get; set; } = "'";
         public string StringSuffix { get; set; } = "'";
 

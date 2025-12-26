@@ -65,10 +65,12 @@ namespace RuntimeStuff
         public delegate object DbValueConverter(string fieldName, object fieldValue, PropertyInfo propertyInfo,
             object item);
 
+        public static char[] TrimChars = new char[] { '\uFEFF', '\u200B', ' ', '\r', '\n', '\t' };
+
         public delegate object DbValueConverter<in T>(string fieldName, object fieldValue, PropertyInfo propertyInfo,
             T item);
 
-        public static DbValueConverter TrimStringSpaces = (name, value, info, item) => value is string s ? s.Trim(new char[] { '\uFEFF', '\u200B', ' ', '\r', '\n', '\t' }) : value;
+        public static DbValueConverter TrimStringSpaces = (name, value, info, item) => value is string s ? s.Trim(TrimChars) : ChangeType(value, info.PropertyType);
 
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -158,7 +160,7 @@ namespace RuntimeStuff
                 var mi = MemberCache<T>.Create();
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
                     mi.PrimaryKeys.First().Value.SetValue(item,
-                        Obj.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
+                        ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
             }
 
             return id;
@@ -189,7 +191,7 @@ namespace RuntimeStuff
                 var mi = MemberCache<T>.Create();
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
                     mi.PrimaryKeys.First().Value.SetValue(item,
-                        Obj.ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
+                        ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
             }
 
             return id;
@@ -216,7 +218,7 @@ namespace RuntimeStuff
                             SetParameterCollection(cmd, queryParams);
                             var id = cmd.ExecuteScalar();
                             CommandExecuted?.Invoke(cmd);
-                            if (pk != null && id != null) pk.SetValue(item, Obj.ChangeType(id, pk.PropertyType));
+                            if (pk != null && id != null) pk.SetValue(item, ChangeType(id, pk.PropertyType));
 
                             count++;
                         }
@@ -263,7 +265,7 @@ namespace RuntimeStuff
 
                             var id = await dbCmd.ExecuteScalarAsync(token).ConfigureAwait(ConfigureAwait);
                             CommandExecuted?.Invoke(cmd);
-                            if (pk != null && id != null) pk.SetValue(item, Obj.ChangeType(id, pk.PropertyType));
+                            if (pk != null && id != null) pk.SetValue(item, ChangeType(id, pk.PropertyType));
 
                             count++;
                         }
@@ -665,12 +667,11 @@ namespace RuntimeStuff
 
         #region Command
 
-        public DbCommand CreateCommand(string query, object cmdParams, IDbTransaction dbTransaction = null,
-            int commandTimeOut = 30)
+        public DbCommand CreateCommand(string query, object cmdParams, IDbTransaction dbTransaction = null, int? commandTimeOut = null)
         {
             var cmd = Connection.CreateCommand();
             cmd.CommandText = query;
-            cmd.CommandTimeout = commandTimeOut;
+            cmd.CommandTimeout = commandTimeOut ?? DefaultCommandTimeout;
             cmd.CommandType = CommandType.Text;
             cmd.Transaction = dbTransaction;
 
@@ -722,7 +723,7 @@ namespace RuntimeStuff
             switch (cmdParams)
             {
                 case KeyValuePair<string, object> kvp:
-                    break;
+                    return new Dictionary<string, object>() { kvp };
 
                 case Dictionary<string, object> dic:
                     return dic;
@@ -775,7 +776,7 @@ namespace RuntimeStuff
             if (string.IsNullOrEmpty(query))
                 query = SqlQueryBuilder.GetSelectQuery<T>(Options);
 
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(), typeof(T));
+            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Options, typeof(T));
 
             var cache = MemberCache<T>.Create();
             if (itemFactory == null)
@@ -815,7 +816,7 @@ namespace RuntimeStuff
             if (string.IsNullOrEmpty(query))
                 query = SqlQueryBuilder.GetSelectQuery<T>(Options);
 
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(), typeof(T));
+            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Options, typeof(T));
 
             var cache = MemberCache<T>.Create();
             if (itemFactory == null)
@@ -858,7 +859,7 @@ namespace RuntimeStuff
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, columnSelectors) + " " +
                          SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(),
+            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Options,
                 typeof(TFrom));
             return ToDataTables(query, cmdParam).FirstOrDefault();
         }
@@ -867,7 +868,7 @@ namespace RuntimeStuff
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, columnSelectors) + " " +
                          SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(),
+            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Options,
                 typeof(TFrom));
             return (await ToDataTablesAsync(query,cmdParam).ConfigureAwait(ConfigureAwait)).FirstOrDefault();
         }
@@ -1028,7 +1029,7 @@ namespace RuntimeStuff
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, typeof(TFrom).GetMemberCache(), keySelector.GetMemberCache(), valueSelector.GetMemberCache()) + " " +
                          SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(), typeof(TFrom));
+            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Options, typeof(TFrom));
             return ToList(query, cmdParam, null, null, null, fetchRows,
                 offsetRows, itemFactory).ToDictionary(x => x.Key, x => x.Value);
         }
@@ -1037,7 +1038,7 @@ namespace RuntimeStuff
         {
             var query = (SqlQueryBuilder.GetSelectQuery(Options, typeof(TFrom).GetMemberCache(), keySelector.GetMemberCache(), valueSelector.GetMemberCache()) + " " +
                          SqlQueryBuilder.GetWhereClause(whereExpression, Options, true, out var cmdParam)).Trim();
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Connection?.GetType(), typeof(TFrom));
+            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, Options, typeof(TFrom));
             return (await ToListAsync(query, cmdParam, null, null, null, fetchRows,
                 offsetRows, itemFactory).ConfigureAwait(ConfigureAwait)).ToDictionary(x => x.Key, x => x.Value);
         }
@@ -1182,7 +1183,7 @@ namespace RuntimeStuff
         public T Count<TFrom, T>(Expression<Func<TFrom, object>> columnSelector = null) where TFrom : class
         {
             var total = Count(columnSelector);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public async Task<object> CountAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
@@ -1193,13 +1194,13 @@ namespace RuntimeStuff
         public async Task<T> CountAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
             var total = await CountAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public T Max<TFrom, T>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
         {
             var total = Max(columnSelector);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public object Max<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
@@ -1210,7 +1211,7 @@ namespace RuntimeStuff
         public async Task<T> MaxAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
         {
             var total = await MaxAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public async Task<object> MaxAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
@@ -1221,7 +1222,7 @@ namespace RuntimeStuff
         public T Min<TFrom, T>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
         {
             var total = Min(columnSelector);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public object Min<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
@@ -1232,7 +1233,7 @@ namespace RuntimeStuff
         public async Task<T> MinAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
         {
             var total = await MinAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public async Task<object> MinAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
@@ -1243,7 +1244,7 @@ namespace RuntimeStuff
         public T Sum<TFrom, T>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
         {
             var total = Sum(columnSelector);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public object Sum<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
@@ -1254,7 +1255,7 @@ namespace RuntimeStuff
         public async Task<T> SumAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
         {
             var total = await SumAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public async Task<object> SumAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
@@ -1265,7 +1266,7 @@ namespace RuntimeStuff
         public T Avg<TFrom, T>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
         {
             var total = Avg(columnSelector);
-            return Obj.ChangeType<T>(total);
+            return ChangeType<T>(total);
         }
 
         public object Avg<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
@@ -1295,11 +1296,11 @@ namespace RuntimeStuff
 
             var dic = colNames.Select((x, i)=> (x,
                 (
-                    Obj.ChangeType<long>(result[$"{x}COUNT"]),
-                    Obj.ChangeType<long>(result[$"{x}MIN"]),
-                    Obj.ChangeType<long>(result[$"{x}MAX"]),
-                    Obj.ChangeType<long>(result[$"{x}SUM"]),
-                    Obj.ChangeType<decimal>(result[$"{x}AVG"])))).ToDictionary(key => key.x, val => val.Item2);
+                    ChangeType<long>(result[$"{x}COUNT"]),
+                    ChangeType<long>(result[$"{x}MIN"]),
+                    ChangeType<long>(result[$"{x}MAX"]),
+                    ChangeType<long>(result[$"{x}SUM"]),
+                    ChangeType<decimal>(result[$"{x}AVG"])))).ToDictionary(key => key.x, val => val.Item2);
 
             return dic;
         }
@@ -1321,11 +1322,11 @@ namespace RuntimeStuff
 
             var dic = colNames.Select((x, i) => (x,
                 (
-                    Obj.ChangeType<long>(result[$"{x}COUNT"]),
-                    Obj.ChangeType<long>(result[$"{x}MIN"]),
-                    Obj.ChangeType<long>(result[$"{x}MAX"]),
-                    Obj.ChangeType<long>(result[$"{x}SUM"]),
-                    Obj.ChangeType<decimal>(result[$"{x}AVG"])))).ToDictionary(key => key.x, val => val.Item2);
+                    ChangeType<long>(result[$"{x}COUNT"]),
+                    ChangeType<long>(result[$"{x}MIN"]),
+                    ChangeType<long>(result[$"{x}MAX"]),
+                    ChangeType<long>(result[$"{x}SUM"]),
+                    ChangeType<decimal>(result[$"{x}AVG"])))).ToDictionary(key => key.x, val => val.Item2);
 
             return dic;
         }
@@ -1477,7 +1478,13 @@ namespace RuntimeStuff
             }
         }
 
-        private object ChangeType(object value, Type targetType)
+        private static T ChangeType<T>(object value)
+        {
+            return (T)ChangeType(value, typeof(T));
+        }
+
+
+        private static object ChangeType(object value, Type targetType)
         {
             return Obj.ChangeType(value, targetType);
         }
@@ -1625,13 +1632,13 @@ namespace RuntimeStuff
 
                 if (indexes.All(i => i >= 0))
                 {
-                    for (int i = 0; i < indexes.Length; i++)
-                        args[i] = Obj.ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
+                    for (var i = 0; i < indexes.Length; i++)
+                        args[i] = ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
                 }
                 else
                 {
-                    for (int i = 0; i < ctorParams.Length; i++)
-                        args[i] = Obj.ChangeType(values[i], ctorParams[i].ParameterType);
+                    for (var i = 0; i < ctorParams.Length; i++)
+                        args[i] = ChangeType(values[i], ctorParams[i].ParameterType);
                 }
 
                 return (T)ctor.Invoke(args);
@@ -1663,7 +1670,7 @@ namespace RuntimeStuff
                         ? await reader.GetFieldValueAsync<T>(colIndex, ct).ConfigureAwait(ConfigureAwait)
                         : reader.GetFieldValue<T>(colIndex);
 
-                    list.Add(value);
+                    list.Add(converter(readerColumns[0], value, null, value));
                     rowCount++;
                 }
 
@@ -1681,7 +1688,7 @@ namespace RuntimeStuff
                 }
                 catch
                 {
-                    for (int i = 0; i < reader.FieldCount; i++)
+                    for (var i = 0; i < reader.FieldCount; i++)
                     {
                         try
                         {
