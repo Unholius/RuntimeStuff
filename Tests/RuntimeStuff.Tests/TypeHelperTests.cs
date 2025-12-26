@@ -1089,6 +1089,13 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("4_custom", rc.Name);
         }
 
+        [TestMethod]
+        public void TryChangeType_Test_01()
+        {
+            var ok = Obj.TryChangeType<long>(null, out var n);
+            Assert.IsFalse(ok);
+        }
+
         #endregion Get-Set
     }
 }
