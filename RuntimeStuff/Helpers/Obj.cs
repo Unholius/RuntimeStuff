@@ -407,9 +407,15 @@ namespace RuntimeStuff.Helpers
             // SQL Boolean
             if (fromType == typeof(bool) && toType.Name == "SqlBoolean")
                 return Activator.CreateInstance(toType, (bool)value);
-
-            // Универсальное приведение
-            return Convert.ChangeType(value, toType, CultureInfo.InvariantCulture);
+            try
+            {
+                // Универсальное приведение
+                return Convert.ChangeType(value, toType, CultureInfo.InvariantCulture);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Ошибка преобразования значения '{value}' ({fromType.Name}) в ({toType.Name})!", ex);
+            }
         }
 
         /// <summary>
