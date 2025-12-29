@@ -1358,7 +1358,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="cmdParams">Объект с параметрами</param>
         /// <param name="propertyNames">Имена свойств для извлечения (опционально)</param>
         /// <returns>Словарь параметров (имя → значение)</returns>
-        public static Dictionary<string, object> GetParams(this IDbConnection connection, object cmdParams, params string[] propertyNames)
+        public static IReadOnlyDictionary<string, object> GetParams(this IDbConnection connection, object cmdParams, params string[] propertyNames)
         {
             return connection.AsDbClient().GetParams(cmdParams, propertyNames);
         }

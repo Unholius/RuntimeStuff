@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -10,15 +11,14 @@ namespace RuntimeStuff.Builders
 {
     public static class SqlQueryBuilder
     {
-        public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out Dictionary<string, object> cmdParams)
+        private static readonly IReadOnlyDictionary<string, object> EmptyParams = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+        public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
         {
-            cmdParams = new Dictionary<string, object>();
-            if (whereExpression == null)
-            {
-                return null;
-            }
-
-            return ("WHERE " + Visit(whereExpression.Body, options, useParams, cmdParams)).Trim();
+            cmdParams = EmptyParams;
+            var dic = new Dictionary<string, object>();
+            var whereClause = whereExpression == null ? "" : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();
+            cmdParams = dic;
+            return whereClause;
         }
 
         public static string GetWhereClause<T>(SqlProviderOptions options)

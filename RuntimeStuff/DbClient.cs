@@ -714,11 +714,13 @@ namespace RuntimeStuff
             }
         }
 
-        public Dictionary<string, object> GetParams(object cmdParams, params string[] propertyNames)
+        private readonly IReadOnlyDictionary<string, object> _emptyParams = new Dictionary<string, object>();
+
+        public IReadOnlyDictionary<string, object> GetParams(object cmdParams, params string[] propertyNames)
         {
             var parameters = new Dictionary<string, object>();
             if (cmdParams == null)
-                return parameters;
+                return _emptyParams;
             var memberCache = MemberCache.Create(cmdParams.GetType());
             switch (cmdParams)
             {
