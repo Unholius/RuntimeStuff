@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Text;
 using RuntimeStuff.Extensions;
 using RuntimeStuff.Helpers;
+using RuntimeStuff.Options;
 
 namespace RuntimeStuff.Builders
 {

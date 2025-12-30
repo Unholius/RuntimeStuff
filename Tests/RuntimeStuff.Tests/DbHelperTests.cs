@@ -140,7 +140,7 @@ namespace RuntimeStuff.MSTests
 
             count = db.InsertRange(insertRows);
             Assert.AreEqual(insertRows.Count, count);
-
+            db.DefaultCommandTimeout = 300;
             count = db.Delete<DtoTestClass>(x => x.IdInt >= 0);
         }
 
@@ -157,7 +157,7 @@ namespace RuntimeStuff.MSTests
 
             var count = db.InsertRange(insertRows);
             var dbCount = db.ExecuteScalar("SELECT COUNT(*) FROM [TestTable]");
-             var list = db.Query<List<DtoTestClass>, DtoTestClass>(null, null, fetchRows: 10000, offsetRows: 123);
+            var list = db.Query<List<DtoTestClass>, DtoTestClass>(null, null, fetchRows: 10000, offsetRows: 123);
         }
 
         [TestMethod]
@@ -256,7 +256,7 @@ namespace RuntimeStuff.MSTests
         {
             //86.3000
             var con = new SqlConnection(_connectionString);
-            var x = con.First<DtoTestClass>(x => x.ColMoney > 86m && x.ColMoney < 87m);
+            var x = con.First<DtoTestClass>(x => x.ColMoney > 86.1m && x.ColMoney < 87.2m);
         }
 
         [TestMethod]
@@ -265,6 +265,7 @@ namespace RuntimeStuff.MSTests
             var id = 666;
             var con = new SqlConnection(_connectionString);
             var x = con.First<DtoTestClass>(x => x.IdInt >= id);
+            Assert.IsTrue(x.IdInt >= id);
         }
     }
 }

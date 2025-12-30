@@ -851,38 +851,6 @@ namespace RuntimeStuff
                     RaiseResetEvents();
             }
         }
-        //public void ApplyFilterAndSort()
-        //{
-        //    lock (SyncRoot)
-        //    {
-        //        var sourceCount = _sourceList.Count;
-
-        //        try
-        //        {
-        //            _sourceFilteredAndSortedList = _sourceList.Filter(_filter).ToList();
-        //        }
-        //        catch (FormatException fe)
-        //        {
-        //            Debug.WriteLine($"Filter format exception: {fe.Message}");
-        //            _sourceFilteredAndSortedList = _sourceList.FilterByText(_filter).ToList();
-        //        }
-
-        //        _sourceFilteredAndSortedList.RemoveAll(x => !_nodeMap[x].Visible);
-
-        //        var filteredCount = _sourceFilteredAndSortedList.Count;
-        //        var prevIsSorted = IsSorted;
-
-        //        IsSorted = SortProperty != null || SortDescriptions != null || !string.IsNullOrWhiteSpace(_sortBy);
-
-        //        if (SortProperty != null)
-        //            _sourceFilteredAndSortedList = _sourceFilteredAndSortedList.Sort(SortDirection, SortProperty.Name).ToList();
-        //        else if (SortDescriptions != null && SortDescriptions.Count > 0)
-        //            _sourceFilteredAndSortedList = _sourceFilteredAndSortedList.Sort(SortDescriptions).ToList();
-
-        //        if (sourceCount != filteredCount || prevIsSorted != IsSorted)
-        //            RaiseResetEvents();
-        //    }
-        //}
 
         public void ClearAll()
         {

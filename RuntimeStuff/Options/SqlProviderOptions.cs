@@ -1,8 +1,7 @@
-﻿using RuntimeStuff.Options;
-using System;
+﻿using System;
 using System.Globalization;
 
-namespace RuntimeStuff
+namespace RuntimeStuff.Options
 {
     public sealed class SqlProviderOptions : OptionsBase<SqlProviderOptions>
     {
