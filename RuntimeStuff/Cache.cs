@@ -10,6 +10,35 @@ using System.Threading.Tasks;
 namespace RuntimeStuff
 {
     /// <summary>
+    /// Определяет стратегию вытеснения элементов из ограниченной коллекции
+    /// при превышении максимально допустимого размера.
+    /// </summary>
+    /// <remarks>
+    /// Стратегия вытеснения определяет, какой элемент будет удалён первым,
+    /// когда в коллекцию добавляется новый элемент сверх установленного лимита.
+    /// </remarks>
+    public enum EvictionPolicy
+    {
+        /// <summary>
+        /// FIFO (First In, First Out).
+        /// </summary>
+        /// <remarks>
+        /// Удаляется элемент, который был добавлен в коллекцию раньше всех остальных,
+        /// независимо от того, использовался он позже или нет.
+        /// </remarks>
+        FIFO,
+
+        /// <summary>
+        /// LRU (Least Recently Used).
+        /// </summary>
+        /// <remarks>
+        /// Удаляется элемент, к которому дольше всего не было обращений
+        /// (чтение или запись).
+        /// </remarks>
+        LRU
+    }
+
+    /// <summary>
     /// Причина удаления элемента из кэша.
     /// </summary>
     public enum RemovalReason
@@ -27,7 +56,12 @@ namespace RuntimeStuff
         /// <summary>
         /// Элемент был удалён в результате полной очистки кэша.
         /// </summary>
-        Cleared
+        Cleared,
+
+        /// <summary>
+        /// Превышен лимит на максимальное количество элементов в кэше
+        /// </summary>
+        SizeLimit,
     }
 
     /// <summary>
@@ -84,6 +118,11 @@ namespace RuntimeStuff
         /// Событие, вызываемое при удалении элемента из кэша.
         /// </summary>
         public event Action<TKey, RemovalReason> ItemRemoved;
+
+        /// <summary>
+        /// Событие вызываемое при успешном доступе к элементу
+        /// </summary>
+        public event Action<TKey> ItemAccessed;
 
         /// <summary>
         /// Количество актуальных элементов кэша.
@@ -253,6 +292,7 @@ namespace RuntimeStuff
                     continue; // создаём заново
                 }
 
+                UpdateLastAccess(key, entry);
                 return entry.Value;
             }
         }
@@ -307,6 +347,7 @@ namespace RuntimeStuff
                 return defaultValue;
             }
 
+            UpdateLastAccess(key, entry);
             return entry.Value;
         }
 
@@ -471,6 +512,7 @@ namespace RuntimeStuff
                 return false;
             }
 
+            UpdateLastAccess(key, entry);
             value = entry.Value;
             return true;
         }
@@ -545,6 +587,7 @@ namespace RuntimeStuff
                 return (false, default);
             }
 
+            UpdateLastAccess(key, entry);
             return (true, entry.Value);
         }
 
@@ -554,6 +597,12 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="key">Ключ элемента.</param>
         protected void OnItemAdded(TKey key) => ItemAdded?.Invoke(key);
+
+        /// <summary>
+        /// Вызывает событие доступа к элементу.
+        /// </summary>
+        /// <param name="key">Ключ элемента.</param>
+        protected void OnItemAccessed(TKey key) => ItemAccessed?.Invoke(key);
 
         /// <summary>
         /// Вызывает событие удаления элемента.
@@ -582,6 +631,12 @@ namespace RuntimeStuff
                 Created = created;
                 LastAccess = created;
             }
+        }
+
+        private void UpdateLastAccess(TKey key, CacheEntry entry)
+        {
+            entry.LastAccess = DateTime.UtcNow;
+            OnItemAccessed(key);
         }
     }
 }
