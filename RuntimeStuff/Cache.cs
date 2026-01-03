@@ -272,6 +272,7 @@ namespace RuntimeStuff
                         {
                             var value = await _asyncFactory(k).ConfigureAwait(false);
                             OnItemAdded(k);
+                            EnforceSizeLimit();
                             return new CacheEntry(value, DateTime.UtcNow);
                         },
                         LazyThreadSafetyMode.ExecutionAndPublication));
@@ -402,6 +403,7 @@ namespace RuntimeStuff
                 {
                     OnItemRemoved(k, RemovalReason.Manual);
                     OnItemAdded(k);
+                    EnforceSizeLimit();
                     return lazy;
                 });
         }
@@ -636,6 +638,44 @@ namespace RuntimeStuff
                 Value = value;
                 Created = created;
                 LastAccess = created;
+            }
+        }
+
+        private void EnforceSizeLimit()
+        {
+            if (_sizeLimit == null)
+                return;
+
+            //lock (_evictionLock)
+            {
+                while (_cache.Count > _sizeLimit.Value)
+                {
+                    var candidate = _cache
+                        .Where(p =>
+                            p.Value.IsValueCreated &&
+                            p.Value.Value.IsCompleted)
+                        .Select(p =>
+                        {
+                            var entry = p.Value.Value.Result;
+                            return new
+                            {
+                                p.Key,
+                                entry.Created,
+                                entry.LastAccess
+                            };
+                        })
+                        .OrderBy(p =>
+                            _evictionPolicy == EvictionPolicy.FIFO
+                                ? p.Created
+                                : p.LastAccess)
+                        .FirstOrDefault();
+
+                    if (candidate == null)
+                        return;
+
+                    if (_cache.TryRemove(candidate.Key, out _))
+                        OnItemRemoved(candidate.Key, RemovalReason.SizeLimit);
+                }
             }
         }
 
