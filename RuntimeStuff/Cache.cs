@@ -77,13 +77,17 @@ namespace RuntimeStuff
         private readonly ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>> _cache;
         private readonly TimeSpan? _expiration;
         private readonly bool _hasFactory;
+        private readonly int? _sizeLimit;
+        private readonly EvictionPolicy _evictionPolicy;
 
-        public Cache(TimeSpan? expiration = null)
+        public Cache(TimeSpan? expiration = null, int? sizeLimit = null, EvictionPolicy evictionPolicy = default)
         {
             _cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
             _expiration = null;
             _hasFactory = false;
             _expiration = expiration;
+            _sizeLimit = sizeLimit;
+            _evictionPolicy = evictionPolicy;
         }
 
         /// <summary>
@@ -91,12 +95,14 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="valueFactory">Фабрика значений.</param>
         /// <param name="expiration">Опциональное время жизни элементов кэша.</param>
-        public Cache(Func<TKey, Task<TValue>> valueFactory, TimeSpan? expiration = null)
+        public Cache(Func<TKey, Task<TValue>> valueFactory, TimeSpan? expiration = null, int? sizeLimit = null, EvictionPolicy evictionPolicy = default)
         {
             _cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
             _asyncFactory = valueFactory ?? throw new ArgumentNullException(nameof(valueFactory));
             _expiration = expiration;
             _hasFactory = true;
+            _sizeLimit = sizeLimit;
+            _evictionPolicy = evictionPolicy;
         }
 
         /// <summary>
@@ -104,8 +110,8 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="syncFactory">Синхронная фабрика значений.</param>
         /// <param name="expiration">Опциональное время жизни элементов кэша.</param>
-        public Cache(Func<TKey, TValue> syncFactory, TimeSpan? expiration = null)
-            : this(WrapSyncFactory(syncFactory), expiration)
+        public Cache(Func<TKey, TValue> syncFactory, TimeSpan? expiration = null, int? sizeLimit = null, EvictionPolicy evictionPolicy = default)
+            : this(WrapSyncFactory(syncFactory), expiration, sizeLimit, evictionPolicy)
         {
         }
 
