@@ -120,8 +120,7 @@ namespace RuntimeStuff.Options
     /// Тип-наследник, реализующий шаблон CRTP
     /// (Curiously Recurring Template Pattern).
     /// </typeparam>
-    public abstract class OptionsBase<T> : OptionsBase
-        where T : OptionsBase<T>, new()
+    public abstract class OptionsBase<T> : OptionsBase where T : OptionsBase<T>, new()
     {
         /// <summary>
         /// Создаёт экземпляр опций со значениями по умолчанию.

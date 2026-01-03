@@ -135,12 +135,21 @@ namespace RuntimeStuff
         public DbClient(IDbConnection con) : this()
         {
             Connection = con ?? throw new ArgumentNullException(nameof(con));
+            Options = SqlProviderOptions.GetInstance(con.GetType().Name);
         }
 
         /// <summary>
         /// Активное соединение с базой данных.
         /// </summary>
         public IDbConnection Connection { get; set; }
+
+        /// <summary>
+        /// Включить логгирование запросов
+        /// </summary>
+        public bool EnableLogging { get; set; }
+
+        private readonly List<string> _queryLogs = new List<string>();
+        public IEnumerable<string> QueryLogs => _queryLogs;
 
         /// <summary>
         /// Параметры SQL-провайдера (кавычки, префиксы параметров, синтаксис LIMIT/OFFSET и т.п.).
@@ -231,8 +240,7 @@ namespace RuntimeStuff
         /// </typeparam>
         /// <param name="connectionString">Строка подключения к базе данных.</param>
         /// <returns>Экземпляр <see cref="DbClient{T}"/>.</returns>
-        public static DbClient<T> Create<T>(string connectionString)
-            where T : IDbConnection, new()
+        public static DbClient<T> Create<T>(string connectionString) where T : IDbConnection, new()
         {
             var dbClient = DbClient<T>.Create(connectionString);
             return dbClient;
@@ -269,17 +277,34 @@ namespace RuntimeStuff
         /// Активная транзакция базы данных. 
         /// Если не указана, используется текущая или создаётся новая.
         /// </param>
-        /// <param name="insertColumns">
+        /// <param name="columnSetters">
         /// Делегаты инициализации свойств сущности перед вставкой.
         /// </param>
         /// <returns>Созданный и сохранённый объект.</returns>
-        public T Insert<T>(IDbTransaction dbTransaction = null, params Action<T>[] insertColumns) where T : class
+        public T Insert<T>(IDbTransaction dbTransaction = null, params Action<T>[] columnSetters) where T : class
         {
             var item = Obj.New<T>();
-            foreach (var a in insertColumns)
+            foreach (var a in columnSetters)
                 a(item);
             Insert(item, dbTransaction: dbTransaction);
             return item;
+        }
+
+        /// <summary>
+        /// Создаёт новый экземпляр сущности, инициализирует его и вставляет в базу данных.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="dbTransaction">
+        /// Активная транзакция базы данных. 
+        /// Если не указана, используется текущая или создаётся новая.
+        /// </param>
+        /// <param name="columnSetters">
+        /// Делегаты инициализации свойств сущности перед вставкой.
+        /// </param>
+        /// <returns>Созданный и сохранённый объект.</returns>
+        public T Insert<T>(params Action<T>[] columnSetters) where T : class
+        {
+            return Insert<T>(null, columnSetters);
         }
 
         /// <summary>
@@ -296,7 +321,27 @@ namespace RuntimeStuff
         /// Значение сгенерированного первичного ключа,
         /// либо <c>null</c>, если провайдер не поддерживает его получение.
         /// </returns>
-        public object Insert<T>(T item, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] insertColumns) where T : class
+        public object Insert<T>(T item, params Expression<Func<T, object>>[] insertColumns) where T : class
+        {
+            return Insert(item, null, insertColumns);
+        }
+
+
+        /// <summary>
+        /// Вставляет объект в базу данных.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект для вставки.</param>
+        /// <param name="dbTransaction">Транзакция базы данных.</param>
+        /// <param name="insertColumns">
+        /// Список колонок, участвующих во вставке.
+        /// Если не указан, используются все сопоставленные свойства.
+        /// </param>
+        /// <returns>
+        /// Значение сгенерированного первичного ключа,
+        /// либо <c>null</c>, если провайдер не поддерживает его получение.
+        /// </returns>
+        public object Insert<T>(T item, IDbTransaction dbTransaction, params Expression<Func<T, object>>[] insertColumns) where T : class
         {
             object id = null;
             var query = SqlQueryBuilder.GetInsertQuery(Options, insertColumns);
@@ -404,6 +449,7 @@ namespace RuntimeStuff
                             SetParameterCollection(cmd, queryParams);
                             var id = cmd.ExecuteScalar();
                             CommandExecuted?.Invoke(cmd);
+                            Log(cmd);
                             if (pk != null && id != null) pk.SetValue(item, ChangeType(id, pk.PropertyType));
 
                             count++;
@@ -461,6 +507,7 @@ namespace RuntimeStuff
 
                             var id = await dbCmd.ExecuteScalarAsync(token).ConfigureAwait(ConfigureAwait);
                             CommandExecuted?.Invoke(cmd);
+                            Log(cmd);
                             if (pk != null && id != null) pk.SetValue(item, ChangeType(id, pk.PropertyType));
 
                             count++;
@@ -629,6 +676,7 @@ namespace RuntimeStuff
                             SetParameterCollection(cmd, queryParams);
                             count += cmd.ExecuteNonQuery();
                             CommandExecuted?.Invoke(cmd);
+                            Log(cmd);
                         }
                     }
 
@@ -684,6 +732,7 @@ namespace RuntimeStuff
                             SetParameterCollection(cmd, queryParams);
                             count += await dbCmd.ExecuteNonQueryAsync(token).ConfigureAwait(ConfigureAwait);
                             CommandExecuted?.Invoke(cmd);
+                            Log(cmd);
                         }
                     }
 
@@ -888,6 +937,7 @@ namespace RuntimeStuff
 
                 var i = cmd.ExecuteNonQuery();
                 CommandExecuted?.Invoke(cmd);
+                Log(cmd);
                 CloseConnection(Connection);
                 return i;
             }
@@ -915,6 +965,7 @@ namespace RuntimeStuff
                     await BeginConnectionAsync(token).ConfigureAwait(ConfigureAwait);
                     var i = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(ConfigureAwait);
                     CommandExecuted?.Invoke(cmd);
+                    Log(cmd);
                     return i;
                 }
                 catch (Exception ex)
@@ -1020,6 +1071,7 @@ namespace RuntimeStuff
                     BeginConnection();
                     var v = cmd.ExecuteScalar();
                     CommandExecuted?.Invoke(cmd);
+                    Log(cmd);
                     return (T)ChangeType(v, typeof(T));
                 }
                 catch (Exception ex)
@@ -1125,6 +1177,7 @@ namespace RuntimeStuff
                     await BeginConnectionAsync(token).ConfigureAwait(ConfigureAwait);
                     var v = await cmd.ExecuteScalarAsync(token).ConfigureAwait(ConfigureAwait);
                     CommandExecuted?.Invoke(cmd);
+                    Log(cmd);
                     return (T)ChangeType(v, typeof(T));
                 }
                 catch (Exception ex)
@@ -1413,7 +1466,7 @@ namespace RuntimeStuff
                 try
                 {
                     CommandExecuted?.Invoke(cmd);
-
+                    Log(cmd);
                     return ReadCoreAsync<TList, T>(reader, columns, columnToPropertyMap, converter, fetchRows, itemFactory, false, CancellationToken.None).GetAwaiter().GetResult();
                 }
                 finally
@@ -1450,7 +1503,7 @@ namespace RuntimeStuff
                 try
                 {
                     CommandExecuted?.Invoke(cmd);
-
+                    Log(cmd);
                     return ReadCoreAsync(mc, reader, columns, columnToPropertyMap, converter, fetchRows, itemFactory, false, CancellationToken.None).GetAwaiter().GetResult();
                 }
                 finally
@@ -1506,7 +1559,7 @@ namespace RuntimeStuff
                 try
                 {
                     CommandExecuted?.Invoke(cmd);
-
+                    Log(cmd);
                     return await ReadCoreAsync<TList, T>(reader, columns, columnToPropertyMap, converter, fetchRows, itemFactory, true, ct).ConfigureAwait(ConfigureAwait);
                 }
                 finally
@@ -1635,6 +1688,7 @@ namespace RuntimeStuff
                         do
                         {
                             CommandExecuted?.Invoke(cmd);
+                            Log(cmd);
                             var map = GetReaderFieldToPropertyMap(r, columnMap);
                             foreach (var kv in map)
                             {
@@ -1709,6 +1763,7 @@ namespace RuntimeStuff
                         do
                         {
                             CommandExecuted?.Invoke(cmd);
+                            Log(cmd);
                             var map = GetReaderFieldToPropertyMap(r, columnMap);
                             foreach (var kv in map)
                             {
@@ -2752,6 +2807,10 @@ namespace RuntimeStuff
 
         private Dictionary<int, MemberCache> GetReaderFieldToPropertyMap(Type itemType, IDataReader reader, IEnumerable<(string, string)> customMap = null, IEnumerable<string> columns = null)
         {
+            if (customMap == null)
+            {
+                customMap = Options.Map?.GetColumnToPropertyMap(itemType);
+            }
             var customMapDic = customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
             var map = new Dictionary<int, MemberCache>();
             var typeInfoEx = MemberCache.Create(itemType);
@@ -2766,9 +2825,11 @@ namespace RuntimeStuff
                 {
                     propInfoEx = typeInfoEx.PublicBasicProperties.GetValueOrDefault(
                         customMapDic.GetValueOrDefault(colName, IgnoreCaseComparer), IgnoreCaseComparer);
-                    if (propInfoEx == null)
+                    if (propInfoEx != null)
+                    {
+                        map[colIndex] = propInfoEx;
                         continue;
-                    map[colIndex] = propInfoEx;
+                    }
                 }
 
                 propInfoEx = typeInfoEx.ColumnProperties.FirstOrDefault(x=>IgnoreCaseComparer.Equals(x.Value.ColumnName, colName)).Value;
@@ -2986,6 +3047,14 @@ namespace RuntimeStuff
             }
 
             return list;
+        }
+
+        private void Log(IDbCommand cmd)
+        {
+            if (!EnableLogging)
+                return;
+
+            _queryLogs.Add(GetRawSql(cmd));
         }
 
         private async Task<IEnumerable<object>> ReadCoreAsync(Type returnType, DbDataReader reader, IEnumerable<string> columns, IEnumerable<(string, string)> columnToPropertyMap, DbValueConverter<object> converter, int fetchRows, Func<object[], string[], object> itemFactory, bool isAsync, CancellationToken ct)

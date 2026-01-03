@@ -9,16 +9,20 @@ namespace RuntimeStuff.Options
         {
         }
 
-        public SqlProviderOptions(Action<SqlProviderOptions> configure)
+        public SqlProviderOptions(params Action<SqlProviderOptions>[] configure)
         {
-            configure?.Invoke(this);
+            foreach (var setter in configure)
+                setter(this);
         }
+
+        public EntityMap Map { get; set; }
 
         public string NamePrefix { get; set; } = "\"";
         public string NameSuffix { get; set; } = "\"";
-        public string DateFormat { get; set; } = "yyyyMMddTHH:mm:ss";
-        public string ParamPrefix { get; set; } = "@";
-        public string GetInsertedIdQuery { get; set; } = "SELECT SCOPE_IDENTITY()";
+        public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+        public string ParamPrefix { get; set; } = ":";
+        public string GetInsertedIdQuery { get; set; }
         public string TrueValue { get; set; } = "1";
         public string FalseValue { get; set; } = "0";
         public string NullValue { get; set; } = "NULL";
@@ -26,6 +30,36 @@ namespace RuntimeStuff.Options
         public string StringPrefix { get; set; } = "'";
         public string StringSuffix { get; set; } = "'";
         public string StatementTerminator { get; set; } = ";";
+
+        public static SqlProviderOptions GetInstance(string sqlConnectionTypeName)
+        {
+            switch (sqlConnectionTypeName.ToLower())
+            {
+                case "sqlconnection":
+                    return SqlServerOptions;
+
+                case "sqliteconnection":
+                    return SqliteOptions;
+
+                default:
+                    return Default;
+            }
+        }
+
+        public static SqlProviderOptions SqlServerOptions { get; } = new SqlProviderOptions(
+            x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
+            x => x.OverrideOffsetRowsTemplate = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY",
+            x => x.TrueValue = "1",
+            x => x.FalseValue = "0",
+            x => x.ParamPrefix = "@"
+            );
+        public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
+            x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()", 
+            x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
+            x => x.TrueValue = "TRUE",
+            x => x.FalseValue = "FALSE",
+            x => x.ParamPrefix = ":"
+            );
 
         public string ToSqlLiteral(object value)
         {
@@ -44,10 +78,10 @@ namespace RuntimeStuff.Options
                     return b ? TrueValue : FalseValue;
 
                 case DateTime dt:
-                    return $"{StringPrefix}{dt.ToString(DateFormat, CultureInfo.InvariantCulture)}{StringSuffix}";
+                    return $"{StringPrefix}{dt.ToString(DateTimeFormat, CultureInfo.InvariantCulture)}{StringSuffix}";
 
                 case DateTimeOffset dto:
-                    return $"{StringPrefix}{dto.ToString(DateFormat, CultureInfo.InvariantCulture)}{StringSuffix}";
+                    return $"{StringPrefix}{dto.ToString(DateTimeFormat, CultureInfo.InvariantCulture)}{StringSuffix}";
 
                 case Guid g:
                     return $"{StringPrefix}{g}{StringSuffix}";

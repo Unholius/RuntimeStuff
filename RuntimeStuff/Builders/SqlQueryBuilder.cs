@@ -43,7 +43,7 @@ namespace RuntimeStuff.Builders
 
                 whereClause
                     .Append(options.NamePrefix)
-                    .Append(key.ColumnName)
+                    .Append(options.Map?.ResolveColumnName(key, null, null) ?? key.ColumnName)
                     .Append(options.NameSuffix)
                     .Append(" = ")
                     .Append(options.ParamPrefix)
@@ -60,32 +60,22 @@ namespace RuntimeStuff.Builders
 
         public static string GetSelectQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] selectColumns)
         {
-            return GetSelectQuery(options.NamePrefix, options.NameSuffix, selectColumns);
+            var mi = MemberCache<T>.Create();
+            var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
+            if (members.Length == 0)
+                members = mi.ColumnProperties.Values.ToArray().Concat(mi.PrimaryKeys.Values).ToArray();
+            if (members.Length == 0)
+                return $"SELECT * FROM {options.NamePrefix}{options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.TableName}{options.NameSuffix}";
+
+            return GetSelectQuery(options, mi, members);
         }
 
         public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns)
         {
-            return GetSelectQuery(options.NamePrefix, options.NameSuffix, MemberCache<T>.Create(), selectColumns.Select(x=>x.GetMemberCache()).ToArray());
-        }
-
-        public static string GetSelectQuery<T>(string namePrefix, string nameSuffix, params Expression<Func<T, object>>[] selectColumns)
-        {
-            var mi = MemberCache<T>.Create();
-            var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x=>x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
-            if (members.Length == 0)
-                members = mi.ColumnProperties.Values.ToArray().Concat(mi.PrimaryKeys.Values).ToArray();
-            if (members.Length == 0)
-                return $"SELECT * FROM {namePrefix}{mi.TableName}{nameSuffix}";
-
-            return GetSelectQuery(namePrefix, nameSuffix, mi, members);
+            return GetSelectQuery(options, MemberCache<T>.Create(), selectColumns.Select(x=>x.GetMemberCache()).ToArray());
         }
 
         public static string GetSelectQuery(SqlProviderOptions options, MemberCache typeInfo, params MemberCache[] selectColumns)
-        {
-            return GetSelectQuery(options.NamePrefix, options.NameSuffix, typeInfo, selectColumns);
-        }
-
-        public static string GetSelectQuery(string namePrefix, string nameSuffix, MemberCache typeInfo, params MemberCache[] selectColumns)
         {
             if (selectColumns.Length == 0)
                 selectColumns = typeInfo.GetColumns();
@@ -94,9 +84,9 @@ namespace RuntimeStuff.Builders
 
             foreach (var pi in selectColumns)
             {
-                query.Append(namePrefix)
-                    .Append(pi.ColumnName)
-                    .Append(nameSuffix)
+                query.Append(options.NamePrefix)
+                    .Append(options.Map?.ResolveColumnName(pi, null, null) ?? pi.ColumnName)
+                    .Append(options.NameSuffix)
                     .Append(", ");
             }
 
@@ -104,21 +94,16 @@ namespace RuntimeStuff.Builders
                 query.Remove(query.Length - 2, 2);
 
             query.Append(" FROM ")
-                .Append(typeInfo.GetFullTableName(namePrefix, nameSuffix));
+                .Append(options.Map?.ResolveTableName(typeInfo, options.NamePrefix, options.NameSuffix) ?? typeInfo.GetFullTableName(options.NamePrefix, options.NameSuffix));
 
             return query.ToString();
         }
 
         public static string GetUpdateQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] updateColumns) where T : class
         {
-            return GetUpdateQuery(options.NamePrefix, options.NameSuffix, options.ParamPrefix, updateColumns);
-        }
-
-        public static string GetUpdateQuery<T>(string namePrefix, string nameSuffix, string paramPrefix, params Expression<Func<T, object>>[] updateColumns) where T : class
-        {
             var mi = MemberCache.Create(typeof(T));
             var query = new StringBuilder("UPDATE ")
-                .Append(mi.GetFullTableName(namePrefix, nameSuffix))
+                .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.NamePrefix, options.NameSuffix))
                 .Append(" SET ");
 
             var props = updateColumns?.Select(ExpressionHelper.GetPropertyName).ToList()
@@ -138,11 +123,11 @@ namespace RuntimeStuff.Builders
                 foreach (var p in props)
                 {
                     var pi = mi[p];
-                    query.Append(namePrefix)
-                        .Append(pi.ColumnName)
-                        .Append(nameSuffix)
+                    query.Append(options.NamePrefix)
+                        .Append(options.Map?.ResolveColumnName(pi, null, null) ?? pi.ColumnName)
+                        .Append(options.NameSuffix)
                         .Append(" = ")
-                        .Append(paramPrefix)
+                        .Append(options.ParamPrefix)
                         .Append(pi.Name)
                         .Append(", ");
                 }
@@ -156,15 +141,10 @@ namespace RuntimeStuff.Builders
 
         public static string GetInsertQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] insertColumns) where T : class
         {
-            return GetInsertQuery(options.NamePrefix, options.NameSuffix, options.ParamPrefix, insertColumns);
-        }
-
-        public static string GetInsertQuery<T>(string namePrefix, string nameSuffix, string paramPrefix, params Expression<Func<T, object>>[] insertColumns) where T : class
-        {
             var query = new StringBuilder("INSERT INTO ");
             var mi = MemberCache<T>.Create();
             query
-                .Append(mi.GetFullTableName(namePrefix, nameSuffix))
+                .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.NamePrefix, options.NameSuffix))
                 .Append(" (");
 
             var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
@@ -176,9 +156,9 @@ namespace RuntimeStuff.Builders
                 var col = insertCols[i];
 
                 query
-                    .Append(namePrefix)
-                    .Append(mi[col].ColumnName)
-                    .Append(nameSuffix);
+                    .Append(options.NamePrefix)
+                    .Append(options.Map?.ResolveColumnName(mi[col], null, null) ?? mi[col].ColumnName)
+                    .Append(options.NameSuffix);
 
                 if (i < insertCols.Length - 1)
                     query.Append(", ");
@@ -192,7 +172,7 @@ namespace RuntimeStuff.Builders
                 var col = insertCols[i];
 
                 query
-                    .Append(paramPrefix)
+                    .Append(options.ParamPrefix)
                     .Append(mi[col].Name);
 
                 if (i < insertCols.Length - 1)
@@ -206,30 +186,21 @@ namespace RuntimeStuff.Builders
 
         public static string GetDeleteQuery<T>(SqlProviderOptions options) where T : class
         {
-            return GetDeleteQuery<T>(options.NamePrefix, options.NameSuffix);
-        }
-
-        public static string GetDeleteQuery<T>(string namePrefix, string nameSuffix) where T : class
-        {
             var mi = MemberCache<T>.Create();
-            var query = new StringBuilder("DELETE FROM ").Append(mi.GetFullTableName(namePrefix, nameSuffix));
+            var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.ParamPrefix, options.NameSuffix));
             return query.ToString();
         }
 
-        public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
-        {
-            return GetOrderBy(options.NamePrefix, options.NameSuffix, orderBy);
-        }
 
-        public static string GetOrderBy<T>(string namePrefix, string nameSuffix, params (Expression<Func<T, object>>, bool)[] orderBy)
+        public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
             if (orderBy == null)
                 return "";
             var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetMemberCache(), x.Item2)).ToArray();
-            return GetOrderBy(namePrefix, nameSuffix, props);
+            return GetOrderBy(options, props);
         }
 
-        public static string GetOrderBy(string namePrefix, string nameSuffix, params (MemberCache, bool)[] orderBy)
+        public static string GetOrderBy(SqlProviderOptions options, params (MemberCache, bool)[] orderBy)
         {
             if (orderBy == null || orderBy.Length == 0)
                 return "";
@@ -239,9 +210,9 @@ namespace RuntimeStuff.Builders
             foreach (var mi in orderBy)
             {
                 query
-                    .Append(namePrefix)
-                    .Append(mi.Item1.ColumnName)
-                    .Append(nameSuffix)
+                    .Append(options.NamePrefix)
+                    .Append(options.Map?.ResolveColumnName(mi.Item1, null, null) ?? mi.Item1.ColumnName)
+                    .Append(options.NameSuffix)
                     .Append(mi.Item2 ? " ASC, " : " DESC, ");
             }
 
@@ -268,8 +239,8 @@ namespace RuntimeStuff.Builders
                 clause.Append(" ORDER BY ");
                 clause.Append(string.Join(", ",
                     mi.PrimaryKeys.Count > 0
-                        ? mi.PrimaryKeys.Values.Select(x => options.NamePrefix + x.ColumnName + options.NameSuffix)
-                        : mi.ColumnProperties.Values.Select(x => options.NamePrefix + x.ColumnName + options.NameSuffix)));
+                        ? mi.PrimaryKeys.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))
+                        : mi.ColumnProperties.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))));
                 clause.Append(" ");
             }
 
@@ -317,7 +288,10 @@ namespace RuntimeStuff.Builders
                 {
                     var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
                     right = options.ParamPrefix + paramName;
-                    cmdParams[paramName] = (ue.Operand as ConstantExpression)?.Value;
+                    if (ue.Operand is ConstantExpression ce)
+                        cmdParams[paramName] = ce?.Value;
+                    if (ue.Operand is MemberExpression me2)
+                        cmdParams[paramName] = GetValue(me2);
                 }
             }
 
@@ -344,12 +318,12 @@ namespace RuntimeStuff.Builders
             var mi = MemberCache.Create(me.Member);
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
             {
-                return options.NamePrefix + mi.ColumnName + options.NameSuffix;
+                return options.NamePrefix + (options.Map?.ResolveColumnName(mi, options.NamePrefix, options.NameSuffix) ?? mi.ColumnName) + options.NameSuffix;
             }
 
             var value = GetValue(me);
             var paramName = (mi.ColumnName ?? mi.Name) + "_" + (cmdParams.Count + 1);
-            cmdParams[paramName] = value;
+            //cmdParams[paramName] = value;
             return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value); //FormatValue(value, useParams, cmdParams);
         }
 

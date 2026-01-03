@@ -1,6 +1,7 @@
 using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using Microsoft.Data.Sqlite;
 using RuntimeStuff.Extensions;
 using RuntimeStuff.MSTests.DTO;
 using RuntimeStuff.MSTests.Models;
@@ -18,272 +19,131 @@ namespace RuntimeStuff.MSTests
         public static void ClassInitialize(TestContext context)
         {
             // Получаем строку подключения из конфигурации тестов
-            _connectionString = context.Properties["TestDbConnectionString"]?.ToString()
-                ?? "Server=NAS\\RSSQLSERVER;Database=Test;Trusted_Connection=True;";
+            _connectionString = "Data Source=.\\Databases\\sqlte_test.db";
 
             // Создаем тестовые таблицы
             CreateTestTables();
+        }
+
+        [TestMethod]
+        public void Dumb_Test()
+        {
+
         }
 
 
         // Вспомогательные методы
         private static void CreateTestTables()
         {
-            using var db = DbClient.Create<SqlConnection>(_connectionString);
-            db.Connection.Open();
+            using var db = DbClient.Create<SqliteConnection>(_connectionString);
 
-            var createTable1 = $@"
-                IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TestTable' AND xtype='U')
-                CREATE TABLE dbo.TestTable
-(
-    -- Числовые типы
-    IdInt                INT IDENTITY(1,1) PRIMARY KEY,
-    ColBigInt            BIGINT,
-    ColSmallInt          SMALLINT,
-    ColTinyInt           TINYINT,
-    ColBit               BIT,
+            var sqlTestTable = $@"
+CREATE TABLE test_table (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT, -- INTEGER
+    int_value       INTEGER,
+    real_value      REAL,
+    numeric_value   NUMERIC,
+    text_value      TEXT,
+    blob_value      BLOB,
 
-    ColDecimal           DECIMAL(18, 4),
-    ColNumeric           NUMERIC(18, 6),
-    ColMoney             MONEY,
-    ColSmallMoney        SMALLMONEY,
-    ColFloat             FLOAT(53),
-    ColReal              REAL,
+    boolean_value   INTEGER CHECK (boolean_value IN (0, 1)),
+    date_value      TEXT,        -- ISO8601: YYYY-MM-DD
+    datetime_value  TEXT,        -- ISO8601: YYYY-MM-DD HH:MM:SS
+    time_value      TEXT,        -- HH:MM:SS
 
-    -- Дата и время
-    ColDate              DATE,
-    ColTime              TIME(7),
-    ColDateTime          DATETIME,
-    ColDateTime2         DATETIME2(7),
-    ColSmallDateTime     SMALLDATETIME,
-    ColDateTimeOffset    DATETIMEOFFSET(7),
+    decimal_value   NUMERIC(10,2),
+    json_value      TEXT,        -- JSON (SQLite 3.38+ поддерживает JSON-функции)
 
-    -- Символьные типы
-    ColChar              CHAR(10),
-    ColVarChar           VARCHAR(100),
-    ColVarCharMax        VARCHAR(MAX),
+    nullable_value  TEXT NULL,
+    not_null_value  TEXT NOT NULL DEFAULT 'default',
 
-    ColNChar             NCHAR(10),
-    ColNVarChar          NVARCHAR(100),
-    ColNVarCharMax       NVARCHAR(MAX),
+    created_at      TEXT DEFAULT (datetime('now'))
+);
+";
+            var sqlTable11 = $@"
+CREATE TABLE users (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    name    TEXT NOT NULL
+);
 
-    -- Двоичные типы
-    ColBinary            BINARY(16),
-    ColVarBinary         VARBINARY(100),
-    ColVarBinaryMax      VARBINARY(MAX),
+CREATE TABLE user_profiles (
+    user_id     INTEGER PRIMARY KEY, -- гарантирует 1:1
+    bio         TEXT,
+    avatar_url  TEXT,
 
-    -- Уникальные идентификаторы и версии
-    ColUniqueIdentifier  UNIQUEIDENTIFIER DEFAULT NEWID(),
-    ColRowVersion        ROWVERSION,
+    FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+";
+            var sqlTable1M = $@"
+CREATE TABLE authors (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    name    TEXT NOT NULL
+);
 
-    -- XML и JSON
-    ColXml               XML,
-    ColJson              NVARCHAR(MAX), -- JSON хранится как NVARCHAR
+CREATE TABLE articles (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    author_id  INTEGER NOT NULL,
+    title       TEXT NOT NULL,
+    content     TEXT,
 
-    -- Специальные типы
-    ColSqlVariant        SQL_VARIANT,
+    FOREIGN KEY (author_id)
+        REFERENCES authors(id)
+        ON DELETE CASCADE
+);
+";
+            var sqlTablesMM = $@"
+CREATE TABLE students (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    name    TEXT NOT NULL
+);
 
-    -- Вычисляемое поле
-    ColComputed AS (ColSmallInt * 2),
+CREATE TABLE courses (
+    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+    title   TEXT NOT NULL
+);
 
-    -- Nullable пример
-    ColNullableInt       INT NULL
+CREATE TABLE student_courses (
+    student_id INTEGER NOT NULL,
+    course_id  INTEGER NOT NULL,
+
+    PRIMARY KEY (student_id, course_id),
+
+    FOREIGN KEY (student_id)
+        REFERENCES students(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (course_id)
+        REFERENCES courses(id)
+        ON DELETE CASCADE
 );
 ";
 
-            using var command = new SqlCommand(createTable1, db.Connection);
-            command.ExecuteNonQuery();
+            db.ExecuteNonQuery(sqlTestTable);
         }
 
         [TestMethod]
         public void DbClient_Test_01()
         {
-            using var db = DbClient.Create<SqlConnection>(_connectionString);
+            var map = new EntityMap();
+            map
+                .Table<DTO.SQLite.TestTable>("test_table")
+                .Property(x => x.IntValue, "int_value")
+                .Property(x => x.TextValue, "text_value")
+                ;
 
-            var record = db.Insert<DtoTestClass>();
-            Assert.IsNotNull(record);
-            Assert.IsTrue(record.IdInt >= 0);
-            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-
-            var recordNull = db.First<DtoTestClass>(x => x.IdInt < 0);
-            Assert.IsNull(recordNull);
-            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-
-            var record2 = db.First<DtoTestClass>(x => x.IdInt == record.IdInt);
-            Assert.AreEqual(record2.IdInt, record.IdInt);
-            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-
-            record2.ColNVarCharMax = "123";
-            var count = db.Update(record2);
-            Assert.AreEqual(1, count);
-            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-
-            var record3 = db.First<DtoTestClass>(x => x.IdInt == record.IdInt);
-            Assert.AreEqual("123", record3.ColNVarCharMax);
-            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-
-            count = db.Delete(record3);
-            Assert.AreEqual(1, count);
-            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-
-            recordNull = db.First<DtoTestClass>(x => x.IdInt == record3.IdInt);
-            Assert.IsNull(recordNull);
-            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-
-            var insertRows = new List<DtoTestClass>();
-            for (var i = 0; i < 10; i++)
-            {
-                insertRows.Add(new DtoTestClass
-                {
-                    ColNVarCharMax = $"Test {i}"
-                });
-            }
-
-            count = db.InsertRange(insertRows);
-            Assert.AreEqual(insertRows.Count, count);
-            db.DefaultCommandTimeout = 300;
-            count = db.Delete<DtoTestClass>(x => x.IdInt >= 0);
-        }
-
-        [TestMethod]
-        public void DbClient_Test_02()
-        {
-            using var db = DbClient.Create<SqlConnection>(_connectionString);
-
-            var insertRows = new List<DtoTestClass>();
-            for (var i = 0; i < 1_000; i++)
-            {
-                insertRows.Add(new DtoTestClass(i));
-            }
-
-            var count = db.InsertRange(insertRows);
-            var dbCount = db.ExecuteScalar("SELECT COUNT(*) FROM [TestTable]");
-            var list = db.Query<List<DtoTestClass>, DtoTestClass>(null, null, fetchRows: 10000, offsetRows: 123);
-        }
-
-        [TestMethod]
-        public void DbClient_ExecuteScalar_WhereExpression_Test()
-        {
-            using var db = DbClient.Create<SqlConnection>(_connectionString);
-
-            var result = db.ExecuteScalar<DtoTestClass, int?>(x => x.IdInt, x => x.ColNVarCharMax == "Test 0");
-        }
-
-
-        [TestMethod]
-        public void DbClient_Test_03()
-        {
-            var sw = new Stopwatch();
-            using var db = DbClient.Create<SqlConnection>(_connectionString);
-            sw.Start();
-            var result = db.ToDataTable<DtoTestClass>();
-            sw.Stop();
-            var ms = sw.ElapsedMilliseconds;
-        }
-
-        [TestMethod]
-        public async Task DbClient_Test_04()
-        {
-            var sw = new Stopwatch();
-            using var db = DbClient.Create<SqlConnection>(_connectionString);
-            sw.Start();
-            //var maxId = db.Max<DtoTestClass>(x => x.IdInt);
-            //var minId = db.Min<DtoTestClass>(x => x.IdInt);
-            //var avgDec = db.Avg<DtoTestClass>(x => x.ColDecimal);
-            var aggs = await db.GetAggsAsync<DtoTestClass>(CancellationToken.None, x => x.ColDecimal, x=>x.ColBigInt);
-            var pages = await db.GetPagesAsync<DtoTestClass>(1234);
-            sw.Stop();
-            var ms = sw.ElapsedMilliseconds;
-        }
-
-        [TestMethod]
-        public async Task DbClient_ToDictionary_Test_01()
-        {
-            Func<object[], string[], KeyValuePair<string, string>> itemFactory = (objs, names) =>
-            {
-                return new KeyValuePair<string, string>(
-                    objs[1]?.ToString() ?? string.Empty,
-                    objs[2]?.ToString() ?? string.Empty);
-            };
-            var sw = new Stopwatch();
-            using var db = DbClient.Create<SqlConnection>(_connectionString);
-            sw.Start();
-            var result = await db.ToListAsync<KeyValuePair<string, string>>("SELECT 1 AS DumbNumber, IdInt as [KEY1], ColXml as [VALUE1] FROM TestTable", columnToPropertyMap: [("KEY1", "key"), ("VALUE1","value")]);
-            sw.Stop();
-            var ms = sw.ElapsedMilliseconds;
-        }
-
-        [TestMethod]
-        public void DbClient_ToDictionary_Test_02()
-        {
-            Func<object[], string[], KeyValuePair<string, string>> itemFactory = (objs, names) =>
-            {
-                return new KeyValuePair<string, string>(
-                    objs[1]?.ToString() ?? string.Empty,
-                    objs[2]?.ToString() ?? string.Empty);
-            };
-            var sw = new Stopwatch();
-            using var con = new SqlConnection(_connectionString);
-            //sw.Start();
-            //var result1 = con.ToDictionary<string, string>("SELECT 1 AS DumbNumber, IdInt as [KEY1], ColXml as [VALUE1] FROM TestTable", columnToPropertyMap: [("KEY1", "key"), ("VALUE1", "value")]);
-            //var result2 = con.ToDictionary<int, string, DtoTestClass>(x => x.IdInt, x => x.ColJson);
-            //sw.Stop();
-            //var ms = sw.ElapsedMilliseconds;
-
-            sw.Start();
-            var result = con.ToList<DtoTestClass>("select top 10000 * from testtable");
-            sw.Stop();
-            var ms2 = sw.ElapsedMilliseconds;
-        }
-
-        [TestMethod]
-        public void Dapper_Test_03()
-        {
-            var con = new SqlConnection(_connectionString);
-            var sw = new Stopwatch();
-
-            var mc = MemberCache<DtoTestClass>.Create();
-            foreach (var p in mc.Properties)
-            {
-                sw.Restart();
-                var result = con.ToList<DtoTestClass>($"select * from testtable");
-                sw.Stop();
-                var ms2 = sw.ElapsedMilliseconds;
-            }
-        }
-
-        [TestMethod]
-        public void Test_First_01()
-        {
-            //86.3000
-            var con = new SqlConnection(_connectionString);
-            var x = con.First<DtoTestClass>(x => x.ColMoney > 86.1m && x.ColMoney < 87.2m);
-        }
-
-        [TestMethod]
-        public void Test_First_02()
-        {
-            var id = 666;
-            var con = new SqlConnection(_connectionString);
-            var x = con.First<DtoTestClass>(x => x.IdInt >= id);
-            Assert.IsTrue(x.IdInt >= id);
-        }
-
-        [TestMethod]
-        public void Test_Authors_And_Books_01()
-        {
-            var db = new DbClient<SqlConnection>(_connectionString);
-            db.Insert<Authors>(null, x => x.Name = "Author 1");
-            db.Insert<Books>(null, x => x.AuthorID = 1, x => x.Title = "Book 1");
-            db.Insert<Books>(null, x => x.AuthorID = 1, x => x.Title = "Book 2");
-        }
-
-        [TestMethod]
-        public void Test_Authors_And_Books_02()
-        {
-            var db = new DbClient<SqlConnection>(_connectionString);
-            var authors = db.ToList<Authors>();
-            var books = db.Query(typeof(List<Books>), "select * from books");
+            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+            db.Options.Map = map;
+            db.EnableLogging = true;
+            var row = new DTO.SQLite.TestTable() { IntValue  = 1, TextValue = "1" };
+            var id = db.Insert<DTO.SQLite.TestTable>(row, x => x.IntValue, x => x.TextValue);
+            var row2 = db.First<DTO.SQLite.TestTable>(x => x.Id == (long)id);
+            Assert.AreEqual(1, row2.IntValue);
+            Assert.AreEqual("1", row2.TextValue);
+            var result = db.Delete<DTO.SQLite.TestTable>(x => x.Id == (long)id);
+            Assert.AreEqual(1, result);
+            db.Cou
         }
     }
 }

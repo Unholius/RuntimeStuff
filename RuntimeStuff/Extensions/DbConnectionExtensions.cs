@@ -75,6 +75,18 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
+        /// Вставляет новую запись в таблицу
+        /// </summary>
+        /// <typeparam name="T">Тип сущности</typeparam>
+        /// <param name="connection">Подключение к базе данных</param>
+        /// <param name="insertColumns">Колонки для вставки (опционально)</param>
+        /// <returns>Вставленная сущность</returns>
+        public static T Insert<T>(this IDbConnection connection, params Action<T>[] insertColumns) where T : class
+        {
+            return connection.AsDbClient().Insert(insertColumns);
+        }
+
+        /// <summary>
         /// Вставляет указанную сущность в таблицу
         /// </summary>
         /// <typeparam name="T">Тип сущности</typeparam>
@@ -87,6 +99,21 @@ namespace RuntimeStuff.Extensions
         {
             return connection.AsDbClient().Insert(item, dbTransaction, insertColumns);
         }
+
+        /// <summary>
+        /// Вставляет указанную сущность в таблицу
+        /// </summary>
+        /// <typeparam name="T">Тип сущности</typeparam>
+        /// <param name="connection">Подключение к базе данных</param>
+        /// <param name="item">Сущность для вставки</param>
+        /// <param name="dbTransaction">Транзакция (опционально)</param>
+        /// <param name="insertColumns">Колонки для вставки (опционально)</param>
+        /// <returns>Идентификатор вставленной записи</returns>
+        public static object Insert<T>(this IDbConnection connection, T item, params Expression<Func<T, object>>[] insertColumns) where T : class
+        {
+            return connection.AsDbClient().Insert(item, insertColumns);
+        }
+
 
         /// <summary>
         /// Асинхронно вставляет новую запись в таблицу
