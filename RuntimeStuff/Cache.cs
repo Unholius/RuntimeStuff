@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RuntimeStuff.Helpers;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -77,13 +78,12 @@ namespace RuntimeStuff
         private readonly ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>> _cache;
         private readonly TimeSpan? _expiration;
         private readonly bool _hasFactory;
-        private readonly int? _sizeLimit;
+        private readonly uint? _sizeLimit;
         private readonly EvictionPolicy _evictionPolicy;
 
-        public Cache(TimeSpan? expiration = null, int? sizeLimit = null, EvictionPolicy evictionPolicy = default)
+        public Cache(TimeSpan? expiration = null, uint? sizeLimit = null, EvictionPolicy evictionPolicy = default)
         {
             _cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
-            _expiration = null;
             _hasFactory = false;
             _expiration = expiration;
             _sizeLimit = sizeLimit;
@@ -95,7 +95,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="valueFactory">Фабрика значений.</param>
         /// <param name="expiration">Опциональное время жизни элементов кэша.</param>
-        public Cache(Func<TKey, Task<TValue>> valueFactory, TimeSpan? expiration = null, int? sizeLimit = null, EvictionPolicy evictionPolicy = default)
+        public Cache(Func<TKey, Task<TValue>> valueFactory, TimeSpan? expiration = null, uint? sizeLimit = null, EvictionPolicy evictionPolicy = default)
         {
             _cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
             _asyncFactory = valueFactory ?? throw new ArgumentNullException(nameof(valueFactory));
@@ -110,7 +110,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="syncFactory">Синхронная фабрика значений.</param>
         /// <param name="expiration">Опциональное время жизни элементов кэша.</param>
-        public Cache(Func<TKey, TValue> syncFactory, TimeSpan? expiration = null, int? sizeLimit = null, EvictionPolicy evictionPolicy = default)
+        public Cache(Func<TKey, TValue> syncFactory, TimeSpan? expiration = null, uint? sizeLimit = null, EvictionPolicy evictionPolicy = default)
             : this(WrapSyncFactory(syncFactory), expiration, sizeLimit, evictionPolicy)
         {
         }
@@ -138,7 +138,7 @@ namespace RuntimeStuff
             _cache.Count(p =>
                 p.Value.IsValueCreated &&
                 p.Value.Value.IsCompleted &&
-                (_expiration == null || DateTime.UtcNow - p.Value.Value.Result.Created < _expiration));
+                (_expiration == null || Now() - p.Value.Value.Result.Created < _expiration));
 
         /// <summary>
         /// Возвращает ключи актуальных элементов кэша.
@@ -148,7 +148,7 @@ namespace RuntimeStuff
             _cache
                 .Where(p => p.Value.IsValueCreated &&
                             p.Value.Value.IsCompleted &&
-                            (_expiration == null || DateTime.UtcNow - p.Value.Value.Result.Created < _expiration))
+                            (_expiration == null || Now() - p.Value.Value.Result.Created < _expiration))
                 .Select(p => p.Key);
 
         /// <summary>
@@ -159,7 +159,7 @@ namespace RuntimeStuff
             _cache
                 .Where(p => p.Value.IsValueCreated &&
                             p.Value.Value.IsCompleted &&
-                            (_expiration == null || DateTime.UtcNow - p.Value.Value.Result.Created < _expiration))
+                            (_expiration == null || Now() - p.Value.Value.Result.Created < _expiration))
                 .Select(p => p.Value.Value.Result.Value);
 
         /// <summary>
@@ -273,7 +273,7 @@ namespace RuntimeStuff
                             var value = await _asyncFactory(k).ConfigureAwait(false);
                             OnItemAdded(k);
                             EnforceSizeLimit();
-                            return new CacheEntry(value, DateTime.UtcNow);
+                            return new CacheEntry(value, Now());
                         },
                         LazyThreadSafetyMode.ExecutionAndPublication));
 
@@ -291,7 +291,7 @@ namespace RuntimeStuff
                 }
 
                 // TTL проверка
-                if (_expiration != null && DateTime.UtcNow - entry.Created >= _expiration)
+                if (_expiration != null && Now() - entry.Created >= _expiration)
                 {
                     if (_cache.TryRemove(key, out _))
                         OnItemRemoved(key, RemovalReason.Expired);
@@ -346,7 +346,7 @@ namespace RuntimeStuff
                 return defaultValue;
             }
 
-            var elapsed = DateTime.UtcNow - entry.Created;
+            var elapsed = Now() - entry.Created;
             if (_expiration != null && elapsed >= _expiration)
             {
                 _cache.TryRemove(key, out _);
@@ -387,10 +387,13 @@ namespace RuntimeStuff
         public void Set(TKey key, TValue value)
         {
             // Создаём Lazy с Task, фиксируя время создания сразу
-            var v = new CacheEntry(value, DateTime.UtcNow);
+            var v = new CacheEntry(value, Now());
             var lazy = new Lazy<Task<CacheEntry>>(
                 () => Task.FromResult(v),
                 LazyThreadSafetyMode.ExecutionAndPublication);
+
+            // Принудительно создаем значение, чтобы IsValueCreated был true
+            var _ = lazy.Value;
 
             _cache.AddOrUpdate(
                 key,
@@ -512,7 +515,7 @@ namespace RuntimeStuff
                 return false;
             }
 
-            if (_expiration != null && DateTime.UtcNow - entry.Created >= _expiration)
+            if (_expiration != null && Now() - entry.Created >= _expiration)
             {
                 if (_cache.TryRemove(key, out _))
                     OnItemRemoved(key, RemovalReason.Expired);
@@ -586,8 +589,7 @@ namespace RuntimeStuff
                 return (false, default);
             }
 
-            if (_expiration != null &&
-                DateTime.UtcNow - entry.Created >= _expiration)
+            if (_expiration != null && Now() - entry.Created >= _expiration)
             {
                 if (_cache.TryRemove(key, out _))
                     OnItemRemoved(key, RemovalReason.Expired);
@@ -681,8 +683,13 @@ namespace RuntimeStuff
 
         private void UpdateLastAccess(TKey key, CacheEntry entry)
         {
-            entry.LastAccess = DateTime.UtcNow;
+            entry.LastAccess = Now();
             OnItemAccessed(key);
+        }
+
+        private DateTime Now()
+        {
+            return DateTimeHelper.ExactNow(DateTime.UtcNow);
         }
     }
 }

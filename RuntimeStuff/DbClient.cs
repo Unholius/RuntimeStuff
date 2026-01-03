@@ -119,7 +119,7 @@ namespace RuntimeStuff
         public delegate object DbValueConverter<in T>(string fieldName, object fieldValue, PropertyInfo propertyInfo, T item);
 
         public static DbValueConverter TrimStringSpaces = (name, value, info, item) => value is string s ? s.Trim(TrimChars) : ChangeType(value, info.PropertyType);
-
+        private uint queryLogMaxSize;
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
 
         private static readonly Cache<IDbConnection, DbClient> ClientCache = new Cache<IDbConnection, DbClient>(con => new DbClient(con));
@@ -148,8 +148,18 @@ namespace RuntimeStuff
         /// </summary>
         public bool EnableLogging { get; set; }
 
-        private readonly List<string> _queryLogs = new List<string>();
-        public IEnumerable<string> QueryLogs => _queryLogs;
+        private Cache<DateTime, string> _queryLogs = new Cache<DateTime, string>();
+        public IEnumerable<string> QueryLogs => _queryLogs.Values.ToArray();
+
+        public uint QueryLogMaxSize
+        {
+            get => queryLogMaxSize;
+            set
+            {
+                queryLogMaxSize = value;
+                _queryLogs = queryLogMaxSize == 0 ? new Cache<DateTime, string>() : new Cache<DateTime, string>(sizeLimit: queryLogMaxSize);
+            }
+        }
 
         /// <summary>
         /// Параметры SQL-провайдера (кавычки, префиксы параметров, синтаксис LIMIT/OFFSET и т.п.).
@@ -3053,8 +3063,8 @@ namespace RuntimeStuff
         {
             if (!EnableLogging)
                 return;
-
-            _queryLogs.Add(string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", DateTime.Now) + ": " + GetRawSql(cmd));
+            var now = DateTimeHelper.ExactNow(DateTime.Now);
+            _queryLogs.Set(now, string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", now) + ": " + GetRawSql(cmd));
         }
 
         private async Task<IEnumerable<object>> ReadCoreAsync(Type returnType, DbDataReader reader, IEnumerable<string> columns, IEnumerable<(string, string)> columnToPropertyMap, DbValueConverter<object> converter, int fetchRows, Func<object[], string[], object> itemFactory, bool isAsync, CancellationToken ct)

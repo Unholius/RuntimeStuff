@@ -878,12 +878,22 @@
             // Arrange
             var cache = new Cache<string, int>();
             cache.Set("key1", 100);
+            Assert.AreEqual(1, cache.Count);
 
             // Act
             var result = await cache.GetAsync("key1");
 
             // Assert
             Assert.AreEqual(100, result);
+        }
+
+        [TestMethod]
+        public async Task Set_WithoutFactory_Count()
+        {
+            // Arrange
+            var cache = new Cache<string, int>();
+            cache.Set("key1", 100);
+            Assert.AreEqual(1, cache.Count);
         }
 
         [TestMethod]
@@ -920,6 +930,65 @@
             // Assert
             Assert.IsNull(cache.Get("key1"));
             Assert.AreEqual("value", cache.Get("key2"));
+        }
+
+        #endregion
+
+        #region SizeLimit
+
+        [TestMethod]
+        public void TestSizeLimit_01()
+        {
+            var cache1 = new Cache<int, string>((i) => i.ToString() + "_Str", sizeLimit: 1);
+            Assert.AreEqual(0, cache1.Count);
+            var v1 = cache1.Get(1);
+            Assert.AreEqual(1, cache1.Count);
+            var v2 = cache1.Get(2);
+            Assert.AreEqual(1, cache1.Count);
+        }
+
+        [TestMethod]
+        public void TestSizeLimit_02()
+        {
+            var cache1 = new Cache<int, string>((i) => i.ToString() + "_Str", sizeLimit: 2);
+            Assert.AreEqual(0, cache1.Count);
+            var v1 = cache1.Get(1);
+            Assert.AreEqual(1, cache1.Count);
+            var v2 = cache1.Get(2);
+            Assert.AreEqual(2, cache1.Count);
+            var v3 = cache1.Get(3);
+            Assert.AreEqual(2, cache1.Count);
+        }
+
+        [TestMethod]
+        public void TestSizeLimit_03()
+        {
+            var cache1 = new Cache<int, string>((i) => i.ToString() + "_Str", sizeLimit: 2, evictionPolicy: EvictionPolicy.FIFO);
+            Assert.AreEqual(0, cache1.Count);
+            _= cache1.Get(1);
+            Assert.AreEqual(1, cache1.Count);
+            _ = cache1.Get(2);
+            _ = cache1.Get(2);
+            Assert.AreEqual(2, cache1.Count);
+            _ = cache1.Get(3);
+            Assert.AreEqual(2, cache1.Count);
+            Assert.IsFalse(cache1.ContainsKey(1));
+        }
+
+        [TestMethod]
+        public void TestSizeLimit_04()
+        {
+            var cache1 = new Cache<int, string>((i) => i.ToString() + "_Str", sizeLimit: 2, evictionPolicy: EvictionPolicy.LRU);
+            Assert.AreEqual(0, cache1.Count);
+            _ = cache1.Get(1);
+            Assert.AreEqual(1, cache1.Count);
+            _ = cache1.Get(2);
+            _ = cache1.Get(1);
+            _ = cache1.Get(1);
+            Assert.AreEqual(2, cache1.Count);
+            _ = cache1.Get(3);
+            Assert.AreEqual(2, cache1.Count);
+            Assert.IsFalse(cache1.ContainsKey(2));
         }
 
         #endregion
