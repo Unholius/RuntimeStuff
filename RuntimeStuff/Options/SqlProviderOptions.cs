@@ -25,6 +25,7 @@ namespace RuntimeStuff.Options
         public string OverrideOffsetRowsTemplate { get; set; } = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
         public string StringPrefix { get; set; } = "'";
         public string StringSuffix { get; set; } = "'";
+        public string StatementTerminator { get; set; } = ";";
 
         public string ToSqlLiteral(object value)
         {

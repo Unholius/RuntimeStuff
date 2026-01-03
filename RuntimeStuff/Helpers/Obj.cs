@@ -1709,7 +1709,7 @@ namespace RuntimeStuff.Helpers
             var argTypes = args.Select(a => a?.GetType() ?? typeof(object)).ToArray();
 
             return type.GetConstructors()
-                .First(c =>
+                .FirstOrDefault(c =>
                 {
                     var ps = c.GetParameters();
                     if (ps.Length != argTypes.Length) return false;

@@ -1670,7 +1670,7 @@ namespace RuntimeStuff
 
 
         /// <summary>
-        ///     Устанавливает значение члена для указанного объекта.
+        ///     Устанавливает значение члена для указанного объекта. Если необходимо, выполняется преобразование типа значения.
         /// </summary>
         /// <param name="source">Объект, для которого устанавливается значение.</param>
         /// <param name="value">Значение, которое нужно установить.</param>
@@ -1783,7 +1783,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Получить конструкторы типа
+        ///     Получить конструкторы типа и его базовых типов
         /// </summary>
         /// <returns>Массив информации о конструкторах</returns>
         public ConstructorInfo[] GetConstructors()
@@ -1791,18 +1791,27 @@ namespace RuntimeStuff
             if (_constructors != null)
                 return _constructors;
 
-            _constructors = _type.GetConstructors(DefaultBindingFlags).OrderBy(c => c.GetParameters().Length).ToArray();
+            _constructors = _type.GetConstructors(DefaultBindingFlags)
+                .Concat(BaseTypes.Where(x => !x.IsInterface)
+                .SelectMany(x => x.GetConstructors(DefaultBindingFlags)))
+                .OrderBy(c => c.GetParameters().Length)
+                .Distinct()
+                .ToArray();
             return _constructors;
         }
 
         /// <summary>
-        ///     Получить события типа
+        ///     Получить события типа и его базовых типов
         /// </summary>
         /// <returns>Массив информации о событиях</returns>
         public EventInfo[] GetEvents()
         {
             if (_events != null) return _events;
-            _events = _type.GetEvents(DefaultBindingFlags);
+            _events = _type.GetEvents(DefaultBindingFlags)
+                .Concat(BaseTypes.Where(x => !x.IsInterface)
+                .SelectMany(x => x.GetEvents(DefaultBindingFlags)))
+                .Distinct()
+                .ToArray();
             return _events;
         }
 
@@ -1814,18 +1823,27 @@ namespace RuntimeStuff
         {
             if (_fields != null) return _fields;
             _fields = _type.GetFields(DefaultBindingFlags)
-                .Concat(BaseTypes.SelectMany(x => x.GetFields(DefaultBindingFlags))).ToArray();
+                .Concat(BaseTypes.Where(x => !x.IsInterface)
+                    .SelectMany(x => x.GetFields(DefaultBindingFlags)))
+                .Distinct()
+                .ToArray();
+
             return _fields;
         }
 
         /// <summary>
-        ///     Получить методы типа
+        ///     Получить методы типа и его базовых типов
         /// </summary>
         /// <returns>Массив информации о методах</returns>
         public MethodInfo[] GetMethods()
         {
             if (_methods != null) return _methods;
-            _methods = _type.GetMethods(DefaultBindingFlags);
+            _methods = _type.GetMethods(DefaultBindingFlags)
+                .Concat(BaseTypes.Where(x => !x.IsInterface)
+                    .SelectMany(x => x.GetMethods(DefaultBindingFlags)))
+                .Distinct()
+                .ToArray();
+
             return _methods;
         }
 

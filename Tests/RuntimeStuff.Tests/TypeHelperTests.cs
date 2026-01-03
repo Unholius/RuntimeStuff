@@ -856,6 +856,17 @@ namespace RuntimeStuff.MSTests
             Assert.IsInstanceOfType(instance, typeof(TestPerson));
         }
 
+        [TestMethod]
+        public void New_WithEnumerableType_CreatesInstance()
+        {
+            // Act
+            var instance = Obj.New(typeof(IEnumerable<TestPerson>));
+
+            // Assert
+            Assert.IsNotNull(instance);
+            Assert.IsInstanceOfType(instance, typeof(TestPerson));
+        }
+
         #endregion New Tests
 
         #region GetOrAdd Tests

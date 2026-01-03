@@ -2,6 +2,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using RuntimeStuff.Extensions;
+using RuntimeStuff.MSTests.DTO;
 using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
@@ -165,7 +166,7 @@ namespace RuntimeStuff.MSTests
         {
             using var db = DbClient.Create<SqlConnection>(_connectionString);
 
-            var result = db.ExecuteScalar<DtoTestClass, int>(x => x.IdInt, x => x.ColNVarCharMax == "Test 0");
+            var result = db.ExecuteScalar<DtoTestClass, int?>(x => x.IdInt, x => x.ColNVarCharMax == "Test 0");
         }
 
 
@@ -266,6 +267,23 @@ namespace RuntimeStuff.MSTests
             var con = new SqlConnection(_connectionString);
             var x = con.First<DtoTestClass>(x => x.IdInt >= id);
             Assert.IsTrue(x.IdInt >= id);
+        }
+
+        [TestMethod]
+        public void Test_Authors_And_Books_01()
+        {
+            var db = new DbClient<SqlConnection>(_connectionString);
+            db.Insert<Authors>(null, x => x.Name = "Author 1");
+            db.Insert<Books>(null, x => x.AuthorID = 1, x => x.Title = "Book 1");
+            db.Insert<Books>(null, x => x.AuthorID = 1, x => x.Title = "Book 2");
+        }
+
+        [TestMethod]
+        public void Test_Authors_And_Books_02()
+        {
+            var db = new DbClient<SqlConnection>(_connectionString);
+            var authors = db.ToList<Authors>();
+            var books = db.Query(typeof(List<Books>), "select * from books");
         }
     }
 }

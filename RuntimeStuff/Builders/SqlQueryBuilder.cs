@@ -22,18 +22,19 @@ namespace RuntimeStuff.Builders
             return whereClause;
         }
 
-        public static string GetWhereClause<T>(SqlProviderOptions options)
+        public static string GetWhereClause<T>(SqlProviderOptions options, out Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(typeof(T));
             var keys = mi.PrimaryKeys.Values.ToArray();
             if (keys.Length == 0)
                 keys = mi.PublicBasicProperties.Values.ToArray();
 
-            return GetWhereClause(keys, options);
+            return GetWhereClause(keys, options, out cmdParams);
         }
 
-        public static string GetWhereClause(MemberCache[] whereProperties, SqlProviderOptions options)
+        public static string GetWhereClause(MemberCache[] whereProperties, SqlProviderOptions options, out Dictionary<string, object> cmdParams)
         {
+            cmdParams = new Dictionary<string, object>();
             var whereClause = new StringBuilder("WHERE ");
 
             for (var i = 0; i < whereProperties.Length; i++)
@@ -50,8 +51,10 @@ namespace RuntimeStuff.Builders
 
                 if (i < whereProperties.Length - 1)
                     whereClause.Append(" AND ");
-            }
 
+                cmdParams[key.ColumnName] = null;
+            }
+            
             return whereClause.ToString();
         }
 
@@ -85,7 +88,7 @@ namespace RuntimeStuff.Builders
         public static string GetSelectQuery(string namePrefix, string nameSuffix, MemberCache typeInfo, params MemberCache[] selectColumns)
         {
             if (selectColumns.Length == 0)
-                return "";
+                selectColumns = typeInfo.GetColumns();
 
             var query = new StringBuilder("SELECT ");
 
@@ -248,7 +251,7 @@ namespace RuntimeStuff.Builders
             return query.ToString();
         }
 
-        public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null, string namePrefix="\"", string nameSuffix="\"")
+        public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null)
         {
             if (fetchRows < 0 || offsetRows < 0)
                 return query;
@@ -265,8 +268,8 @@ namespace RuntimeStuff.Builders
                 clause.Append(" ORDER BY ");
                 clause.Append(string.Join(", ",
                     mi.PrimaryKeys.Count > 0
-                        ? mi.PrimaryKeys.Values.Select(x => namePrefix + x.ColumnName + nameSuffix)
-                        : mi.ColumnProperties.Values.Select(x => namePrefix + x.ColumnName + nameSuffix)));
+                        ? mi.PrimaryKeys.Values.Select(x => options.NamePrefix + x.ColumnName + options.NameSuffix)
+                        : mi.ColumnProperties.Values.Select(x => options.NamePrefix + x.ColumnName + options.NameSuffix)));
                 clause.Append(" ");
             }
 
