@@ -25,6 +25,44 @@ namespace RuntimeStuff.Extensions
     /// </remarks>
     public static class EnumerableExtensions
     {
+
+        public static T[] Concat<T>(this T[] array, params T[][] arrays)
+        {
+            if (array == null)
+                throw new ArgumentNullException(nameof(array));
+            if (arrays == null)
+                throw new ArgumentNullException(nameof(arrays));
+
+            int totalLength = array.Length;
+
+            for (int i = 0; i < arrays.Length; i++)
+            {
+                if (arrays[i] != null)
+                    totalLength += arrays[i].Length;
+            }
+
+            var result = new T[totalLength];
+
+            int offset = 0;
+
+            // copy source array
+            Array.Copy(array, 0, result, 0, array.Length);
+            offset = array.Length;
+
+            // copy remaining arrays
+            for (int i = 0; i < arrays.Length; i++)
+            {
+                var current = arrays[i];
+                if (current == null || current.Length == 0)
+                    continue;
+
+                Array.Copy(current, 0, result, offset, current.Length);
+                offset += current.Length;
+            }
+
+            return result;
+        }
+
         /// <summary>
         ///     Добавляет элемент в коллекцию.
         /// </summary>

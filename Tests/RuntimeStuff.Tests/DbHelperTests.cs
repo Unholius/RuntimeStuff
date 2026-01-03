@@ -143,7 +143,8 @@ CREATE TABLE student_courses (
             Assert.AreEqual("1", row2.TextValue);
             var result = db.Delete<DTO.SQLite.TestTable>(x => x.Id == (long)id);
             Assert.AreEqual(1, result);
-            db.Cou
+            var count = db.Count<DTO.SQLite.TestTable, long>(x => x.Id == (long)id);
+            Assert.AreEqual (0L, count);
         }
     }
 }

@@ -2045,9 +2045,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод выполняет подсчет общего числа строк и делит их на страницы в зависимости от заданного размера страницы.
         /// </remarks>
-        public int GetPagesCount<TFrom>(int pageSize) where TFrom : class
+        public int GetPagesCount<TFrom>(int pageSize, Expression<Func<TFrom, bool>> whereExpression = null) where TFrom : class
         {
-            var numbers = Agg<TFrom>((null, "count"));
+            var numbers = Agg<TFrom>(whereExpression, (null, "count"));
             var rowsCount = Convert.ToInt32(numbers.Values.FirstOrDefault());
             var pagesCount = (int)Math.Ceiling((double)rowsCount / pageSize);
             return pagesCount;
@@ -2063,9 +2063,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод выполняет асинхронный подсчет общего числа строк и делит их на страницы в зависимости от заданного размера страницы.
         /// </remarks>
-        public async Task<int> GetPagesCountAsync<TFrom>(int pageSize, CancellationToken token = default) where TFrom : class
+        public async Task<int> GetPagesCountAsync<TFrom>(int pageSize, Expression<Func<TFrom, bool>> whereExpression, CancellationToken token = default) where TFrom : class
         {
-            var numbers = await AggAsync<TFrom>(token, (null, "count")).ConfigureAwait(ConfigureAwait);
+            var numbers = await AggAsync<TFrom>(whereExpression, token, (null, "count")).ConfigureAwait(ConfigureAwait);
             var rowsCount = Convert.ToInt32(numbers.Values.FirstOrDefault());
             var pagesCount = (int)Math.Ceiling((double)rowsCount / pageSize);
             return pagesCount;
@@ -2200,9 +2200,15 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод выполняет агрегацию данных с использованием SQL-функции COUNT для конкретной колонки в сущности и преобразует результат в тип <typeparamref name="T"/>.
         /// </remarks>
-        public object Count<TFrom>(Expression<Func<TFrom, object>> columnSelector = null) where TFrom : class
+        public object Count<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, Expression < Func<TFrom, object>> columnSelector = null) where TFrom : class
         {
-            var total = Agg("count", columnSelector).Values.FirstOrDefault();
+            var total = Agg("count", whereExpression, columnSelector).Values.FirstOrDefault();
+            return total;
+        }
+
+        public object Count<TFrom>(Expression<Func<TFrom, bool>> whereExpression) where TFrom : class
+        {
+            var total = Agg("count", whereExpression).Values.FirstOrDefault();
             return total;
         }
 
@@ -2216,9 +2222,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод выполняет агрегацию данных с использованием SQL-функции COUNT для конкретной колонки в сущности и преобразует результат в тип <typeparamref name="T"/>.
         /// </remarks>
-        public T Count<TFrom, T>(Expression<Func<TFrom, object>> columnSelector = null) where TFrom : class
+        public T Count<TFrom, T>(Expression<Func<TFrom, bool>> whereExpression = null, Expression <Func<TFrom, object>> columnSelector = null) where TFrom : class
         {
-            var total = Count(columnSelector);
+            var total = Count(whereExpression, columnSelector);
             return ChangeType<T>(total);
         }
 
@@ -2232,9 +2238,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод выполняет асинхронный подсчет строк для конкретной колонки с использованием SQL-функции COUNT.
         /// </remarks>
-        public async Task<object> CountAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
+        public async Task<object> CountAsync<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return (await AggAsync("count", token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
+            return (await AggAsync("count", whereExpression, token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2248,9 +2254,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод выполняет асинхронный подсчет строк для конкретной колонки с использованием SQL-функции COUNT и преобразует результат в тип <typeparamref name="T"/>.
         /// </remarks>
-        public async Task<T> CountAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
+        public async Task<T> CountAsync<TFrom, T>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            var total = await CountAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
+            var total = await CountAsync(whereExpression, columnSelector, token).ConfigureAwait(ConfigureAwait);
             return ChangeType<T>(total);
         }
 
@@ -2279,9 +2285,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод использует SQL-функцию MAX для получения максимального значения в столбце.
         /// </remarks>
-        public object Max<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
+        public object Max<TFrom>(Expression<Func<TFrom, object>> columnSelector, Expression<Func<TFrom, bool>> whereExpression = null) where TFrom : class
         {
-            return Agg("MAX", columnSelector).Values.FirstOrDefault();
+            return Agg("MAX", whereExpression, columnSelector).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2295,9 +2301,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно использует SQL-функцию MAX для получения максимального значения и преобразует результат в тип <typeparamref name="T"/>.
         /// </remarks>
-        public async Task<T> MaxAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public async Task<T> MaxAsync<TFrom, T>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            var total = await MaxAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
+            var total = await MaxAsync(whereExpression, columnSelector, token).ConfigureAwait(ConfigureAwait);
             return ChangeType<T>(total);
         }
 
@@ -2311,9 +2317,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно использует SQL-функцию MAX для получения максимального значения в столбце.
         /// </remarks>
-        public async Task<object> MaxAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public async Task<object> MaxAsync<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return (await AggAsync("MAX", token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
+            return (await AggAsync("MAX", whereExpression, token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2341,9 +2347,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод использует SQL-функцию MIN для получения минимального значения в столбце.
         /// </remarks>
-        public object Min<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
+        public object Min<TFrom>(Expression<Func<TFrom, object>> columnSelector, Expression<Func<TFrom, bool>> whereExpression = null) where TFrom : class
         {
-            return Agg("MIN", columnSelector).Values.FirstOrDefault();
+            return Agg("MIN", whereExpression, columnSelector).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2357,9 +2363,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно использует SQL-функцию MIN для получения минимального значения и преобразует результат в тип <typeparamref name="T"/>.
         /// </remarks>
-        public async Task<T> MinAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public async Task<T> MinAsync<TFrom, T>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            var total = await MinAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
+            var total = await MinAsync(whereExpression, columnSelector, token).ConfigureAwait(ConfigureAwait);
             return ChangeType<T>(total);
         }
 
@@ -2373,9 +2379,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно использует SQL-функцию MIN для получения минимального значения в столбце.
         /// </remarks>
-        public async Task<object> MinAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public async Task<object> MinAsync<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return (await AggAsync("MIN", token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
+            return (await AggAsync("MIN", whereExpression, token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2403,9 +2409,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод использует SQL-функцию SUM для получения суммы значений в столбце.
         /// </remarks>
-        public object Sum<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
+        public object Sum<TFrom>(Expression<Func<TFrom, object>> columnSelector, Expression<Func<TFrom, bool>> whereExpression = null) where TFrom : class
         {
-            return Agg("SUM", columnSelector).Values.FirstOrDefault();
+            return Agg("SUM", whereExpression, columnSelector).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2419,9 +2425,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно использует SQL-функцию SUM для получения суммы значений в столбце и преобразует результат в тип <typeparamref name="T"/>.
         /// </remarks>
-        public async Task<T> SumAsync<TFrom, T>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public async Task<T> SumAsync<TFrom, T>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            var total = await SumAsync(columnSelector, token).ConfigureAwait(ConfigureAwait);
+            var total = await SumAsync(whereExpression, columnSelector, token).ConfigureAwait(ConfigureAwait);
             return ChangeType<T>(total);
         }
 
@@ -2435,9 +2441,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно использует SQL-функцию SUM для получения суммы значений в столбце.
         /// </remarks>
-        public async Task<object> SumAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public async Task<object> SumAsync<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return (await AggAsync("SUM", token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
+            return (await AggAsync("SUM", whereExpression, token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2465,9 +2471,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод использует SQL-функцию AVG для получения среднего значения в столбце.
         /// </remarks>
-        public object Avg<TFrom>(Expression<Func<TFrom, object>> columnSelector) where TFrom : class
+        public object Avg<TFrom>(Expression<Func<TFrom, object>> columnSelector, Expression<Func<TFrom, bool>> whereExpression = null) where TFrom : class
         {
-            return Agg("AVG", columnSelector).Values.FirstOrDefault();
+            return Agg("AVG", whereExpression, columnSelector).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2480,9 +2486,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно использует SQL-функцию AVG для получения среднего значения в столбце.
         /// </remarks>
-        public async Task<object> AvgAsync<TFrom>(Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public async Task<object> AvgAsync<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return (await AggAsync("AVG", token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
+            return (await AggAsync("AVG", whereExpression, token, columnSelector).ConfigureAwait(ConfigureAwait)).Values.FirstOrDefault();
         }
 
         /// <summary>
@@ -2494,7 +2500,7 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод выполняет несколько агрегационных операций (COUNT, MIN, MAX, SUM, AVG) для каждого указанного столбца и возвращает результаты в виде словаря.
         /// </remarks>
-        public Dictionary<string, (long Count, long Min, long Max, long Sum, decimal Avg)> GetAggs<TFrom>(params Expression<Func<TFrom, object>>[] columnSelector) where TFrom : class
+        public Dictionary<string, (long Count, long Min, long Max, long Sum, decimal Avg)> GetAggs<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, params Expression<Func<TFrom, object>>[] columnSelector) where TFrom : class
         {
             var colNames = columnSelector.Select(x => x.GetMemberCache().ColumnName).ToArray();
             var queryExpression = new List<(Expression<Func<TFrom, object>>, string)>();
@@ -2507,7 +2513,7 @@ namespace RuntimeStuff
                 queryExpression.Add((cs, "AVG"));
             }
 
-            var result = Agg(queryExpression.ToArray());
+            var result = Agg(whereExpression, queryExpression.ToArray());
 
             var dic = colNames.Select((x, i)=> (x,
                 (
@@ -2530,7 +2536,7 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно выполняет несколько агрегационных операций (COUNT, MIN, MAX, SUM, AVG) для каждого указанного столбца.
         /// </remarks>
-        public async Task<Dictionary<string, (long Count, long Min, long Max, long Sum, decimal Avg)>> GetAggsAsync<TFrom>(CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelector) where TFrom : class
+        public async Task<Dictionary<string, (long Count, long Min, long Max, long Sum, decimal Avg)>> GetAggsAsync<TFrom>(Expression<Func<TFrom, bool>> whereExpression, CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelector) where TFrom : class
         {
             var colNames = columnSelector.Select(x => x.GetMemberCache().ColumnName).ToArray();
             var queryExpression = new List<(Expression<Func<TFrom, object>>, string)>();
@@ -2543,7 +2549,7 @@ namespace RuntimeStuff
                 queryExpression.Add((cs, "AVG"));
             }
 
-            var result = await AggAsync(token, queryExpression.ToArray()).ConfigureAwait(ConfigureAwait);
+            var result = await AggAsync(whereExpression, token, queryExpression.ToArray()).ConfigureAwait(ConfigureAwait);
 
             var dic = colNames.Select((x, i) => (x,
                 (
@@ -2566,9 +2572,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод выполняет одну агрегационную функцию (например, COUNT) для каждого указанного столбца и возвращает результат в виде словаря.
         /// </remarks>
-        public Dictionary<string, object> Agg<TFrom>(string aggFunction, params Expression<Func<TFrom, object>>[] columnSelectors) where TFrom : class
+        public Dictionary<string, object> Agg<TFrom>(string aggFunction, Expression<Func<TFrom, bool>> whereExpression, params Expression<Func<TFrom, object>>[] columnSelectors) where TFrom : class
         {
-            return Agg(columnSelectors?.Any() == true
+            return Agg(whereExpression, columnSelectors?.Any() == true
                 ? columnSelectors.Select(c => (c, aggFunction)).ToArray()
                 : new[] { ((Expression<Func<TFrom, object>>)null, aggFunction) });
         }
@@ -2584,9 +2590,9 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно выполняет одну агрегационную функцию (например, COUNT) для каждого указанного столбца.
         /// </remarks>
-        public Task<Dictionary<string, object>> AggAsync<TFrom>(string aggFunction, CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelectors) where TFrom : class
+        public Task<Dictionary<string, object>> AggAsync<TFrom>(string aggFunction, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelectors) where TFrom : class
         {
-            return AggAsync(token, columnSelectors?.Any() == true
+            return AggAsync(whereExpression, token, columnSelectors?.Any() == true
                 ? columnSelectors.Select(c => (c, aggFunction)).ToArray()
                 : new[] { ((Expression<Func<TFrom, object>>)null, aggFunction) });
         }
@@ -2600,15 +2606,12 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод позволяет выбрать несколько столбцов и применить различные агрегационные функции (например, COUNT, MIN, MAX, SUM, AVG).
         /// </remarks>
-        public Dictionary<string, object> Agg<TFrom>(params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
+        public Dictionary<string, object> Agg<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
         {
-            var query = "SELECT " + (columnSelectors.Length == 0
-                                      ? "COUNT(*)"
-                                      : string.Join(", ",
-                                          columnSelectors.Select(c =>
-                                              $"{c.aggFunction}(\"{c.column?.GetMemberCache()?.ColumnName ?? "*"}\") AS \"{c.column?.GetMemberCache()?.ColumnName ?? "Total"}{c.aggFunction.ToUpper()}\""
-                                                  .Replace("\"*\"", "*"))))
-                                  + $" FROM \"{typeof(TFrom).GetMemberCache().TableName}\"";
+            var query = SqlQueryBuilder.GetAggSelectClause<TFrom>(Options, columnSelectors);
+
+            if (whereExpression != null)
+                query += " " + SqlQueryBuilder.GetWhereClause<TFrom>(whereExpression, Options, false, out _);
 
             var table = ToDataTable(query);
             var result = new Dictionary<string, object>(IgnoreCaseComparer);
@@ -2631,15 +2634,12 @@ namespace RuntimeStuff
         /// <remarks>
         /// Этот метод асинхронно выполняет агрегацию с несколькими агрегационными функциями для выбранных столбцов.
         /// </remarks>
-        public async Task<Dictionary<string, object>> AggAsync<TFrom>(CancellationToken token = default, params(Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
+        public async Task<Dictionary<string, object>> AggAsync<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params(Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
         {
-            var query = "SELECT " + (columnSelectors.Length == 0
-                                      ? "COUNT(*)"
-                                      : string.Join(", ",
-                                          columnSelectors.Select(c =>
-                                              $"{c.aggFunction}(\"{c.column?.GetMemberCache()?.ColumnName ?? "*"}\") AS \"{c.column?.GetMemberCache()?.ColumnName ?? "Total"}{c.aggFunction.ToUpper()}\""
-                                                  .Replace("\"*\"", "*"))))
-                                  + $" FROM \"{typeof(TFrom).GetMemberCache().TableName}\"";
+            var query = SqlQueryBuilder.GetAggSelectClause<TFrom>(Options, columnSelectors);
+
+            if (whereExpression != null)
+                query += " " + SqlQueryBuilder.GetWhereClause<TFrom>(whereExpression, Options, false, out _);
 
             var table = await ToDataTableAsync(query, token: token).ConfigureAwait(ConfigureAwait);
             var result = new Dictionary<string, object>(IgnoreCaseComparer);
@@ -3054,7 +3054,7 @@ namespace RuntimeStuff
             if (!EnableLogging)
                 return;
 
-            _queryLogs.Add(GetRawSql(cmd));
+            _queryLogs.Add(string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", DateTime.Now) + ": " + GetRawSql(cmd));
         }
 
         private async Task<IEnumerable<object>> ReadCoreAsync(Type returnType, DbDataReader reader, IEnumerable<string> columns, IEnumerable<(string, string)> columnToPropertyMap, DbValueConverter<object> converter, int fetchRows, Func<object[], string[], object> itemFactory, bool isAsync, CancellationToken ct)

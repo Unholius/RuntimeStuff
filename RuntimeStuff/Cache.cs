@@ -40,13 +40,13 @@ namespace RuntimeStuff
     public class Cache<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
     {
         private readonly Func<TKey, Task<TValue>> _asyncFactory;
-        private readonly ConcurrentDictionary<TKey, Lazy<Task<(TValue Value, DateTime Created)>>> _cache;
+        private readonly ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>> _cache;
         private readonly TimeSpan? _expiration;
         private readonly bool _hasFactory;
 
         public Cache(TimeSpan? expiration = null)
         {
-            _cache = new ConcurrentDictionary<TKey, Lazy<Task<(TValue Value, DateTime Created)>>>();
+            _cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
             _expiration = null;
             _hasFactory = false;
             _expiration = expiration;
@@ -59,7 +59,7 @@ namespace RuntimeStuff
         /// <param name="expiration">Опциональное время жизни элементов кэша.</param>
         public Cache(Func<TKey, Task<TValue>> valueFactory, TimeSpan? expiration = null)
         {
-            _cache = new ConcurrentDictionary<TKey, Lazy<Task<(TValue Value, DateTime Created)>>>();
+            _cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
             _asyncFactory = valueFactory ?? throw new ArgumentNullException(nameof(valueFactory));
             _expiration = expiration;
             _hasFactory = true;
@@ -222,16 +222,16 @@ namespace RuntimeStuff
             {
                 var lazy = _cache.GetOrAdd(
                     key,
-                    k => new Lazy<Task<(TValue, DateTime)>>(
+                    k => new Lazy<Task<CacheEntry>>(
                         async () =>
                         {
                             var value = await _asyncFactory(k).ConfigureAwait(false);
                             OnItemAdded(k);
-                            return (value, DateTime.UtcNow);
+                            return new CacheEntry(value, DateTime.UtcNow);
                         },
                         LazyThreadSafetyMode.ExecutionAndPublication));
 
-                (TValue Value, DateTime Created) entry;
+                CacheEntry entry;
 
                 try
                 {
@@ -288,7 +288,7 @@ namespace RuntimeStuff
             if (!_cache.TryGetValue(key, out var lazy))
                 return defaultValue;
 
-            (TValue Value, DateTime Created) entry;
+            CacheEntry entry;
 
             try
             {
@@ -339,8 +339,8 @@ namespace RuntimeStuff
         public void Set(TKey key, TValue value)
         {
             // Создаём Lazy с Task, фиксируя время создания сразу
-            var v = (value, DateTime.UtcNow);
-            var lazy = new Lazy<Task<(TValue Value, DateTime Created)>>(
+            var v = new CacheEntry(value, DateTime.UtcNow);
+            var lazy = new Lazy<Task<CacheEntry>>(
                 () => Task.FromResult(v),
                 LazyThreadSafetyMode.ExecutionAndPublication);
 
@@ -452,7 +452,7 @@ namespace RuntimeStuff
             if (!_cache.TryGetValue(key, out var lazy))
                 return false;
 
-            (TValue Value, DateTime Created) entry;
+            CacheEntry entry;
 
             try
             {
@@ -524,7 +524,7 @@ namespace RuntimeStuff
             if (!_cache.TryGetValue(key, out var lazy))
                 return (false, default);
 
-            (TValue Value, DateTime Created) entry;
+            CacheEntry entry;
 
             try
             {
@@ -568,6 +568,20 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(syncFactory));
 
             return key => Task.FromResult(syncFactory(key));
+        }
+
+        private sealed class CacheEntry
+        {
+            public TValue Value { get; }
+            public DateTime Created { get; }
+            public DateTime LastAccess;
+
+            public CacheEntry(TValue value, DateTime created)
+            {
+                Value = value;
+                Created = created;
+                LastAccess = created;
+            }
         }
     }
 }

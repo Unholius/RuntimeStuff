@@ -1,14 +1,16 @@
-﻿using System;
+﻿using RuntimeStuff.Extensions;
+using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
-using RuntimeStuff.Extensions;
 
 namespace RuntimeStuff.Helpers
 {
@@ -2050,9 +2052,128 @@ namespace RuntimeStuff.Helpers
         /// </exception>
         public static object New(Type type, params object[] args)
         {
+            // если интерфейс, подставляем стандартную реализацию
+            if (type.IsInterface)
+                type = GetDefaultImplementation(type);
+
             var ctor = FindConstructor(type, args);
+            if (ctor == null)
+                throw new InvalidOperationException($"No constructor found for type {type}");
+
             var factory = CtorCache.GetOrAdd(ctor, CreateFactory);
             return factory(args);
+        }
+
+        /// <summary>
+        /// Словарь соответствий интерфейсов и фабрик по умолчанию для их реализации.
+        /// </summary>
+        /// <remarks>
+        /// Ключом является тип интерфейса (например, <see cref="IEnumerable{T}"/>), 
+        /// значением — функция, принимающая массив типов generic-параметров и возвращающая экземпляр подходящей реализации.
+        /// По умолчанию:
+        /// <list type="bullet">
+        /// <item><description><see cref="IEnumerable{T}"/> → <see cref="List{T}"/></description></item>
+        /// <item><description><see cref="IList{T}"/> → <see cref="List{T}"/></description></item>
+        /// <item><description><see cref="ICollection{T}"/> → <see cref="List{T}"/></description></item>
+        /// <item><description><see cref="IDictionary{TKey, TValue}"/> → <see cref="Dictionary{TKey, TValue}"/></description></item>
+        /// </list>
+        /// </remarks>
+        private static readonly Dictionary<Type, Func<Type[], object>> DefaultInterfaceMappings = new Dictionary<Type, Func<Type[], object>>()
+        {
+            { typeof(IEnumerable<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
+            { typeof(IList<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
+            { typeof(IList), _ => new ArrayList() },
+            { typeof(ICollection<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
+            { typeof(IDictionary<,>), args => Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(args)) },
+            { typeof(IDictionary), _ => new Hashtable() },
+            { typeof(ISet<>), args => Activator.CreateInstance(typeof(HashSet<>).MakeGenericType(args)) },
+        };
+
+        /// <summary>
+        /// Устанавливает реализацию по умолчанию для заданного интерфейса.
+        /// </summary>
+        /// <param name="interfaceType">Тип интерфейса, для которого задаётся реализация.</param>
+        /// <param name="implementationType">Тип реализации интерфейса.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="interfaceType"/> или <paramref name="implementationType"/> равен <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если:
+        /// <list type="bullet">
+        /// <item><description><paramref name="interfaceType"/> не является интерфейсом.</description></item>
+        /// <item><description><paramref name="implementationType"/> является интерфейсом.</description></item>
+        /// <item><description>Типы generic не совпадают по определению (один generic, другой не generic).</description></item>
+        /// </list>
+        /// </exception>
+        /// <remarks>
+        /// Метод создаёт фабрику для нового типа и заменяет существующее соответствие в <see cref="DefaultInterfaceMappings"/>.
+        /// Для generic-типов используется метод <see cref="Type.MakeGenericType"/>.
+        /// </remarks>
+        public static void SetDefaultImplementation(Type interfaceType, Type implementationType)
+        {
+            if (interfaceType == null)
+                throw new ArgumentNullException(nameof(interfaceType));
+            if (implementationType == null)
+                throw new ArgumentNullException(nameof(implementationType));
+            if (!interfaceType.IsInterface)
+                throw new ArgumentException($"{interfaceType} is not an interface", nameof(interfaceType));
+            if (implementationType.IsInterface)
+                throw new ArgumentException($"{implementationType} cannot be an interface", nameof(implementationType));
+
+            // проверка generic-совместимости
+            if (interfaceType.IsGenericTypeDefinition != implementationType.IsGenericTypeDefinition)
+                throw new ArgumentException("Both types must be generic definitions or both non-generic");
+
+            // создаём фабрику
+            Func<Type[], object> factory = genericArgs =>
+            {
+                Type targetType = implementationType;
+                if (implementationType.IsGenericTypeDefinition)
+                    targetType = implementationType.MakeGenericType(genericArgs);
+
+                return Activator.CreateInstance(targetType);
+            };
+
+            DefaultInterfaceMappings[interfaceType] = factory;
+        }
+
+        /// <summary>
+        /// Возвращает тип реализации по умолчанию для заданного интерфейса.
+        /// </summary>
+        /// <param name="type">Тип интерфейса, для которого необходимо получить реализацию.</param>
+        /// <returns>
+        /// Если <paramref name="type"/> не является интерфейсом, возвращает сам <paramref name="type"/>.
+        /// Для известных generic-интерфейсов (<see cref="IEnumerable{T}"/>, <see cref="IList{T}"/>, 
+        /// <see cref="ICollection{T}"/>, <see cref="IDictionary{TKey, TValue}"/>) возвращает соответствующий конкретный тип:
+        /// <list type="bullet">
+        /// <item><description><see cref="IEnumerable{T}"/> → <see cref="List{T}"/></description></item>
+        /// <item><description><see cref="IList{T}"/> → <see cref="List{T}"/></description></item>
+        /// <item><description><see cref="ICollection{T}"/> → <see cref="List{T}"/></description></item>
+        /// <item><description><see cref="IDictionary{TKey, TValue}"/> → <see cref="Dictionary{TKey, TValue}"/></description></item>
+        /// </list>
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если <paramref name="type"/> является интерфейсом, но для него не определена реализация по умолчанию.
+        /// </exception>
+        /// <remarks>
+        /// Метод использует словарь <see cref="DefaultInterfaceMappings"/> для поиска фабрик конкретных реализаций.
+        /// Если тип не найден в словаре, метод пытается обработать известные generic-интерфейсы вручную.
+        /// </remarks>
+        public static Type GetDefaultImplementation(Type type)
+        {
+            if (!type.IsInterface)
+                return type;
+
+            if (type.IsGenericType)
+            {
+                var genericDef = type.GetGenericTypeDefinition();
+                if (DefaultInterfaceMappings.TryGetValue(genericDef, out var factory))
+                {
+                    return factory(type.GetGenericArguments()).GetType();
+                }
+            }
+
+            throw new InvalidOperationException($"Cannot create an instance of interface {type}");
         }
 
         public static Cache<FieldInfo, Func<object, object>> FieldGetterCache { get; } = new Cache<FieldInfo, Func<object, object>>(CreateFieldGetter);

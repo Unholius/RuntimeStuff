@@ -950,9 +950,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="pageSize">Размер страницы</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая количество страниц</returns>
-        public static Task<int> GetPagesCountAsync<TFrom>(this IDbConnection connection, int pageSize, CancellationToken token = default) where TFrom : class
+        public static Task<int> GetPagesCountAsync<TFrom>(this IDbConnection connection, int pageSize, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().GetPagesCountAsync<TFrom>(pageSize, token);
+            return connection.AsDbClient().GetPagesCountAsync<TFrom>(pageSize, whereExpression, token);
         }
 
         /// <summary>
@@ -1032,9 +1032,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных</param>
         /// <param name="columnSelector">Селектор колонки (опционально)</param>
         /// <returns>Количество записей</returns>
-        public static object Count<TFrom>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector = null) where TFrom : class
+        public static object Count<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null) where TFrom : class
         {
-            return connection.AsDbClient().Count(columnSelector);
+            return connection.AsDbClient().Count(whereExpression, columnSelector);
         }
 
         /// <summary>
@@ -1045,9 +1045,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных</param>
         /// <param name="columnSelector">Селектор колонки (опционально)</param>
         /// <returns>Типизированное количество записей</returns>
-        public static T Count<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector = null) where TFrom : class
+        public static T Count<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null) where TFrom : class
         {
-            return connection.AsDbClient().Count<TFrom, T>(columnSelector);
+            return connection.AsDbClient().Count<TFrom, T>(whereExpression, columnSelector);
         }
 
         /// <summary>
@@ -1058,9 +1058,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки (опционально)</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая количество записей</returns>
-        public static Task<object> CountAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
+        public static Task<object> CountAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().CountAsync(columnSelector, token);
+            return connection.AsDbClient().CountAsync(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1072,9 +1072,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки (опционально)</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая типизированное количество записей</returns>
-        public static Task<T> CountAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
+        public static Task<T> CountAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().CountAsync<TFrom, T>(columnSelector, token);
+            return connection.AsDbClient().CountAsync<TFrom, T>(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1111,9 +1111,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая максимальное значение</returns>
-        public static Task<T> MaxAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public static Task<T> MaxAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().MaxAsync<TFrom, T>(columnSelector, token);
+            return connection.AsDbClient().MaxAsync<TFrom, T>(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1124,9 +1124,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая максимальное значение</returns>
-        public static Task<object> MaxAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public static Task<object> MaxAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().MaxAsync(columnSelector, token);
+            return connection.AsDbClient().MaxAsync(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1163,9 +1163,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая минимальное значение</returns>
-        public static Task<T> MinAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public static Task<T> MinAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().MinAsync<TFrom, T>(columnSelector, token);
+            return connection.AsDbClient().MinAsync<TFrom, T>(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1176,9 +1176,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая минимальное значение</returns>
-        public static Task<object> MinAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public static Task<object> MinAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().MinAsync(columnSelector, token);
+            return connection.AsDbClient().MinAsync(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1215,9 +1215,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая сумму значений</returns>
-        public static Task<T> SumAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public static Task<T> SumAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().SumAsync<TFrom, T>(columnSelector, token);
+            return connection.AsDbClient().SumAsync<TFrom, T>(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1228,9 +1228,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая сумму значений</returns>
-        public static Task<object> SumAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public static Task<object> SumAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().SumAsync(columnSelector, token);
+            return connection.AsDbClient().SumAsync(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1266,9 +1266,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="columnSelector">Селектор колонки</param>
         /// <param name="token">Токен отмены</param>
         /// <returns>Задача, возвращающая среднее значение</returns>
-        public static Task<object> AvgAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, object>> columnSelector, CancellationToken token = default) where TFrom : class
+        public static Task<object> AvgAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default) where TFrom : class
         {
-            return connection.AsDbClient().AvgAsync(columnSelector, token);
+            return connection.AsDbClient().AvgAsync(whereExpression, columnSelector, token);
         }
 
         /// <summary>
@@ -1278,9 +1278,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных</param>
         /// <param name="columnSelector">Селекторы колонок</param>
         /// <returns>Словарь с агрегированными статистиками (имя колонки → количество, минимум, максимум, сумма, среднее)</returns>
-        public static Dictionary<string, (long Count, long Min, long Max, long Sum, decimal Avg)> GetAggs<TFrom>(this IDbConnection connection, params Expression<Func<TFrom, object>>[] columnSelector) where TFrom : class
+        public static Dictionary<string, (long Count, long Min, long Max, long Sum, decimal Avg)> GetAggs<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, params Expression<Func<TFrom, object>>[] columnSelector) where TFrom : class
         {
-            return connection.AsDbClient().GetAggs(columnSelector);
+            return connection.AsDbClient().GetAggs(whereExpression, columnSelector);
         }
 
         /// <summary>
@@ -1291,9 +1291,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="token">Токен отмены</param>
         /// <param name="columnSelector">Селекторы колонок</param>
         /// <returns>Задача, возвращающая словарь с агрегированными статистиками</returns>
-        public static Task<Dictionary<string, (long Count, long Min, long Max, long Sum, decimal Avg)>> GetAggsAsync<TFrom>(this IDbConnection connection, CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelector) where TFrom : class
+        public static Task<Dictionary<string, (long Count, long Min, long Max, long Sum, decimal Avg)>> GetAggsAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelector) where TFrom : class
         {
-            return connection.AsDbClient().GetAggsAsync(token, columnSelector);
+            return connection.AsDbClient().GetAggsAsync(whereExpression, token, columnSelector);
         }
 
         /// <summary>
@@ -1304,9 +1304,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="aggFunction">Агрегирующая функция (COUNT, SUM, AVG, MIN, MAX)</param>
         /// <param name="columnSelectors">Селекторы колонок</param>
         /// <returns>Словарь с результатами агрегации (имя колонки → значение)</returns>
-        public static Dictionary<string, object> Agg<TFrom>(this IDbConnection connection, string aggFunction, params Expression<Func<TFrom, object>>[] columnSelectors) where TFrom : class
+        public static Dictionary<string, object> Agg<TFrom>(this IDbConnection connection, string aggFunction, Expression<Func<TFrom, bool>> whereExpression = null, params Expression<Func<TFrom, object>>[] columnSelectors) where TFrom : class
         {
-            return connection.AsDbClient().Agg(aggFunction, columnSelectors);
+            return connection.AsDbClient().Agg(aggFunction, whereExpression, columnSelectors);
         }
 
         /// <summary>
@@ -1318,9 +1318,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="token">Токен отмены</param>
         /// <param name="columnSelectors">Селекторы колонок</param>
         /// <returns>Задача, возвращающая словарь с результатами агрегации</returns>
-        public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, string aggFunction, CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelectors) where TFrom : class
+        public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, string aggFunction, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelectors) where TFrom : class
         {
-            return connection.AsDbClient().AggAsync(aggFunction, token, columnSelectors);
+            return connection.AsDbClient().AggAsync(aggFunction, whereExpression, token, columnSelectors);
         }
 
         /// <summary>
@@ -1330,9 +1330,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных</param>
         /// <param name="columnSelectors">Пары (селектор колонки, агрегирующая функция)</param>
         /// <returns>Словарь с результатами агрегации</returns>
-        public static Dictionary<string, object> Agg<TFrom>(this IDbConnection connection, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
+        public static Dictionary<string, object> Agg<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
         {
-            return connection.AsDbClient().Agg(columnSelectors);
+            return connection.AsDbClient().Agg(whereExpression, columnSelectors);
         }
 
         /// <summary>
@@ -1343,9 +1343,9 @@ namespace RuntimeStuff.Extensions
         /// <param name="token">Токен отмены</param>
         /// <param name="columnSelectors">Пары (селектор колонки, агрегирующая функция)</param>
         /// <returns>Задача, возвращающая словарь с результатами агрегации</returns>
-        public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, CancellationToken token = default, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
+        public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
         {
-            return connection.AsDbClient().AggAsync(token, columnSelectors);
+            return connection.AsDbClient().AggAsync(whereExpression, token, columnSelectors);
         }
 
         /// <summary>

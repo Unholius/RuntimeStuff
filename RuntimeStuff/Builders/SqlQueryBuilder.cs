@@ -13,6 +13,22 @@ namespace RuntimeStuff.Builders
     public static class SqlQueryBuilder
     {
         private static readonly IReadOnlyDictionary<string, object> EmptyParams = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+
+        public static string GetAggSelectClause<TFrom>(SqlProviderOptions options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
+        {
+            var query = "SELECT " + (columnSelectors.Length == 0
+                          ? "COUNT(*)"
+                          : string.Join(", ",
+                              columnSelectors.Select(c =>
+                              {
+                                  var colName = $"{options.NamePrefix}{(options.Map?.ResolveColumnName(c.column?.GetPropertyInfo(), null, null) ?? c.column?.GetMemberCache()?.ColumnName ?? "*")}{options.NameSuffix}".Replace("\"*\"", "*");
+                                  return $"{c.aggFunction}({colName})";
+                              }))
+                      + $" FROM {options.NamePrefix}{(options.Map?.ResolveTableName(typeof(TFrom), null, null) ?? typeof(TFrom).GetMemberCache().TableName)}{options.NameSuffix}");
+
+            return query;
+        }
+
         public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
         {
             cmdParams = EmptyParams;

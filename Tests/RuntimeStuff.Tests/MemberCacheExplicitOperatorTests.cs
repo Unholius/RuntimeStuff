@@ -370,10 +370,10 @@ namespace RuntimeStuff.MSTests
             // Arrange
             var type = typeof(TestClassForOperators);
             var memberCache = MemberCache.Create(type);
-            var properties = memberCache.Members.Where(m => m.IsProperty);
+            var properties = memberCache.Members.Where(m => m.Value.IsProperty);
 
             // Act
-            var propertyInfos = properties.Select(m => (PropertyInfo)m).ToList();
+            var propertyInfos = properties.Select(m => (PropertyInfo)m.Value).ToList();
 
             // Assert
             Assert.IsTrue(propertyInfos.Any());
@@ -387,25 +387,25 @@ namespace RuntimeStuff.MSTests
             // Arrange
             var type = typeof(TestClassForOperators);
             var memberCache = MemberCache.Create(type);
-            var propertyMembers = memberCache.Members.Where(m => m.IsProperty).ToList();
+            var propertyMembers = memberCache.Members.Where(m => m.Value.IsProperty).ToList();
 
             // Act & Assert
             foreach (var member in propertyMembers)
             {
                 // Если IsProperty == true, то приведение должно работать
-                Assert.IsTrue(member.IsProperty);
-                PropertyInfo propertyInfo = member;
+                Assert.IsTrue(member.Value.IsProperty);
+                PropertyInfo propertyInfo = member.Value;
                 Assert.IsNotNull(propertyInfo);
             }
 
-            var nonPropertyMembers = memberCache.Members.Where(m => !m.IsProperty).ToList();
+            var nonPropertyMembers = memberCache.Members.Where(m => !m.Value.IsProperty).ToList();
             foreach (var member in nonPropertyMembers)
             {
                 // Если IsProperty == false, то приведение должно бросать исключение
-                Assert.IsFalse(member.IsProperty);
+                Assert.IsFalse(member.Value.IsProperty);
                 Assert.ThrowsException<InvalidCastException>(() =>
                 {
-                    PropertyInfo propertyInfo = member;
+                    PropertyInfo propertyInfo = member.Value;
                 });
             }
         }

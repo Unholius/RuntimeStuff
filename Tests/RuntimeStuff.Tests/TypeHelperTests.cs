@@ -864,7 +864,7 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.IsNotNull(instance);
-            Assert.IsInstanceOfType(instance, typeof(TestPerson));
+            Assert.IsInstanceOfType(instance, typeof(List<TestPerson>));
         }
 
         #endregion New Tests

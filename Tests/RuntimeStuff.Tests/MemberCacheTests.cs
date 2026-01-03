@@ -470,9 +470,9 @@ namespace RuntimeStuff.MSTests
             var members = memberCache.Members;
 
             // Assert
-            Assert.IsTrue(members.Any(m => m.Name == "Id" && m.IsProperty));
-            Assert.IsTrue(members.Any(m => m.Name == "Name" && m.IsProperty));
-            Assert.IsTrue(members.Any(m => m.Name == "PublicField" && m.IsField));
+            Assert.IsTrue(members.Any(m => m.Value.Name == "Id" && m.Value.IsProperty));
+            Assert.IsTrue(members.Any(m => m.Value.Name == "Name" && m.Value.IsProperty));
+            Assert.IsTrue(members.Any(m => m.Value.Name == "PublicField" && m.Value.IsField));
             // Приватные поля могут не включаться в зависимости от BindingFlags
         }
 
@@ -674,9 +674,9 @@ namespace RuntimeStuff.MSTests
             var derivedCache = MemberCache.Create(derivedType);
 
             // Assert
-            Assert.IsTrue(baseCache.Members.Any(m => m.Name == "BaseProperty"));
-            Assert.IsTrue(derivedCache.Members.Any(m => m.Name == "BaseProperty"));
-            Assert.IsTrue(derivedCache.Members.Any(m => m.Name == "DerivedProperty"));
+            Assert.IsTrue(baseCache.Members.Any(m => m.Value.Name == "BaseProperty"));
+            Assert.IsTrue(derivedCache.Members.Any(m => m.Value.Name == "BaseProperty"));
+            Assert.IsTrue(derivedCache.Members.Any(m => m.Value.Name == "DerivedProperty"));
         }
 
         #endregion

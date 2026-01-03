@@ -35,26 +35,41 @@ namespace RuntimeStuff
 
         public string ResolveTableName(Type type, string namePrefix, string nameSuffix)
         {
+            if (type == null)
+                return null;
+
             return _entityMapping.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.TableName}{nameSuffix}" : null;
         }
 
         public string ResolveSchemaName(Type type, string namePrefix, string nameSuffix)
         {
+            if (type == null)
+                return null;
+
             return _entityMapping.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.Schema}{nameSuffix}" : null;
         }
 
         public string ResolveColumnName(PropertyInfo property, string namePrefix, string nameSuffix)
         {
+            if (property == null)
+                return null;
+
             return _entityMapping.TryGetValue(property.DeclaringType, out var typeMapping) ? (typeMapping.PropertyColumns.TryGetValue(property, out var propertyMapping) ? $"{namePrefix}{propertyMapping.ColumnName}{nameSuffix}" : null) : null;
         }
 
         public Type ResolveType(string tableName)
         {
+            if (string.IsNullOrWhiteSpace(tableName))
+                return null;
+
             return _entityMapping.FirstOrDefault(x => x.Value.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)).Key;
         }
 
         public PropertyInfo ResolveProperty(Type type, string columnName)
         {
+            if (type == null)
+                return null;
+
             if (!_entityMapping.TryGetValue(type, out var typeMapping))
                 return null;
 
@@ -63,6 +78,9 @@ namespace RuntimeStuff
 
         public IEnumerable<(string ColumnName, string PropertyName)> GetColumnToPropertyMap(Type type)
         {
+            if (type == null)
+                return null;
+
             if (!_entityMapping.TryGetValue(type, out var typeMapping))
                 return null;
 
@@ -71,6 +89,9 @@ namespace RuntimeStuff
 
         public IEnumerable<(string PropertyName, string ColumnName)> GetPropertyToColumnMap(Type type)
         {
+            if (type == null)
+                return null;
+
             if (!_entityMapping.TryGetValue(type, out var typeMapping))
                 return null;
 
