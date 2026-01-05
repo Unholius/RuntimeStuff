@@ -273,7 +273,7 @@ namespace RuntimeStuff
                             var value = await _asyncFactory(k).ConfigureAwait(false);
                             OnItemAdded(k);
                             EnforceSizeLimit();
-                            return new CacheEntry(value, Now());
+                            return new CacheEntry(key, value, Now());
                         },
                         LazyThreadSafetyMode.ExecutionAndPublication));
 
@@ -387,7 +387,7 @@ namespace RuntimeStuff
         public void Set(TKey key, TValue value)
         {
             // Создаём Lazy с Task, фиксируя время создания сразу
-            var v = new CacheEntry(value, Now());
+            var v = new CacheEntry(key, value, Now());
             var lazy = new Lazy<Task<CacheEntry>>(
                 () => Task.FromResult(v),
                 LazyThreadSafetyMode.ExecutionAndPublication);
@@ -406,9 +406,10 @@ namespace RuntimeStuff
                 {
                     OnItemRemoved(k, RemovalReason.Manual);
                     OnItemAdded(k);
-                    EnforceSizeLimit();
                     return lazy;
                 });
+
+            EnforceSizeLimit();
         }
 
         /// <summary>
@@ -458,11 +459,16 @@ namespace RuntimeStuff
         /// <returns>Перечислитель ключ-значение.</returns>
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
-            foreach (var key in Keys)
+            foreach (var entry in _cache.Values.OrderBy(x => x.Value.Result.Created))
             {
-                if (TryGetValue(key, out var value))
-                    yield return new KeyValuePair<TKey, TValue>(key, value);
+                if (TryGetValue(entry.Value.Result.Key, out var value))
+                    yield return new KeyValuePair<TKey, TValue>(entry.Value.Result.Key, value);
             }
+        }
+
+        public IEnumerable<(TKey Key, TValue Value, DateTime Created, DateTime LastAccess)> GetEntries()
+        {
+            return _cache.Values.Select(x => (x.Value.Result.Key, x.Value.Result.Value, x.Value.Result.Created, x.Value.Result.LastAccess));
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -631,12 +637,14 @@ namespace RuntimeStuff
 
         private sealed class CacheEntry
         {
+            public TKey Key;
             public TValue Value { get; }
             public DateTime Created { get; }
             public DateTime LastAccess;
 
-            public CacheEntry(TValue value, DateTime created)
+            public CacheEntry(TKey key, TValue value, DateTime created)
             {
+                Key = key;
                 Value = value;
                 Created = created;
                 LastAccess = created;
@@ -645,7 +653,7 @@ namespace RuntimeStuff
 
         private void EnforceSizeLimit()
         {
-            if (_sizeLimit == null)
+            if (_sizeLimit == null || _sizeLimit.Value == 0)
                 return;
 
             //lock (_evictionLock)

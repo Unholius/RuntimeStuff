@@ -392,7 +392,7 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.IsTrue(memberCache.IsForeignKey);
-            Assert.AreEqual("RelatedId", memberCache.ForeignColumnName);
+            Assert.AreEqual("RelatedId", memberCache.ForeignKeyName);
         }
 
         [TestMethod]

@@ -121,6 +121,9 @@ CREATE TABLE student_courses (
 ";
 
             db.ExecuteNonQuery(sqlTestTable);
+            db.ExecuteNonQuery(sqlTable11);
+            db.ExecuteNonQuery(sqlTable1M);
+            db.ExecuteNonQuery(sqlTablesMM);
         }
 
         [TestMethod]
@@ -137,7 +140,7 @@ CREATE TABLE student_courses (
             db.Options.Map = map;
             db.EnableLogging = true;
             var row = new DTO.SQLite.TestTable() { IntValue  = 1, TextValue = "1" };
-            var id = db.Insert<DTO.SQLite.TestTable>(row, x => x.IntValue, x => x.TextValue);
+            var id = db.Insert(row, x => x.IntValue, x => x.TextValue);
             var row2 = db.First<DTO.SQLite.TestTable>(x => x.Id == (long)id);
             Assert.AreEqual(1, row2.IntValue);
             Assert.AreEqual("1", row2.TextValue);
@@ -146,5 +149,15 @@ CREATE TABLE student_courses (
             var count = db.Count<DTO.SQLite.TestTable, long>(x => x.Id == (long)id);
             Assert.AreEqual (0L, count);
         }
+
+        [TestMethod]
+        public void DbClient_Test_02()
+        {
+            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+            var user = db.Insert<DTO.SQLite.User>(x => x.Name = "user_1");
+            var profile = db.Insert<DTO.SQLite.UserProfile>(x=>x.UserId = user.Id,  x => x.AvatarUrl = new Uri("https://ya.ru"));
+            var up = db.First<DTO.SQLite.UserProfile>(x => x.UserId == profile.UserId);
+        }
+
     }
 }

@@ -12,7 +12,61 @@ namespace RuntimeStuff.Builders
 {
     public static class SqlQueryBuilder
     {
+        public enum JoinType
+        {
+            Inner,
+            Left,
+            Right,
+            Full
+        }
+
         private static readonly IReadOnlyDictionary<string, object> EmptyParams = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+        public static string GetJoinClause(Type from, Type joinOn, SqlProviderOptions options, JoinType joinType = JoinType.Inner)
+        {
+            if (from == null) throw new ArgumentNullException(nameof(from));
+            if (joinOn == null) throw new ArgumentNullException(nameof(joinOn));
+
+            var parentCache = MemberCache.Create(from);
+            var childrenCache = MemberCache.Create(joinOn);
+
+            var parentTable = parentCache.TableName;
+            var childTable = childrenCache.TableName;
+
+            string parentColumn = null;
+            string childColumn = null;
+
+            // Попробуем найти FK в children → parent
+            var fkInChildren = childrenCache.GetForeignKey(from);
+            if (fkInChildren != null)
+            {
+                parentColumn = parentCache.PrimaryKeys.FirstOrDefault().Value?.ColumnName;
+                childColumn = fkInChildren.ColumnName;
+            }
+            else
+            {
+                // Если FK в children не найден, ищем FK в parent → children
+                var fkInParent = parentCache.GetForeignKey(joinOn);
+                if (fkInParent != null)
+                {
+                    // FK в parent: столбцы меняем местами, чтобы parent остался FROM
+                    parentColumn = fkInParent.ColumnName;
+                    childColumn = childrenCache.PrimaryKeys.FirstOrDefault().Value?.ColumnName;
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"Foreign key between {from.Name} and {joinOn.Name} not found");
+                }
+            }
+
+            if (parentColumn == null || childColumn == null)
+                throw new InvalidOperationException("Failed to determine join columns.");
+
+            var np = options.NamePrefix;
+            var ns = options.NameSuffix;
+
+            return $"{joinType.ToString().ToUpper()} JOIN {np}{childTable}{ns} ON {np}{childTable}{ns}.{np}{childColumn}{ns} = {np}{parentTable}{ns}.{np}{parentColumn}{ns}";
+        }
 
         public static string GetAggSelectClause<TFrom>(SqlProviderOptions options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
         {
@@ -309,6 +363,13 @@ namespace RuntimeStuff.Builders
                     if (ue.Operand is MemberExpression me2)
                         cmdParams[paramName] = GetValue(me2);
                 }
+
+                if (be.Right is MemberExpression rme)
+                {
+                    var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
+                    right = options.ParamPrefix + paramName;
+                    cmdParams[paramName] = GetValue(rme);
+                }
             }
 
             return $"({left} {op} {right})";
@@ -355,26 +416,6 @@ namespace RuntimeStuff.Builders
             );
             return lambda.Compile().Invoke();
         }
-
-        //private static string FormatValue(object value, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
-        //{
-        //    if (Obj.NullValues.Contains(value))
-        //        return options.NullValue;
-
-        //    if (value is string s)
-        //        return options.StringPrefix + s.Replace("'", "''") + options.StringSuffix;
-
-        //    if (value is DateTime dt)
-        //        return options.StringPrefix + dt.ToString(options.DateFormat) + options.StringSuffix;
-
-        //    if (value is bool b)
-        //        return b ? options.TrueValue : options.FalseValue;
-
-        //    if (value is Enum)
-        //        return Convert.ToInt32(value).ToString();
-
-        //    return value.ToString();
-        //}
 
         private static string GetSqlOperator(ExpressionType type)
         {

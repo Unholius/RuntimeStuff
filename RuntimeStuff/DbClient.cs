@@ -75,7 +75,7 @@ namespace RuntimeStuff
         public static DbClient<T> Create(string connectionString)
         {
             var con = new T { ConnectionString = connectionString };
-            var dbClient = ClientCache.Get(con);
+            var dbClient = new DbClient<T>(con); //ClientCache.Get(con);
             return dbClient;
         }
 
@@ -86,7 +86,7 @@ namespace RuntimeStuff
         /// <returns>Экземпляр <see cref="DbClient{T}"/>.</returns>
         public static DbClient<T> Create(T con)
         {
-            var dbClient = ClientCache.Get(con);
+            var dbClient = new DbClient<T>(con); //ClientCache.Get(con);
             return dbClient;
         }
     }
@@ -119,10 +119,10 @@ namespace RuntimeStuff
         public delegate object DbValueConverter<in T>(string fieldName, object fieldValue, PropertyInfo propertyInfo, T item);
 
         public static DbValueConverter TrimStringSpaces = (name, value, info, item) => value is string s ? s.Trim(TrimChars) : ChangeType(value, info.PropertyType);
-        private uint queryLogMaxSize;
+        private uint queryLogMaxSize = 100;
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
 
-        private static readonly Cache<IDbConnection, DbClient> ClientCache = new Cache<IDbConnection, DbClient>(con => new DbClient(con));
+        //private static readonly Cache<IDbConnection, DbClient> ClientCache = new Cache<IDbConnection, DbClient>(con => new DbClient(con));
 
         private readonly AsyncLocal<IDbTransaction> _tr = new AsyncLocal<IDbTransaction>();
 
@@ -148,8 +148,8 @@ namespace RuntimeStuff
         /// </summary>
         public bool EnableLogging { get; set; }
 
-        private Cache<DateTime, string> _queryLogs = new Cache<DateTime, string>();
-        public IEnumerable<string> QueryLogs => _queryLogs.Values.ToArray();
+        private Cache<DateTime, string> _queryLogs = new Cache<DateTime, string>(sizeLimit: 100);
+        public IEnumerable<string> QueryLogs => _queryLogs.GetEntries().OrderBy(x => x.Created).Select(x => x.Value).ToArray();
 
         public uint QueryLogMaxSize
         {
@@ -157,7 +157,7 @@ namespace RuntimeStuff
             set
             {
                 queryLogMaxSize = value;
-                _queryLogs = queryLogMaxSize == 0 ? new Cache<DateTime, string>() : new Cache<DateTime, string>(sizeLimit: queryLogMaxSize);
+                _queryLogs = new Cache<DateTime, string>(sizeLimit: queryLogMaxSize);
             }
         }
 
@@ -260,11 +260,11 @@ namespace RuntimeStuff
         /// Создаёт или возвращает кэшированный экземпляр <see cref="DbClient"/>
         /// для указанного соединения.
         /// </summary>
-        /// <param name="connection">Соединение с базой данных.</param>
+        /// <param name="con">Соединение с базой данных.</param>
         /// <returns>Экземпляр <see cref="DbClient"/>.</returns>
-        public static DbClient Create(IDbConnection connection)
+        public static DbClient Create(IDbConnection con)
         {
-            var dbClient = ClientCache.Get(connection);
+            var dbClient = new DbClient(con); //ClientCache.Get(connection);
             return dbClient;
         }
 
@@ -1950,11 +1950,17 @@ namespace RuntimeStuff
                 {
                     foreach (var t in tables)
                     {
-                        var fk = Obj.FindMember(t.ElementType, t.ForeignColumnName) as PropertyInfo;
-                        var tableQuery = SqlQueryBuilder.GetSelectQuery(Options, t.ElementType) + " " + SqlQueryBuilder.GetWhereClause(new[] { (MemberCache)fk }, Options, out var d);
-                        d[d.Keys.First()] = Obj.Get(i, itemTypeCache.PrimaryKeys.Keys.First());
-                        var tableValue = Query(t.Type, tableQuery, d);
-                        //Obj.Set(i, t.Name)
+                        if (t.IsCollection)
+                        {
+                            var fk = Obj.FindMember(t.ElementType, t.ForeignKeyName) as PropertyInfo;
+                            var tableQuery = SqlQueryBuilder.GetSelectQuery(Options, t.ElementType) + " " + SqlQueryBuilder.GetWhereClause(new[] { (MemberCache)fk }, Options, out var d);
+                            d[d.Keys.First()] = Obj.Get(i, itemTypeCache.PrimaryKeys.Keys.First());
+                            var tableValue = Query(t.Type, tableQuery, d);
+                        } else
+                        {
+                            var fk = itemTypeCache.GetForeignKey(itemTypeCache);
+                            var tableQuery = SqlQueryBuilder.GetSelectQuery(Options, t.PropertyType) + " " + SqlQueryBuilder.GetWhereClause(new[] { (MemberCache)fk }, Options, out var d);
+                        }
                     }
                 }
             }
@@ -2878,6 +2884,7 @@ namespace RuntimeStuff
                                $"Параметры: {string.Join(", ", cmd == null ? Array.Empty<string>() : cmd.Parameters.Cast<IDbDataParameter>().Select(p => $"{p.ParameterName}={p.Value}"))}";
 
             CommandFailed?.Invoke(cmd, ex);
+            Log(errorMessage);
             return new InvalidOperationException(errorMessage, ex);
         }
 
@@ -3063,8 +3070,17 @@ namespace RuntimeStuff
         {
             if (!EnableLogging)
                 return;
+
+            Log(GetRawSql(cmd));
+        }
+
+        private void Log(string message)
+        {
+            if (!EnableLogging)
+                return;
+
             var now = DateTimeHelper.ExactNow(DateTime.Now);
-            _queryLogs.Set(now, string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", now) + ": " + GetRawSql(cmd));
+            _queryLogs.Set(now, string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", now) + ": " + message);
         }
 
         private async Task<IEnumerable<object>> ReadCoreAsync(Type returnType, DbDataReader reader, IEnumerable<string> columns, IEnumerable<(string, string)> columnToPropertyMap, DbValueConverter<object> converter, int fetchRows, Func<object[], string[], object> itemFactory, bool isAsync, CancellationToken ct)

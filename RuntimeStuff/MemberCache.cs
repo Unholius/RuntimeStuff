@@ -14,7 +14,7 @@ using RuntimeStuff.Helpers;
 namespace RuntimeStuff
 {
     /// <summary>
-    ///     v.2026.01.03 (RS) <br />
+    ///     v.2026.01.05 (RS) <br />
     ///     Представляет расширенную обёртку над <see cref="MemberInfo" />, предоставляющую унифицированный доступ к
     ///     дополнительной информации и операциям для членов типа .NET<br />
     ///     (свойств, методов, полей, событий, конструкторов и самих типов).
@@ -357,7 +357,7 @@ namespace RuntimeStuff
                         ? colAttr.GetType().GetProperty("Name")?.GetValue(colAttr)?.ToString() ?? Name
                         : Name;
 
-                    ForeignColumnName = fkAttr?.GetType().GetProperty("Name")?.GetValue(fkAttr)?.ToString() ??
+                    ForeignKeyName = fkAttr?.GetType().GetProperty("Name")?.GetValue(fkAttr)?.ToString() ??
                                         string.Empty;
                 }
                 else
@@ -366,7 +366,7 @@ namespace RuntimeStuff
                     Getter = _typeCache.Getter;
                     PropertyBackingField = _typeCache.PropertyBackingField;
                     ColumnName = _typeCache.ColumnName;
-                    ForeignColumnName = _typeCache.ForeignColumnName;
+                    ForeignKeyName = _typeCache.ForeignKeyName;
                     IsPrimaryKey = _typeCache.IsPrimaryKey;
                     IsForeignKey = _typeCache.IsForeignKey;
                 }
@@ -461,7 +461,7 @@ namespace RuntimeStuff
         /// <returns>Строка с именем и типом члена.</returns>
         public override string ToString()
         {
-            return $"{(DeclaringType == null ? "" : $"{DeclaringType.Name}.")}{Name} ({Type.Name})";
+            return $"[{(IsProperty ? "P" : IsField ? "F" : IsType ? "T" : IsMethod ? "M" : IsConstructor ? "C" : IsEvent ? "E" : "?")}] {(DeclaringType == null ? "" : $"{DeclaringType.Name}.")}{Name} ({Type.Name})";
         }
 
         #endregion Вспомогательные методы
@@ -670,7 +670,7 @@ namespace RuntimeStuff
         /// <summary>
         ///     Имя внешнего ключа (из атрибута ForeignKeyAttribute)
         /// </summary>
-        public string ForeignColumnName { get; }
+        public string ForeignKeyName { get; }
 
         /// <summary>
         ///     Свойства, помеченные атрибутом ForeignKeyAttribute
@@ -1505,7 +1505,7 @@ namespace RuntimeStuff
         /// <returns>Экземпляр <see cref="PropertyInfo" />, либо <c>null</c>.</returns>
         public PropertyInfo GetProperty(string propertyName)
         {
-            return GetMember(propertyName)?.AsPropertyInfo();
+            return GetMember(propertyName, MemberNameType.Name)?.AsPropertyInfo();
         }
 
         #endregion Методы поиска членов
@@ -1534,7 +1534,25 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        ///     Проверяет наличие атрибута указанного типа по имени.
+        ///     Проверяет наличие атрибута указанного типа.
+        /// </summary>
+        /// <param name="typeNames">Имя типа</param>
+        public bool HasAttributeOfType<T>()
+        {
+            return HasAttributeOfType(typeof(T));
+        }
+
+        /// <summary>
+        ///     Проверяет наличие атрибута любого из указанных типов.
+        /// </summary>
+        /// <param name="typeNames">Имя типа</param>
+        public bool HasAttributeOfType(params Type[] types)
+        {
+            return Attributes.Any(a => types.Contains(a.Value.GetType()));
+        }
+
+        /// <summary>
+        ///     Проверяет наличие атрибута любого из указанных имен типа.
         /// </summary>
         /// <param name="typeNames">Имя типа</param>
         public bool HasAttributeOfType(params string[] typeNames)
@@ -1644,9 +1662,10 @@ namespace RuntimeStuff
             _tables = Members.Where(x =>
                 x.Value.IsProperty &&
                 x.Value.IsPublic &&
-                x.Value.IsCollection &&
-                !x.Value.IsBasicCollection &&
-                x.Value.Attributes.All(a => a.GetType().Name != "NotMappedAttribute"))
+                (x.Value.IsCollection &&
+                !x.Value.IsBasicCollection || !x.Value.IsBasic) &&
+                !x.Value.HasAttributeOfType("ColumnAttribute", "NotMappedAttribute", "Key")
+                )
                 .Select(x => x.Value)
                 .ToArray();
 
@@ -1905,6 +1924,16 @@ namespace RuntimeStuff
             }
 
             return true;
+        }
+
+        public MemberCache GetForeignKey(Type children)
+        {
+            var childrenCache = Create(children);
+            return childrenCache.ForeignKeys.FirstOrDefault(fk =>
+            {
+                var nav = childrenCache.GetProperty(fk.Value.ForeignKeyName);
+                return nav?.PropertyType == Type;
+            }).Value;
         }
 
         #endregion Внутренние методы

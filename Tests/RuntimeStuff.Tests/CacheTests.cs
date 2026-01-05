@@ -991,6 +991,18 @@
             Assert.IsFalse(cache1.ContainsKey(2));
         }
 
+        [TestMethod]
+        public void TestSizeLimit_05()
+        {
+            var cache1 = new Cache<int, string>(sizeLimit: 2, evictionPolicy: EvictionPolicy.LRU);
+            cache1.Set(1, "One");
+            cache1.Set(2, "Two");
+            cache1.Set(3, "Three");
+            cache1.Set(4, "Four");
+            cache1.Set(5, "Five");
+            Assert.AreEqual(2, cache1.Count);
+        }
+
         #endregion
     }
 }
