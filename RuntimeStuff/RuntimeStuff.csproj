@@ -8,7 +8,7 @@
 	</Target>
 	<PropertyGroup>
 	  <TargetFrameworks>netstandard2.0</TargetFrameworks>
-	  <Version>2025.12.26.1-dev</Version>
+	  <Version>2026.01.06.0-dev</Version>
 	  <OutputType>Library</OutputType>
 	  <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	  <Authors>Rudnev Sergey</Authors>

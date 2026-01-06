@@ -1942,28 +1942,28 @@ namespace RuntimeStuff
             Func<object[], string[], TItem> itemFactory = null)
         {
             var list = Query<List<TItem>, TItem>(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory);
-            var itemTypeCache = MemberCache<TItem>.Create();
-            var tables = itemTypeCache.GetTables();
-            if (tables.Length > 0)
-            {
-                foreach (var i in list)
-                {
-                    foreach (var t in tables)
-                    {
-                        if (t.IsCollection)
-                        {
-                            var fk = Obj.FindMember(t.ElementType, t.ForeignKeyName) as PropertyInfo;
-                            var tableQuery = SqlQueryBuilder.GetSelectQuery(Options, t.ElementType) + " " + SqlQueryBuilder.GetWhereClause(new[] { (MemberCache)fk }, Options, out var d);
-                            d[d.Keys.First()] = Obj.Get(i, itemTypeCache.PrimaryKeys.Keys.First());
-                            var tableValue = Query(t.Type, tableQuery, d);
-                        } else
-                        {
-                            var fk = itemTypeCache.GetForeignKey(itemTypeCache);
-                            var tableQuery = SqlQueryBuilder.GetSelectQuery(Options, t.PropertyType) + " " + SqlQueryBuilder.GetWhereClause(new[] { (MemberCache)fk }, Options, out var d);
-                        }
-                    }
-                }
-            }
+            //var itemTypeCache = MemberCache<TItem>.Create();
+            //var tables = itemTypeCache.GetTables();
+            //if (tables.Length > 0)
+            //{
+            //    foreach (var i in list)
+            //    {
+            //        foreach (var t in tables)
+            //        {
+            //            if (t.IsCollection)
+            //            {
+            //                var fk = Obj.FindMember(t.ElementType, t.ForeignKeyName) as PropertyInfo;
+            //                var tableQuery = SqlQueryBuilder.GetSelectQuery(Options, t.ElementType) + " " + SqlQueryBuilder.GetWhereClause(new[] { (MemberCache)fk }, Options, out var d);
+            //                d[d.Keys.First()] = Obj.Get(i, itemTypeCache.PrimaryKeys.Keys.First());
+            //                var tableValue = Query(t.Type, tableQuery, d);
+            //            } else
+            //            {
+            //                var fk = itemTypeCache.GetForeignKey(itemTypeCache);
+            //                var tableQuery = SqlQueryBuilder.GetSelectQuery(Options, t.PropertyType) + " " + SqlQueryBuilder.GetWhereClause(new[] { (MemberCache)fk }, Options, out var d);
+            //            }
+            //        }
+            //    }
+            //}
             return list;
         }
 
