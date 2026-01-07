@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff.Options
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="OptionsBase.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Options
 {
     using System;
     using System.Collections.Generic;
@@ -30,10 +43,8 @@
         /// Инициализирует экземпляр класса и устанавливает значения свойств
         /// из переданного словаря.
         /// </summary>
-        /// <param name="paramValues">
-        /// Словарь значений параметров, где ключ — имя свойства,
-        /// значение — устанавливаемое значение.
-        /// </param>
+        /// <param name="paramValues">Словарь значений параметров, где ключ — имя свойства,
+        /// значение — устанавливаемое значение.</param>
         protected OptionsBase(IDictionary<string, object> paramValues)
             : this()
         {
@@ -70,10 +81,8 @@
         /// <typeparam name="TValue">Тип устанавливаемого значения.</typeparam>
         /// <param name="name">Имя свойства.</param>
         /// <param name="value">Новое значение.</param>
-        /// <returns>
-        /// <c>true</c>, если значение успешно установлено;
-        /// <c>false</c> — если свойство не найдено или произошла ошибка.
-        /// </returns>
+        /// <returns><c>true</c>, если значение успешно установлено;
+        /// <c>false</c> — если свойство не найдено или произошла ошибка.</returns>
         public bool Set<TValue>(string name, TValue value)
         {
             if (!this.PropertyMap.TryGetValue(name, out var p))
@@ -96,10 +105,8 @@
         /// <summary>
         /// Преобразует все свойства объекта в словарь.
         /// </summary>
-        /// <returns>
-        /// Словарь, где ключ — имя свойства,
-        /// значение — текущее значение свойства.
-        /// </returns>
+        /// <returns>Словарь, где ключ — имя свойства,
+        /// значение — текущее значение свойства.</returns>
         public Dictionary<string, object> ToDictionary()
         {
             var dict = new Dictionary<string, object>();
@@ -118,15 +125,15 @@
     /// Обобщённый базовый класс опций с поддержкой клонирования,
     /// объединения и построения через конфигурационный делегат.
     /// </summary>
-    /// <typeparam name="T">
-    /// Тип-наследник, реализующий шаблон CRTP
-    /// (Curiously Recurring Template Pattern).
-    /// </typeparam>
-    public abstract class OptionsBase<T> : OptionsBase where T : OptionsBase<T>, new()
+    /// <typeparam name="T">Тип-наследник, реализующий шаблон CRTP
+    /// (Curiously Recurring Template Pattern).</typeparam>
+    public abstract class OptionsBase<T> : OptionsBase
+        where T : OptionsBase<T>, new()
     {
         /// <summary>
         /// Gets создаёт экземпляр опций со значениями по умолчанию.
         /// </summary>
+        /// <value>The default.</value>
         public static T Default => new T();
 
         /// <summary>

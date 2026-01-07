@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff.Builders
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="SqlQueryBuilder.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Builders
 {
     using System;
     using System.Collections.Generic;
@@ -10,18 +23,54 @@
     using RuntimeStuff.Helpers;
     using RuntimeStuff.Options;
 
+    /// <summary>
+    /// Class SqlQueryBuilder.
+    /// </summary>
     public static class SqlQueryBuilder
     {
+        /// <summary>
+        /// Enum JoinType.
+        /// </summary>
         public enum JoinType
         {
+            /// <summary>
+            /// The inner
+            /// </summary>
             Inner,
+
+            /// <summary>
+            /// The left
+            /// </summary>
             Left,
+
+            /// <summary>
+            /// The right
+            /// </summary>
             Right,
-            Full
+
+            /// <summary>
+            /// The full
+            /// </summary>
+            Full,
         }
 
+        /// <summary>
+        /// The empty parameters.
+        /// </summary>
         private static readonly IReadOnlyDictionary<string, object> EmptyParams = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
 
+        /// <summary>
+        /// Gets the join clause.
+        /// </summary>
+        /// <param name="from">From.</param>
+        /// <param name="joinOn">The join on.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="joinType">Type of the join.</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.ArgumentNullException">from.</exception>
+        /// <exception cref="System.ArgumentNullException">joinOn.</exception>
+        /// <exception cref="System.InvalidOperationException">Foreign key between {from.Name} and {joinOn.Name} not found.</exception>
+        /// <exception cref="System.InvalidOperationException">Failed to determine join columns.</exception>
         public static string GetJoinClause(Type from, Type joinOn, SqlProviderOptions options, JoinType joinType = JoinType.Inner)
         {
             if (from == null)
@@ -102,6 +151,15 @@
             return query;
         }
 
+        /// <summary>
+        /// Gets the where clause.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="whereExpression">The where expression.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
         public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
         {
             cmdParams = EmptyParams;
@@ -111,6 +169,13 @@
             return whereClause;
         }
 
+        /// <summary>
+        /// Gets the where clause.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
         public static string GetWhereClause<T>(SqlProviderOptions options, out Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(typeof(T));
@@ -123,6 +188,13 @@
             return GetWhereClause(keys, options, out cmdParams);
         }
 
+        /// <summary>
+        /// Gets the where clause.
+        /// </summary>
+        /// <param name="whereProperties">The where properties.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
         public static string GetWhereClause(MemberCache[] whereProperties, SqlProviderOptions options, out Dictionary<string, object> cmdParams)
         {
             cmdParams = new Dictionary<string, object>();
@@ -151,6 +223,13 @@
             return whereClause.ToString();
         }
 
+        /// <summary>
+        /// Gets the select query.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="selectColumns">The select columns.</param>
+        /// <returns>System.String.</returns>
         public static string GetSelectQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] selectColumns)
         {
             var mi = MemberCache<T>.Create();
@@ -168,8 +247,23 @@
             return GetSelectQuery(options, mi, members);
         }
 
+        /// <summary>
+        /// Gets the select query.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="TProp">The type of the t property.</typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="selectColumns">The select columns.</param>
+        /// <returns>System.String.</returns>
         public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns) => GetSelectQuery(options, MemberCache<T>.Create(), selectColumns.Select(x => x.GetMemberCache()).ToArray());
 
+        /// <summary>
+        /// Gets the select query.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="typeInfo">The type information.</param>
+        /// <param name="selectColumns">The select columns.</param>
+        /// <returns>System.String.</returns>
         public static string GetSelectQuery(SqlProviderOptions options, MemberCache typeInfo, params MemberCache[] selectColumns)
         {
             if (selectColumns.Length == 0)
@@ -198,7 +292,15 @@
             return query.ToString();
         }
 
-        public static string GetUpdateQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] updateColumns) where T : class
+        /// <summary>
+        /// Gets the update query.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="updateColumns">The update columns.</param>
+        /// <returns>System.String.</returns>
+        public static string GetUpdateQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] updateColumns)
+            where T : class
         {
             var mi = MemberCache.Create(typeof(T));
             var query = new StringBuilder("UPDATE ")
@@ -244,7 +346,15 @@
             return query.ToString();
         }
 
-        public static string GetInsertQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] insertColumns) where T : class
+        /// <summary>
+        /// Gets the insert query.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="insertColumns">The insert columns.</param>
+        /// <returns>System.String.</returns>
+        public static string GetInsertQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] insertColumns)
+            where T : class
         {
             var query = new StringBuilder("INSERT INTO ");
             var mi = MemberCache<T>.Create();
@@ -295,13 +405,27 @@
             return query.ToString();
         }
 
-        public static string GetDeleteQuery<T>(SqlProviderOptions options) where T : class
+        /// <summary>
+        /// Gets the delete query.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="options">The options.</param>
+        /// <returns>System.String.</returns>
+        public static string GetDeleteQuery<T>(SqlProviderOptions options)
+            where T : class
         {
             var mi = MemberCache<T>.Create();
             var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.ParamPrefix, options.NameSuffix));
             return query.ToString();
         }
 
+        /// <summary>
+        /// Gets the order by.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="orderBy">The order by.</param>
+        /// <returns>System.String.</returns>
         public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
             if (orderBy == null)
@@ -313,6 +437,12 @@
             return GetOrderBy(options, props);
         }
 
+        /// <summary>
+        /// Gets the order by.
+        /// </summary>
+        /// <param name="options">The options.</param>
+        /// <param name="orderBy">The order by.</param>
+        /// <returns>System.String.</returns>
         public static string GetOrderBy(SqlProviderOptions options, params (MemberCache, bool)[] orderBy)
         {
             if (orderBy == null || orderBy.Length == 0)
@@ -339,6 +469,15 @@
             return query.ToString();
         }
 
+        /// <summary>
+        /// Adds the limit offset clause to query.
+        /// </summary>
+        /// <param name="fetchRows">The fetch rows.</param>
+        /// <param name="offsetRows">The offset rows.</param>
+        /// <param name="query">The query.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="entityType">Type of the entity.</param>
+        /// <returns>System.String.</returns>
         public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null)
         {
             if (fetchRows < 0 || offsetRows < 0)
@@ -370,6 +509,15 @@
             return clause.ToString().Trim();
         }
 
+        /// <summary>
+        /// Visits the specified exp.
+        /// </summary>
+        /// <param name="exp">The exp.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.NotSupportedException">Expression '{exp.NodeType}' is not supported.</exception>
         private static string Visit(Expression exp, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             switch (exp)
@@ -391,6 +539,14 @@
             }
         }
 
+        /// <summary>
+        /// Visits the binary.
+        /// </summary>
+        /// <param name="be">The be.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
         private static string VisitBinary(BinaryExpression be, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             var left = Visit(be.Left, options, useParams, cmdParams);
@@ -425,6 +581,15 @@
             return $"({left} {op} {right})";
         }
 
+        /// <summary>
+        /// Visits the unary.
+        /// </summary>
+        /// <param name="ue">The ue.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.NotSupportedException">Unary '{ue.NodeType}' not supported.</exception>
         private static string VisitUnary(UnaryExpression ue, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             switch (ue.NodeType)
@@ -440,6 +605,14 @@
             }
         }
 
+        /// <summary>
+        /// Visits the member.
+        /// </summary>
+        /// <param name="me">Me.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
         private static string VisitMember(MemberExpression me, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(me.Member);
@@ -453,8 +626,19 @@
             return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value);
         }
 
+        /// <summary>
+        /// Visits the constant.
+        /// </summary>
+        /// <param name="ce">The ce.</param>
+        /// <param name="options">The options.</param>
+        /// <returns>System.String.</returns>
         private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options) => options.ToSqlLiteral(ce.Value);
 
+        /// <summary>
+        /// Gets the value.
+        /// </summary>
+        /// <param name="me">Me.</param>
+        /// <returns>System.Object.</returns>
         private static object GetValue(MemberExpression me)
         {
             var lambda = Expression.Lambda<Func<object>>(
@@ -462,6 +646,12 @@
             return lambda.Compile().Invoke();
         }
 
+        /// <summary>
+        /// Gets the SQL operator.
+        /// </summary>
+        /// <param name="type">The type.</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.NotSupportedException">Operator '{type}' not supported.</exception>
         private static string GetSqlOperator(ExpressionType type)
         {
             switch (type)

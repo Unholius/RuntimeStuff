@@ -1,11 +1,24 @@
-﻿namespace RuntimeStuff.Extensions
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="DateTimeExtensions.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Extensions
 {
     using System;
     using System.Collections.Generic;
     using RuntimeStuff.Helpers;
 
     /// <summary>
-    /// Предоставляет методы расширения для работы с типом <see cref="DateTime"/>.
+    /// Предоставляет методы расширения для работы с типом <see cref="DateTime" />.
     /// </summary>
     public static class DateTimeExtensions
     {

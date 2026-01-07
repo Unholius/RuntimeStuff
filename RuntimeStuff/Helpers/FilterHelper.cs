@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff.Helpers
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="FilterHelper.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections.Generic;
@@ -8,15 +21,13 @@
     using System.Text.RegularExpressions;
 
     /// <summary>
-    ///     Предоставляет методы для фильтрации коллекций по строковым выражениям и тексту, позволяя гибко выбирать элементы на
-    ///     основе значений их свойств.
+    /// Предоставляет методы для фильтрации коллекций по строковым выражениям и тексту, позволяя гибко выбирать элементы на
+    /// основе значений их свойств.
     /// </summary>
-    /// <remarks>
-    ///     Класс предназначен для динамической фильтрации объектов по заданным условиям, которые задаются в виде
-    ///     строковых выражений, аналогичных SQL-выражениям. Поддерживаются операции сравнения, логические операторы, поиск по
-    ///     тексту, а также фильтрация по нескольким свойствам. Все методы реализованы как статические и не требуют создания
-    ///     экземпляра класса. Класс потокобезопасен при использовании в многопоточных сценариях.
-    /// </remarks>
+    /// <remarks>Класс предназначен для динамической фильтрации объектов по заданным условиям, которые задаются в виде
+    /// строковых выражений, аналогичных SQL-выражениям. Поддерживаются операции сравнения, логические операторы, поиск по
+    /// тексту, а также фильтрация по нескольким свойствам. Все методы реализованы как статические и не требуют создания
+    /// экземпляра класса. Класс потокобезопасен при использовании в многопоточных сценариях.</remarks>
     public static class FilterHelper
     {
 
@@ -54,19 +65,18 @@
         }
 
         /// <summary>
-        ///     Фильтрует элементы последовательности, оставляя только те,
-        ///     где хотя бы одно указанное свойство содержит заданный текст. Если свойства не указаны фильтруется по всем публичным
-        ///     свойствам.
+        /// Фильтрует элементы последовательности, оставляя только те,
+        /// где хотя бы одно указанное свойство содержит заданный текст. Если свойства не указаны фильтруется по всем публичным
+        /// свойствам.
         /// </summary>
         /// <typeparam name="T">Тип элементов последовательности.</typeparam>
         /// <param name="source">Исходная коллекция.</param>
         /// <param name="text">Фильтрующий текст.</param>
-        /// <param name="propertyNames">
-        ///     Список свойств, в которых выполняется поиск.
-        ///     Если не указан, берутся все публичные свойства.
-        /// </param>
+        /// <param name="propertyNames">Список свойств, в которых выполняется поиск.
+        /// Если не указан, берутся все публичные свойства.</param>
         /// <returns>Отфильтрованная коллекция.</returns>
-        public static IEnumerable<T> FilterByText<T>(IEnumerable<T> source, string text, string[] propertyNames = null) where T : class
+        public static IEnumerable<T> FilterByText<T>(IEnumerable<T> source, string text, string[] propertyNames = null)
+            where T : class
         {
             if (string.IsNullOrWhiteSpace(text))
             {
@@ -121,13 +131,26 @@
             });
         }
 
+        /// <summary>
+        /// The number regex.
+        /// </summary>
         private static readonly Regex NumberRegex = new Regex(@"^\d+(\.\d+)?$", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The property regex.
+        /// </summary>
         private static readonly Regex PropertyRegex = new Regex(@"^\[(.+)\]$", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The string regex.
+        /// </summary>
         private static readonly Regex StringRegex = new Regex(@"^'(.*)'$", RegexOptions.Compiled);
 
         /// <summary>
-        ///     Разбирает текстовое выражение в синтаксическое дерево.
+        /// Разбирает текстовое выражение в синтаксическое дерево.
         /// </summary>
+        /// <param name="input">The input.</param>
+        /// <returns>Expr.</returns>
         private static Expr Parse(string input)
         {
             var tokens = Tokenize(input);
@@ -135,6 +158,11 @@
             return ParseOr(tokens, ref pos);
         }
 
+        /// <summary>
+        /// Tokenizes the specified input.
+        /// </summary>
+        /// <param name="input">The input.</param>
+        /// <returns>List&lt;System.String&gt;.</returns>
         private static List<string> Tokenize(string input)
         {
             var tokens = new List<string>();
@@ -149,6 +177,12 @@
             return tokens;
         }
 
+        /// <summary>
+        /// Parses the add sub.
+        /// </summary>
+        /// <param name="tokens">The tokens.</param>
+        /// <param name="pos">The position.</param>
+        /// <returns>Expr.</returns>
         private static Expr ParseAddSub(List<string> tokens, ref int pos)
         {
             var left = ParseMulDiv(tokens, ref pos);
@@ -163,6 +197,12 @@
             return left;
         }
 
+        /// <summary>
+        /// Parses the and.
+        /// </summary>
+        /// <param name="tokens">The tokens.</param>
+        /// <param name="pos">The position.</param>
+        /// <returns>Expr.</returns>
         private static Expr ParseAnd(List<string> tokens, ref int pos)
         {
             var left = ParseComparison(tokens, ref pos);
@@ -176,6 +216,13 @@
             return left;
         }
 
+        /// <summary>
+        /// Parses the comparison.
+        /// </summary>
+        /// <param name="tokens">The tokens.</param>
+        /// <param name="pos">The position.</param>
+        /// <returns>Expr.</returns>
+        /// <exception cref="System.Exception">Ожидалась {.</exception>
         private static Expr ParseComparison(List<string> tokens, ref int pos)
         {
             var left = ParseAddSub(tokens, ref pos);
@@ -304,6 +351,12 @@
             return left;
         }
 
+        /// <summary>
+        /// Parses the mul div.
+        /// </summary>
+        /// <param name="tokens">The tokens.</param>
+        /// <param name="pos">The position.</param>
+        /// <returns>Expr.</returns>
         private static Expr ParseMulDiv(List<string> tokens, ref int pos)
         {
             var left = ParseTerm(tokens, ref pos);
@@ -317,6 +370,12 @@
             return left;
         }
 
+        /// <summary>
+        /// Parses the or.
+        /// </summary>
+        /// <param name="tokens">The tokens.</param>
+        /// <param name="pos">The position.</param>
+        /// <returns>Expr.</returns>
         private static Expr ParseOr(List<string> tokens, ref int pos)
         {
             var left = ParseAnd(tokens, ref pos);
@@ -330,6 +389,14 @@
             return left;
         }
 
+        /// <summary>
+        /// Parses the term.
+        /// </summary>
+        /// <param name="tokens">The tokens.</param>
+        /// <param name="pos">The position.</param>
+        /// <returns>Expr.</returns>
+        /// <exception cref="System.FormatException">Ошибка обработки фильтра.</exception>
+        /// <exception cref="System.Exception">Ожидалась ).</exception>
         private static Expr ParseTerm(List<string> tokens, ref int pos)
         {
             if (pos >= tokens.Count)
@@ -359,6 +426,12 @@
             return ParseValue(tokens[pos++]);
         }
 
+        /// <summary>
+        /// Parses the value.
+        /// </summary>
+        /// <param name="token">The token.</param>
+        /// <returns>Expr.</returns>
+        /// <exception cref="System.FormatException">Неизвестный токен {token}.</exception>
         private static Expr ParseValue(string token)
         {
             // число decimal
@@ -401,19 +474,19 @@
         }
 
         /// <summary>
-        ///     Скомпилировать текстовый фильтр в предикат.
+        /// Скомпилировать текстовый фильтр в предикат.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="filter">Текстовый фильтр, например: [EventId] >= 1000 || [name] like '%h%l%o%'.</param>
-        /// <returns></returns>
+        /// <param name="filter">Текстовый фильтр, например: [EventId] &gt;= 1000 || [name] like '%h%l%o%'.</param>
+        /// <returns>Func&lt;T, System.Boolean&gt;.</returns>
         public static Func<T, bool> ToPredicate<T>(string filter) => ToExpression<T>(filter).Compile();
 
         /// <summary>
-        ///     Преобразовать текстовый фильтр в выражение.
+        /// Преобразовать текстовый фильтр в выражение.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="filter">Текстовый фильтр.</param>
-        /// <returns></returns>
+        /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
         public static Expression<Func<T, bool>> ToExpression<T>(string filter)
         {
             if (string.IsNullOrEmpty(filter))
@@ -424,6 +497,12 @@
             return ToLambda<T>(Parse(filter));
         }
 
+        /// <summary>
+        /// Converts to lambda.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="expr">The expr.</param>
+        /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
         private static Expression<Func<T, bool>> ToLambda<T>(Expr expr)
         {
             var param = Expression.Parameter(typeof(T), "x");
@@ -431,6 +510,19 @@
             return Expression.Lambda<Func<T, bool>>(body, param);
         }
 
+        /// <summary>
+        /// Converts to expression.
+        /// </summary>
+        /// <param name="expr">The expr.</param>
+        /// <param name="param">The parameter.</param>
+        /// <returns>Expression.</returns>
+        /// <exception cref="System.FormatException">Свойство '{p.Name}' не существует в типе '{param.Type}'.</exception>
+        /// <exception cref="System.FormatException">Оператор BETWEEN не подходит для строкового параметра {left}.</exception>
+        /// <exception cref="System.NotSupportedException"></exception>
+        /// <exception cref="System.NotSupportedException">IS EMPTY применим только к строкам или коллекциям.</exception>
+        /// <exception cref="System.NotSupportedException">IS NOT EMPTY применим только к строкам или коллекциям.</exception>
+        /// <exception cref="System.NullReferenceException"></exception>
+        /// <exception cref="System.InvalidOperationException"></exception>
         private static Expression ToExpression(Expr expr, ParameterExpression param)
         {
             if (expr is ConstantExpr c)
@@ -631,24 +723,24 @@
         }
 
         /// <summary>
-        ///     Базовый класс для всех узлов синтаксического дерева.
+        /// Базовый класс для всех узлов синтаксического дерева.
         /// </summary>
         internal abstract class Expr
         {
         }
 
         /// <summary>
-        ///     Оператор BETWEEN: [prop] BETWEEN a AND b.
+        /// Оператор BETWEEN: [prop] BETWEEN a AND b.
         /// </summary>
         internal class BetweenExpr : Expr
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="BetweenExpr"/> class.
+            /// Initializes a new instance of the <see cref="BetweenExpr" /> class.
             /// </summary>
-            /// <param name="left"></param>
-            /// <param name="lower"></param>
-            /// <param name="upper"></param>
-            /// <param name="not"></param>
+            /// <param name="left">The left.</param>
+            /// <param name="lower">The lower.</param>
+            /// <param name="upper">The upper.</param>
+            /// <param name="not">if set to <c>true</c> [not].</param>
             public BetweenExpr(Expr left, Expr lower, Expr upper, bool not = false)
             {
                 this.Left = left;
@@ -657,28 +749,48 @@
                 this.Not = not;
             }
 
+            /// <summary>
+            /// Gets the left.
+            /// </summary>
+            /// <value>The left.</value>
             public Expr Left { get; }
 
+            /// <summary>
+            /// Gets the lower.
+            /// </summary>
+            /// <value>The lower.</value>
             public Expr Lower { get; }
 
+            /// <summary>
+            /// Gets the upper.
+            /// </summary>
+            /// <value>The upper.</value>
             public Expr Upper { get; }
 
+            /// <summary>
+            /// Gets a value indicating whether this <see cref="BetweenExpr"/> is not.
+            /// </summary>
+            /// <value><c>true</c> if not; otherwise, <c>false</c>.</value>
             public bool Not { get; }
 
+            /// <summary>
+            /// Returns a <see cref="string" /> that represents this instance.
+            /// </summary>
+            /// <returns>A <see cref="string" /> that represents this instance.</returns>
             public override string ToString() => $"{this.Left} {(this.Not ? "NOT " : string.Empty)}BETWEEN {this.Lower} AND {this.Upper}";
         }
 
         /// <summary>
-        ///     Бинарное выражение: арифметика, сравнения, логика.
+        /// Бинарное выражение: арифметика, сравнения, логика.
         /// </summary>
         internal class BinaryExpr : Expr
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="BinaryExpr"/> class.
+            /// Initializes a new instance of the <see cref="BinaryExpr" /> class.
             /// </summary>
-            /// <param name="left"></param>
-            /// <param name="op"></param>
-            /// <param name="right"></param>
+            /// <param name="left">The left.</param>
+            /// <param name="op">The op.</param>
+            /// <param name="right">The right.</param>
             public BinaryExpr(Expr left, string op, Expr right)
             {
                 this.Left = left;
@@ -686,45 +798,69 @@
                 this.Right = right;
             }
 
+            /// <summary>
+            /// Gets the left.
+            /// </summary>
+            /// <value>The left.</value>
             public Expr Left { get; }
 
+            /// <summary>
+            /// Gets the op.
+            /// </summary>
+            /// <value>The op.</value>
             public string Op { get; }
 
+            /// <summary>
+            /// Gets the right.
+            /// </summary>
+            /// <value>The right.</value>
             public Expr Right { get; }
 
+            /// <summary>
+            /// Returns a <see cref="string" /> that represents this instance.
+            /// </summary>
+            /// <returns>A <see cref="string" /> that represents this instance.</returns>
             public override string ToString() => $"{this.Left} {this.Op} {this.Right}";
         }
 
         /// <summary>
-        ///     Константное значение (число, строка, дата).
+        /// Константное значение (число, строка, дата).
         /// </summary>
         internal class ConstantExpr : Expr
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="ConstantExpr"/> class.
+            /// Initializes a new instance of the <see cref="ConstantExpr" /> class.
             /// </summary>
-            /// <param name="value"></param>
+            /// <param name="value">The value.</param>
             public ConstantExpr(object value)
             {
                 this.Value = value;
             }
 
+            /// <summary>
+            /// Gets the value.
+            /// </summary>
+            /// <value>The value.</value>
             public object Value { get; }
 
+            /// <summary>
+            /// Returns a <see cref="string" /> that represents this instance.
+            /// </summary>
+            /// <returns>A <see cref="string" /> that represents this instance.</returns>
             public override string ToString() => $"{this.Value}";
         }
 
         /// <summary>
-        ///     Оператор "IN": [prop] in {1,2,3}.
+        /// Оператор "IN": [prop] in {1,2,3}.
         /// </summary>
         internal class InExpr : Expr
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="InExpr"/> class.
+            /// Initializes a new instance of the <see cref="InExpr" /> class.
             /// </summary>
-            /// <param name="left"></param>
-            /// <param name="values"></param>
-            /// <param name="not"></param>
+            /// <param name="left">The left.</param>
+            /// <param name="values">The values.</param>
+            /// <param name="not">if set to <c>true</c> [not].</param>
             public InExpr(Expr left, List<Expr> values, bool not = false)
             {
                 this.Left = left;
@@ -732,54 +868,90 @@
                 this.Not = not;
             }
 
+            /// <summary>
+            /// Gets the left.
+            /// </summary>
+            /// <value>The left.</value>
             public Expr Left { get; }
 
+            /// <summary>
+            /// Gets a value indicating whether this <see cref="InExpr"/> is not.
+            /// </summary>
+            /// <value><c>true</c> if not; otherwise, <c>false</c>.</value>
             public bool Not { get; }
 
+            /// <summary>
+            /// Gets the values.
+            /// </summary>
+            /// <value>The values.</value>
             public List<Expr> Values { get; }
 
+            /// <summary>
+            /// Returns a <see cref="string" /> that represents this instance.
+            /// </summary>
+            /// <returns>A <see cref="string" /> that represents this instance.</returns>
             public override string ToString() => $"{this.Left} {(this.Not ? "NOT " : string.Empty)}IN {string.Join(", ", this.Values)}";
         }
 
         /// <summary>
-        ///     Ссылка на свойство вида [Name].
+        /// Ссылка на свойство вида [Name].
         /// </summary>
         internal class PropertyExpr : Expr
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="PropertyExpr"/> class.
+            /// Initializes a new instance of the <see cref="PropertyExpr" /> class.
             /// </summary>
-            /// <param name="name"></param>
+            /// <param name="name">The name.</param>
             public PropertyExpr(string name)
             {
                 this.Name = name;
             }
 
+            /// <summary>
+            /// Gets the name.
+            /// </summary>
+            /// <value>The name.</value>
             public string Name { get; }
 
+            /// <summary>
+            /// Returns a <see cref="string" /> that represents this instance.
+            /// </summary>
+            /// <returns>A <see cref="string" /> that represents this instance.</returns>
             public override string ToString() => $"[{this.Name}]";
         }
 
         /// <summary>
-        ///     Унарное выражение (!expr, -expr, +expr).
+        /// Унарное выражение (!expr, -expr, +expr).
         /// </summary>
         internal class UnaryExpr : Expr
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="UnaryExpr"/> class.
+            /// Initializes a new instance of the <see cref="UnaryExpr" /> class.
             /// </summary>
-            /// <param name="op"></param>
-            /// <param name="operand"></param>
+            /// <param name="op">The op.</param>
+            /// <param name="operand">The operand.</param>
             public UnaryExpr(string op, Expr operand)
             {
                 this.Op = op;
                 this.Operand = operand;
             }
 
+            /// <summary>
+            /// Gets the op.
+            /// </summary>
+            /// <value>The op.</value>
             public string Op { get; }
 
+            /// <summary>
+            /// Gets the operand.
+            /// </summary>
+            /// <value>The operand.</value>
             public Expr Operand { get; }
 
+            /// <summary>
+            /// Returns a <see cref="string" /> that represents this instance.
+            /// </summary>
+            /// <returns>A <see cref="string" /> that represents this instance.</returns>
             public override string ToString() => $"{this.Op} {this.Operand}";
         }
     }

@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff.Helpers
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="ExpressionHelper.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Linq;
@@ -17,17 +30,15 @@
     public static class ExpressionHelper
     {
         /// <summary>
-        /// Пытается вычислить значение указанного выражения <paramref name="member"/>.
+        /// Пытается вычислить значение указанного выражения <paramref name="member" />.
         /// Поддерживает распространённые формы выражений (binary, method call, unary, member и т.д.).
         /// В некоторых случаях, когда прямое вычисление невозможно, метод возвращает специальные
         /// значения для булевых выражений.
         /// </summary>
         /// <param name="member">Выражение, значение которого требуется получить.</param>
-        /// <returns>
-        /// Полученное значение как <see cref="object"/>, или <c>null</c>, если значение не может быть определено.
+        /// <returns>Полученное значение как <see cref="object" />, или <c>null</c>, если значение не может быть определено.
         /// Для некоторых булевых member-выражений метод может возвращать <c>true</c> или <c>false</c>,
-        /// когда непосредственная компиляция выражения не удалась.
-        /// </returns>
+        /// когда непосредственная компиляция выражения не удалась.</returns>
         public static object GetValue(Expression member)
         {
             try
@@ -73,26 +84,20 @@
         }
 
         /// <summary>
-        /// Возвращает <see cref="PropertyInfo"/>, соответствующий переданному выражению.
+        /// Возвращает <see cref="PropertyInfo" />, соответствующий переданному выражению.
         /// </summary>
         /// <param name="expr">Выражение, которое должно представлять доступ к свойству.</param>
-        /// <returns>
-        /// Объект <see cref="PropertyInfo"/>, если выражение представляет свойство; иначе <c>null</c>.
-        /// </returns>
+        /// <returns>Объект <see cref="PropertyInfo" />, если выражение представляет свойство; иначе <c>null</c>.</returns>
         public static PropertyInfo GetPropertyInfo(Expression expr) => GetMemberInfo(expr) as PropertyInfo;
 
         /// <summary>
-        /// Извлекает <see cref="MemberInfo"/> из различных типов узлов выражения.
-        /// Поддерживаемые типы узлов: <see cref="LambdaExpression"/>, <see cref="BinaryExpression"/>,.
-
-        /// <see cref="MemberExpression"/>, <see cref="UnaryExpression"/>, <see cref="MethodCallExpression"/>,
-
-        /// <see cref="ConditionalExpression"/>.
+        /// Извлекает <see cref="MemberInfo" /> из различных типов узлов выражения.
+        /// Поддерживаемые типы узлов: <see cref="LambdaExpression" />, <see cref="BinaryExpression" />,.
+        /// <see cref="MemberExpression" />, <see cref="UnaryExpression" />, <see cref="MethodCallExpression" />,
+        /// <see cref="ConditionalExpression" />.
         /// </summary>
         /// <param name="expr">Анализируемое выражение.</param>
-        /// <returns>
-        /// Разрешённый <see cref="MemberInfo"/>, либо <c>null</c>, если член не удалось определить.
-        /// </returns>
+        /// <returns>Разрешённый <see cref="MemberInfo" />, либо <c>null</c>, если член не удалось определить.</returns>
         public static MemberInfo GetMemberInfo(Expression expr)
         {
             if (expr == null)
@@ -123,26 +128,20 @@
         /// <summary>
         /// Возвращает имя свойства, представленного указанным выражением.
         /// </summary>
-        /// <remarks>
-        /// Обычно этот метод используется для получения имён свойств в типобезопасной форме,
+        /// <param name="expr">Выражение, определяющее свойство, имя которого требуется получить.
+        /// Должно представлять обращение к свойству.</param>
+        /// <returns>Имя свойства, если выражение представляет доступ к свойству; иначе — null.</returns>
+        /// <remarks>Обычно этот метод используется для получения имён свойств в типобезопасной форме,
         /// например, в сценариях привязки данных или проверки значений.
-        /// Если переданное выражение не представляет доступ к свойству, метод возвращает null.
-        /// </remarks>
-        /// <param name="expr">
-        /// Выражение, определяющее свойство, имя которого требуется получить.
-        /// Должно представлять обращение к свойству.
-        /// </param>
-        /// <returns>
-        /// Имя свойства, если выражение представляет доступ к свойству; иначе — null.
-        /// </returns>
+        /// Если переданное выражение не представляет доступ к свойству, метод возвращает null.</remarks>
         public static string GetPropertyName(Expression expr) => GetPropertyInfo(expr)?.Name;
 
         /// <summary>
-        /// Вспомогательный метод для извлечения <see cref="MemberInfo"/> из <see cref="LambdaExpression"/>.
+        /// Вспомогательный метод для извлечения <see cref="MemberInfo" /> из <see cref="LambdaExpression" />.
         /// При возможности пытается сопоставить свойство по типу обобщения лямбды.
         /// </summary>
         /// <param name="le">Лямбда-выражение для анализа.</param>
-        /// <returns>Найденный <see cref="MemberInfo"/> или <c>null</c>.</returns>
+        /// <returns>Найденный <see cref="MemberInfo" /> или <c>null</c>.</returns>
         private static MemberInfo GetMemberInfoFromLambda(LambdaExpression le)
         {
             var propDeclaringType = le.Type.GenericTypeArguments.FirstOrDefault();
@@ -152,11 +151,11 @@
         }
 
         /// <summary>
-        /// Вспомогательный метод для извлечения <see cref="MemberInfo"/> из <see cref="MethodCallExpression"/>.
+        /// Вспомогательный метод для извлечения <see cref="MemberInfo" /> из <see cref="MethodCallExpression" />.
         /// Ожидается, что нужный член содержится в первом аргументе вызова метода.
         /// </summary>
         /// <param name="mce">Выражение вызова метода.</param>
-        /// <returns>Найденный <see cref="MemberInfo"/> или <c>null</c>.</returns>
+        /// <returns>Найденный <see cref="MemberInfo" /> или <c>null</c>.</returns>
         private static MemberInfo GetMemberInfoFromMethodCall(MethodCallExpression mce)
         {
             var pi = GetMemberInfo(mce.Arguments[0]);

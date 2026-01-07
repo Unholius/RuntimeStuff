@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff.Helpers
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 10-13-2025
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="DateTimeHelper.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections.Generic;
@@ -17,166 +30,131 @@
     /// использовать их без создания экземпляра класса.</remarks>
     public static class DateTimeHelper
     {
+        /// <summary>
+        /// Универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
+        /// Пытается распарсить дату из строки, используя набор фиксированных форматов. Если не получается, то пытается угадать
+        /// формат.
+        /// </summary>
+        private static readonly Converter<string, DateTime?> StringToDateTimeConverter = s =>
+        {
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                return null;
+            }
+
+            if (DateTime.TryParse(s, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var d))
+            {
+                return d;
+            }
+
+            if (DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out d))
+            {
+                return d;
+            }
+
+            // Пробуем угадать формат:
+            var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
+            var dateParts = dateTimeParts[0]
+                .Split(new[] { '.', '\\', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
+            var yearIndex = IndexOf(dateParts, (x, _) => x.Length == 4);
+            var dayForSureIndex = IndexOf(dateParts, (x, _) =>
+                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 12 &&
+                (int)Convert.ChangeType(x, typeof(int)) <= 31);
+            var dayPossibleIndex = IndexOf(dateParts, (x, i) =>
+                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
+                (int)Convert.ChangeType(x, typeof(int)) <= 31 && i != dayForSureIndex);
+            var dayIndex = dayForSureIndex >= 0 ? dayForSureIndex : dayPossibleIndex;
+            var monthIndex = IndexOf(dateParts, (x, i) =>
+                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
+                (int)Convert.ChangeType(x, typeof(int)) <= 12 && i != dayIndex);
+
+            var year = yearIndex >= 0 && yearIndex < dateParts.Length
+                ? Convert.ChangeType(dateParts[yearIndex], typeof(int))
+                : null;
+            var month = monthIndex >= 0 && monthIndex < dateParts.Length
+                ? Convert.ChangeType(dateParts[monthIndex], typeof(int))
+                : null;
+            var day = dayIndex >= 0 && dayIndex < dateParts.Length
+                ? Convert.ChangeType(dateParts[dayIndex], typeof(int))
+                : null;
+
+            if (year != null && month != null && day != null)
+            {
+                return new DateTime((int)year, (int)month, (int)day);
+            }
+
+            if (dateTimeParts[0].Length == 8)
+            {
+                return new DateTime(
+                    (int)Convert.ChangeType(s.Substring(0, 4), typeof(int)),
+                    (int)Convert.ChangeType(s.Substring(4, 2), typeof(int)),
+                    (int)Convert.ChangeType(s.Substring(6, 2), typeof(int)));
+            }
+
+            return null;
+        };
+
+        /// <summary>
+        /// The last time stamp.
+        /// </summary>
         private static long lastTimeStamp = DateTime.Now.Ticks;
 
+        /// <summary>
+        /// Enum DateTimeInterval.
+        /// </summary>
         public enum DateTimeInterval
         {
+            /// <summary>
+            /// The tick
+            /// </summary>
             Tick,
+
+            /// <summary>
+            /// The millisecond
+            /// </summary>
             Millisecond,
+
+            /// <summary>
+            /// The second
+            /// </summary>
             Second,
+
+            /// <summary>
+            /// The minute
+            /// </summary>
             Minute,
+
+            /// <summary>
+            /// The hour
+            /// </summary>
             Hour,
+
+            /// <summary>
+            /// The day
+            /// </summary>
             Day,
+
+            /// <summary>
+            /// The week
+            /// </summary>
             Week,
+
+            /// <summary>
+            /// The month
+            /// </summary>
             Month,
-            Year
+
+            /// <summary>
+            /// The year
+            /// </summary>
+            Year,
         }
 
         /// <summary>
-        /// Возвращает полный временной период, охватывающий все переданные даты,
-        /// с приведением начала к началу дня и конца — к концу дня.
+        /// Gets возвращает уникальные тики для текущего момента времени (гарантирует уникальность даже при быстрых последовательных
+        /// вызовах).
         /// </summary>
-        /// <param name="dates">
-        /// Набор значений <see cref="DateTime"/>, для которых необходимо определить общий период.
-        /// </param>
-        /// <returns>
-        /// Кортеж, содержащий:
-        /// <list type="bullet">
-        /// <item><description><c>From</c> — начало дня минимальной даты;</description></item>
-        /// <item><description><c>To</c> — конец дня максимальной даты.</description></item>
-        /// </list>
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="dates"/> равен <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если <paramref name="dates"/> не содержит ни одного элемента.
-        /// </exception>
-        /// <remarks>
-        /// Метод использует функции <see cref="Min(DateTime[])"/> и <see cref="Max(DateTime[])"/>,
-        /// а также вспомогательные методы <c>BeginDay</c> и <c>EndDay</c>,
-        /// которые приводят дату ко времени 00:00:00 и 23:59:59.999… соответственно.
-        /// </remarks>
-        public static (DateTime From, DateTime to) GetFullPeriod(params DateTime[] dates) => (BeginDay(Min(dates)), EndDay(Max(dates)));
-
-        /// <summary>
-        /// Возвращает временной период, охватывающий все переданные даты,
-        /// без изменения времени начала и окончания.
-        /// </summary>
-        /// <param name="dates">
-        /// Набор значений <see cref="DateTime"/>, для которых необходимо определить период.
-        /// </param>
-        /// <returns>
-        /// Кортеж, содержащий:
-        /// <list type="bullet">
-        /// <item><description><c>From</c> — минимальное значение из набора дат;</description></item>
-        /// <item><description><c>To</c> — максимальное значение из набора дат.</description></item>
-        /// </list>
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="dates"/> равен <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если <paramref name="dates"/> не содержит ни одного элемента.
-        /// </exception>
-        /// <remarks>
-        /// В отличие от <see cref="GetFullPeriod(DateTime[])"/>, метод не выполняет
-        /// нормализацию времени и возвращает фактические минимальное и максимальное значения.
-        /// </remarks>
-        public static (DateTime From, DateTime to) GetPeriod(params DateTime[] dates) => (Min(dates), Max(dates));
-
-        /// <summary>
-        /// Возвращает максимальное значение <see cref="DateTime"/> из переданного набора.
-        /// </summary>
-        /// <param name="dates">
-        /// Набор значений <see cref="DateTime"/>, среди которых необходимо определить максимальное.
-        /// </param>
-        /// <returns>
-        /// Максимальное значение <see cref="DateTime"/> из массива <paramref name="dates"/>.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="dates"/> равен <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если <paramref name="dates"/> не содержит ни одного элемента.
-        /// </exception>
-        /// <remarks>
-        /// Сравнение выполняется с использованием стандартных операторов сравнения
-        /// <see cref="DateTime"/>, учитывающих тики и тип времени (<see cref="DateTime.Kind"/>).
-        /// </remarks>
-        public static DateTime Max(params DateTime[] dates)
-        {
-            if (dates == null)
-            {
-                throw new ArgumentNullException(nameof(dates));
-            }
-
-            if (dates.Length == 0)
-            {
-                throw new ArgumentException("At least one DateTime value is required.", nameof(dates));
-            }
-
-            DateTime max = dates[0];
-
-            for (int i = 1; i < dates.Length; i++)
-            {
-                if (dates[i] > max)
-                {
-                    max = dates[i];
-                }
-            }
-
-            return max;
-        }
-
-        /// <summary>
-        /// Возвращает минимальное значение <see cref="DateTime"/> из переданного набора.
-        /// </summary>
-        /// <param name="dates">
-        /// Набор значений <see cref="DateTime"/>, среди которых необходимо определить минимальное.
-        /// </param>
-        /// <returns>
-        /// Минимальное значение <see cref="DateTime"/> из массива <paramref name="dates"/>.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="dates"/> равен <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если <paramref name="dates"/> не содержит ни одного элемента.
-        /// </exception>
-        /// <remarks>
-        /// Сравнение выполняется с использованием стандартных операторов сравнения
-        /// <see cref="DateTime"/>, учитывающих тики и тип времени (<see cref="DateTime.Kind"/>).
-        /// </remarks>
-        public static DateTime Min(params DateTime[] dates)
-        {
-            if (dates == null)
-            {
-                throw new ArgumentNullException(nameof(dates));
-            }
-
-            if (dates.Length == 0)
-            {
-                throw new ArgumentException("At least one DateTime value is required.", nameof(dates));
-            }
-
-            DateTime min = dates[0];
-
-            for (int i = 1; i < dates.Length; i++)
-            {
-                if (dates[i] < min)
-                {
-                    min = dates[i];
-                }
-            }
-
-            return min;
-        }
-
-        /// <summary>
-        ///     Gets возвращает уникальные тики для текущего момента времени (гарантирует уникальность даже при быстрых последовательных
-        ///     вызовах).
-        /// </summary>
+        /// <value>The now ticks.</value>
         public static long NowTicks
         {
             get
@@ -194,100 +172,98 @@
         }
 
         /// <summary>
-        ///     Проверяет, содержит ли DateTime компонент времени (не равно 00:00:00).
+        /// Добавляет к дате временной интервал, заданный строкой.
         /// </summary>
-        /// <param name="d">Проверяемая дата.</param>
-        /// <returns>True, если время не равно 00:00:00.</returns>
-        public static bool HasTime(DateTime d) => d.TimeOfDay != TimeSpan.Zero;
-
-        /// <summary>
-        ///     Проверяет, содержит ли nullable DateTime компонент времени (не равно 00:00:00).
-        /// </summary>
-        /// <param name="d">Проверяемая nullable дата.</param>
-        /// <returns>True, если дата не null и время не равно 00:00:00.</returns>
-        public static bool HasTime(DateTime? d) => d.HasValue && d.Value.TimeOfDay != TimeSpan.Zero;
-
-        /// <summary>
-        ///     Парсит строку в массив TimeSpan. Пример: "1d -12m +3M -100s +6y".
-        /// </summary>
-        /// <param name="s">
-        ///     Строка для парсинга. Поддерживаемые форматы:
-        ///     Yy - год (365 дней), M - месяц (30 дней), Ww - недели, Dd - день,
-        ///     Hh - час, m - минуты, Ss - секунды, Ff - миллисекунды.
-        /// </param>
-        /// <returns>Массив TimeSpan.</returns>
-        public static TimeSpan[] ParseTimeSpan(string s)
+        /// <param name="date">Исходная дата.</param>
+        /// <param name="timeSpan">Строка с временным интервалом <see cref="ParseTimeSpan(string)" />.</param>
+        /// <returns>Новая дата после добавления интервала.</returns>
+        public static DateTime Add(DateTime date, string timeSpan)
         {
-            var result = new List<TimeSpan>();
-            s = Regex.Replace(s, "[^0-9dDmMsSyYwWhfF\\-\\+]", string.Empty);
-            var matches = Regex.Matches(s, "[+-]?\\d*[dDmMsSyYwWhfF]");
-            foreach (Match m in matches)
+            var timeIntervals = ParseTimeSpan(timeSpan);
+            var d = date;
+            foreach (var ti in timeIntervals)
             {
-                var n = int.Parse(m.Value.Substring(0, m.Value.Length - 1));
-                switch (m.Value.Last())
-                {
-                    case 'y':
-                    case 'Y':
-                        result.Add(TimeSpan.FromDays(365 * n));
-                        break;
-
-                    case 'M':
-                        result.Add(TimeSpan.FromDays(30 * n));
-                        break;
-
-                    case 'W':
-                    case 'w':
-                        result.Add(TimeSpan.FromDays(7 * n));
-                        break;
-
-                    case 'd':
-                    case 'D':
-                        result.Add(TimeSpan.FromDays(n));
-                        break;
-
-                    case 'h':
-                    case 'H':
-                        result.Add(TimeSpan.FromHours(n));
-                        break;
-
-                    case 'm':
-                        result.Add(TimeSpan.FromMinutes(n));
-                        break;
-
-                    case 's':
-                    case 'S':
-                        result.Add(TimeSpan.FromSeconds(n));
-                        break;
-
-                    case 'f':
-                    case 'F':
-                        result.Add(TimeSpan.FromMilliseconds(n));
-                        break;
-                }
+                d = d.Add(ti);
             }
 
-            return result.ToArray();
+            return d;
         }
 
         /// <summary>
-        /// Преобразует строковое представление даты и времени в значение <see cref="DateTime"/>.
+        /// Возвращает начало дня (00:00:00) для указанной даты.
         /// </summary>
-        /// <param name="dateTimeString">
-        /// Строковое представление даты и времени, подлежащее преобразованию.
-        /// </param>
-        /// <returns>
-        /// Значение <see cref="DateTime"/>, полученное в результате преобразования,
-        /// либо <c>null</c>, если строка не может быть интерпретирована как дата и время.
-        /// </returns>
-        /// <remarks>
-        /// Метод использует внутренний конвертер <c>StringToDateTimeConverter</c>,
-        /// который инкапсулирует логику разбора строки и обработки ошибок.
-        /// В отличие от стандартных методов <see cref="DateTime.Parse(string)"/> и
-        /// <see cref="DateTime.TryParse(string, out DateTime)"/>,
-        /// данный метод не выбрасывает исключения при некорректном формате входных данных.
-        /// </remarks>
-        public static DateTime? ParseDate(string dateTimeString) => StringToDateTimeConverter(dateTimeString);
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с временем 00:00:00.</returns>
+        public static DateTime BeginDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day);
 
+        /// <summary>
+        /// Возвращает начало дня (00:00:00) для nullable даты.
+        /// </summary>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
+        public static DateTime BeginDay(DateTime? date)
+        {
+            if (date == null)
+            {
+                return DateTime.MinValue;
+            }
+
+            var dt = (DateTime)date;
+            return new DateTime(dt.Year, dt.Month, dt.Day);
+        }
+
+        /// <summary>
+        /// Возвращает начало месяца (первый день, 00:00:00) для указанной даты.
+        /// </summary>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с первым днем месяца и временем 00:00:00.</returns>
+        public static DateTime BeginMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, 1);
+
+        /// <summary>
+        /// Возвращает начало месяца (первый день, 00:00:00) для nullable даты.
+        /// </summary>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с первым днем месяца и временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
+        public static DateTime BeginMonth(DateTime? date)
+        {
+            if (date == null)
+            {
+                return DateTime.MinValue;
+            }
+
+            var dt = (DateTime)date;
+            return new DateTime(dt.Year, dt.Month, 1);
+        }
+
+        /// <summary>
+        /// Возвращает начало года (первый день, 00:00:00) для указанной даты.
+        /// </summary>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с первым днем года и временем 00:00:00.</returns>
+        public static DateTime BeginYear(DateTime dt) => new DateTime(dt.Year, 1, 1);
+
+        /// <summary>
+        /// Возвращает начало года (первый день, 00:00:00) для nullable даты.
+        /// </summary>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с первым днем года и временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
+        public static DateTime BeginYear(DateTime? date)
+        {
+            if (date == null)
+            {
+                return DateTime.MinValue;
+            }
+
+            var dt = (DateTime)date;
+            return new DateTime(dt.Year, 1, 1);
+        }
+
+        /// <summary>
+        /// Eaches the day.
+        /// </summary>
+        /// <param name="startDate">The start date.</param>
+        /// <param name="endDate">The end date.</param>
+        /// <returns>IEnumerable&lt;DateTime&gt;.</returns>
         public static IEnumerable<DateTime> EachDay(DateTime startDate, DateTime endDate)
         {
             for (var day = startDate.Date; day.Date <= endDate.Date; day = day.AddDays(1))
@@ -295,6 +271,89 @@
                 yield return day;
             }
         }
+
+        /// <summary>
+        /// Возвращает конец дня (23:59:59.999) для указанной даты.
+        /// </summary>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с временем 23:59:59.999.</returns>
+        public static DateTime EndDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999);
+
+        /// <summary>
+        /// Возвращает конец дня (23:59:59.999) для nullable даты.
+        /// </summary>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
+        public static DateTime EndDay(DateTime? date)
+        {
+            if (date == null)
+            {
+                return DateTime.MaxValue;
+            }
+
+            var dt = (DateTime)date;
+            return new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999);
+        }
+
+        /// <summary>
+        /// Возвращает конец месяца (последний день, 23:59:59.999) для указанной даты.
+        /// </summary>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с последним днем месяца и временем 23:59:59.999.</returns>
+        public static DateTime EndMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999);
+
+        /// <summary>
+        /// Возвращает конец месяца (последний день, 23:59:59.999) для nullable даты.
+        /// </summary>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с последним днем месяца и временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
+        public static DateTime EndMonth(DateTime? date)
+        {
+            if (date == null)
+            {
+                return DateTime.MaxValue;
+            }
+
+            var dt = (DateTime)date;
+            return new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999);
+        }
+
+        /// <summary>
+        /// Возвращает конец года (последний день, 23:59:59.999) для указанной даты.
+        /// </summary>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с последним днем года и временем 23:59:59.999.</returns>
+        public static DateTime EndYear(DateTime dt) => new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999);
+
+        /// <summary>
+        /// Возвращает конец года (последний день, 23:59:59.999) для nullable даты.
+        /// </summary>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с последним днем года и временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
+        public static DateTime EndYear(DateTime? date)
+        {
+            if (date == null)
+            {
+                return DateTime.MaxValue;
+            }
+
+            var dt = (DateTime)date;
+            return new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999);
+        }
+
+        /// <summary>
+        /// Возвращает текущую дату и время с гарантией уникальности тиков.
+        /// </summary>
+        /// <param name="_">Экземпляр DateTime (не используется).</param>
+        /// <returns>Текущая дата и время с уникальными тиками.</returns>
+        public static DateTime ExactNow(DateTime _) => new DateTime(NowTicks);
+
+        /// <summary>
+        /// Возвращает уникальные тики для текущего момента времени.
+        /// </summary>
+        /// <param name="_">Экземпляр DateTime (не используется).</param>
+        /// <returns>Уникальные тики текущего момента времени.</returns>
+        public static long ExactTicks(DateTime _) => NowTicks;
 
         /// <summary>
         /// Возвращает последовательность дат и времени в заданном диапазоне
@@ -415,44 +474,29 @@
         }
 
         /// <summary>
-        /// Преобразует величину времени в виде числа <paramref name="elapsed"/> и интервала
-        /// <paramref name="timeInterval"/> в объект <see cref="TimeSpan"/>.
+        /// Преобразует величину времени в виде числа <paramref name="elapsed" /> и интервала
+        /// <paramref name="timeInterval" /> в объект <see cref="TimeSpan" />.
         /// </summary>
-        /// <param name="elapsed">
-        /// Величина времени в единицах, заданных <paramref name="timeInterval"/>.
-        /// </param>
-        /// <param name="timeInterval">
-        /// Единица измерения для <paramref name="elapsed"/>.
-        /// </param>
-        /// <returns>
-        /// Эквивалентное значение <see cref="TimeSpan"/>.
+        /// <param name="elapsed">Величина времени в единицах, заданных <paramref name="timeInterval" />.</param>
+        /// <param name="timeInterval">Единица измерения для <paramref name="elapsed" />.</param>
+        /// <returns>Эквивалентное значение <see cref="TimeSpan" />.
         /// Для месяцев и лет используется приближённое вычисление:
-        /// <list type="bullet">
-        /// <item><description>1 месяц ≈ 30 дней</description></item>
-        /// <item><description>1 год ≈ 365 дней</description></item>
-        /// </list>
-        /// </returns>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Выбрасывается, если <paramref name="timeInterval"/> имеет значение,
-        /// не предусмотренное перечислением <see cref="DateTimeInterval"/>.
-        /// </exception>
-        /// <remarks>
-        /// Метод использует стандартные функции <see cref="TimeSpan.FromMilliseconds"/>,
-        /// <see cref="TimeSpan.FromSeconds"/>, <see cref="TimeSpan.FromMinutes"/>,
-        /// <see cref="TimeSpan.FromHours"/> и <see cref="TimeSpan.FromDays"/> для преобразования.
-        /// Для интервалов <see cref="DateTimeInterval.Month"/> и <see cref="DateTimeInterval.Year"/>
-        /// используется приближённое преобразование через дни (30 и 365 соответственно),
-        /// поэтому результат является ориентировочным и не учитывает разные длины месяцев и високосные годы.
-        /// </remarks>
+        /// <list type="bullet"><item><description>1 месяц ≈ 30 дней</description></item><item><description>1 год ≈ 365 дней</description></item></list></returns>
+        /// <exception cref="System.ArgumentOutOfRangeException">timeInterval.</exception>
         /// <example>
-        /// <code>
+        ///   <code>
         /// // 2.5 часа
         /// TimeSpan ts1 = GetElapsedTime(2.5, DateTimeInterval.Hour);
-        ///
         /// // 3 месяца ≈ 90 дней
         /// TimeSpan ts2 = GetElapsedTime(3, DateTimeInterval.Month);
         /// </code>
         /// </example>
+        /// <remarks>Метод использует стандартные функции <see cref="TimeSpan.FromMilliseconds" />,
+        /// <see cref="TimeSpan.FromSeconds" />, <see cref="TimeSpan.FromMinutes" />,
+        /// <see cref="TimeSpan.FromHours" /> и <see cref="TimeSpan.FromDays" /> для преобразования.
+        /// Для интервалов <see cref="DateTimeInterval.Month" /> и <see cref="DateTimeInterval.Year" />
+        /// используется приближённое преобразование через дни (30 и 365 соответственно),
+        /// поэтому результат является ориентировочным и не учитывает разные длины месяцев и високосные годы.</remarks>
         public static TimeSpan GetElapsedTime(double elapsed, DateTimeInterval timeInterval)
         {
             // конвертируем elapsed в TimeSpan
@@ -501,53 +545,28 @@
         /// <summary>
         /// Преобразует величину времени в человекочитаемую строку с указанным форматом.
         /// </summary>
-        /// <param name="elapsed">
-        /// Величина времени в единицах, заданных <paramref name="timeInterval"/>.
-        /// </param>
-        /// <param name="timeInterval">
-        /// Единица измерения для <paramref name="elapsed"/>.
-        /// </param>
-        /// <param name="format">
-        /// Формат строки с токенами для замены на составные части времени.
+        /// <param name="elapsed">Величина времени в единицах, заданных <paramref name="timeInterval" />.</param>
+        /// <param name="timeInterval">Единица измерения для <paramref name="elapsed" />.</param>
+        /// <param name="format">Формат строки с токенами для замены на составные части времени.
         /// По умолчанию: <c>"[{Year} лет] [{Month} мес.] [{Day} дн.] [{Hour} час.] [{Minute} мин.] [{Second} с.]"</c>.
-        ///
         /// Токены:
-        /// <list type="bullet">
-        /// <item><description>{Year} — количество лет;</description></item>
-        /// <item><description>{Month} — количество месяцев;</description></item>
-        /// <item><description>{Week} — количество недель;</description></item>
-        /// <item><description>{Day} — количество дней;</description></item>
-        /// <item><description>{Hour} — количество часов;</description></item>
-        /// <item><description>{Minute} — количество минут;</description></item>
-        /// <item><description>{Second} — количество секунд;</description></item>
-        /// <item><description>{Millisecond} — количество миллисекунд.</description></item>
-        /// </list>
-        /// Части с нулевыми значениями автоматически удаляются вместе с квадратными скобками.
-        /// </param>
-        /// <returns>
-        /// Человекочитаемая строка, представляющая временной промежуток,
-        /// с пропуском нулевых единиц времени.
-        /// </returns>
-        /// <remarks>
-        /// Метод использует:
-        /// <list type="bullet">
-        /// <item><description><see cref="GetElapsedTime(double, DateTimeInterval)"/> — для конвертации числа <paramref name="elapsed"/> в <see cref="TimeSpan"/>;</description></item>
-        /// <item><description>вычисление лет, месяцев, недель и дней с приближением (1 год = 365 дней, 1 месяц = 30 дней, 1 неделя = 7 дней);</description></item>
-        /// <item><description>замену токенов в формате на соответствующие значения и удаление частей с нулевыми значениями.</description></item>
-        /// </list>
-        /// Результат учитывает приближения для месяцев и лет, поэтому для точных вычислений по календарю следует использовать методы работы с <see cref="DateTime"/>.
-        /// </remarks>
+        /// <list type="bullet"><item><description>{Year} — количество лет;</description></item><item><description>{Month} — количество месяцев;</description></item><item><description>{Week} — количество недель;</description></item><item><description>{Day} — количество дней;</description></item><item><description>{Hour} — количество часов;</description></item><item><description>{Minute} — количество минут;</description></item><item><description>{Second} — количество секунд;</description></item><item><description>{Millisecond} — количество миллисекунд.</description></item></list>
+        /// Части с нулевыми значениями автоматически удаляются вместе с квадратными скобками.</param>
+        /// <returns>Человекочитаемая строка, представляющая временной промежуток,
+        /// с пропуском нулевых единиц времени.</returns>
         /// <example>
-        /// <code>
+        ///   <code>
         /// // 400 дней
         /// string s = GetElapsedTimeString(400, DateTimeInterval.Day);
         /// // Результат: "1 лет 1 мес. 5 дн."
-        ///
         /// // 2 часа, 15 минут
         /// string s2 = GetElapsedTimeString(2.25, DateTimeInterval.Hour);
         /// // Результат: "2 час. 15 мин."
         /// </code>
         /// </example>
+        /// <remarks>Метод использует:
+        /// <list type="bullet"><item><description><see cref="GetElapsedTime(double, DateTimeInterval)" /> — для конвертации числа <paramref name="elapsed" /> в <see cref="TimeSpan" />;</description></item><item><description>вычисление лет, месяцев, недель и дней с приближением (1 год = 365 дней, 1 месяц = 30 дней, 1 неделя = 7 дней);</description></item><item><description>замену токенов в формате на соответствующие значения и удаление частей с нулевыми значениями.</description></item></list>
+        /// Результат учитывает приближения для месяцев и лет, поэтому для точных вычислений по календарю следует использовать методы работы с <see cref="DateTime" />.</remarks>
         public static string GetElapsedTimeString(
             double elapsed,
             DateTimeInterval timeInterval,
@@ -584,33 +603,216 @@
         }
 
         /// <summary>
+        /// Возвращает полный временной период, охватывающий все переданные даты,
+        /// с приведением начала к началу дня и конца — к концу дня.
+        /// </summary>
+        /// <param name="dates">Набор значений <see cref="DateTime" />, для которых необходимо определить общий период.</param>
+        /// <returns>Кортеж, содержащий:
+        /// <list type="bullet"><item><description><c>From</c> — начало дня минимальной даты;</description></item><item><description><c>To</c> — конец дня максимальной даты.</description></item></list></returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="dates" /> равен <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">Выбрасывается, если <paramref name="dates" /> не содержит ни одного элемента.</exception>
+        /// <remarks>Метод использует функции <see cref="Min(DateTime[])" /> и <see cref="Max(DateTime[])" />,
+        /// а также вспомогательные методы <c>BeginDay</c> и <c>EndDay</c>,
+        /// которые приводят дату ко времени 00:00:00 и 23:59:59.999… соответственно.</remarks>
+        public static (DateTime From, DateTime to) GetFullPeriod(params DateTime[] dates) => (BeginDay(Min(dates)), EndDay(Max(dates)));
+
+        /// <summary>
+        /// Возвращает временной период, охватывающий все переданные даты,
+        /// без изменения времени начала и окончания.
+        /// </summary>
+        /// <param name="dates">Набор значений <see cref="DateTime" />, для которых необходимо определить период.</param>
+        /// <returns>Кортеж, содержащий:
+        /// <list type="bullet"><item><description><c>From</c> — минимальное значение из набора дат;</description></item><item><description><c>To</c> — максимальное значение из набора дат.</description></item></list></returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="dates" /> равен <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">Выбрасывается, если <paramref name="dates" /> не содержит ни одного элемента.</exception>
+        /// <remarks>В отличие от <see cref="GetFullPeriod(DateTime[])" />, метод не выполняет
+        /// нормализацию времени и возвращает фактические минимальное и максимальное значения.</remarks>
+        public static (DateTime From, DateTime to) GetPeriod(params DateTime[] dates) => (Min(dates), Max(dates));
+
+        /// <summary>
+        /// Проверяет, содержит ли DateTime компонент времени (не равно 00:00:00).
+        /// </summary>
+        /// <param name="d">Проверяемая дата.</param>
+        /// <returns>True, если время не равно 00:00:00.</returns>
+        public static bool HasTime(DateTime d) => d.TimeOfDay != TimeSpan.Zero;
+
+        /// <summary>
+        /// Проверяет, содержит ли nullable DateTime компонент времени (не равно 00:00:00).
+        /// </summary>
+        /// <param name="d">Проверяемая nullable дата.</param>
+        /// <returns>True, если дата не null и время не равно 00:00:00.</returns>
+        public static bool HasTime(DateTime? d) => d.HasValue && d.Value.TimeOfDay != TimeSpan.Zero;
+
+        /// <summary>
+        /// Возвращает максимальное значение <see cref="DateTime" /> из переданного набора.
+        /// </summary>
+        /// <param name="dates">Набор значений <see cref="DateTime" />, среди которых необходимо определить максимальное.</param>
+        /// <returns>Максимальное значение <see cref="DateTime" /> из массива <paramref name="dates" />.</returns>
+        /// <exception cref="System.ArgumentNullException">dates.</exception>
+        /// <exception cref="System.ArgumentException">At least one DateTime value is required. - dates.</exception>
+        /// <remarks>Сравнение выполняется с использованием стандартных операторов сравнения
+        /// <see cref="DateTime" />, учитывающих тики и тип времени (<see cref="DateTime.Kind" />).</remarks>
+        public static DateTime Max(params DateTime[] dates)
+        {
+            if (dates == null)
+            {
+                throw new ArgumentNullException(nameof(dates));
+            }
+
+            if (dates.Length == 0)
+            {
+                throw new ArgumentException("At least one DateTime value is required.", nameof(dates));
+            }
+
+            DateTime max = dates[0];
+
+            for (int i = 1; i < dates.Length; i++)
+            {
+                if (dates[i] > max)
+                {
+                    max = dates[i];
+                }
+            }
+
+            return max;
+        }
+
+        /// <summary>
+        /// Возвращает минимальное значение <see cref="DateTime" /> из переданного набора.
+        /// </summary>
+        /// <param name="dates">Набор значений <see cref="DateTime" />, среди которых необходимо определить минимальное.</param>
+        /// <returns>Минимальное значение <see cref="DateTime" /> из массива <paramref name="dates" />.</returns>
+        /// <exception cref="System.ArgumentNullException">dates.</exception>
+        /// <exception cref="System.ArgumentException">At least one DateTime value is required. - dates.</exception>
+        /// <remarks>Сравнение выполняется с использованием стандартных операторов сравнения
+        /// <see cref="DateTime" />, учитывающих тики и тип времени (<see cref="DateTime.Kind" />).</remarks>
+        public static DateTime Min(params DateTime[] dates)
+        {
+            if (dates == null)
+            {
+                throw new ArgumentNullException(nameof(dates));
+            }
+
+            if (dates.Length == 0)
+            {
+                throw new ArgumentException("At least one DateTime value is required.", nameof(dates));
+            }
+
+            DateTime min = dates[0];
+
+            for (int i = 1; i < dates.Length; i++)
+            {
+                if (dates[i] < min)
+                {
+                    min = dates[i];
+                }
+            }
+
+            return min;
+        }
+
+        /// <summary>
+        /// Преобразует строковое представление даты и времени в значение <see cref="DateTime" />.
+        /// </summary>
+        /// <param name="dateTimeString">Строковое представление даты и времени, подлежащее преобразованию.</param>
+        /// <returns>Значение <see cref="DateTime" />, полученное в результате преобразования,
+        /// либо <c>null</c>, если строка не может быть интерпретирована как дата и время.</returns>
+        /// <remarks>Метод использует внутренний конвертер <c>StringToDateTimeConverter</c>,
+        /// который инкапсулирует логику разбора строки и обработки ошибок.
+        /// В отличие от стандартных методов <see cref="DateTime.Parse(string)" /> и
+        /// <see cref="DateTime.TryParse(string, out DateTime)" />,
+        /// данный метод не выбрасывает исключения при некорректном формате входных данных.</remarks>
+        public static DateTime? ParseDate(string dateTimeString) => StringToDateTimeConverter(dateTimeString);
+
+        /// <summary>
+        /// Парсит строку в массив TimeSpan. Пример: "1d -12m +3M -100s +6y".
+        /// </summary>
+        /// <param name="s">Строка для парсинга. Поддерживаемые форматы:
+        /// Yy - год (365 дней), M - месяц (30 дней), Ww - недели, Dd - день,
+        /// Hh - час, m - минуты, Ss - секунды, Ff - миллисекунды.</param>
+        /// <returns>Массив TimeSpan.</returns>
+        public static TimeSpan[] ParseTimeSpan(string s)
+        {
+            var result = new List<TimeSpan>();
+            s = Regex.Replace(s, "[^0-9dDmMsSyYwWhfF\\-\\+]", string.Empty);
+            var matches = Regex.Matches(s, "[+-]?\\d*[dDmMsSyYwWhfF]");
+            foreach (Match m in matches)
+            {
+                var n = int.Parse(m.Value.Substring(0, m.Value.Length - 1));
+                switch (m.Value.Last())
+                {
+                    case 'y':
+                    case 'Y':
+                        result.Add(TimeSpan.FromDays(365 * n));
+                        break;
+
+                    case 'M':
+                        result.Add(TimeSpan.FromDays(30 * n));
+                        break;
+
+                    case 'W':
+                    case 'w':
+                        result.Add(TimeSpan.FromDays(7 * n));
+                        break;
+
+                    case 'd':
+                    case 'D':
+                        result.Add(TimeSpan.FromDays(n));
+                        break;
+
+                    case 'h':
+                    case 'H':
+                        result.Add(TimeSpan.FromHours(n));
+                        break;
+
+                    case 'm':
+                        result.Add(TimeSpan.FromMinutes(n));
+                        break;
+
+                    case 's':
+                    case 'S':
+                        result.Add(TimeSpan.FromSeconds(n));
+                        break;
+
+                    case 'f':
+                    case 'F':
+                        result.Add(TimeSpan.FromMilliseconds(n));
+                        break;
+                }
+            }
+
+            return result.ToArray();
+        }
+
+        /// <summary>
+        /// Возвращает вчерашнюю дату (начало дня).
+        /// </summary>
+        /// <param name="date">Исходная дата.</param>
+        /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
+        public static DateTime Yesterday(DateTime date) => BeginDay(date.AddDays(-1));
+
+        /// <summary>
+        /// Возвращает вчерашнюю дату (начало дня) для nullable даты.
+        /// </summary>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
+        /// <exception cref="System.NullReferenceException">DateTimeExtensions.Yesterday: Дата не должна быть. <null>!</exception>
+        public static DateTime Yesterday(DateTime? date) => date != null
+                ? BeginDay(date?.AddDays(-1))
+                : throw new NullReferenceException("DateTimeExtensions.Yesterday: Дата не должна быть <null>!");
+
+        /// <summary>
         /// Возвращает дату и время, смещённые на заданный шаг по указанному интервалу.
         /// </summary>
         /// <param name="value">Исходная дата и время.</param>
-        /// <param name="step">
-        /// Значение смещения. Может быть положительным (движение вперёд) или отрицательным (движение назад).
-        /// </param>
+        /// <param name="step">Значение смещения. Может быть положительным (движение вперёд) или отрицательным (движение назад).</param>
         /// <param name="interval">Тип временного интервала, на который необходимо сместить дату.</param>
-        /// <returns>
-        /// Новое значение <see cref="DateTime"/>, полученное после смещения на <paramref name="step"/>
-        /// единиц <paramref name="interval"/> от исходной даты <paramref name="value"/>.
-        /// </returns>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Выбрасывается, если <paramref name="interval"/> имеет значение, не предусмотренное перечислением <see cref="DateTimeInterval"/>.
-        /// </exception>
-        /// <remarks>
-        /// Поддерживаются следующие интервалы:
-        /// <list type="bullet">
-        /// <item><description><see cref="DateTimeInterval.Millisecond"/> — миллисекунды;</description></item>
-        /// <item><description><see cref="DateTimeInterval.Second"/> — секунды;</description></item>
-        /// <item><description><see cref="DateTimeInterval.Minute"/> — минуты;</description></item>
-        /// <item><description><see cref="DateTimeInterval.Hour"/> — часы;</description></item>
-        /// <item><description><see cref="DateTimeInterval.Day"/> — дни;</description></item>
-        /// <item><description><see cref="DateTimeInterval.Month"/> — месяцы;</description></item>
-        /// <item><description><see cref="DateTimeInterval.Year"/> — годы.</description></item>
-        /// </list>
-        /// Метод учитывает особенности календаря .NET (например, разную длину месяцев и високосные годы).
-        /// </remarks>
+        /// <returns>Новое значение <see cref="DateTime" />, полученное после смещения на <paramref name="step" />
+        /// единиц <paramref name="interval" /> от исходной даты <paramref name="value" />.</returns>
+        /// <exception cref="System.ArgumentOutOfRangeException">interval - null.</exception>
+        /// <remarks>Поддерживаются следующие интервалы:
+        /// <list type="bullet"><item><description><see cref="DateTimeInterval.Millisecond" /> — миллисекунды;</description></item><item><description><see cref="DateTimeInterval.Second" /> — секунды;</description></item><item><description><see cref="DateTimeInterval.Minute" /> — минуты;</description></item><item><description><see cref="DateTimeInterval.Hour" /> — часы;</description></item><item><description><see cref="DateTimeInterval.Day" /> — дни;</description></item><item><description><see cref="DateTimeInterval.Month" /> — месяцы;</description></item><item><description><see cref="DateTimeInterval.Year" /> — годы.</description></item></list>
+        /// Метод учитывает особенности календаря .NET (например, разную длину месяцев и високосные годы).</remarks>
         private static DateTime AddInterval(DateTime value, int step, DateTimeInterval interval)
         {
             switch (interval)
@@ -642,69 +844,13 @@
         }
 
         /// <summary>
-        ///     Универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
-        ///     Пытается распарсить дату из строки, используя набор фиксированных форматов. Если не получается, то пытается угадать
-        ///     формат.
+        /// Indexes the of.
         /// </summary>
-        private static readonly Converter<string, DateTime?> StringToDateTimeConverter = s =>
-        {
-            if (string.IsNullOrWhiteSpace(s))
-            {
-                return null;
-            }
-
-            if (DateTime.TryParse(s, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var d))
-            {
-                return d;
-            }
-
-            if (DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out d))
-            {
-                return d;
-            }
-
-            // Пробуем угадать формат:
-            var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
-            var dateParts = dateTimeParts[0]
-                .Split(new[] { '.', '\\', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
-            var yearIndex = IndexOf(dateParts, (x, _) => x.Length == 4);
-            var dayForSureIndex = IndexOf(dateParts, (x, _) =>
-                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 12 &&
-                (int)Convert.ChangeType(x, typeof(int)) <= 31);
-            var dayPossibleIndex = IndexOf(dateParts, (x, i) =>
-                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
-                (int)Convert.ChangeType(x, typeof(int)) <= 31 && i != dayForSureIndex);
-            var dayIndex = dayForSureIndex >= 0 ? dayForSureIndex : dayPossibleIndex;
-            var monthIndex = IndexOf(dateParts, (x, i) =>
-                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
-                (int)Convert.ChangeType(x, typeof(int)) <= 12 && i != dayIndex);
-
-            var year = yearIndex >= 0 && yearIndex < dateParts.Length
-                ? Convert.ChangeType(dateParts[yearIndex], typeof(int))
-                : null;
-            var month = monthIndex >= 0 && monthIndex < dateParts.Length
-                ? Convert.ChangeType(dateParts[monthIndex], typeof(int))
-                : null;
-            var day = dayIndex >= 0 && dayIndex < dateParts.Length
-                ? Convert.ChangeType(dateParts[dayIndex], typeof(int))
-                : null;
-
-            if (year != null && month != null && day != null)
-            {
-                return new DateTime((int)year, (int)month, (int)day);
-            }
-
-            if (dateTimeParts[0].Length == 8)
-            {
-                return new DateTime(
-                    (int)Convert.ChangeType(s.Substring(0, 4), typeof(int)),
-                    (int)Convert.ChangeType(s.Substring(4, 2), typeof(int)),
-                    (int)Convert.ChangeType(s.Substring(6, 2), typeof(int)));
-            }
-
-            return null;
-        };
-
+        /// <typeparam name="T"></typeparam>
+        /// <param name="e">The e.</param>
+        /// <param name="match">The match.</param>
+        /// <param name="reverseSearch">if set to <c>true</c> [reverse search].</param>
+        /// <returns>System.Int32.</returns>
         private static int IndexOf<T>(IEnumerable<T> e, Func<T, int, bool> match, bool reverseSearch = false)
         {
             if (e == null)
@@ -768,192 +914,5 @@
 
             return -1;
         }
-
-        /// <summary>
-        ///     Добавляет к дате временной интервал, заданный строкой.
-        /// </summary>
-        /// <param name="date">Исходная дата.</param>
-        /// <param name="timeSpan">Строка с временным интервалом <see cref="ParseTimeSpan(string)" />.</param>
-        /// <returns>Новая дата после добавления интервала.</returns>
-        public static DateTime Add(DateTime date, string timeSpan)
-        {
-            var timeIntervals = ParseTimeSpan(timeSpan);
-            var d = date;
-            foreach (var ti in timeIntervals)
-            {
-                d = d.Add(ti);
-            }
-
-            return d;
-        }
-
-        /// <summary>
-        ///     Возвращает начало дня (00:00:00) для указанной даты.
-        /// </summary>
-        /// <param name="dt">Исходная дата.</param>
-        /// <returns>Дата с временем 00:00:00.</returns>
-        public static DateTime BeginDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day);
-
-        /// <summary>
-        ///     Возвращает начало дня (00:00:00) для nullable даты.
-        /// </summary>
-        /// <param name="date">Исходная nullable дата.</param>
-        /// <returns>Дата с временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
-        public static DateTime BeginDay(DateTime? date)
-        {
-            if (date == null)
-            {
-                return DateTime.MinValue;
-            }
-
-            var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, dt.Day);
-        }
-
-        /// <summary>
-        ///     Возвращает конец дня (23:59:59.999) для указанной даты.
-        /// </summary>
-        /// <param name="dt">Исходная дата.</param>
-        /// <returns>Дата с временем 23:59:59.999.</returns>
-        public static DateTime EndDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999);
-
-        /// <summary>
-        ///     Возвращает конец дня (23:59:59.999) для nullable даты.
-        /// </summary>
-        /// <param name="date">Исходная nullable дата.</param>
-        /// <returns>Дата с временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
-        public static DateTime EndDay(DateTime? date)
-        {
-            if (date == null)
-            {
-                return DateTime.MaxValue;
-            }
-
-            var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999);
-        }
-
-        /// <summary>
-        ///     Возвращает начало месяца (первый день, 00:00:00) для указанной даты.
-        /// </summary>
-        /// <param name="dt">Исходная дата.</param>
-        /// <returns>Дата с первым днем месяца и временем 00:00:00.</returns>
-        public static DateTime BeginMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, 1);
-
-        /// <summary>
-        ///     Возвращает начало месяца (первый день, 00:00:00) для nullable даты.
-        /// </summary>
-        /// <param name="date">Исходная nullable дата.</param>
-        /// <returns>Дата с первым днем месяца и временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
-        public static DateTime BeginMonth(DateTime? date)
-        {
-            if (date == null)
-            {
-                return DateTime.MinValue;
-            }
-
-            var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, 1);
-        }
-
-        /// <summary>
-        ///     Возвращает конец месяца (последний день, 23:59:59.999) для указанной даты.
-        /// </summary>
-        /// <param name="dt">Исходная дата.</param>
-        /// <returns>Дата с последним днем месяца и временем 23:59:59.999.</returns>
-        public static DateTime EndMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999);
-
-        /// <summary>
-        ///     Возвращает конец месяца (последний день, 23:59:59.999) для nullable даты.
-        /// </summary>
-        /// <param name="date">Исходная nullable дата.</param>
-        /// <returns>Дата с последним днем месяца и временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
-        public static DateTime EndMonth(DateTime? date)
-        {
-            if (date == null)
-            {
-                return DateTime.MaxValue;
-            }
-
-            var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999);
-        }
-
-        /// <summary>
-        ///     Возвращает начало года (первый день, 00:00:00) для указанной даты.
-        /// </summary>
-        /// <param name="dt">Исходная дата.</param>
-        /// <returns>Дата с первым днем года и временем 00:00:00.</returns>
-        public static DateTime BeginYear(DateTime dt) => new DateTime(dt.Year, 1, 1);
-
-        /// <summary>
-        ///     Возвращает начало года (первый день, 00:00:00) для nullable даты.
-        /// </summary>
-        /// <param name="date">Исходная nullable дата.</param>
-        /// <returns>Дата с первым днем года и временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
-        public static DateTime BeginYear(DateTime? date)
-        {
-            if (date == null)
-            {
-                return DateTime.MinValue;
-            }
-
-            var dt = (DateTime)date;
-            return new DateTime(dt.Year, 1, 1);
-        }
-
-        /// <summary>
-        ///     Возвращает конец года (последний день, 23:59:59.999) для указанной даты.
-        /// </summary>
-        /// <param name="dt">Исходная дата.</param>
-        /// <returns>Дата с последним днем года и временем 23:59:59.999.</returns>
-        public static DateTime EndYear(DateTime dt) => new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999);
-
-        /// <summary>
-        ///     Возвращает конец года (последний день, 23:59:59.999) для nullable даты.
-        /// </summary>
-        /// <param name="date">Исходная nullable дата.</param>
-        /// <returns>Дата с последним днем года и временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
-        public static DateTime EndYear(DateTime? date)
-        {
-            if (date == null)
-            {
-                return DateTime.MaxValue;
-            }
-
-            var dt = (DateTime)date;
-            return new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999);
-        }
-
-        /// <summary>
-        ///     Возвращает вчерашнюю дату (начало дня).
-        /// </summary>
-        /// <param name="date">Исходная дата.</param>
-        /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
-        public static DateTime Yesterday(DateTime date) => BeginDay(date.AddDays(-1));
-
-        /// <summary>
-        ///     Возвращает вчерашнюю дату (начало дня) для nullable даты.
-        /// </summary>
-        /// <param name="date">Исходная nullable дата.</param>
-        /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
-        /// <exception cref="NullReferenceException">Если date равно null.</exception>
-        public static DateTime Yesterday(DateTime? date) => date != null
-                ? BeginDay(date?.AddDays(-1))
-                : throw new NullReferenceException("DateTimeExtensions.Yesterday: Дата не должна быть <null>!");
-
-        /// <summary>
-        ///     Возвращает текущую дату и время с гарантией уникальности тиков.
-        /// </summary>
-        /// <param name="_">Экземпляр DateTime (не используется).</param>
-        /// <returns>Текущая дата и время с уникальными тиками.</returns>
-        public static DateTime ExactNow(DateTime _) => new DateTime(NowTicks);
-
-        /// <summary>
-        ///     Возвращает уникальные тики для текущего момента времени.
-        /// </summary>
-        /// <param name="_">Экземпляр DateTime (не используется).</param>
-        /// <returns>Уникальные тики текущего момента времени.</returns>
-        public static long ExactTicks(DateTime _) => NowTicks;
     }
 }

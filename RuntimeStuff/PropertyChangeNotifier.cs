@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="PropertyChangeNotifier.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff
 {
     using System;
     using System.ComponentModel;
@@ -6,57 +19,60 @@
     using RuntimeStuff.Extensions;
 
     /// <summary>
-    /// Базовый класс, предоставляющий реализацию интерфейсов <see cref="INotifyPropertyChanged"/>, <see cref="INotifyPropertyChanging"/> и
+    /// Базовый класс, предоставляющий реализацию интерфейсов <see cref="INotifyPropertyChanged" />, <see cref="INotifyPropertyChanging" /> и
     /// вспомогательные методы для уведомления об изменении свойств, а также автоматического управления подписками на
     /// изменения во вложенных объектах.
     /// </summary>
     /// <remarks>Класс предназначен для упрощения реализации паттерна "наблюдатель" в моделях данных, поддерживающих
-    /// привязку свойств (например, в MVVM). Реализует автоматическую отписку и повторную подписку на события <see
-    /// cref="PropertyChanged"/> у вложенных объектов, что предотвращает утечки памяти и облегчает управление зависимостями
+    /// привязку свойств (например, в MVVM). Реализует автоматическую отписку и повторную подписку на события <see cref="PropertyChanged" /> у вложенных объектов, что предотвращает утечки памяти и облегчает управление зависимостями
     /// между объектами. Является потокобезопасным для операций подписки и отписки. Для корректного освобождения ресурсов
-    /// рекомендуется явно вызывать <see cref="Dispose()"/> при уничтожении экземпляра.
+    /// рекомендуется явно вызывать <see cref="Dispose()" /> при уничтожении экземпляра.
     /// <code>
     /// public event PropertyChangedEventHandler PropertyChanged
     /// {
-    /// add => _notifier.PropertyChanged += value;
-    /// remove => _notifier.PropertyChanged -= value;
+    /// add =&gt; _notifier.PropertyChanged += value;
+    /// remove =&gt; _notifier.PropertyChanged -= value;
     /// }
-    /// </code>
-    /// </remarks>
+    /// </code></remarks>
 
     public class PropertyChangeNotifier : INotifyPropertyChanged, INotifyPropertyChanging, IDisposable
     {
         /// <summary>
-        /// Сопоставление вложенных объектов (<see cref="INotifyPropertyChanged"/>) с их обработчиками
-        /// <see cref="PropertyChangedEventHandler"/>. Используется для автоматической отписки
+        /// Сопоставление вложенных объектов (<see cref="INotifyPropertyChanged" />) с их обработчиками
+        /// <see cref="PropertyChangedEventHandler" />. Используется для автоматической отписки
         /// при замене вложенного объекта.
         /// </summary>
         private readonly Cache<object, EventHandlers> _subscriptions = new Cache<object, EventHandlers>(x => new EventHandlers());
 
+        /// <summary>
+        /// The synchronize root.
+        /// </summary>
         private readonly object _syncRoot = new object();
 
         /// <summary>
-        /// Событие <see cref="PropertyChanged"/> для внешних подписчиков.
+        /// Событие <see cref="PropertyChanged" /> для внешних подписчиков.
         /// </summary>
+        /// <returns></returns>
         public event PropertyChangedEventHandler PropertyChanged;
 
         /// <summary>
-        /// Событие <see cref="PropertyChanging"/> для внешних подписчиков.
+        /// Событие <see cref="PropertyChanging" /> для внешних подписчиков.
         /// </summary>
+        /// <returns></returns>
         public event PropertyChangingEventHandler PropertyChanging;
 
         /// <summary>
-        /// Вызывает событие <see cref="PropertyChanging"/> для указанного свойства.
+        /// Вызывает событие <see cref="PropertyChanging" /> для указанного свойства.
         /// </summary>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="propertyName"/> равен <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException">Если <paramref name="propertyName" /> равен <c>null</c>.</exception>
         public virtual void OnPropertyChanging([CallerMemberName] string propertyName = null) => this.PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
 
         /// <summary>
-        /// Вызывает событие <see cref="PropertyChanged"/> для указанного свойства.
+        /// Вызывает событие <see cref="PropertyChanged" /> для указанного свойства.
         /// </summary>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="propertyName"/> равен <c>null</c>.</exception>
+        /// <exception cref="ArgumentNullException">Если <paramref name="propertyName" /> равен <c>null</c>.</exception>
         public virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         /// <summary>
@@ -110,16 +126,17 @@
         /// <summary>
         /// Комбинированная операция: сначала выполняет привязку обработчика изменения свойства у вложенного объекта,
         /// затем устанавливает новое значение для свойства текущего объекта. Если значение изменилось и
-        /// <paramref name="thisPropertyChangeHandler"/> не равен <c>null</c>, он будет вызван.
+        /// <paramref name="thisPropertyChangeHandler" /> не равен <c>null</c>, он будет вызван.
         /// </summary>
-        /// <typeparam name="T">Тип вложенного объекта, реализующего <see cref="INotifyPropertyChanged"/>.</typeparam>
+        /// <typeparam name="T">Тип вложенного объекта, реализующего <see cref="INotifyPropertyChanged" />.</typeparam>
         /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
         /// <param name="newValue">Новое значение, которое будет присвоено.</param>
         /// <param name="childPropertyName">Имя свойства вложенного объекта, за изменением которого нужно следить.</param>
-        /// <param name="childPropertyChangeHandler">Действие, вызываемое при изменении <paramref name="childPropertyName"/> у вложенного объекта.</param>
+        /// <param name="childPropertyChangeHandler">Действие, вызываемое при изменении <paramref name="childPropertyName" /> у вложенного объекта.</param>
         /// <param name="thisPropertyChangeHandler">Действие, вызываемое после успешного изменения свойства текущего объекта.</param>
         /// <param name="propertyName">Имя свойства текущего объекта. Если не задано, используется имя вызывающего члена.</param>
-        public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null) where T : class, INotifyPropertyChanged
+        public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null)
+            where T : class, INotifyPropertyChanged
         {
             this.BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
             if (this.SetProperty(ref oldValue, newValue, (Action)null, propertyName))
@@ -133,16 +150,15 @@
         /// автоматическую отписку от старого объекта (если он был). Вызывать до присвоения нового значения
         /// в backing field.
         /// </summary>
-        /// <typeparam name="T">Тип вложенного объекта, реализующий <see cref="INotifyPropertyChanged"/>.</typeparam>
+        /// <typeparam name="T">Тип вложенного объекта, реализующий <see cref="INotifyPropertyChanged" />.</typeparam>
         /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
         /// <param name="newValue">Новое значение вложенного объекта, для которого нужно установить подписку.</param>
-        /// <param name="childPropertyName">Имя свойства во вложенном объекте, изменение которого должно вызывать <paramref name="childPropertyChangeHandler"/>.</param>
-        /// <param name="childPropertyChangeHandler">Действие, выполняемое при изменении <paramref name="childPropertyName"/> во вложенном объекте.</param>
-        /// <remarks>
-        /// Этот метод отписывает обработчик у старого объекта (если он присутствует) и подписывает новый обработчик
-        /// к <paramref name="newValue"/>; обработчики хранятся в словаре <see cref="_subscriptions"/> для корректной последующей отписки.
-        /// </remarks>
-        public void BindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler) where T : class, INotifyPropertyChanged
+        /// <param name="childPropertyName">Имя свойства во вложенном объекте, изменение которого должно вызывать <paramref name="childPropertyChangeHandler" />.</param>
+        /// <param name="childPropertyChangeHandler">Действие, выполняемое при изменении <paramref name="childPropertyName" /> во вложенном объекте.</param>
+        /// <remarks>Этот метод отписывает обработчик у старого объекта (если он присутствует) и подписывает новый обработчик
+        /// к <paramref name="newValue" />; обработчики хранятся в словаре <see cref="_subscriptions" /> для корректной последующей отписки.</remarks>
+        public void BindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler)
+            where T : class, INotifyPropertyChanged
         {
             lock (this._syncRoot)
             {
@@ -184,19 +200,20 @@
         }
 
         /// <summary>
-        /// Упрощённая перегрузка <see cref="BindPropertyChange{T}(ref T, T, string, Action)"/> для подписки
+        /// Упрощённая перегрузка <see cref="BindPropertyChange{T}(ref T, T, string, Action)" /> для подписки
         /// на любые изменения у вложенного объекта (без фильтрации по имени свойства).
         /// </summary>
-        /// <typeparam name="T">Тип вложенного объекта, реализующий <see cref="INotifyPropertyChanged"/>.</typeparam>
+        /// <typeparam name="T">Тип вложенного объекта, реализующий <see cref="INotifyPropertyChanged" />.</typeparam>
         /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
         /// <param name="newValue">Новое значение вложенного объекта, для которого нужно установить подписку.</param>
         /// <param name="handler">Действие, выполняемое при любом изменении во вложенном объекте.</param>
-        public void BindPropertyChange<T>(ref T oldValue, T newValue, Action handler) where T : class, INotifyPropertyChanged => this.BindPropertyChange(ref oldValue, newValue, null, handler);
+        public void BindPropertyChange<T>(ref T oldValue, T newValue, Action handler)
+            where T : class, INotifyPropertyChanged => this.BindPropertyChange(ref oldValue, newValue, null, handler);
 
         /// <summary>
         /// Очистка управляемых ресурсов. Отписывает все внутренние подписки и очищает словарь подписок.
         /// </summary>
-        /// <param name="disposing"><c>true</c> при вызове из <see cref="Dispose()"/>; <c>false</c> при вызове из финализатора.</param>
+        /// <param name="disposing"><c>true</c> при вызове из <see cref="Dispose()" />; <c>false</c> при вызове из финализатора.</param>
         public virtual void Dispose(bool disposing)
         {
             if (!disposing)
@@ -224,7 +241,7 @@
         }
 
         /// <summary>
-        /// Выполняет освобождение ресурсов, вызывает <see cref="Dispose(bool)"/> и подавляет финализацию.
+        /// Выполняет освобождение ресурсов, вызывает <see cref="Dispose(bool)" /> и подавляет финализацию.
         /// </summary>
         public void Dispose()
         {
@@ -233,9 +250,19 @@
         }
     }
 
+    /// <summary>
+    /// Class EventHandlers.
+    /// </summary>
     internal class EventHandlers
     {
+        /// <summary>
+        /// The changed.
+        /// </summary>
         public PropertyChangedEventHandler Changed;
+
+        /// <summary>
+        /// The changing.
+        /// </summary>
         public PropertyChangingEventHandler Changing;
     }
 }

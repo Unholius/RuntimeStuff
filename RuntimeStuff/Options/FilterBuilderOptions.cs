@@ -1,19 +1,30 @@
-﻿namespace RuntimeStuff.Options
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 11-19-2025
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="FilterBuilderOptions.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Options
 {
     /// <summary>
     /// Определяет параметры конфигурации построителя фильтров.
     /// </summary>
-    /// <remarks>
-    /// Данный класс инкапсулирует опции, используемые при формировании
+    /// <remarks>Данный класс инкапсулирует опции, используемые при формировании
     /// условий фильтрации, включая правила форматирования значений.
     /// Обычно применяется в сценариях динамического построения выражений,
-    /// запросов или фильтров на основе пользовательского ввода.
-    /// </remarks>
+    /// запросов или фильтров на основе пользовательского ввода.</remarks>
     public class FilterBuilderOptions : OptionsBase<FilterBuilderOptions>
     {
         /// <summary>
         /// Инициализирует новый экземпляр класса
-        /// <see cref="FilterBuilderOptions"/> со значениями по умолчанию.
+        /// <see cref="FilterBuilderOptions" /> со значениями по умолчанию.
         /// </summary>
         public FilterBuilderOptions()
         { }
@@ -22,11 +33,10 @@
         /// Gets or sets получает или задаёт параметры форматирования значений,
         /// используемые при построении фильтров.
         /// </summary>
-        /// <remarks>
-        /// Свойство управляет тем, как значения различных типов
+        /// <value>The format options.</value>
+        /// <remarks>Свойство управляет тем, как значения различных типов
         /// (например, даты, логические значения и строки)
-        /// преобразуются в строковое представление.
-        /// </remarks>
+        /// преобразуются в строковое представление.</remarks>
         public FormatValueOptions FormatOptions { get; set; } = new FormatValueOptions();
     }
 }

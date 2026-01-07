@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff.Helpers
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="StringHelper.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections.Generic;
@@ -20,15 +33,11 @@
         /// </summary>
         /// <param name="source">Исходная строка, в которой выполняется поиск.</param>
         /// <param name="value">Подстрока, которую необходимо найти.</param>
-        /// <param name="comparison">
-        /// Параметр, определяющий способ сравнения строк
-        /// (<see cref="StringComparison"/>), например <see cref="StringComparison.OrdinalIgnoreCase"/>.
-        /// </param>
-        /// <returns>
-        /// Значение <c>true</c>, если подстрока найдена в исходной строке;
+        /// <param name="comparison">Параметр, определяющий способ сравнения строк
+        /// (<see cref="StringComparison" />), например <see cref="StringComparison.OrdinalIgnoreCase" />.</param>
+        /// <returns>Значение <c>true</c>, если подстрока найдена в исходной строке;
         /// в противном случае — <c>false</c>.
-        /// Также возвращает <c>false</c>, если <paramref name="source"/> или <paramref name="value"/> равны <c>null</c>.
-        /// </returns>
+        /// Также возвращает <c>false</c>, если <paramref name="source" /> или <paramref name="value" /> равны <c>null</c>.</returns>
         public static bool Contains(string source, string value, StringComparison comparison)
         {
             if (source == null || value == null)
@@ -40,133 +49,16 @@
         }
 
         /// <summary>
-        /// Метод удаляет указанный суффикс с конца строки, если он существует.
-        /// </summary>
-        /// <param name="s">Исходная строка, из которой нужно удалить суффикс.</param>
-        /// <param name="subStr">Строка-суффикс, которую нужно удалить с конца.</param>
-        /// <param name="comparison">Тип сравнения строк при проверке суффикса.</param>
-        /// <returns>Строка без указанного суффикса в конце, если он был найден.</returns>
-        /// <remarks>
-        /// Метод проверяет, заканчивается ли исходная строка указанным суффиксом.
-        /// Если суффикс найден, возвращается строка без этого суффикса.
-        /// Если суффикс не найден или параметры пустые, возвращается исходная строка.
-        /// </remarks>
-        public static string TrimEnd(string s, string subStr, StringComparison comparison = StringComparison.Ordinal)
-        {
-            // Проверка на пустые входные данные
-            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(subStr))
-            {
-                return s;
-            }
-
-            // Проверка наличия суффикса в конце строки
-            if (s.EndsWith(subStr, comparison))
-            {
-                // Возвращаем строку без суффикса
-                return s.Substring(0, s.Length - subStr.Length);
-            }
-
-            // Если суффикс не найден, возвращаем исходную строку
-            return s;
-        }
-
-        /// <summary>
-        /// Возвращает строку, повторенную указанное количество раз.
-        /// </summary>
-        /// <param name="str">Исходная строка.</param>
-        /// <param name="count">Количество повторений.</param>
-        /// <returns>Новая строка, состоящая из повторений исходной строки.</returns>
-        public static string RepeatString(string str, int count)
-        {
-            if (str == null)
-            {
-                throw new ArgumentNullException(nameof(str));
-            }
-
-            if (count < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(count), @"Количество повторений не может быть отрицательным.");
-            }
-
-            if (count == 0 || str.Length == 0)
-            {
-                return string.Empty;
-            }
-
-            // Можно оптимизировать через StringBuilder
-            var sb = new System.Text.StringBuilder(str.Length * count);
-            for (var i = 0; i < count; i++)
-            {
-                sb.Append(str);
-            }
-
-            return sb.ToString();
-        }
-
-        /// <summary>
-        ///     Заменяет часть строки в диапазоне [startIndex..endIndex] на указанную строку.
+        /// Возвращает часть строки в диапазоне [startIndex..endIndex]. Работает как string.Substring(s, startIndex, endIndex -
+        /// startIndex + 1).
         /// </summary>
         /// <param name="s">Исходная строка.</param>
         /// <param name="startIndex">Начальная позиция (включительно).</param>
         /// <param name="endIndex">Конечная позиция (включительно).</param>
-        /// <param name="replaceString">Строка для замены.</param>
-        /// <returns>Новая строка с заменой.</returns>
-        public static string Replace(string s, int startIndex, int endIndex, string replaceString)
-        {
-            if (s == null)
-            {
-                throw new ArgumentNullException(nameof(s));
-            }
-
-            if (startIndex < 0 || startIndex > s.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(startIndex));
-            }
-
-            if (endIndex < startIndex || endIndex > s.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(endIndex));
-            }
-
-            return s.Substring(0, startIndex)
-                   + replaceString
-                   + s.Substring(endIndex + 1);
-        }
-
-        /// <summary>
-        ///     Удаляет часть строки в диапазоне [startIndex..endIndex]. Работает как s.Substring(0, startIndex) +
-        ///     s.Substring(endIndex + 1);.
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <param name="startIndex">Начальная позиция (включительно).</param>
-        /// <param name="endIndex">Конечная позиция (включительно).</param>
-        public static string Cut(string s, int startIndex, int endIndex)
-        {
-            if (s == null)
-            {
-                throw new ArgumentNullException(nameof(s));
-            }
-
-            if (startIndex < 0 || startIndex > s.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(startIndex));
-            }
-
-            if (endIndex < startIndex || endIndex > s.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(endIndex));
-            }
-
-            return s.Substring(0, startIndex) + s.Substring(endIndex + 1);
-        }
-
-        /// <summary>
-        ///     Возвращает часть строки в диапазоне [startIndex..endIndex]. Работает как string.Substring(s, startIndex, endIndex -
-        ///     startIndex + 1).
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <param name="startIndex">Начальная позиция (включительно).</param>
-        /// <param name="endIndex">Конечная позиция (включительно).</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.ArgumentNullException">s.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
         public static string Crop(string s, int startIndex, int endIndex)
         {
             if (s == null)
@@ -188,23 +80,51 @@
         }
 
         /// <summary>
-        ///     Разворачивает иерархию токенов в плоский список.
+        /// Удаляет часть строки в диапазоне [startIndex..endIndex]. Работает как s.Substring(0, startIndex) +
+        /// s.Substring(endIndex + 1);.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="startIndex">Начальная позиция (включительно).</param>
+        /// <param name="endIndex">Конечная позиция (включительно).</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.ArgumentNullException">s.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
+        public static string Cut(string s, int startIndex, int endIndex)
+        {
+            if (s == null)
+            {
+                throw new ArgumentNullException(nameof(s));
+            }
+
+            if (startIndex < 0 || startIndex > s.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startIndex));
+            }
+
+            if (endIndex < startIndex || endIndex > s.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(endIndex));
+            }
+
+            return s.Substring(0, startIndex) + s.Substring(endIndex + 1);
+        }
+
+        /// <summary>
+        /// Разворачивает иерархию токенов в плоский список.
         /// </summary>
         /// <param name="tokens">Корневые токены.</param>
-        /// <param name="predicate">
-        ///     Необязательный фильтр. Если указан — возвращаются только те токены, для которых predicate ==
-        ///     true.
-        /// </param>
+        /// <param name="predicate">Необязательный фильтр. Если указан — возвращаются только те токены, для которых predicate ==
+        /// true.</param>
         /// <returns>Плоский список токенов.</returns>
         /// <example>
-        ///     Пример:
-        ///     <code>
+        /// Пример:
+        /// <code>
         /// var s = "Hello (one(two))";
         /// var tokens = StringTokenizer.GetTokens(s, ("(", ")")).Flatten();
-        /// // tokens[0] -> "(one(two))"
-        /// // tokens[1] -> "(two)"
-        /// </code>
-        /// </example>
+        /// // tokens[0] -&gt; "(one(two))"
+        /// // tokens[1] -&gt; "(two)"
+        /// </code></example>
         public static List<Token> Flatten(IEnumerable<Token> tokens, Func<Token, bool> predicate = null)
         {
             var result = new List<Token>();
@@ -231,87 +151,89 @@
         }
 
         /// <summary>
-        ///     Получает список токенов по нескольким маскам.
-        ///     Маски задаются как кортеж (Prefix, Suffix, ContentTransformer).
+        /// Получает список токенов по нескольким маскам.
+        /// Маски задаются как кортеж (Prefix, Suffix, ContentTransformer).
         /// </summary>
         /// <param name="input">Входная строка.</param>
         /// <param name="prefix">Префикс токена.</param>
         /// <param name="suffix">Суффикс токена.</param>
-        /// <param name="notMatchedAsTokens"></param>
-        /// <param name="contentTransformer"></param>
-        /// <returns>
-        ///     Список корневых токенов. Для получения всех токенов в виде массива использовать
-        ///     <see cref="Flatten(IEnumerable{Token}, Func{Token, bool})" />.
-        /// </returns>
+        /// <param name="notMatchedAsTokens">if set to <c>true</c> [not matched as tokens].</param>
+        /// <param name="contentTransformer">The content transformer.</param>
+        /// <returns>Список корневых токенов. Для получения всех токенов в виде массива использовать
+        /// <see cref="Flatten(IEnumerable{Token}, Func{Token, bool})" />.</returns>
         /// <example>
-        ///     Пример:
-        ///     <code>
+        /// Пример:
+        /// <code>
         /// var s = "Hello ( one ( two ( three ) ) )";
         /// var tokens = StringTokenizer.GetTokens(
-        ///     s,
-        ///     ("(", ")", t => t.Text.Trim())
+        /// s,
+        /// ("(", ")", t =&gt; t.Text.Trim())
         /// ).Flatten();
-        ///
         /// var c1 = tokens[0].Content; // "one two three"
         /// var c2 = tokens[1].Content; // "two three"
         /// var c3 = tokens[2].Content; // "three"
-        /// </code>
-        /// </example>
+        /// </code></example>
         public static List<Token> GetTokens(string input, string prefix, string suffix, bool notMatchedAsTokens, Func<Token, string> contentTransformer = null) => GetTokens(input, notMatchedAsTokens, (prefix, suffix, contentTransformer));
 
         /// <summary>
-        ///     Получает список токенов по нескольким маскам.
-        ///     Маски задаются как кортеж (Prefix, Suffix, ContentTransformer).
+        /// Получает список токенов по нескольким маскам.
+        /// Маски задаются как кортеж (Prefix, Suffix, ContentTransformer).
         /// </summary>
         /// <param name="input">Входная строка.</param>
-        /// <param name="notMatchedAsTokens"></param>
+        /// <param name="notMatchedAsTokens">if set to <c>true</c> [not matched as tokens].</param>
         /// <param name="tokenMasks">Маски токенов (префикс, суффикс, функция сериализации).</param>
-        /// <returns>
-        ///     Список корневых токенов. Для получения всех токенов в виде массива использовать
-        ///     <see cref="Flatten(IEnumerable{Token}, Func{Token, bool})" />.
-        /// </returns>
+        /// <returns>Список корневых токенов. Для получения всех токенов в виде массива использовать
+        /// <see cref="Flatten(IEnumerable{Token}, Func{Token, bool})" />.</returns>
         /// <example>
-        ///     Пример:
-        ///     <code>
+        /// Пример:
+        /// <code>
         /// var s = "Hello ( one ( two ( three ) ) )";
         /// var tokens = StringTokenizer.GetTokens(
-        ///     s,
-        ///     ("(", ")", t => t.Text.Trim())
+        /// s,
+        /// ("(", ")", t =&gt; t.Text.Trim())
         /// ).Flatten();
-        ///
         /// var c1 = tokens[0].Content; // "one two three"
         /// var c2 = tokens[1].Content; // "two three"
         /// var c3 = tokens[2].Content; // "three"
-        /// </code>
-        /// </example>
+        /// </code></example>
         public static List<Token> GetTokens(string input, bool notMatchedAsTokens, params (string Prefix, string Suffix)[] tokenMasks) => GetTokens(input, notMatchedAsTokens, tokenMasks.Select(x => (x.Prefix, x.Suffix, (Func<Token, string>)null)).ToArray());
 
         /// <summary>
-        ///     Получает список токенов по нескольким маскам.
-        ///     Маски задаются как кортеж (Prefix, Suffix, ContentTransformer).
+        /// Получает список токенов по нескольким маскам.
+        /// Маски задаются как кортеж (Prefix, Suffix, ContentTransformer).
         /// </summary>
         /// <param name="input">Входная строка.</param>
-        ///
-        /// <returns>
-        ///     Список корневых токенов. Для получения всех токенов в виде массива использовать
-        ///     <see cref="Flatten(IEnumerable{Token}, Func{Token, bool})" />.
-        /// </returns>
+        /// <param name="flatten">if set to <c>true</c> [flatten].</param>
+        /// <param name="notMatchedAsTokens">if set to <c>true</c> [not matched as tokens].</param>
+        /// <param name="tokenMasks">The token masks.</param>
+        /// <returns>Список корневых токенов. Для получения всех токенов в виде массива использовать
+        /// <see cref="Flatten(IEnumerable{Token}, Func{Token, bool})" />.</returns>
         public static List<Token> GetTokens(string input, bool flatten, bool notMatchedAsTokens, params (string Prefix, string Suffix, Func<Token, string> ContentTransformer)[] tokenMasks)
         {
             var tokens = GetTokens(input, notMatchedAsTokens, tokenMasks);
             return flatten ? Flatten(tokens) : tokens;
         }
 
+        /// <summary>
+        /// Gets the tokens.
+        /// </summary>
+        /// <param name="input">The input.</param>
+        /// <param name="notMatchedAsTokens">if set to <c>true</c> [not matched as tokens].</param>
+        /// <param name="tokenMasks">The token masks.</param>
+        /// <returns>List&lt;Token&gt;.</returns>
         public static List<Token> GetTokens(string input, bool notMatchedAsTokens, params (string Prefix, string Suffix, Func<Token, string> ContentTransformer)[] tokenMasks) => GetTokens(input, tokenMasks.Select(x => new TokenMask(x.Prefix, x.Suffix, null, x.ContentTransformer)).ToArray(), notMatchedAsTokens);
 
         /// <summary>
-        ///     Получает список токенов по нескольким маскам.
-        ///     Маски задаются как кортеж (Prefix, Suffix, ContentTransformer).
+        /// Получает список токенов по нескольким маскам.
+        /// Маски задаются как кортеж (Prefix, Suffix, ContentTransformer).
         /// </summary>
         /// <param name="input">Входная строка.</param>
-        /// <param name="notMatchedAsTokens"></param>
-        /// <param name="notMatchedTokenSetTag"></param>
         /// <param name="tokenMasks">Маски токенов (префикс, суффикс, функция сериализации).</param>
+        /// <param name="notMatchedAsTokens">if set to <c>true</c> [not matched as tokens].</param>
+        /// <param name="notMatchedTokenSetTag">The not matched token set tag.</param>
+        /// <returns>List&lt;Token&gt;.</returns>
+        /// <exception cref="System.InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a child of another token.</exception>
+        /// <exception cref="System.InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a next of {prevToken} token.</exception>
         public static List<Token> GetTokens(string input, IEnumerable<TokenMask> tokenMasks, bool notMatchedAsTokens = false, Func<Token, object> notMatchedTokenSetTag = null)
         {
             Token.IdInternal = 1;
@@ -539,6 +461,79 @@
             return result;
         }
 
+        /// <summary>
+        /// Возвращает строку, повторенную указанное количество раз.
+        /// </summary>
+        /// <param name="str">Исходная строка.</param>
+        /// <param name="count">Количество повторений.</param>
+        /// <returns>Новая строка, состоящая из повторений исходной строки.</returns>
+        /// <exception cref="System.ArgumentNullException">str.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">count - Количество повторений не может быть отрицательным.</exception>
+        public static string RepeatString(string str, int count)
+        {
+            if (str == null)
+            {
+                throw new ArgumentNullException(nameof(str));
+            }
+
+            if (count < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count), @"Количество повторений не может быть отрицательным.");
+            }
+
+            if (count == 0 || str.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            // Можно оптимизировать через StringBuilder
+            var sb = new System.Text.StringBuilder(str.Length * count);
+            for (var i = 0; i < count; i++)
+            {
+                sb.Append(str);
+            }
+
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Заменяет часть строки в диапазоне [startIndex..endIndex] на указанную строку.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="startIndex">Начальная позиция (включительно).</param>
+        /// <param name="endIndex">Конечная позиция (включительно).</param>
+        /// <param name="replaceString">Строка для замены.</param>
+        /// <returns>Новая строка с заменой.</returns>
+        /// <exception cref="System.ArgumentNullException">s.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
+        public static string Replace(string s, int startIndex, int endIndex, string replaceString)
+        {
+            if (s == null)
+            {
+                throw new ArgumentNullException(nameof(s));
+            }
+
+            if (startIndex < 0 || startIndex > s.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startIndex));
+            }
+
+            if (endIndex < startIndex || endIndex > s.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(endIndex));
+            }
+
+            return s.Substring(0, startIndex)
+                   + replaceString
+                   + s.Substring(endIndex + 1);
+        }
+
+        /// <summary>
+        /// Tokenizes the not matched.
+        /// </summary>
+        /// <param name="tokens">The tokens.</param>
+        /// <param name="setTag">The set tag.</param>
         public static void TokenizeNotMatched(IEnumerable<Token> tokens, Func<Token, object> setTag)
         {
             if (tokens == null)
@@ -605,102 +600,57 @@
         }
 
         /// <summary>
-        /// Маска токена, определяющая его префикс, суффикс и поведение.
+        /// Метод удаляет указанный суффикс с конца строки, если он существует.
         /// </summary>
-        public sealed class TokenMask
+        /// <param name="s">Исходная строка, из которой нужно удалить суффикс.</param>
+        /// <param name="subStr">Строка-суффикс, которую нужно удалить с конца.</param>
+        /// <param name="comparison">Тип сравнения строк при проверке суффикса.</param>
+        /// <returns>Строка без указанного суффикса в конце, если он был найден.</returns>
+        /// <remarks>Метод проверяет, заканчивается ли исходная строка указанным суффиксом.
+        /// Если суффикс найден, возвращается строка без этого суффикса.
+        /// Если суффикс не найден или параметры пустые, возвращается исходная строка.</remarks>
+        public static string TrimEnd(string s, string subStr, StringComparison comparison = StringComparison.Ordinal)
         {
-            /// <summary>
-            /// Initializes a new instance of the <see cref="TokenMask"/> class.
-            /// </summary>
-            public TokenMask()
+            // Проверка на пустые входные данные
+            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(subStr))
             {
+                return s;
             }
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="TokenMask"/> class.
-            /// </summary>
-            /// <param name="prefix"></param>
-            /// <param name="suffix"></param>
-            /// <param name="setTag"></param>
-            /// <param name="contentTransformer"></param>
-            public TokenMask(string prefix, string suffix, Func<Token, object> setTag = null, Func<Token, string> contentTransformer = null)
-                : this()
+            // Проверка наличия суффикса в конце строки
+            if (s.EndsWith(subStr, comparison))
             {
-                this.Prefix = prefix;
-                this.Suffix = suffix;
-                this.SetTag = setTag;
-                this.ContentTransformer = contentTransformer;
+                // Возвращаем строку без суффикса
+                return s.Substring(0, s.Length - subStr.Length);
             }
 
-            /// <summary>
-            /// Gets or sets префикс токена.
-            /// </summary>
-            public string Prefix { get; set; }
-
-            /// <summary>
-            /// Gets or sets суффикс токена.
-            /// </summary>
-            public string Suffix { get; set; }
-
-            /// <summary>
-            /// Gets or sets функция для установки пользовательского тега токена.
-            /// </summary>
-            public Func<Token, object> SetTag { get; set; }
-
-            /// <summary>
-            /// Gets or sets функция для трансформации содержимого токена.
-            /// </summary>
-            public Func<Token, string> ContentTransformer { get; set; }
-
-            /// <summary>
-            /// Gets or sets a value indicating whether разрешает ли данная маска иметь вложенные токены.
-            /// </summary>
-            public bool AllowChildrenTokens { get; set; } = true;
-
-            /// <summary>
-            /// Gets or sets a value indicating whether выбрасывать ли исключение при попытке добавить неразрешённый вложенный токен.
-            /// </summary>
-            public bool ThrowExceptionOnNotAllowedToken { get; set; } = false;
-
-            /// <summary>
-            /// Gets or sets разрешённые маски для вложенных токенов.
-            /// </summary>
-            public List<TokenMask> AllowedChildrenMasks { get; set; } = new List<TokenMask>();
-
-            /// <summary>
-            /// Gets or sets разрешённые маски для следующих соседних токенов.
-            /// </summary>
-            public List<TokenMask> AllowedNextMasks { get; set; } = new List<TokenMask>();
-
-            public override string ToString() => $"[{this.Prefix}, {this.Suffix}]";
+            // Если суффикс не найден, возвращаем исходную строку
+            return s;
         }
 
         /// <summary>
-        ///     Представляет токен (выделенную часть строки с учетом префикса и суффикса).
-        ///     Поддерживает вложенность.
+        /// Представляет токен (выделенную часть строки с учетом префикса и суффикса).
+        /// Поддерживает вложенность.
         /// </summary>
         public class Token
         {
-            internal List<Token> ChildrenInternal = new List<Token>();
+            /// <summary>
+            /// The identifier internal.
+            /// </summary>
             internal static int IdInternal = 1;
 
             /// <summary>
-            /// Gets порядковый идентификатор токена.
+            /// The children internal.
             /// </summary>
-            public int Id { get; internal set; }
+            internal List<Token> ChildrenInternal = new List<Token>();
 
             /// <summary>
-            /// Gets a value indicating whether токен без маски (не соответствует ни одной из заданных масок).
+            /// Initializes a new instance of the <see cref="Token" /> class.
             /// </summary>
-            public bool IsNotMatched => this.Mask == null;
-
-            /// <summary>
-            /// Initializes a new instance of the <see cref="Token"/> class.
-            /// </summary>
-            /// <param name="source"></param>
-            /// <param name="start"></param>
-            /// <param name="end"></param>
-            /// <param name="setTag"></param>
+            /// <param name="source">The source.</param>
+            /// <param name="start">The start.</param>
+            /// <param name="end">The end.</param>
+            /// <param name="setTag">The set tag.</param>
             public Token(string source, int start, int end, Func<Token, object> setTag = null)
                 : this()
             {
@@ -714,10 +664,10 @@
             }
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="Token"/> class.
+            /// Initializes a new instance of the <see cref="Token" /> class.
             /// </summary>
-            /// <param name="body"></param>
-            /// <param name="setTag"></param>
+            /// <param name="body">The body.</param>
+            /// <param name="setTag">The set tag.</param>
             public Token(string body, Func<Token, object> setTag = null)
                 : this()
             {
@@ -727,7 +677,7 @@
             }
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="Token"/> class.
+            /// Initializes a new instance of the <see cref="Token" /> class.
             /// </summary>
             internal Token()
             {
@@ -736,163 +686,21 @@
             }
 
             /// <summary>
-            /// Gets предыдущий токен на том же уровне вложенности.
+            /// Gets исходный текст токена, включая префикс и суффикс.
             /// </summary>
-            public Token Previous { get; internal set; }
-
-            /// <summary>
-            /// Gets следующий токен на том же уровне вложенности.
-            /// </summary>
-            public Token Next { get; internal set; }
-
-            /// <summary>
-            /// Gets первый токен в цепочке предыдущих токенов на том же уровне вложенности.
-            /// </summary>
-            public Token First
-            {
-                get
-                {
-                    var t = this;
-                    while (t.Previous != null)
-                    {
-                        t = t.Previous;
-                    }
-
-                    return t;
-                }
-            }
-
-            /// <summary>
-            /// Gets последний токен в цепочке следующих токенов на том же уровне вложенности.
-            /// </summary>
-            public Token Last
-            {
-                get
-                {
-                    var t = this;
-                    while (t.Next != null)
-                    {
-                        t = t.Next;
-                    }
-
-                    return t;
-                }
-            }
-
-            /// <summary>
-            /// Gets позиция токена среди соседей (0 = первый).
-            /// </summary>
-            public int Index
-            {
-                get
-                {
-                    int i = 0;
-                    var t = this;
-                    while (t.Previous != null)
-                    {
-                        t = t.Previous;
-                        i++;
-                    }
-
-                    return i;
-                }
-            }
-
-            /// <summary>
-            /// Все соседи (включая самого токена).
-            /// </summary>
-            public IEnumerable<Token> Siblings()
-            {
-                for (var t = this.First; t != null; t = t.Next)
-                {
-                    yield return t;
-                }
-            }
-
-            /// <summary>
-            /// Все токены перед текущим (по цепочке Previous).
-            /// </summary>
-            public IEnumerable<Token> AllBefore()
-            {
-                for (var t = this.Previous; t != null; t = t.Previous)
-                {
-                    yield return t;
-                }
-            }
-
-            /// <summary>
-            /// Все токены после текущего (по цепочке Next).
-            /// </summary>
-            public IEnumerable<Token> AllAfter()
-            {
-                for (var t = this.Next; t != null; t = t.Next)
-                {
-                    yield return t;
-                }
-            }
-
-            /// <summary>
-            /// Вставляет токен перед текущим.
-            /// </summary>
-            public void InsertBefore(Token newToken)
-            {
-                newToken.Next = this;
-                newToken.Previous = this.Previous;
-
-                if (this.Previous != null)
-                {
-                    this.Previous.Next = newToken;
-                }
-
-                this.Previous = newToken;
-
-                // если есть родитель — вставляем в его список детей
-                if (this.Parent != null)
-                {
-                    var list = this.Parent.ChildrenInternal;
-                    var idx = this.Parent.ChildrenInternal.IndexOf(this);
-                    list.Insert(idx, newToken);
-                    newToken.Parent = this.Parent;
-                }
-            }
-
-            /// <summary>
-            /// Вставляет токен после текущего.
-            /// </summary>
-            public void InsertAfter(Token newToken)
-            {
-                newToken.Previous = this;
-                newToken.Next = this.Next;
-
-                if (this.Next != null)
-                {
-                    this.Next.Previous = newToken;
-                }
-
-                this.Next = newToken;
-
-                if (this.Parent != null)
-                {
-                    var list = this.Parent.ChildrenInternal;
-                    var idx = this.Parent.ChildrenInternal.IndexOf(this);
-                    list.Insert(idx + 1, newToken);
-                    newToken.Parent = this.Parent;
-                }
-            }
-
-            /// <summary>
-            ///     Gets исходный текст токена, включая префикс и суффикс.
-            /// </summary>
+            /// <value>The body.</value>
             public string Body { get; internal set; }
 
             /// <summary>
-            ///     Gets дочерние токены.
+            /// Gets дочерние токены.
             /// </summary>
+            /// <value>The children.</value>
             public IEnumerable<Token> Children => this.ChildrenInternal;
 
             /// <summary>
-            ///     Gets итоговое содержимое токена, формируется из Text с учетом вложенных токенов и применённых ContentTransformers.
+            /// Gets итоговое содержимое токена, формируется из Text с учетом вложенных токенов и применённых ContentTransformers.
             /// </summary>
+            /// <value>The content.</value>
             public string Content
             {
                 get
@@ -935,79 +743,347 @@
             }
 
             /// <summary>
-            ///     Gets or sets пользовательские функции-трансформеры, применяемые к токену с учетом модели, если она указана. По умолчанию равно
-            ///     значению <see cref="Text" />.
+            /// Gets or sets пользовательские функции-трансформеры, применяемые к токену с учетом модели, если она указана. По умолчанию равно
+            /// значению <see cref="Text" />.
             /// </summary>
+            /// <value>The content transformers.</value>
             public List<Func<Token, string>> ContentTransformers { get; set; } = new List<Func<Token, string>>();
 
             /// <summary>
-            ///     Gets уровень вложенности токена (0 = корень).
+            /// Gets первый токен в цепочке предыдущих токенов на том же уровне вложенности.
             /// </summary>
+            /// <value>The first.</value>
+            public Token First
+            {
+                get
+                {
+                    var t = this;
+                    while (t.Previous != null)
+                    {
+                        t = t.Previous;
+                    }
+
+                    return t;
+                }
+            }
+
+            /// <summary>
+            /// Gets порядковый идентификатор токена.
+            /// </summary>
+            /// <value>The identifier.</value>
+            public int Id { get; internal set; }
+
+            /// <summary>
+            /// Gets позиция токена среди соседей (0 = первый).
+            /// </summary>
+            /// <value>The index.</value>
+            public int Index
+            {
+                get
+                {
+                    int i = 0;
+                    var t = this;
+                    while (t.Previous != null)
+                    {
+                        t = t.Previous;
+                        i++;
+                    }
+
+                    return i;
+                }
+            }
+
+            /// <summary>
+            /// Gets a value indicating whether токен без маски (не соответствует ни одной из заданных масок).
+            /// </summary>
+            /// <value><c>true</c> if this instance is not matched; otherwise, <c>false</c>.</value>
+            public bool IsNotMatched => this.Mask == null;
+
+            /// <summary>
+            /// Gets последний токен в цепочке следующих токенов на том же уровне вложенности.
+            /// </summary>
+            /// <value>The last.</value>
+            public Token Last
+            {
+                get
+                {
+                    var t = this;
+                    while (t.Next != null)
+                    {
+                        t = t.Next;
+                    }
+
+                    return t;
+                }
+            }
+
+            /// <summary>
+            /// Gets уровень вложенности токена (0 = корень).
+            /// </summary>
+            /// <value>The level.</value>
             public int Level => this.Parent == null ? 0 : this.Parent.Level + 1;
-
-            /// <summary>
-            ///     Gets родительский токен (null, если токен верхнего уровня).
-            /// </summary>
-            public Token Parent { get; internal set; }
-
-            /// <summary>
-            ///     Gets индекс начала токена (первый символ префикса <see cref="Prefix" />) в исходной строке <see cref="Source" />.
-            /// </summary>
-            public int SourceStart { get; internal set; }
-
-            /// <summary>
-            ///     Gets индекс конца токена (последний символ суффикса <see cref="Suffix" />) в исходной строке <see cref="Source" />.
-            /// </summary>
-            public int SourceEnd { get; internal set; }
-
-            /// <summary>
-            ///     Gets индекс начала токена (первый символ префикса <see cref="Prefix" />) относительно начала родительского <see cref="Body" />
-            ///     родительского токена <see cref="Parent" />.
-            /// </summary>
-            public int ParentStart { get; internal set; }
-
-            /// <summary>
-            ///     Gets индекс конца токена (последний символ суффикса <see cref="Suffix" />) относительно начала родительского <see cref="Body" />
-            ///     родительского токена <see cref="Parent" />.
-            /// </summary>
-            public int ParentEnd { get; internal set; }
-
-            /// <summary>
-            ///     Gets префикс токена (например "(").
-            /// </summary>
-            public string Prefix { get; internal set; }
-
-            /// <summary>
-            ///     Gets корневой токен.
-            /// </summary>
-            public Token Root => this.Parent == null ? this : this.Parent.Root;
-
-            /// <summary>
-            ///     Gets исходная строка.
-            /// </summary>
-            public string Source { get; internal set; }
-
-            /// <summary>
-            ///     Gets суффикс токена (например ")").
-            /// </summary>
-            public string Suffix { get; internal set; }
-
-            /// <summary>
-            ///     Gets внутренний текст токена без префикса и суффикса.
-            /// </summary>
-            public string Text { get; internal set; }
-
-            /// <summary>
-            /// Gets or sets тег для хранения пользовательских данных.
-            /// </summary>
-            public object Tag { get; set; }
 
             /// <summary>
             /// Gets маска токена.
             /// </summary>
+            /// <value>The mask.</value>
             public TokenMask Mask { get; internal set; }
 
+            /// <summary>
+            /// Gets следующий токен на том же уровне вложенности.
+            /// </summary>
+            /// <value>The next.</value>
+            public Token Next { get; internal set; }
+
+            /// <summary>
+            /// Gets родительский токен (null, если токен верхнего уровня).
+            /// </summary>
+            /// <value>The parent.</value>
+            public Token Parent { get; internal set; }
+
+            /// <summary>
+            /// Gets индекс конца токена (последний символ суффикса <see cref="Suffix" />) относительно начала родительского <see cref="Body" />
+            /// родительского токена <see cref="Parent" />.
+            /// </summary>
+            /// <value>The parent end.</value>
+            public int ParentEnd { get; internal set; }
+
+            /// <summary>
+            /// Gets индекс начала токена (первый символ префикса <see cref="Prefix" />) относительно начала родительского <see cref="Body" />
+            /// родительского токена <see cref="Parent" />.
+            /// </summary>
+            /// <value>The parent start.</value>
+            public int ParentStart { get; internal set; }
+
+            /// <summary>
+            /// Gets префикс токена (например "(").
+            /// </summary>
+            /// <value>The prefix.</value>
+            public string Prefix { get; internal set; }
+
+            /// <summary>
+            /// Gets предыдущий токен на том же уровне вложенности.
+            /// </summary>
+            /// <value>The previous.</value>
+            public Token Previous { get; internal set; }
+
+            /// <summary>
+            /// Gets корневой токен.
+            /// </summary>
+            /// <value>The root.</value>
+            public Token Root => this.Parent == null ? this : this.Parent.Root;
+
+            /// <summary>
+            /// Gets исходная строка.
+            /// </summary>
+            /// <value>The source.</value>
+            public string Source { get; internal set; }
+
+            /// <summary>
+            /// Gets индекс конца токена (последний символ суффикса <see cref="Suffix" />) в исходной строке <see cref="Source" />.
+            /// </summary>
+            /// <value>The source end.</value>
+            public int SourceEnd { get; internal set; }
+
+            /// <summary>
+            /// Gets индекс начала токена (первый символ префикса <see cref="Prefix" />) в исходной строке <see cref="Source" />.
+            /// </summary>
+            /// <value>The source start.</value>
+            public int SourceStart { get; internal set; }
+
+            /// <summary>
+            /// Gets суффикс токена (например ")").
+            /// </summary>
+            /// <value>The suffix.</value>
+            public string Suffix { get; internal set; }
+
+            /// <summary>
+            /// Gets or sets тег для хранения пользовательских данных.
+            /// </summary>
+            /// <value>The tag.</value>
+            public object Tag { get; set; }
+
+            /// <summary>
+            /// Gets внутренний текст токена без префикса и суффикса.
+            /// </summary>
+            /// <value>The text.</value>
+            public string Text { get; internal set; }
+
+            /// <summary>
+            /// Все токены после текущего (по цепочке Next).
+            /// </summary>
+            /// <returns>IEnumerable&lt;Token&gt;.</returns>
+            public IEnumerable<Token> AllAfter()
+            {
+                for (var t = this.Next; t != null; t = t.Next)
+                {
+                    yield return t;
+                }
+            }
+
+            /// <summary>
+            /// Все токены перед текущим (по цепочке Previous).
+            /// </summary>
+            /// <returns>IEnumerable&lt;Token&gt;.</returns>
+            public IEnumerable<Token> AllBefore()
+            {
+                for (var t = this.Previous; t != null; t = t.Previous)
+                {
+                    yield return t;
+                }
+            }
+
+            /// <summary>
+            /// Вставляет токен после текущего.
+            /// </summary>
+            /// <param name="newToken">The new token.</param>
+            public void InsertAfter(Token newToken)
+            {
+                newToken.Previous = this;
+                newToken.Next = this.Next;
+
+                if (this.Next != null)
+                {
+                    this.Next.Previous = newToken;
+                }
+
+                this.Next = newToken;
+
+                if (this.Parent != null)
+                {
+                    var list = this.Parent.ChildrenInternal;
+                    var idx = this.Parent.ChildrenInternal.IndexOf(this);
+                    list.Insert(idx + 1, newToken);
+                    newToken.Parent = this.Parent;
+                }
+            }
+
+            /// <summary>
+            /// Вставляет токен перед текущим.
+            /// </summary>
+            /// <param name="newToken">The new token.</param>
+            public void InsertBefore(Token newToken)
+            {
+                newToken.Next = this;
+                newToken.Previous = this.Previous;
+
+                if (this.Previous != null)
+                {
+                    this.Previous.Next = newToken;
+                }
+
+                this.Previous = newToken;
+
+                // если есть родитель — вставляем в его список детей
+                if (this.Parent != null)
+                {
+                    var list = this.Parent.ChildrenInternal;
+                    var idx = this.Parent.ChildrenInternal.IndexOf(this);
+                    list.Insert(idx, newToken);
+                    newToken.Parent = this.Parent;
+                }
+            }
+
+            /// <summary>
+            /// Все соседи (включая самого токена).
+            /// </summary>
+            /// <returns>IEnumerable&lt;Token&gt;.</returns>
+            public IEnumerable<Token> Siblings()
+            {
+                for (var t = this.First; t != null; t = t.Next)
+                {
+                    yield return t;
+                }
+            }
+
+            /// <summary>
+            /// Returns a <see cref="string" /> that represents this instance.
+            /// </summary>
+            /// <returns>A <see cref="string" /> that represents this instance.</returns>
             public override string ToString() => $"ID={this.Id}{(this.IsNotMatched ? "*" : string.Empty)} B='{this.Body}' T='{this.Text}' C='{this.Content}' SSE=({this.SourceStart}-{this.SourceEnd}) Lv={this.Level} Tag='{this.Tag}'";
+        }
+
+        /// <summary>
+        /// Маска токена, определяющая его префикс, суффикс и поведение.
+        /// </summary>
+        public sealed class TokenMask
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="TokenMask" /> class.
+            /// </summary>
+            public TokenMask()
+            {
+            }
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="TokenMask" /> class.
+            /// </summary>
+            /// <param name="prefix">The prefix.</param>
+            /// <param name="suffix">The suffix.</param>
+            /// <param name="setTag">The set tag.</param>
+            /// <param name="contentTransformer">The content transformer.</param>
+            public TokenMask(string prefix, string suffix, Func<Token, object> setTag = null, Func<Token, string> contentTransformer = null)
+                : this()
+            {
+                this.Prefix = prefix;
+                this.Suffix = suffix;
+                this.SetTag = setTag;
+                this.ContentTransformer = contentTransformer;
+            }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether разрешает ли данная маска иметь вложенные токены.
+            /// </summary>
+            /// <value><c>true</c> if [allow children tokens]; otherwise, <c>false</c>.</value>
+            public bool AllowChildrenTokens { get; set; } = true;
+
+            /// <summary>
+            /// Gets or sets разрешённые маски для вложенных токенов.
+            /// </summary>
+            /// <value>The allowed children masks.</value>
+            public List<TokenMask> AllowedChildrenMasks { get; set; } = new List<TokenMask>();
+
+            /// <summary>
+            /// Gets or sets разрешённые маски для следующих соседних токенов.
+            /// </summary>
+            /// <value>The allowed next masks.</value>
+            public List<TokenMask> AllowedNextMasks { get; set; } = new List<TokenMask>();
+
+            /// <summary>
+            /// Gets or sets функция для трансформации содержимого токена.
+            /// </summary>
+            /// <value>The content transformer.</value>
+            public Func<Token, string> ContentTransformer { get; set; }
+
+            /// <summary>
+            /// Gets or sets префикс токена.
+            /// </summary>
+            /// <value>The prefix.</value>
+            public string Prefix { get; set; }
+
+            /// <summary>
+            /// Gets or sets функция для установки пользовательского тега токена.
+            /// </summary>
+            /// <value>The set tag.</value>
+            public Func<Token, object> SetTag { get; set; }
+
+            /// <summary>
+            /// Gets or sets суффикс токена.
+            /// </summary>
+            /// <value>The suffix.</value>
+            public string Suffix { get; set; }
+
+            /// <summary>
+            /// Gets or sets a value indicating whether выбрасывать ли исключение при попытке добавить неразрешённый вложенный токен.
+            /// </summary>
+            /// <value><c>true</c> if [throw exception on not allowed token]; otherwise, <c>false</c>.</value>
+            public bool ThrowExceptionOnNotAllowedToken { get; set; } = false;
+
+            /// <summary>
+            /// Returns a <see cref="string" /> that represents this instance.
+            /// </summary>
+            /// <returns>A <see cref="string" /> that represents this instance.</returns>
+            public override string ToString() => $"[{this.Prefix}, {this.Suffix}]";
         }
     }
 }

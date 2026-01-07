@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="Cache.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff
 {
     using System;
     using System.Collections;
@@ -14,29 +27,19 @@
     /// Определяет стратегию вытеснения элементов из ограниченной коллекции
     /// при превышении максимально допустимого размера.
     /// </summary>
-    /// <remarks>
-    /// Стратегия вытеснения определяет, какой элемент будет удалён первым,
-    /// когда в коллекцию добавляется новый элемент сверх установленного лимита.
-    /// </remarks>
+    /// <remarks>Стратегия вытеснения определяет, какой элемент будет удалён первым,
+    /// когда в коллекцию добавляется новый элемент сверх установленного лимита.</remarks>
     public enum EvictionPolicy
     {
         /// <summary>
         /// FIFO (First In, First Out).
         /// </summary>
-        /// <remarks>
-        /// Удаляется элемент, который был добавлен в коллекцию раньше всех остальных,
-        /// независимо от того, использовался он позже или нет.
-        /// </remarks>
         FIFO,
 
         /// <summary>
         /// LRU (Least Recently Used).
         /// </summary>
-        /// <remarks>
-        /// Удаляется элемент, к которому дольше всего не было обращений
-        /// (чтение или запись).
-        /// </remarks>
-        LRU
+        LRU,
     }
 
     /// <summary>
@@ -74,19 +77,42 @@
     [DebuggerDisplay("Count = {Count}")]
     public class Cache<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
     {
+        /// <summary>
+        /// The asynchronous factory.
+        /// </summary>
         private readonly Func<TKey, Task<TValue>> _asyncFactory;
+
+        /// <summary>
+        /// The cache.
+        /// </summary>
         private readonly ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>> _cache;
+
+        /// <summary>
+        /// The expiration.
+        /// </summary>
         private readonly TimeSpan? _expiration;
+
+        /// <summary>
+        /// The has factory.
+        /// </summary>
         private readonly bool _hasFactory;
+
+        /// <summary>
+        /// The size limit.
+        /// </summary>
         private readonly uint? _sizeLimit;
+
+        /// <summary>
+        /// The eviction policy.
+        /// </summary>
         private readonly EvictionPolicy _evictionPolicy;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Cache{TKey, TValue}"/> class.
+        /// Initializes a new instance of the <see cref="Cache{TKey, TValue}" /> class.
         /// </summary>
-        /// <param name="expiration"></param>
-        /// <param name="sizeLimit"></param>
-        /// <param name="evictionPolicy"></param>
+        /// <param name="expiration">The expiration.</param>
+        /// <param name="sizeLimit">The size limit.</param>
+        /// <param name="evictionPolicy">The eviction policy.</param>
         public Cache(TimeSpan? expiration = null, uint? sizeLimit = null, EvictionPolicy evictionPolicy = default)
         {
             this._cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
@@ -101,6 +127,9 @@
         /// </summary>
         /// <param name="valueFactory">Фабрика значений.</param>
         /// <param name="expiration">Опциональное время жизни элементов кэша.</param>
+        /// <param name="sizeLimit">The size limit.</param>
+        /// <param name="evictionPolicy">The eviction policy.</param>
+        /// <exception cref="System.ArgumentNullException">valueFactory.</exception>
         public Cache(Func<TKey, Task<TValue>> valueFactory, TimeSpan? expiration = null, uint? sizeLimit = null, EvictionPolicy evictionPolicy = default)
         {
             this._cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
@@ -116,6 +145,8 @@
         /// </summary>
         /// <param name="syncFactory">Синхронная фабрика значений.</param>
         /// <param name="expiration">Опциональное время жизни элементов кэша.</param>
+        /// <param name="sizeLimit">The size limit.</param>
+        /// <param name="evictionPolicy">The eviction policy.</param>
         public Cache(Func<TKey, TValue> syncFactory, TimeSpan? expiration = null, uint? sizeLimit = null, EvictionPolicy evictionPolicy = default)
             : this(WrapSyncFactory(syncFactory), expiration, sizeLimit, evictionPolicy)
         {
@@ -140,6 +171,7 @@
         /// Gets количество актуальных элементов кэша.
         /// Учитываются только успешно созданные и неистёкшие элементы.
         /// </summary>
+        /// <value>The count.</value>
         public int Count =>
             this._cache.Count(p =>
                 p.Value.IsValueCreated &&
@@ -150,6 +182,7 @@
         /// Gets возвращает ключи актуальных элементов кэша.
         /// Не запускает фабрику и не блокирует поток.
         /// </summary>
+        /// <value>The keys.</value>
         public IEnumerable<TKey> Keys =>
             this._cache
                 .Where(p => p.Value.IsValueCreated &&
@@ -161,6 +194,7 @@
         /// Gets возвращает значения актуальных элементов кэша.
         /// Только успешно созданные и неистёкшие элементы.
         /// </summary>
+        /// <value>The values.</value>
         public IEnumerable<TValue> Values =>
             this._cache
                 .Where(p => p.Value.IsValueCreated &&
@@ -170,7 +204,7 @@
 
         /// <summary>
         /// Получает значение по ключу.
-        /// Синхронная обёртка над асинхронным методом <see cref="GetAsync"/>.
+        /// Синхронная обёртка над асинхронным методом <see cref="GetAsync" />.
         /// ⚠ Не рекомендуется вызывать из UI-потока или ASP.NET.
         /// </summary>
         /// <param name="key">Ключ.</param>
@@ -179,7 +213,7 @@
 
         /// <summary>
         /// Очистка всего кэша.
-        /// Вызывает событие <see cref="ItemRemoved"/> для каждого элемента.
+        /// Вызывает событие <see cref="ItemRemoved" /> для каждого элемента.
         /// </summary>
         public void Clear()
         {
@@ -197,9 +231,7 @@
         /// Фабрика значений не вызывается.
         /// </summary>
         /// <param name="key">Ключ.</param>
-        /// <returns>
-        /// <c>true</c>, если элемент существует, не истёк и успешно создан.
-        /// </returns>
+        /// <returns><c>true</c>, если элемент существует, не истёк и успешно создан.</returns>
         public bool ContainsKey(TKey key) => this.TryGetValue(key, out _);
 
         /// <summary>
@@ -216,28 +248,14 @@
         /// Получает значение из кэша по указанному ключу
         /// либо возвращает заданное значение по умолчанию.
         /// </summary>
-        /// <typeparam name="TKey">
-        /// Тип ключа, используемого для идентификации значения в кэше.
-        /// </typeparam>
-        /// <typeparam name="TValue">
-        /// Тип значения, хранящегося в кэше.
-        /// </typeparam>
-        /// <param name="key">
-        /// Ключ элемента кэша.
-        /// </param>
-        /// <param name="defaultValue">
-        /// Значение, которое будет возвращено, если элемент отсутствует в кэше
-        /// или не может быть получен.
-        /// </param>
-        /// <returns>
-        /// Значение из кэша, если оно найдено;
-        /// в противном случае — <paramref name="defaultValue"/>.
-        /// </returns>
-        /// <remarks>
-        /// Метод является удобной обёрткой над
-        /// <see cref="TryGetValue(TKey, out TValue)"/>
-        /// и не генерирует исключений при отсутствии элемента.
-        /// </remarks>
+        /// <param name="key">Ключ элемента кэша.</param>
+        /// <param name="defaultValue">Значение, которое будет возвращено, если элемент отсутствует в кэше
+        /// или не может быть получен.</param>
+        /// <returns>Значение из кэша, если оно найдено;
+        /// в противном случае — <paramref name="defaultValue" />.</returns>
+        /// <remarks>Метод является удобной обёрткой над
+        /// <see cref="TryGetValue(TKey, out TValue)" />
+        /// и не генерирует исключений при отсутствии элемента.</remarks>
         public TValue GetOrDefault(TKey key, TValue defaultValue)
         {
             if (this.TryGetValue(key, out var value))
@@ -253,6 +271,7 @@
         /// </summary>
         /// <param name="key">Ключ.</param>
         /// <returns>Значение кэша.</returns>
+        /// <exception cref="System.Collections.Generic.KeyNotFoundException">The given key '{key}' was not present in the cache.</exception>
         public async Task<TValue> GetAsync(TKey key)
         {
             // Режим без фабрики — работаем как обычный словарь
@@ -314,28 +333,14 @@
         /// Асинхронно получает значение из кэша по указанному ключу
         /// либо возвращает заданное значение по умолчанию.
         /// </summary>
-        /// <typeparam name="TKey">
-        /// Тип ключа, используемого для идентификации значения в кэше.
-        /// </typeparam>
-        /// <typeparam name="TValue">
-        /// Тип значения, хранящегося в кэше.
-        /// </typeparam>
-        /// <param name="key">
-        /// Ключ элемента кэша.
-        /// </param>
-        /// <param name="defaultValue">
-        /// Значение, которое будет возвращено, если элемент отсутствует в кэше,
-        /// просрочен или не может быть получен.
-        /// </param>
-        /// <returns>
-        /// Значение из кэша, если оно найдено и актуально;
-        /// в противном случае — <paramref name="defaultValue"/>.
-        /// </returns>
-        /// <remarks>
-        /// Метод является удобной обёрткой над
-        /// <see cref="TryGetValueAsync(TKey, System.Threading.CancellationToken)"/>
-        /// и не генерирует исключений при отсутствии элемента.
-        /// </remarks>
+        /// <param name="key">Ключ элемента кэша.</param>
+        /// <param name="defaultValue">Значение, которое будет возвращено, если элемент отсутствует в кэше,
+        /// просрочен или не может быть получен.</param>
+        /// <returns>Значение из кэша, если оно найдено и актуально;
+        /// в противном случае — <paramref name="defaultValue" />.</returns>
+        /// <remarks>Метод является удобной обёрткой над
+        /// <see cref="TryGetValueAsync(TKey, System.Threading.CancellationToken)" />
+        /// и не генерирует исключений при отсутствии элемента.</remarks>
         public async Task<TValue> GetOrDefaultAsync(TKey key, TValue defaultValue)
         {
             if (!this._cache.TryGetValue(key, out var lazy))
@@ -369,29 +374,17 @@
         /// <summary>
         /// Добавляет или обновляет значение в кэше по указанному ключу.
         /// </summary>
-        /// <typeparam name="TKey">
-        /// Тип ключа, используемого для идентификации значения в кэше.
-        /// </typeparam>
-        /// <typeparam name="TValue">
-        /// Тип значения, хранящегося в кэше.
-        /// </typeparam>
-        /// <param name="key">
-        /// Ключ элемента кэша.
-        /// </param>
-        /// <param name="value">
-        /// Значение, которое будет сохранено в кэше.
-        /// </param>
-        /// <remarks>
-        /// Если элемент с указанным ключом уже существует в кэше, он будет заменён новым значением,
-        /// при этом будет вызвано событие <see cref="OnItemRemoved"/> с причиной
-        /// <see cref="RemovalReason.Manual"/> и затем <see cref="OnItemAdded"/>.
-        /// <para/>
+        /// <param name="key">Ключ элемента кэша.</param>
+        /// <param name="value">Значение, которое будет сохранено в кэше.</param>
+        /// <remarks>Если элемент с указанным ключом уже существует в кэше, он будет заменён новым значением,
+        /// при этом будет вызвано событие <see cref="OnItemRemoved" /> с причиной
+        /// <see cref="RemovalReason.Manual" /> и затем <see cref="OnItemAdded" />.
+        /// <para />
         /// Если элемента с указанным ключом ещё нет, он будет добавлен,
-        /// и будет вызвано событие <see cref="OnItemAdded"/>.
-        /// <para/>
-        /// Значение сохраняется в виде <see cref="Lazy{Task}"/>, чтобы поддерживать
-        /// асинхронный доступ через <see cref="TryGetValueAsync(TKey, CancellationToken)"/>.
-        /// </remarks>
+        /// и будет вызвано событие <see cref="OnItemAdded" />.
+        /// <para />
+        /// Значение сохраняется в виде <see cref="Lazy{Task}" />, чтобы поддерживать
+        /// асинхронный доступ через <see cref="TryGetValueAsync(TKey, CancellationToken)" />.</remarks>
         public void Set(TKey key, TValue value)
         {
             // Создаём Lazy с Task, фиксируя время создания сразу
@@ -423,34 +416,18 @@
         /// <summary>
         /// Асинхронно добавляет или обновляет значение в кэше по указанному ключу.
         /// </summary>
-        /// <typeparam name="TKey">
-        /// Тип ключа, используемого для идентификации значения в кэше.
-        /// </typeparam>
-        /// <typeparam name="TValue">
-        /// Тип значения, хранящегося в кэше.
-        /// </typeparam>
-        /// <param name="key">
-        /// Ключ элемента кэша.
-        /// </param>
-        /// <param name="valueTask">
-        /// Задача, возвращающая значение для сохранения в кэше.
-        /// </param>
-        /// <returns>
-        /// Задача <see cref="Task"/>, представляющая асинхронную операцию добавления или обновления.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="valueTask"/> равна <see langword="null"/>.
-        /// </exception>
-        /// <remarks>
-        /// Метод ожидает завершения <paramref name="valueTask"/> и сохраняет результат в кэше,
-        /// вызывая внутренний метод <see cref="Set(TKey, TValue)"/>.
-        /// <para/>
+        /// <param name="key">Ключ элемента кэша.</param>
+        /// <param name="valueTask">Задача, возвращающая значение для сохранения в кэше.</param>
+        /// <returns>Задача <see cref="Task" />, представляющая асинхронную операцию добавления или обновления.</returns>
+        /// <exception cref="System.ArgumentNullException">valueTask.</exception>
+        /// <remarks>Метод ожидает завершения <paramref name="valueTask" /> и сохраняет результат в кэше,
+        /// вызывая внутренний метод <see cref="Set(TKey, TValue)" />.
+        /// <para />
         /// Если элемент с указанным ключом уже существует, он будет заменён новым значением,
-        /// при этом будет вызвано событие <see cref="OnItemRemoved"/> с причиной
-        /// <see cref="RemovalReason.Manual"/> и затем <see cref="OnItemAdded"/>.
+        /// при этом будет вызвано событие <see cref="OnItemRemoved" /> с причиной
+        /// <see cref="RemovalReason.Manual" /> и затем <see cref="OnItemAdded" />.
         /// Если элемента с указанным ключом ещё нет, он будет добавлен,
-        /// и будет вызвано событие <see cref="OnItemAdded"/>.
-        /// </remarks>
+        /// и будет вызвано событие <see cref="OnItemAdded" />.</remarks>
         public async Task SetAsync(TKey key, Task<TValue> valueTask)
         {
             if (valueTask == null)
@@ -478,17 +455,23 @@
             }
         }
 
+        /// <summary>
+        /// Gets the entries.
+        /// </summary>
+        /// <returns>IEnumerable&lt;System.ValueTuple&lt;TKey, TValue, DateTime, DateTime&gt;&gt;.</returns>
         public IEnumerable<(TKey Key, TValue Value, DateTime Created, DateTime LastAccess)> GetEntries() => this._cache.Values.Select(x => (x.Value.Result.Key, x.Value.Result.Value, x.Value.Result.Created, x.Value.Result.LastAccess));
 
+        /// <summary>
+        /// Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns>An <see cref="T:System.Collections.IEnumerator"></see> object that can be used to iterate through the collection.</returns>
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
         /// <summary>
         /// Удаляет элемент из кэша.
         /// </summary>
         /// <param name="key">Ключ элемента.</param>
-        /// <returns>
-        /// <c>true</c>, если элемент существовал и был удалён; иначе <c>false</c>.
-        /// </returns>
+        /// <returns><c>true</c>, если элемент существовал и был удалён; иначе <c>false</c>.</returns>
         public bool Remove(TKey key)
         {
             if (this._cache.TryRemove(key, out _))
@@ -506,9 +489,7 @@
         /// </summary>
         /// <param name="key">Ключ.</param>
         /// <param name="value">Полученное значение.</param>
-        /// <returns>
-        /// <c>true</c>, если значение существует, не истёкло и успешно создано.
-        /// </returns>
+        /// <returns><c>true</c>, если значение существует, не истёкло и успешно создано.</returns>
         public bool TryGetValue(TKey key, out TValue value)
         {
             value = default;
@@ -547,47 +528,22 @@
         /// <summary>
         /// Пытается асинхронно получить значение из кэша по указанному ключу.
         /// </summary>
-        /// <typeparam name="TKey">
-        /// Тип ключа, используемого для идентификации значения в кэше.
-        /// </typeparam>
-        /// <typeparam name="TValue">
-        /// Тип значения, хранящегося в кэше.
-        /// </typeparam>
-        /// <param name="key">
-        /// Ключ элемента кэша.
-        /// </param>
-        /// <param name="cancellationToken">
-        /// Токен отмены, используемый для отмены асинхронной операции.
-        /// </param>
-        /// <returns>
-        /// Кортеж, содержащий результат операции:
-        /// <list type="bullet">
-        /// <item>
-        /// <description>
-        /// <see langword="true"/> и значение — если элемент найден и актуален;
-        /// </description>
-        /// </item>
-        /// <item>
-        /// <description>
-        /// <see langword="false"/> и значение по умолчанию — если элемент отсутствует,
+        /// <param name="key">Ключ элемента кэша.</param>
+        /// <param name="cancellationToken">Токен отмены, используемый для отмены асинхронной операции.</param>
+        /// <returns>Кортеж, содержащий результат операции:
+        /// <list type="bullet"><item><description><see langword="true" /> и значение — если элемент найден и актуален;
+        /// </description></item><item><description><see langword="false" /> и значение по умолчанию — если элемент отсутствует,
         /// просрочен или при получении произошла ошибка.
-        /// </description>
-        /// </item>
-        /// </list>
-        /// </returns>
-        /// <remarks>
-        /// Метод не генерирует исключений при ошибках получения значения
+        /// </description></item></list></returns>
+        /// <exception cref="OperationCanceledException">Выбрасывается, если операция была отменена
+        /// через <paramref name="cancellationToken" />.</exception>
+        /// <remarks>Метод не генерирует исключений при ошибках получения значения
         /// или истечении срока действия элемента. Все такие ситуации
         /// интерпретируются как неуспешная попытка получения.
-        /// <para/>
+        /// <para />
         /// Если срок жизни элемента ограничен и истёк на момент обращения,
         /// элемент будет удалён из кэша с причиной
-        /// <see cref="RemovalReason.Expired"/>.
-        /// </remarks>
-        /// <exception cref="OperationCanceledException">
-        /// Выбрасывается, если операция была отменена
-        /// через <paramref name="cancellationToken"/>.
-        /// </exception>
+        /// <see cref="RemovalReason.Expired" />.</remarks>
         public async Task<(bool Success, TValue Value)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
         {
             if (!this._cache.TryGetValue(key, out var lazy))
@@ -640,6 +596,12 @@
         /// <param name="reason">Причина удаления.</param>
         protected void OnItemRemoved(TKey key, RemovalReason reason) => this.ItemRemoved?.Invoke(key, reason);
 
+        /// <summary>
+        /// Wraps the synchronize factory.
+        /// </summary>
+        /// <param name="syncFactory">The synchronize factory.</param>
+        /// <returns>Func&lt;TKey, Task&lt;TValue&gt;&gt;.</returns>
+        /// <exception cref="System.ArgumentNullException">syncFactory.</exception>
         private static Func<TKey, Task<TValue>> WrapSyncFactory(Func<TKey, TValue> syncFactory)
         {
             if (syncFactory == null)
@@ -650,6 +612,9 @@
             return key => Task.FromResult(syncFactory(key));
         }
 
+        /// <summary>
+        /// Enforces the size limit.
+        /// </summary>
         private void EnforceSizeLimit()
         {
             if (this._sizeLimit == null || this._sizeLimit.Value == 0)
@@ -671,7 +636,7 @@
                             {
                                 p.Key,
                                 entry.Created,
-                                entry.LastAccess
+                                entry.LastAccess,
                             };
                         })
                         .OrderBy(p =>
@@ -693,16 +658,34 @@
             }
         }
 
+        /// <summary>
+        /// Updates the last access.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="entry">The entry.</param>
         private void UpdateLastAccess(TKey key, CacheEntry entry)
         {
             entry.LastAccess = this.Now();
             this.OnItemAccessed(key);
         }
 
+        /// <summary>
+        /// Nows this instance.
+        /// </summary>
+        /// <returns>DateTime.</returns>
         private DateTime Now() => DateTimeHelper.ExactNow(DateTime.UtcNow);
 
+        /// <summary>
+        /// Class CacheEntry. This class cannot be inherited.
+        /// </summary>
         private sealed class CacheEntry
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="CacheEntry"/> class.
+            /// </summary>
+            /// <param name="key">The key.</param>
+            /// <param name="value">The value.</param>
+            /// <param name="created">The created.</param>
             public CacheEntry(TKey key, TValue value, DateTime created)
             {
                 this.Key = key;
@@ -711,13 +694,29 @@
                 this.LastAccess = created;
             }
 
+            /// <summary>
+            /// Gets the key.
+            /// </summary>
+            /// <value>The key.</value>
             public TKey Key { get; }
 
+            /// <summary>
+            /// Gets the value.
+            /// </summary>
+            /// <value>The value.</value>
             public TValue Value { get; }
 
+            /// <summary>
+            /// Gets the created.
+            /// </summary>
+            /// <value>The created.</value>
             public DateTime Created { get; }
 
-            public DateTime LastAccess { get; }
+            /// <summary>
+            /// Gets or sets the last access.
+            /// </summary>
+            /// <value>The last access.</value>
+            public DateTime LastAccess { get; internal set; }
         }
     }
 }

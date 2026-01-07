@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff.Helpers
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="DataTableHelper.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections.Generic;
@@ -8,48 +21,30 @@
 
     /// <summary>
     /// Предоставляет вспомогательные методы для работы с
-    /// <see cref="DataTable"/>, включая добавление колонок и строк,
+    /// <see cref="DataTable" />, включая добавление колонок и строк,
     /// а также преобразование данных в коллекции объектов.
     /// </summary>
-    /// <remarks>
-    /// Класс предназначен для упрощения типовых операций с
-    /// <see cref="DataTable"/> в сценариях сериализации,
+    /// <remarks>Класс предназначен для упрощения типовых операций с
+    /// <see cref="DataTable" /> в сценариях сериализации,
     /// загрузки данных и преобразования табличных структур
-    /// в объектные модели.
-    /// </remarks>
+    /// в объектные модели.</remarks>
     public static class DataTableHelper
     {
         /// <summary>
         /// Добавляет колонку в таблицу данных.
         /// </summary>
-        /// <param name="table">
-        /// Таблица, в которую добавляется колонка.
-        /// </param>
-        /// <param name="columnName">
-        /// Имя добавляемой колонки.
-        /// </param>
-        /// <param name="columnType">
-        /// Тип данных колонки.
-        /// </param>
-        /// <param name="isPrimaryKey">
-        /// Указывает, должна ли колонка быть частью первичного ключа.
-        /// </param>
-        /// <returns>
-        /// Созданный экземпляр <see cref="DataColumn"/>.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="table"/> или
-        /// <paramref name="columnType"/> равны <see langword="null"/>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если имя колонки пустое
-        /// или колонка с таким именем уже существует.
-        /// </exception>
-        /// <remarks>
-        /// Если колонка помечена как первичный ключ,
+        /// <param name="table">Таблица, в которую добавляется колонка.</param>
+        /// <param name="columnName">Имя добавляемой колонки.</param>
+        /// <param name="columnType">Тип данных колонки.</param>
+        /// <param name="isPrimaryKey">Указывает, должна ли колонка быть частью первичного ключа.</param>
+        /// <returns>Созданный экземпляр <see cref="DataColumn" />.</returns>
+        /// <exception cref="System.ArgumentNullException">table.</exception>
+        /// <exception cref="System.ArgumentNullException">columnType.</exception>
+        /// <exception cref="System.ArgumentException">Column name is required - columnName.</exception>
+        /// <exception cref="System.ArgumentException">Column '{columnName}' already exists.</exception>
+        /// <remarks>Если колонка помечена как первичный ключ,
         /// она автоматически добавляется в массив
-        /// <see cref="DataTable.PrimaryKey"/>.
-        /// </remarks>
+        /// <see cref="DataTable.PrimaryKey" />.</remarks>
         public static DataColumn AddCol(
             DataTable table,
             string columnName,
@@ -78,7 +73,7 @@
 
             var column = new DataColumn(columnName, columnType)
             {
-                AllowDBNull = !isPrimaryKey
+                AllowDBNull = !isPrimaryKey,
             };
 
             table.Columns.Add(column);
@@ -98,27 +93,14 @@
         /// <summary>
         /// Добавляет строку в таблицу данных из массива значений.
         /// </summary>
-        /// <param name="table">
-        /// Таблица, в которую добавляется строка.
-        /// </param>
-        /// <param name="rowData">
-        /// Массив значений строки, соответствующий порядку колонок таблицы.
-        /// </param>
-        /// <returns>
-        /// Добавленная строка <see cref="DataRow"/>.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="table"/> или
-        /// <paramref name="rowData"/> равны <see langword="null"/>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если количество элементов в массиве
-        /// не совпадает с количеством колонок таблицы.
-        /// </exception>
-        /// <remarks>
-        /// Значения <see langword="null"/> автоматически преобразуются
-        /// в <see cref="DBNull.Value"/>.
-        /// </remarks>
+        /// <param name="table">Таблица, в которую добавляется строка.</param>
+        /// <param name="rowData">Массив значений строки, соответствующий порядку колонок таблицы.</param>
+        /// <returns>Добавленная строка <see cref="DataRow" />.</returns>
+        /// <exception cref="System.ArgumentNullException">table.</exception>
+        /// <exception cref="System.ArgumentNullException">rowData.</exception>
+        /// <exception cref="System.ArgumentException">Row data length does not match table columns count.</exception>
+        /// <remarks>Значения <see langword="null" /> автоматически преобразуются
+        /// в <see cref="DBNull.Value" />.</remarks>
         public static DataRow AddRow(DataTable table, object[] rowData)
         {
             if (table == null)
@@ -151,27 +133,15 @@
         /// <summary>
         /// Добавляет строку в таблицу данных на основе свойств объекта.
         /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, значения свойств которого используются
-        /// для заполнения строки.
-        /// </typeparam>
-        /// <param name="table">
-        /// Таблица, в которую добавляется строка.
-        /// </param>
-        /// <param name="item">
-        /// Объект-источник значений.
-        /// </param>
-        /// <returns>
-        /// Добавленная строка <see cref="DataRow"/>.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="table"/> или
-        /// <paramref name="item"/> равны <see langword="null"/>.
-        /// </exception>
-        /// <remarks>
-        /// Значения берутся из свойств объекта по имени,
-        /// совпадающему с именем колонки таблицы.
-        /// </remarks>
+        /// <typeparam name="T">Тип объекта, значения свойств которого используются
+        /// для заполнения строки.</typeparam>
+        /// <param name="table">Таблица, в которую добавляется строка.</param>
+        /// <param name="item">Объект-источник значений.</param>
+        /// <returns>Добавленная строка <see cref="DataRow" />.</returns>
+        /// <exception cref="System.ArgumentNullException">table.</exception>
+        /// <exception cref="System.ArgumentNullException">item.</exception>
+        /// <remarks>Значения берутся из свойств объекта по имени,
+        /// совпадающему с именем колонки таблицы.</remarks>
         public static DataRow AddRow<T>(DataTable table, T item)
         {
             if (table == null)
@@ -199,28 +169,15 @@
         /// Преобразует значения указанной колонки таблицы
         /// в список заданного типа.
         /// </summary>
-        /// <typeparam name="T">
-        /// Тип элементов результирующего списка.
-        /// </typeparam>
-        /// <param name="table">
-        /// Исходная таблица данных.
-        /// </param>
-        /// <param name="columnName">
-        /// Имя колонки, значения которой будут извлечены.
-        /// </param>
-        /// <returns>
-        /// Список значений указанной колонки.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="table"/> равен <see langword="null"/>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если колонка не найдена.
-        /// </exception>
-        /// <remarks>
-        /// Строки со значением <see cref="DBNull.Value"/>
-        /// пропускаются.
-        /// </remarks>
+        /// <typeparam name="T">Тип элементов результирующего списка.</typeparam>
+        /// <param name="table">Исходная таблица данных.</param>
+        /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <returns>Список значений указанной колонки.</returns>
+        /// <exception cref="System.ArgumentNullException">table.</exception>
+        /// <exception cref="System.ArgumentException">columnName.</exception>
+        /// <exception cref="System.ArgumentException">Column '{columnName}' not found.</exception>
+        /// <remarks>Строки со значением <see cref="DBNull.Value" />
+        /// пропускаются.</remarks>
         public static List<T> ToList<T>(DataTable table, string columnName)
         {
             if (table == null)
@@ -257,20 +214,14 @@
         /// Преобразует строки таблицы данных в список объектов
         /// заданного типа.
         /// </summary>
-        /// <typeparam name="T">
-        /// Тип создаваемых объектов.
-        /// </typeparam>
-        /// <param name="table">
-        /// Исходная таблица данных.
-        /// </param>
-        /// <returns>
-        /// Список объектов, заполненных значениями из таблицы.
-        /// </returns>
-        /// <remarks>
-        /// Свойства объекта сопоставляются с колонками таблицы
-        /// по имени. Значения <see cref="DBNull.Value"/> игнорируются.
-        /// </remarks>
-        public static List<T> ToList<T>(DataTable table) where T : class, new()
+        /// <typeparam name="T">Тип создаваемых объектов.</typeparam>
+        /// <param name="table">Исходная таблица данных.</param>
+        /// <returns>Список объектов, заполненных значениями из таблицы.</returns>
+        /// <exception cref="System.ArgumentNullException">table.</exception>
+        /// <remarks>Свойства объекта сопоставляются с колонками таблицы
+        /// по имени. Значения <see cref="DBNull.Value" /> игнорируются.</remarks>
+        public static List<T> ToList<T>(DataTable table)
+            where T : class, new()
         {
             if (table == null)
             {
@@ -310,24 +261,25 @@
         /// Преобразует коллекцию объектов указанного типа в таблицу данных, где каждая строка соответствует одному элементу
         /// коллекции, а столбцы — публичным свойствам типа.
         /// </summary>
-        /// <remarks>Каждое публичное свойство типа <typeparamref name="T"/> становится отдельным столбцом
-        /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value"/>. Название таблицы
-        /// соответствует имени типа <typeparamref name="T"/>.</remarks>
         /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
         /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
         /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса.</param>
         /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
-        /// <returns>Экземпляр <see cref="DataTable"/>, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
+        /// <returns>Экземпляр <see cref="DataTable" />, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
         /// только с определёнными столбцами.</returns>
-        /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list"/> равен null.</exception>
-        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName = null, params Expression<Func<T, object>>[] propertySelectors) where T : class => ToDataTable(list, tableName, propertySelectors.Select(x => (x, (string)null)).ToArray());
+        /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list" /> равен null.</exception>
+        /// <remarks>Каждое публичное свойство типа <typeparamref name="T" /> становится отдельным столбцом
+        /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
+        /// соответствует имени типа <typeparamref name="T" />.</remarks>
+        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName = null, params Expression<Func<T, object>>[] propertySelectors)
+            where T : class => ToDataTable(list, tableName, propertySelectors.Select(x => (x, (string)null)).ToArray());
 
         /// <summary>
         /// Проверяет добавлена ли строка в таблицу.
         /// </summary>
         /// <param name="dt">Таблица.</param>
         /// <param name="row">Строка.</param>
-        /// <returns></returns>
+        /// <returns><c>true</c> if the specified dt contains row; otherwise, <c>false</c>.</returns>
         public static bool ContainsRow(DataTable dt, object row)
         {
             var dr = row as DataRow ?? (row as DataRowView)?.Row;
@@ -338,17 +290,18 @@
         /// Преобразует коллекцию объектов указанного типа в таблицу данных, где каждая строка соответствует одному элементу
         /// коллекции, а столбцы — публичным свойствам типа.
         /// </summary>
-        /// <remarks>Каждое публичное свойство типа <typeparamref name="T"/> становится отдельным столбцом
-        /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value"/>. Название таблицы
-        /// соответствует имени типа <typeparamref name="T"/>.</remarks>
         /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
         /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
         /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса.</param>
         /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
-        /// <returns>Экземпляр <see cref="DataTable"/>, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
+        /// <returns>Экземпляр <see cref="DataTable" />, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
         /// только с определёнными столбцами.</returns>
-        /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list"/> равен null.</exception>
-        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName, params (Expression<Func<T, object>> propSelector, string columnName)[] propertySelectors) where T : class
+        /// <exception cref="System.ArgumentNullException">list.</exception>
+        /// <remarks>Каждое публичное свойство типа <typeparamref name="T" /> становится отдельным столбцом
+        /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
+        /// соответствует имени типа <typeparamref name="T" />.</remarks>
+        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName, params (Expression<Func<T, object>> propSelector, string columnName)[] propertySelectors)
+            where T : class
         {
             if (list == null)
             {

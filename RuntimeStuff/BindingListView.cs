@@ -1,4 +1,17 @@
-﻿namespace RuntimeStuff
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="BindingListView.cs" company="Rudnev Sergey">
+//     Copyright (c) . All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
+namespace RuntimeStuff
 {
     using System;
     using System.Collections;
@@ -32,36 +45,77 @@
     }
 
     /// <summary>
-    ///     Представляет коллекцию, поддерживающую фильтрацию, сортировку, поиск и уведомления об изменениях,
-    ///     предназначенную для использования в привязке данных и отображении списков объектов.
+    /// Представляет коллекцию, поддерживающую фильтрацию, сортировку, поиск и уведомления об изменениях,
+    /// предназначенную для использования в привязке данных и отображении списков объектов.
     /// </summary>
-    /// <remarks>
-    ///     Класс реализует интерфейсы INotifyPropertyChanged, IBindingListView и
-    ///     INotifyCollectionChanged, что позволяет использовать его в сценариях с динамическим обновлением данных,
-    ///     например, в UI-приложениях. Поддерживает многопоточный доступ через объект синхронизации <see cref="SyncRoot" />.
-    ///     Изменения фильтрации и сортировки автоматически применяются к отображаемому списку. Для корректной работы
-    ///     рекомендуется использовать с типами, обладающими публичными свойствами, по которым возможна сортировка и
-    ///     фильтрация.
-    /// </remarks>
     /// <typeparam name="T">Тип элементов, содержащихся в списке. Должен быть ссылочным типом.</typeparam>
+    /// <remarks>Класс реализует интерфейсы INotifyPropertyChanged, IBindingListView и
+    /// INotifyCollectionChanged, что позволяет использовать его в сценариях с динамическим обновлением данных,
+    /// например, в UI-приложениях. Поддерживает многопоточный доступ через объект синхронизации <see cref="SyncRoot" />.
+    /// Изменения фильтрации и сортировки автоматически применяются к отображаемому списку. Для корректной работы
+    /// рекомендуется использовать с типами, обладающими публичными свойствами, по которым возможна сортировка и
+    /// фильтрация.</remarks>
     [DebuggerDisplay("Count = {Count} TotalCount = {TotalCount}")]
     public class BindingListView<T> : PropertyChangeNotifier, IBindingListView, INotifyCollectionChanged, IEnumerable<T>
         where T : class
     {
+        /// <summary>
+        /// The sort separators.
+        /// </summary>
         private readonly char[] sortSeparators = { ',', ';' };
+
+        /// <summary>
+        /// The source list.
+        /// </summary>
         private readonly List<T> sourceList;
+
+        /// <summary>
+        /// The allow edit.
+        /// </summary>
         private bool allowEdit = true;
+
+        /// <summary>
+        /// The allow new.
+        /// </summary>
         private bool allowNew = true;
+
+        /// <summary>
+        /// The allow remove.
+        /// </summary>
         private bool allowRemove = true;
+
+        /// <summary>
+        /// The filter.
+        /// </summary>
         private string filter;
+
+        /// <summary>
+        /// The is sorted.
+        /// </summary>
         private bool isSorted;
+
+        /// <summary>
+        /// The node map.
+        /// </summary>
         private Dictionary<T, BindingListViewRow> nodeMap;
+
+        /// <summary>
+        /// The sort by.
+        /// </summary>
         private string sortBy;
+
+        /// <summary>
+        /// The source filtered and sorted list.
+        /// </summary>
         private List<T> sourceFilteredAndSortedList;
+
+        /// <summary>
+        /// The suspend list changed events.
+        /// </summary>
         private bool suspendListChangedEvents;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BindingListView{T}"/> class.
+        /// Initializes a new instance of the <see cref="BindingListView{T}" /> class.
         /// </summary>
         public BindingListView()
         {
@@ -72,11 +126,11 @@
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="BindingListView{T}"/> class that contains elements copied from the specified.
+        /// Initializes a new instance of the <see cref="BindingListView{T}" /> class that contains elements copied from the specified.
         /// collection.
         /// </summary>
         /// <param name="items">The collection of items to copy into the list. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the items parameter is null.</exception>
+        /// <exception cref="ArgumentNullException">nameof(items).</exception>
         public BindingListView(IEnumerable<T> items)
             : this()
         {
@@ -91,7 +145,7 @@
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="BindingListView{T}"/> class.
+        /// Finalizes an instance of the <see cref="BindingListView{T}" /> class.
         /// </summary>
         ~BindingListView()
         {
@@ -103,18 +157,19 @@
         }
 
         /// <summary>
-        ///     Событие, возникающее при изменении коллекции.
+        /// Событие, возникающее при изменении коллекции.
         /// </summary>
         public event NotifyCollectionChangedEventHandler CollectionChanged;
 
         /// <summary>
-        ///     Событие, возникающее при изменении списка.
+        /// Событие, возникающее при изменении списка.
         /// </summary>
         public event ListChangedEventHandler ListChanged;
 
         /// <summary>
-        ///     Gets or sets a value indicating whether разрешено ли редактирование элементов.
+        /// Gets or sets a value indicating whether разрешено ли редактирование элементов.
         /// </summary>
+        /// <value>The allow edit.</value>
         public bool AllowEdit
         {
             get => this.allowEdit;
@@ -122,8 +177,9 @@
         }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether разрешено ли добавление новых элементов.
+        /// Gets or sets a value indicating whether разрешено ли добавление новых элементов.
         /// </summary>
+        /// <value>The allow new.</value>
         public bool AllowNew
         {
             get => this.allowNew;
@@ -131,8 +187,9 @@
         }
 
         /// <summary>
-        ///     Gets or sets a value indicating whether разрешено ли удаление элементов.
+        /// Gets or sets a value indicating whether разрешено ли удаление элементов.
         /// </summary>
+        /// <value>The allow remove.</value>
         public bool AllowRemove
         {
             get => this.allowRemove;
@@ -140,8 +197,9 @@
         }
 
         /// <summary>
-        ///     Gets количество элементов в отображаемом списке.
+        /// Gets количество элементов в отображаемом списке.
         /// </summary>
+        /// <value>The count.</value>
         public int Count
         {
             get
@@ -154,11 +212,12 @@
         }
 
         /// <summary>
-        ///     Gets or sets строка фильтрации для отображаемого списка. Формат: [ИмяСвойства] Оператор Значение. Операторы: ==, &lt; &gt;, &gt;
-        ///     , &lt;, &gt;=, &lt;=, LIKE, IN.
-        ///     Строковые значения должны быть в одинарных кавычках. Несколько условий можно объединять логическими операторами
-        ///     AND, OR.
+        /// Gets or sets строка фильтрации для отображаемого списка. Формат: [ИмяСвойства] Оператор Значение. Операторы: ==, &lt; &gt;, &gt;
+        /// , &lt;, &gt;=, &lt;=, LIKE, IN.
+        /// Строковые значения должны быть в одинарных кавычках. Несколько условий можно объединять логическими операторами
+        /// AND, OR.
         /// </summary>
+        /// <value>The filter.</value>
         public string Filter
         {
             get => this.filter;
@@ -175,23 +234,27 @@
         }
 
         /// <summary>
-        ///     Gets a value indicating whether отфильтрован ли список.
+        /// Gets a value indicating whether отфильтрован ли список.
         /// </summary>
+        /// <value>The is filtered.</value>
         public bool IsFiltered => this.Count != this.TotalCount;
 
         /// <summary>
-        ///     Gets a value indicating whether является ли список фиксированного размера.
+        /// Gets a value indicating whether является ли список фиксированного размера.
         /// </summary>
+        /// <value>The size of the is fixed.</value>
         public bool IsFixedSize => false;
 
         /// <summary>
-        ///     Gets a value indicating whether является ли список только для чтения.
+        /// Gets a value indicating whether является ли список только для чтения.
         /// </summary>
+        /// <value>The is read only.</value>
         public bool IsReadOnly => false;
 
         /// <summary>
-        ///     Gets or sets a value indicating whether отсортирован ли список.
+        /// Gets or sets a value indicating whether отсортирован ли список.
         /// </summary>
+        /// <value>The is sorted.</value>
         public bool IsSorted
         {
             get => this.isSorted;
@@ -199,26 +262,31 @@
         }
 
         /// <summary>
-        ///     Gets a value indicating whether является ли доступ к списку синхронизированным.
+        /// Gets a value indicating whether является ли доступ к списку синхронизированным.
         /// </summary>
+        /// <value>The is synchronized.</value>
         public bool IsSynchronized => false;
 
         /// <summary>
-        ///     Gets or sets фабрика для создания новых элементов при вызове AddNew().
+        /// Gets or sets фабрика для создания новых элементов при вызове AddNew().
         /// </summary>
+        /// <value>The new item factory.</value>
         public Func<T> NewItemFactory { get; set; }
 
-        /// <summary>Gets the properties.</summary>
+        /// <summary>
+        /// Gets the properties.
+        /// </summary>
         /// <value>The properties.</value>
         public PropertyInfo[] Properties { get; }
 
         /// <summary>
-        ///     Gets or sets строка с перечислением имён свойств, по которым нужно выполнить сортировку.
-        ///     Можно перечислять имена через запятую или точку с запятой.
-        ///     Через пробел после имени свойства можно указать направление сортировки: ASC (по возрастанию) или DESC (по
-        ///     убыванию).
-        ///     При изменении свойства автоматически применяется сортировка.
+        /// Gets or sets строка с перечислением имён свойств, по которым нужно выполнить сортировку.
+        /// Можно перечислять имена через запятую или точку с запятой.
+        /// Через пробел после имени свойства можно указать направление сортировки: ASC (по возрастанию) или DESC (по
+        /// убыванию).
+        /// При изменении свойства автоматически применяется сортировка.
         /// </summary>
+        /// <value>The sort by.</value>
         public string SortBy
         {
             get => this.sortBy;
@@ -226,48 +294,57 @@
         }
 
         /// <summary>
-        ///     Gets описания сортировки для списка.
+        /// Gets описания сортировки для списка.
         /// </summary>
+        /// <value>The sort descriptions.</value>
         public ListSortDescriptionCollection SortDescriptions { get; private set; }
 
         /// <summary>
-        ///     Gets направление сортировки.
+        /// Gets направление сортировки.
         /// </summary>
+        /// <value>The sort direction.</value>
         public ListSortDirection SortDirection { get; private set; }
 
         /// <summary>
-        ///     Gets свойство, по которому выполняется сортировка.
+        /// Gets свойство, по которому выполняется сортировка.
         /// </summary>
+        /// <value>The sort property.</value>
         public PropertyDescriptor SortProperty { get; private set; }
 
         /// <summary>
-        ///     Gets a value indicating whether поддерживает ли расширенную сортировку.
+        /// Gets a value indicating whether поддерживает ли расширенную сортировку.
         /// </summary>
+        /// <value>The supports advanced sorting.</value>
         public bool SupportsAdvancedSorting => true;
 
         /// <summary>
-        ///     Gets a value indicating whether поддерживает ли уведомления об изменениях.
+        /// Gets a value indicating whether поддерживает ли уведомления об изменениях.
         /// </summary>
+        /// <value>The supports change notification.</value>
         public bool SupportsChangeNotification => true;
 
         /// <summary>
-        ///     Gets a value indicating whether поддерживает ли фильтрацию.
+        /// Gets a value indicating whether поддерживает ли фильтрацию.
         /// </summary>
+        /// <value>The supports filtering.</value>
         public bool SupportsFiltering => true;
 
         /// <summary>
-        ///     Gets a value indicating whether поддерживает ли поиск.
+        /// Gets a value indicating whether поддерживает ли поиск.
         /// </summary>
+        /// <value>The supports searching.</value>
         public bool SupportsSearching => true;
 
         /// <summary>
-        ///     Gets a value indicating whether поддерживает ли сортировку.
+        /// Gets a value indicating whether поддерживает ли сортировку.
         /// </summary>
+        /// <value>The supports sorting.</value>
         public bool SupportsSorting => true;
 
         /// <summary>
-        ///     Gets or sets a value indicating whether прекращает или возобновляет генерацию событий изменения списка.
+        /// Gets or sets a value indicating whether прекращает или возобновляет генерацию событий изменения списка.
         /// </summary>
+        /// <value>The suspend list changed events.</value>
         public bool SuspendListChangedEvents
         {
             get => this.suspendListChangedEvents;
@@ -275,20 +352,23 @@
         }
 
         /// <summary>
-        ///     Gets объект синхронизации для многопоточного доступа.
+        /// Gets объект синхронизации для многопоточного доступа.
         /// </summary>
+        /// <value>The synchronize root.</value>
         public object SyncRoot { get; } = new object();
 
         /// <summary>
-        ///     Gets возвращает общее количество элементов в исходном списке.
+        /// Gets возвращает общее количество элементов в исходном списке.
         /// </summary>
+        /// <value>The total count.</value>
         public int TotalCount => this.sourceList.Count;
 
         /// <summary>
-        ///     Получает или задает элемент по индексу из отфильтрованного и отсортированного списка.
+        /// Получает или задает элемент по индексу из отфильтрованного и отсортированного списка.
         /// </summary>
         /// <param name="index">Индекс элемента.</param>
         /// <returns>Элемент по указанному индексу.</returns>
+        /// <exception cref="ArgumentException">$"Item must be of type {typeof(T).Name}.</exception>
         public object this[int index]
         {
             get
@@ -324,12 +404,12 @@
         }
 
         /// <summary>
-        ///     Добавляет элемент в список. Для оптимизации используй <see cref="AddRange"/> или <see cref="SuspendListChangedEvents"/>.
+        /// Добавляет элемент в список. Для оптимизации используй <see cref="AddRange" /> или <see cref="SuspendListChangedEvents" />.
         /// </summary>
         /// <param name="value">Добавляемый элемент.</param>
         /// <returns>Индекс добавленного элемента.</returns>
-        /// <exception cref="ArgumentException">Если тип элемента неверен.</exception>
-        /// <exception cref="ArgumentNullException">Если элемент равен null.</exception>
+        /// <exception cref="ArgumentException">$"Item must be of type {typeof(T).Name}.</exception>
+        /// <exception cref="ArgumentNullException">nameof(value).</exception>
         public int Add(object value)
         {
             if (!(value is T item))
@@ -365,16 +445,16 @@
         /// <summary>
         /// Adds the specified property to the list of properties to be used as search criteria.
         /// </summary>
+        /// <param name="property">The property descriptor that specifies the property to add as an index. Cannot be null.</param>
         /// <remarks>This method is intended for use with data-binding scenarios that support searching or
         /// sorting based on specific properties. Not all implementations are required to support indexing; calling this
         /// method may have no effect if indexing is not supported.</remarks>
-        /// <param name="property">The property descriptor that specifies the property to add as an index. Cannot be null.</param>
         void IBindingList.AddIndex(PropertyDescriptor property)
         {
         }
 
         /// <summary>
-        ///     Добавляет новый элемент, создавая его через конструктор по умолчанию.
+        /// Добавляет новый элемент, создавая его через конструктор по умолчанию.
         /// </summary>
         /// <returns>Добавленный элемент.</returns>
         public object AddNew()
@@ -385,10 +465,10 @@
         }
 
         /// <summary>
-        ///     Добавляет диапазон элементов в список.
+        /// Добавляет диапазон элементов в список.
         /// </summary>
         /// <param name="items">Коллекция добавляемых элементов.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="items" /> равен null или содержит null-элемент.</exception>
+        /// <exception cref="ArgumentNullException">nameof(items).</exception>
         public void AddRange(IEnumerable<T> items)
         {
             if (items == null)
@@ -418,7 +498,7 @@
         }
 
         /// <summary>
-        ///     Применяет фильтр к списку.
+        /// Применяет фильтр к списку.
         /// </summary>
         public void ApplyFilterAndSort()
         {
@@ -472,10 +552,10 @@
         /// <summary>
         /// Applies sorting to the collection based on the specified property and sort direction.
         /// </summary>
-        /// <remarks>Calling this method updates the current sort criteria and re-applies sorting to the
-        /// collection. The operation is thread-safe.</remarks>
         /// <param name="property">The property descriptor that specifies the property to sort by. Cannot be null.</param>
         /// <param name="direction">The direction in which to sort the collection. Specify ascending or descending.</param>
+        /// <remarks>Calling this method updates the current sort criteria and re-applies sorting to the
+        /// collection. The operation is thread-safe.</remarks>
         public void ApplySort(PropertyDescriptor property, ListSortDirection direction)
         {
             this.SortProperty = property;
@@ -490,9 +570,9 @@
         /// <summary>
         /// Applies the specified sort descriptions to the data source.
         /// </summary>
+        /// <param name="sorts">A collection of sort descriptions that defines the sort order to apply. Cannot be null.</param>
         /// <remarks>Calling this method updates the current sort order based on the provided sort
         /// descriptions. Any existing sort order will be replaced.</remarks>
-        /// <param name="sorts">A collection of sort descriptions that defines the sort order to apply. Cannot be null.</param>
         public void ApplySort(ListSortDescriptionCollection sorts)
         {
             this.SortDescriptions = sorts;
@@ -530,7 +610,7 @@
         }
 
         /// <summary>
-        ///     Очищает список.
+        /// Очищает список.
         /// </summary>
         public void Clear()
         {
@@ -582,14 +662,14 @@
         }
 
         /// <summary>
-        ///     Проверяет, содержится ли элемент в списке.
+        /// Проверяет, содержится ли элемент в списке.
         /// </summary>
         /// <param name="value">Проверяемый элемент.</param>
         /// <returns>True, если элемент найден; иначе false.</returns>
         public bool Contains(object value) => value is T item && this.sourceFilteredAndSortedList.Contains(item);
 
         /// <summary>
-        ///     Копирует элементы списка в массив, начиная с указанного индекса.
+        /// Копирует элементы списка в массив, начиная с указанного индекса.
         /// </summary>
         /// <param name="array">Массив назначения.</param>
         /// <param name="index">Начальный индекс копирования.</param>
@@ -602,7 +682,7 @@
         }
 
         /// <summary>
-        ///     Находит индекс элемента по значению свойства.
+        /// Находит индекс элемента по значению свойства.
         /// </summary>
         /// <param name="property">Свойство для поиска.</param>
         /// <param name="key">Значение для поиска.</param>
@@ -625,7 +705,7 @@
         }
 
         /// <summary>
-        ///     Возвращает перечислитель для списка.
+        /// Возвращает перечислитель для списка.
         /// </summary>
         /// <returns>Перечислитель элементов.</returns>
         public IEnumerator GetEnumerator()
@@ -645,11 +725,11 @@
         /// <summary>
         /// Returns an enumerator that iterates through the collection using the specified index type.
         /// </summary>
-        /// <remarks>Enumeration is thread-safe with respect to this collection. The returned enumerator
-        /// reflects the state of the collection at the time GetEnumerator is called.</remarks>
         /// <param name="indexType">The type of index to use when enumerating the collection. Use IndexType.FilteredSorted to enumerate the
         /// filtered and sorted view; otherwise, the original list is enumerated.</param>
         /// <returns>An enumerator for the collection, based on the specified index type.</returns>
+        /// <remarks>Enumeration is thread-safe with respect to this collection. The returned enumerator
+        /// reflects the state of the collection at the time GetEnumerator is called.</remarks>
         public IEnumerator GetEnumerator(IndexType indexType)
         {
             lock (this.SyncRoot)
@@ -684,9 +764,6 @@
         /// Retrieves the values of the specified property from all items in the collection, with optional filtering,
         /// sorting, and duplicate removal.
         /// </summary>
-        /// <remarks>The order of returned values depends on the selected index type. If indexType is
-        /// IndexType.FilteredSorted, the values reflect the current filtered and sorted view; otherwise, they reflect
-        /// the original collection order. The method is thread-safe.</remarks>
         /// <typeparam name="TValue">The type of the property values to retrieve.</typeparam>
         /// <param name="propertyName">The name of the property whose values are to be retrieved from each item.</param>
         /// <param name="indexType">Specifies whether to use the filtered and sorted view or the original collection when retrieving property
@@ -694,6 +771,9 @@
         /// <param name="distinct">true to return only distinct property values; false to include duplicates. The default is true.</param>
         /// <returns>An array containing the values of the specified property from the collection. If distinct is true, the array
         /// contains only unique values; otherwise, duplicates may be present.</returns>
+        /// <remarks>The order of returned values depends on the selected index type. If indexType is
+        /// IndexType.FilteredSorted, the values reflect the current filtered and sorted view; otherwise, they reflect
+        /// the original collection order. The method is thread-safe.</remarks>
         public TValue[] GetPropertyValues<TValue>(string propertyName, IndexType indexType = IndexType.FilteredSorted, bool distinct = true)
         {
             lock (this.SyncRoot)
@@ -728,14 +808,14 @@
         /// <summary>
         /// Retrieves the row at the specified index from the source or filtered and sorted list.
         /// </summary>
-        /// <remarks>Use IndexType.Source to retrieve a row based on its position in the original source
-        /// list, or IndexType.FilteredSorted to retrieve a row based on its position in the filtered and sorted view.
-        /// The returned row's VisibleIndex and SourceListIndex properties are updated to reflect its current positions
-        /// in the filtered/sorted and source lists, respectively.</remarks>
         /// <param name="index">The zero-based index of the row to retrieve. Must be within the bounds of the selected list.</param>
         /// <param name="indexType">Specifies whether the index refers to the source list or the filtered and sorted list. The default is
         /// IndexType.FilteredSorted.</param>
         /// <returns>A BindingListViewRow representing the row at the specified index.</returns>
+        /// <remarks>Use IndexType.Source to retrieve a row based on its position in the original source
+        /// list, or IndexType.FilteredSorted to retrieve a row based on its position in the filtered and sorted view.
+        /// The returned row's VisibleIndex and SourceListIndex properties are updated to reflect its current positions
+        /// in the filtered/sorted and source lists, respectively.</remarks>
         public BindingListViewRow GetRow(int index, IndexType indexType = IndexType.FilteredSorted)
         {
             var row = this.nodeMap[indexType == IndexType.Source ? this.sourceList[index] : this.sourceFilteredAndSortedList[index]];
@@ -747,14 +827,14 @@
         /// <summary>
         /// Retrieves the values of all properties for the row at the specified index.
         /// </summary>
-        /// <remarks>If the index is out of range for the selected list, an exception may be thrown. The
-        /// returned array contains property values in the same order as defined by the Properties collection.</remarks>
         /// <param name="index">The zero-based index of the row to retrieve values from. The interpretation of this index depends on the
         /// specified index type.</param>
         /// <param name="indexType">Specifies whether the index refers to the filtered and sorted view or the original source list. The default
         /// is FilteredSorted.</param>
         /// <returns>An array of objects containing the values of each property for the specified row. The order of values
         /// corresponds to the order of properties in the Properties collection.</returns>
+        /// <remarks>If the index is out of range for the selected list, an exception may be thrown. The
+        /// returned array contains property values in the same order as defined by the Properties collection.</remarks>
         public object[] GetRowValues(int index, IndexType indexType = IndexType.FilteredSorted)
         {
             var values = new object[this.Properties.Length];
@@ -769,17 +849,19 @@
         }
 
         /// <summary>
-        ///     Возвращает индекс указанного элемента.
+        /// Возвращает индекс указанного элемента.
         /// </summary>
         /// <param name="value">Элемент для поиска.</param>
         /// <returns>Индекс элемента или -1, если не найден.</returns>
         public int IndexOf(object value) => value is T item ? this.sourceFilteredAndSortedList.IndexOf(item) : -1;
 
         /// <summary>
-        ///     Вставляет элемент в список по указанному индексу.
+        /// Вставляет элемент в список по указанному индексу.
         /// </summary>
         /// <param name="index">Индекс вставки.</param>
         /// <param name="value">Вставляемый элемент.</param>
+        /// <exception cref="ArgumentException">$"Item must be of type {typeof(T).Name}.</exception>
+        /// <exception cref="ArgumentNullException">nameof(value).</exception>
         public void Insert(int index, object value)
         {
             if (!(value is T item))
@@ -808,7 +890,7 @@
         }
 
         /// <summary>
-        ///     Удаляет элемент из списка.
+        /// Удаляет элемент из списка.
         /// </summary>
         /// <param name="value">Удаляемый элемент.</param>
         public void Remove(object value)
@@ -839,7 +921,7 @@
         }
 
         /// <summary>
-        ///     Удаляет элемент по индексу.
+        /// Удаляет элемент по индексу.
         /// </summary>
         /// <param name="index">Индекс удаляемого элемента.</param>
         public void RemoveAt(int index)
@@ -860,7 +942,7 @@
         }
 
         /// <summary>
-        ///     Удаляет фильтр и сбрасывает отображаемый список.
+        /// Удаляет фильтр и сбрасывает отображаемый список.
         /// </summary>
         public void RemoveFilter()
         {
@@ -878,19 +960,19 @@
         /// <summary>
         /// Removes the index associated with the specified property from the collection, if one exists.
         /// </summary>
+        /// <param name="property">The property descriptor that identifies the index to remove. Cannot be null.</param>
         /// <remarks>This method is typically used to remove a previously added index for optimized
         /// searching or sorting. If the specified property does not have an associated index, the method has no
         /// effect.</remarks>
-        /// <param name="property">The property descriptor that identifies the index to remove. Cannot be null.</param>
         void IBindingList.RemoveIndex(PropertyDescriptor property)
         {
         }
 
         /// <summary>
-        ///     Удаляет диапазон элементов из списка.
+        /// Удаляет диапазон элементов из списка.
         /// </summary>
         /// <param name="items">Коллекция удаляемых элементов.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="items" /> равен null.</exception>
+        /// <exception cref="ArgumentNullException">nameof(items).</exception>
         public void RemoveRange(IEnumerable<T> items)
         {
             if (items == null)
@@ -917,7 +999,7 @@
         }
 
         /// <summary>
-        ///     Удаляет сортировку и сбрасывает отображаемый список.
+        /// Удаляет сортировку и сбрасывает отображаемый список.
         /// </summary>
         public void RemoveSort()
         {
@@ -945,19 +1027,19 @@
         /// <summary>
         /// Sets the visibility of the specified rows.
         /// </summary>
-        /// <param name="visible">A value indicating whether the specified rows should be visible. Set to <see langword="true"/> to make the
-        /// rows visible; otherwise, <see langword="false"/>.</param>
+        /// <param name="visible">A value indicating whether the specified rows should be visible. Set to <see langword="true" /> to make the
+        /// rows visible; otherwise, <see langword="false" />.</param>
         /// <param name="items">An array of items representing the rows whose visibility will be set. Cannot be null or empty.</param>
         public void SetRowsVisible(bool visible, params T[] items) => this.SetRowsVisible(items.AsEnumerable(), visible);
 
         /// <summary>
         /// Sets the visibility of the specified rows in the collection.
         /// </summary>
+        /// <param name="items">The collection of items whose visibility will be updated.</param>
+        /// <param name="visible">A value indicating whether the specified rows should be visible. Set to <see langword="true" /> to make the
+        /// rows visible; otherwise, <see langword="false" />.</param>
         /// <remarks>After updating the visibility of the specified rows, the method reapplies any active
         /// filters and sorting to the collection.</remarks>
-        /// <param name="items">The collection of items whose visibility will be updated.</param>
-        /// <param name="visible">A value indicating whether the specified rows should be visible. Set to <see langword="true"/> to make the
-        /// rows visible; otherwise, <see langword="false"/>.</param>
         public void SetRowsVisible(IEnumerable<T> items, bool visible)
         {
             foreach (var item in items)
@@ -975,8 +1057,8 @@
         /// Sets the visibility of the specified row.
         /// </summary>
         /// <param name="item">The item representing the row whose visibility is to be changed.</param>
-        /// <param name="visible">A value indicating whether the row should be visible. Set to <see langword="true"/> to make the row visible;
-        /// otherwise, <see langword="false"/>.</param>
+        /// <param name="visible">A value indicating whether the row should be visible. Set to <see langword="true" /> to make the row visible;
+        /// otherwise, <see langword="false" />.</param>
         public void SetRowVisible(T item, bool visible) => this.SetRowsVisible(new[] { item }, visible);
 
         /// <summary>
@@ -984,8 +1066,8 @@
         /// </summary>
         /// <param name="itemSourceIndex">The zero-based index of the row in the data source whose visibility is to be changed. Must be within the
         /// valid range of the data source.</param>
-        /// <param name="visible">A value indicating whether the row should be visible. Set to <see langword="true"/> to make the row visible;
-        /// otherwise, <see langword="false"/>.</param>
+        /// <param name="visible">A value indicating whether the row should be visible. Set to <see langword="true" /> to make the row visible;
+        /// otherwise, <see langword="false" />.</param>
         public void SetRowVisible(int itemSourceIndex, bool visible) => this.SetRowsVisible(new[] { this.sourceList[itemSourceIndex] }, visible);
 
         /// <summary>
@@ -1001,9 +1083,9 @@
         }
 
         /// <summary>
-        ///     Разбирает строку <see cref="SortBy" /> и применяет соответствующую сортировку.
-        ///     Поддерживаемые разделители: пробел, запятая, точка с запятой.
-        ///     Если строка пуста или содержит только пробелы — сортировка удаляется.
+        /// Разбирает строку <see cref="SortBy" /> и применяет соответствующую сортировку.
+        /// Поддерживаемые разделители: пробел, запятая, точка с запятой.
+        /// Если строка пуста или содержит только пробелы — сортировка удаляется.
         /// </summary>
         private void OnSortByChanged()
         {
@@ -1070,7 +1152,7 @@
         }
 
         /// <summary>
-        ///     Генерирует события сброса для обновления состояния коллекции.
+        /// Генерирует события сброса для обновления состояния коллекции.
         /// </summary>
         private void RaiseResetEvents()
         {
@@ -1088,8 +1170,14 @@
             Raise();
         }
 
+        /// <summary>
+        /// Rebuilds the node map.
+        /// </summary>
         private void RebuildNodeMap() => this.nodeMap = this.sourceList.Select((x, i) => (x, i)).ToDictionary(x => x.x, v => new BindingListViewRow(this, v.x, v.i));
 
+        /// <summary>
+        /// Rebuilds the nodes.
+        /// </summary>
         private void RebuildNodes()
         {
             var visibleIndex = 0;
@@ -1105,6 +1193,11 @@
             }
         }
 
+        /// <summary>
+        /// Subscribes the on property changed.
+        /// </summary>
+        /// <param name="item">The item.</param>
+        /// <param name="subscribe">The subscribe.</param>
         private void SubscribeOnPropertyChanged(object item, bool subscribe)
         {
             if (!(item is INotifyPropertyChanged notifyPropertyChanged))
@@ -1128,7 +1221,7 @@
         public sealed class BindingListViewRow
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="BindingListViewRow"/> class.
+            /// Initializes a new instance of the <see cref="BindingListViewRow" /> class.
             /// Инициализирует новый экземпляр класса BindingListViewRow с указанным владельцем, элементом источника и
             /// индексом в исходном списке.
             /// </summary>
@@ -1147,21 +1240,25 @@
             /// <summary>
             /// Gets the value stored in the current instance.
             /// </summary>
+            /// <value>The item.</value>
             public T Item { get; internal set; }
 
             /// <summary>
             /// Gets the zero-based index of the item in the source list.
             /// </summary>
+            /// <value>The index of the source list.</value>
             public int SourceListIndex { get; internal set; }
 
             /// <summary>
             /// Gets or sets a value indicating whether the element is visible.
             /// </summary>
+            /// <value>The visible.</value>
             public bool Visible { get; set; } = true;
 
             /// <summary>
             /// Gets the zero-based index that determines the visible position of the element within its container.
             /// </summary>
+            /// <value>The index of the visible.</value>
             public int VisibleIndex { get; internal set; }
 
             /// <inheritdoc/>
