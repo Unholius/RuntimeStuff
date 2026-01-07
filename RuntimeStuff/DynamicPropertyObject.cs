@@ -28,15 +28,18 @@ namespace RuntimeStuff
         /// <summary>
         /// The properties.
         /// </summary>
-        private readonly Dictionary<string, PropertyData> _properties = new Dictionary<string, PropertyData>(StringComparison.OrdinalIgnoreCase.ToStringComparer());
+        private readonly Dictionary<string, PropertyData> properties = new Dictionary<string, PropertyData>(StringComparison.OrdinalIgnoreCase.ToStringComparer());
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="DynamicPropertyObject"/> class.
         /// Создает пустой объект.
         /// </summary>
         public DynamicPropertyObject()
-        { }
+        {
+        }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="DynamicPropertyObject"/> class.
         /// Создает объект с копированием свойств из другого объекта.
         /// </summary>
         /// <param name="source">Исходный объект для копирования свойств.</param>
@@ -62,41 +65,6 @@ namespace RuntimeStuff
         public Dictionary<Type, Type> Editors { get; private set; } = new Dictionary<Type, Type>();
 
         /// <summary>
-        /// Внутренние данные одного свойства.
-        /// </summary>
-        private class PropertyData
-        {
-            /// <summary>
-            /// Создает данные для свойства.
-            /// </summary>
-            /// <param name="type">Тип свойства.</param>
-            /// <param name="value">Значение свойства.</param>
-            public PropertyData(Type type, object value)
-            {
-                this.Type = type;
-                this.Value = value;
-            }
-
-            /// <summary>
-            /// Gets or sets тип редактора свойства.
-            /// </summary>
-            /// <value>The type of the editor.</value>
-            public Type EditorType { get; set; }
-
-            /// <summary>
-            /// Gets or sets тип свойства.
-            /// </summary>
-            /// <value>The type.</value>
-            public Type Type { get; set; }
-
-            /// <summary>
-            /// Gets or sets значение свойства.
-            /// </summary>
-            /// <value>The value.</value>
-            public object Value { get; set; }
-        }
-
-        /// <summary>
         /// Индексатор для доступа к свойствам по имени.
         /// </summary>
         /// <param name="name">Имя свойства.</param>
@@ -110,7 +78,7 @@ namespace RuntimeStuff
             get => this.GetValue(name);
             set
             {
-                if (this._properties.TryGetValue(name, out var property))
+                if (this.properties.TryGetValue(name, out var property))
                 {
                     property.Value = value;
                 }
@@ -122,85 +90,17 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Типобезопасный getter значения свойства.
-        /// </summary>
-        /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
-        /// <param name="name">Имя свойства.</param>
-        /// <returns>Значение свойства.</returns>
-        /// <exception cref="System.Collections.Generic.KeyNotFoundException">Property '{name}' not found.</exception>
-        public T GetValue<T>(string name)
-        {
-            if (this._properties.TryGetValue(name, out var p))
-            {
-                if (p.Value is T t)
-                {
-                    return t;
-                }
-
-                return (T)Convert.ChangeType(p.Value, typeof(T));
-            }
-
-            throw new KeyNotFoundException($"Property '{name}' not found.");
-        }
-
-        /// <summary>
-        /// Типобезопасный setter значения свойства.
-        /// </summary>
-        /// <typeparam name="T">Тип значения.</typeparam>
-        /// <param name="name">Имя свойства.</param>
-        /// <param name="value">Новое значение.</param>
-        public void SetValue<T>(string name, T value)
-        {
-            if (this._properties.ContainsKey(name))
-            {
-                this._properties[name].Value = value;
-                this._properties[name].Type = typeof(T);
-            }
-            else
-            {
-                this.AddProperty(name, typeof(T), value);
-            }
-        }
-
-        /// <summary>
         /// Добавляет новое свойство или заменяет существующее.
         /// </summary>
         /// <param name="name">Имя свойства.</param>
         /// <param name="type">Тип свойства.</param>
         /// <param name="value">Начальное значение свойства.</param>
-        public void AddProperty(string name, Type type, object value = null) => this._properties[name] = new PropertyData(type, value);
+        public void AddProperty(string name, Type type, object value = null) => this.properties[name] = new PropertyData(type, value);
 
         /// <summary>
         /// Очищает все свойства объекта.
         /// </summary>
-        public void ClearProperties() => this._properties.Clear();
-
-        /// <summary>
-        /// Получает тип свойства по имени.
-        /// </summary>
-        /// <param name="name">Имя свойства.</param>
-        /// <returns>Тип свойства.</returns>
-        public Type GetPropertyType(string name) => this._properties[name].Type;
-
-        /// <summary>
-        /// Получает значение свойства по имени.
-        /// </summary>
-        /// <param name="name">Имя свойства.</param>
-        /// <returns>Значение свойства.</returns>
-        public object GetValue(string name) => this._properties[name].Value;
-
-        /// <summary>
-        /// Устанавливает значение существующего свойства.
-        /// </summary>
-        /// <param name="name">Имя свойства.</param>
-        /// <param name="value">Новое значение.</param>
-        public void SetValue(string name, object value)
-        {
-            if (this._properties.TryGetValue(name, out var p))
-            {
-                p.Value = value;
-            }
-        }
+        public void ClearProperties() => this.properties.Clear();
 
         /// <summary>
         /// Возвращает коллекцию атрибутов компонента.
@@ -263,7 +163,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <returns>A <see cref="T:System.ComponentModel.PropertyDescriptorCollection"></see> that represents the properties for this component instance.</returns>
         public PropertyDescriptorCollection GetProperties() => new PropertyDescriptorCollection(
-                this._properties.Keys.Select(name => new DynamicPropertyDescriptor(name, this))
+                this.properties.Keys.Select(name => new DynamicPropertyDescriptor(name, this))
                     .ToArray<PropertyDescriptor>());
 
         /// <summary>
@@ -281,6 +181,74 @@ namespace RuntimeStuff
         public object GetPropertyOwner(PropertyDescriptor pd) => this;
 
         /// <summary>
+        /// Получает тип свойства по имени.
+        /// </summary>
+        /// <param name="name">Имя свойства.</param>
+        /// <returns>Тип свойства.</returns>
+        public Type GetPropertyType(string name) => this.properties[name].Type;
+
+        /// <summary>
+        /// Типобезопасный getter значения свойства.
+        /// </summary>
+        /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
+        /// <param name="name">Имя свойства.</param>
+        /// <returns>Значение свойства.</returns>
+        /// <exception cref="System.Collections.Generic.KeyNotFoundException">Property '{name}' not found.</exception>
+        public T GetValue<T>(string name)
+        {
+            if (this.properties.TryGetValue(name, out var p))
+            {
+                if (p.Value is T t)
+                {
+                    return t;
+                }
+
+                return (T)Convert.ChangeType(p.Value, typeof(T));
+            }
+
+            throw new KeyNotFoundException($"Property '{name}' not found.");
+        }
+
+        /// <summary>
+        /// Получает значение свойства по имени.
+        /// </summary>
+        /// <param name="name">Имя свойства.</param>
+        /// <returns>Значение свойства.</returns>
+        public object GetValue(string name) => this.properties[name].Value;
+
+        /// <summary>
+        /// Типобезопасный setter значения свойства.
+        /// </summary>
+        /// <typeparam name="T">Тип значения.</typeparam>
+        /// <param name="name">Имя свойства.</param>
+        /// <param name="value">Новое значение.</param>
+        public void SetValue<T>(string name, T value)
+        {
+            if (this.properties.ContainsKey(name))
+            {
+                this.properties[name].Value = value;
+                this.properties[name].Type = typeof(T);
+            }
+            else
+            {
+                this.AddProperty(name, typeof(T), value);
+            }
+        }
+
+        /// <summary>
+        /// Устанавливает значение существующего свойства.
+        /// </summary>
+        /// <param name="name">Имя свойства.</param>
+        /// <param name="value">Новое значение.</param>
+        public void SetValue(string name, object value)
+        {
+            if (this.properties.TryGetValue(name, out var p))
+            {
+                p.Value = value;
+            }
+        }
+
+        /// <summary>
         /// Дескриптор динамического свойства.
         /// </summary>
         public class DynamicPropertyDescriptor : PropertyDescriptor
@@ -288,9 +256,10 @@ namespace RuntimeStuff
             /// <summary>
             /// The owner.
             /// </summary>
-            private readonly DynamicPropertyObject _owner;
+            private readonly DynamicPropertyObject owner;
 
             /// <summary>
+            /// Initializes a new instance of the <see cref="DynamicPropertyDescriptor"/> class.
             /// Создает дескриптор свойства.
             /// </summary>
             /// <param name="name">Имя свойства.</param>
@@ -298,7 +267,7 @@ namespace RuntimeStuff
             public DynamicPropertyDescriptor(string name, DynamicPropertyObject owner)
                 : base(name, null)
             {
-                this._owner = owner;
+                this.owner = owner;
             }
 
             /// <summary>
@@ -330,7 +299,7 @@ namespace RuntimeStuff
             /// Gets тип свойства.
             /// </summary>
             /// <value>The type of the property.</value>
-            public override Type PropertyType => this._owner.GetPropertyType(this.Name);
+            public override Type PropertyType => this.owner.GetPropertyType(this.Name);
 
             /// <summary>
             /// Можно ли сбросить значение свойства.
@@ -346,19 +315,19 @@ namespace RuntimeStuff
             /// <returns>An instance of the requested editor type, or null if an editor cannot be found.</returns>
             public override object GetEditor(Type editorBaseType)
             {
-                if (this._owner._properties[this.Name].EditorType != null)
+                if (this.owner.properties[this.Name].EditorType != null)
                 {
-                    return Activator.CreateInstance(this._owner._properties[this.Name].EditorType);
+                    return Activator.CreateInstance(this.owner.properties[this.Name].EditorType);
                 }
 
-                if (this._owner.Editors.TryGetValue(this.PropertyType, out var editorType))
+                if (this.owner.Editors.TryGetValue(this.PropertyType, out var editorType))
                 {
                     return Activator.CreateInstance(editorType);
                 }
 
-                if (this._owner.EditorResolver != null)
+                if (this.owner.EditorResolver != null)
                 {
-                    return Activator.CreateInstance(this._owner.EditorResolver(this.PropertyType));
+                    return Activator.CreateInstance(this.owner.EditorResolver(this.PropertyType));
                 }
 
                 return base.GetEditor(editorBaseType);
@@ -369,21 +338,22 @@ namespace RuntimeStuff
             /// </summary>
             /// <param name="component">The component with the property for which to retrieve the value.</param>
             /// <returns>The value of a property for a given component.</returns>
-            public override object GetValue(object component) => this._owner.GetValue(this.Name);
+            public override object GetValue(object component) => this.owner.GetValue(this.Name);
 
             /// <summary>
             /// Сброс значения свойства (не реализован).
             /// </summary>
             /// <param name="component">The component with the property value that is to be reset to the default value.</param>
             public override void ResetValue(object component)
-            { }
+            {
+            }
 
             /// <summary>
             /// Установка значения свойства.
             /// </summary>
             /// <param name="component">The component with the property value that is to be set.</param>
             /// <param name="value">The new value.</param>
-            public override void SetValue(object component, object value) => this._owner.SetValue(this.Name, value);
+            public override void SetValue(object component, object value) => this.owner.SetValue(this.Name, value);
 
             /// <summary>
             /// Нужно ли сериализовать значение свойства.
@@ -391,6 +361,42 @@ namespace RuntimeStuff
             /// <param name="component">The component.</param>
             /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
             public override bool ShouldSerializeValue(object component) => true;
+        }
+
+        /// <summary>
+        /// Внутренние данные одного свойства.
+        /// </summary>
+        private class PropertyData
+        {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="PropertyData"/> class.
+            /// Создает данные для свойства.
+            /// </summary>
+            /// <param name="type">Тип свойства.</param>
+            /// <param name="value">Значение свойства.</param>
+            public PropertyData(Type type, object value)
+            {
+                this.Type = type;
+                this.Value = value;
+            }
+
+            /// <summary>
+            /// Gets or sets тип редактора свойства.
+            /// </summary>
+            /// <value>The type of the editor.</value>
+            public Type EditorType { get; set; }
+
+            /// <summary>
+            /// Gets or sets тип свойства.
+            /// </summary>
+            /// <value>The type.</value>
+            public Type Type { get; set; }
+
+            /// <summary>
+            /// Gets or sets значение свойства.
+            /// </summary>
+            /// <value>The value.</value>
+            public object Value { get; set; }
         }
     }
 }

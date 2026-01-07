@@ -91,14 +91,14 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         /// <param name="date">Исходная дата (не используется).</param>
         /// <returns>Уникальные тики текущего момента времени.</returns>
-        public static long ExactTicks(this DateTime date) => DateTimeHelper.ExactTicks(date);
+        public static long ExactTicks(this DateTime date) => DateTimeHelper.ExactTicks();
 
         /// <summary>
         /// Возвращает текущую дату и время с гарантией уникальности тиков.
         /// </summary>
         /// <param name="date">Исходная дата (не используется).</param>
         /// <returns>Текущая дата и время с уникальными тиками.</returns>
-        public static DateTime ExactNow(this DateTime date) => DateTimeHelper.ExactNow(date);
+        public static DateTime ExactNow(this DateTime date) => DateTimeHelper.ExactNow();
 
         /// <summary>
         /// Возвращает последовательность дат от текущей даты до указанной даты с заданным шагом.

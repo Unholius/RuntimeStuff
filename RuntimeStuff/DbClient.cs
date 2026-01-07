@@ -39,11 +39,6 @@ namespace RuntimeStuff
     public class DbClient : IDisposable, IHaveOptions<SqlProviderOptions>
     {
         /// <summary>
-        /// Gets the trim string spaces.
-        /// </summary>
-        public static DbValueConverter TrimStringSpaces { get; } = (name, value, info, item) => value is string s ? s.Trim(TrimChars) : ChangeType(value, info.PropertyType);
-
-        /// <summary>
         /// The ignore case comparer.
         /// </summary>
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
@@ -51,17 +46,17 @@ namespace RuntimeStuff
         /// <summary>
         /// The empty parameters.
         /// </summary>
-        private readonly IReadOnlyDictionary<string, object> _emptyParams = new Dictionary<string, object>();
+        private readonly IReadOnlyDictionary<string, object> emptyParams = new Dictionary<string, object>();
 
         /// <summary>
         /// The tr.
         /// </summary>
-        private readonly AsyncLocal<IDbTransaction> _tr = new AsyncLocal<IDbTransaction>();
+        private readonly AsyncLocal<IDbTransaction> tr = new AsyncLocal<IDbTransaction>();
 
         /// <summary>
         /// The query logs.
         /// </summary>
-        private Cache<DateTime, string> _queryLogs = new Cache<DateTime, string>(sizeLimit: 100);
+        private Cache<DateTime, string> queryLogs = new Cache<DateTime, string>(sizeLimit: 100);
 
         /// <summary>
         /// The query log maximum size.
@@ -90,6 +85,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Finalizes an instance of the <see cref="DbClient"/> class.
         /// Финализатор класса <see cref="DbClient" />.
         /// </summary>
         /// <remarks>Вызывается сборщиком мусора, если объект не был явно освобождён.</remarks>
@@ -115,7 +111,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Типизированная версия делегата преобразования значений.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="fieldName">Name of the field.</param>
         /// <param name="fieldValue">The field value.</param>
         /// <param name="propertyInfo">The property information.</param>
@@ -144,6 +140,11 @@ namespace RuntimeStuff
         /// </summary>
         /// <value>The trim chars.</value>
         public static char[] TrimChars { get; set; } = { '\uFEFF', '\u200B', ' ', '\r', '\n', '\t' };
+
+        /// <summary>
+        /// Gets the trim string spaces.
+        /// </summary>
+        public static DbValueConverter TrimStringSpaces { get; } = (name, value, info, item) => value is string s ? s.Trim(TrimChars) : ChangeType(value, info.PropertyType);
 
         /// <summary>
         /// Gets or sets a value indicating whether определяет, использовать ли ConfigureAwait(false) для асинхронных операций.
@@ -208,7 +209,7 @@ namespace RuntimeStuff
             set
             {
                 this.queryLogMaxSize = value;
-                this._queryLogs = new Cache<DateTime, string>(sizeLimit: this.queryLogMaxSize);
+                this.queryLogs = new Cache<DateTime, string>(sizeLimit: this.queryLogMaxSize);
             }
         }
 
@@ -217,7 +218,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <value>The query logs.</value>
         public IEnumerable<string> QueryLogs =>
-            this._queryLogs.GetEntries().OrderBy(x => x.Created).Select(x => x.Value).ToArray();
+            this.queryLogs.GetEntries().OrderBy(x => x.Created).Select(x => x.Value).ToArray();
 
         /// <summary>
         /// Gets or sets функция преобразования значений, полученных из БД, в значения свойств объектов.
@@ -441,14 +442,14 @@ namespace RuntimeStuff
         /// Если транзакция уже была начата, будет выброшено исключение.</remarks>
         public IDbTransaction BeginTransaction(IsolationLevel level = IsolationLevel.ReadCommitted)
         {
-            if (this._tr.Value != null)
+            if (this.tr.Value != null)
             {
                 throw new InvalidOperationException("Транзакция уже была начата.");
             }
 
             this.BeginConnection();
-            this._tr.Value = this.Connection.BeginTransaction(level);
-            return this._tr.Value;
+            this.tr.Value = this.Connection.BeginTransaction(level);
+            return this.tr.Value;
         }
 
         /// <summary>
@@ -628,9 +629,9 @@ namespace RuntimeStuff
                 }
             }
 
-            if (this._tr != null)
+            if (this.tr != null)
             {
-                cmd.Transaction = this._tr.Value;
+                cmd.Transaction = this.tr.Value;
             }
 
             this.LogCommand(cmd);
@@ -769,14 +770,14 @@ namespace RuntimeStuff
         /// После завершения транзакции соединение с базой данных закрывается.</remarks>
         public void EndTransaction()
         {
-            if (this._tr.Value == null)
+            if (this.tr.Value == null)
             {
                 throw new InvalidOperationException("Транзакция не была начата.");
             }
 
-            this._tr.Value.Commit();
-            this._tr.Value.Dispose();
-            this._tr.Value = null;
+            this.tr.Value.Commit();
+            this.tr.Value.Dispose();
+            this.tr.Value = null;
             this.CloseConnection();
         }
 
@@ -1366,7 +1367,7 @@ namespace RuntimeStuff
             Dictionary<string, object> parameters = new Dictionary<string, object>();
             if (cmdParams == null)
             {
-                return this._emptyParams;
+                return this.emptyParams;
             }
 
             MemberCache memberCache = MemberCache.Create(cmdParams.GetType());
@@ -2336,7 +2337,8 @@ namespace RuntimeStuff
                             dataTable.AcceptChanges();
                             dataTable.EndLoadData();
                             result.Add(dataTable);
-                        } while (r.NextResult());
+                        }
+                        while (r.NextResult());
 
                         return result.ToArray();
                     }
@@ -2421,7 +2423,8 @@ namespace RuntimeStuff
                             dataTable.AcceptChanges();
                             dataTable.EndLoadData();
                             result.Add(dataTable);
-                        } while (await r.NextResultAsync(token).ConfigureAwait(this.ConfigureAwait));
+                        }
+                        while (await r.NextResultAsync(token).ConfigureAwait(this.ConfigureAwait));
 
                         return result.ToArray();
                     }
@@ -2933,7 +2936,6 @@ namespace RuntimeStuff
         /// <param name="token">Токен отмены асинхронной операции. Используется для отмены выполнения запроса.</param>
         /// <returns>Задача, которая возвращает количество обновленных строк в базе данных.</returns>
         /// <exception cref="System.NullReferenceException">dbCmd.</exception>
-        /// <exception cref="Exception">dbCmd.</exception>
         /// <remarks>Этот метод асинхронно обновляет несколько записей в базе данных, используя переданный список объектов.
         /// Каждый объект в списке обрабатывается и обновляется в базе данных в рамках одной транзакции.
         /// При возникновении ошибки транзакция откатывается, а исключение обрабатывается и повторно выбрасывается.</remarks>
@@ -3002,7 +3004,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Changes the type.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="value">The value.</param>
         /// <returns>T.</returns>
         private static T ChangeType<T>(object value) => (T)ChangeType(value, typeof(T));
@@ -3246,7 +3248,7 @@ namespace RuntimeStuff
         /// <exception cref="System.NullReferenceException">con.</exception>
         private void CloseConnection(IDbConnection con)
         {
-            if (this._tr.Value != null)
+            if (this.tr.Value != null)
             {
                 return;
             }
@@ -3423,8 +3425,8 @@ namespace RuntimeStuff
                 return;
             }
 
-            DateTime now = DateTimeHelper.ExactNow(DateTime.Now);
-            this._queryLogs.Set(now, string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", now) + ": " + message);
+            DateTime now = DateTimeHelper.ExactNow();
+            this.queryLogs.Set(now, string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", now) + ": " + message);
         }
 
         /// <summary>
@@ -3445,7 +3447,7 @@ namespace RuntimeStuff
         /// Read core as an asynchronous operation.
         /// </summary>
         /// <typeparam name="TList">The type of the t list.</typeparam>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="reader">The reader.</param>
         /// <param name="columns">The columns.</param>
         /// <param name="columnToPropertyMap">The column to property map.</param>
@@ -3678,12 +3680,12 @@ namespace RuntimeStuff
         /// <exception cref="System.InvalidOperationException">Транзакция не была начата.</exception>
         private void RollbackTransaction()
         {
-            if (this._tr.Value == null)
+            if (this.tr.Value == null)
             {
                 throw new InvalidOperationException("Транзакция не была начата.");
             }
 
-            this._tr.Value?.Rollback();
+            this.tr.Value?.Rollback();
         }
     }
 }

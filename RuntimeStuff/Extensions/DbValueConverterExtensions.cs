@@ -37,7 +37,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Converts to objectconverter.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="converter">The converter.</param>
         /// <returns>DbClient.DbValueConverter&lt;System.Object&gt;.</returns>
         /// <exception cref="System.ArgumentNullException">converter.</exception>
@@ -63,7 +63,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Converts to typedconverter.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="converter">The converter.</param>
         /// <returns>DbClient.DbValueConverter&lt;T&gt;.</returns>
         public static DbClient.DbValueConverter<T> ToTypedConverter<T>(this DbClient.DbValueConverter converter) => (f, v, p, item) => converter(f, v, p, item);
@@ -71,7 +71,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Converts to typedconverter.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="converter">The converter.</param>
         /// <returns>DbClient.DbValueConverter&lt;T&gt;.</returns>
         public static DbClient.DbValueConverter<T> ToTypedConverter<T>(this DbClient.DbValueConverter<object> converter) => (f, v, p, item) => converter(f, v, p, item);
@@ -79,7 +79,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Converts to typedconverter.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="converter">The converter.</param>
         /// <returns>DbClient.DbValueConverter&lt;T&gt;.</returns>
         public static DbClient.DbValueConverter<T> ToTypedConverter<T>(this Func<string, object, PropertyInfo, object, object> converter) => (f, v, p, item) => converter(f, v, p, item);

@@ -11,28 +11,29 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+namespace RuntimeStuff.Builders
 {
     using System;
     using System.Linq.Expressions;
     using System.Reflection;
+    using RuntimeStuff;
 
     /// <summary>
     /// Class PropertyMapBuilder. This class cannot be inherited.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">Type.</typeparam>
     /// <typeparam name="TProperty">The type of the t property.</typeparam>
     public sealed class PropertyMapBuilder<T, TProperty>
     {
         /// <summary>
         /// The property mapping.
         /// </summary>
-        private readonly PropertyMapping _propertyMapping;
+        private readonly PropertyMapping propertyMapping;
 
         /// <summary>
         /// The entity map builder.
         /// </summary>
-        private readonly EntityMapBuilder<T> _entityMapBuilder;
+        private readonly EntityMapBuilder<T> entityMapBuilder;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyMapBuilder{T, TProperty}" /> class.
@@ -41,8 +42,8 @@ namespace RuntimeStuff
         /// <param name="propertyInfo">The property information.</param>
         internal PropertyMapBuilder(EntityMapBuilder<T> entityMapBuilder, PropertyInfo propertyInfo)
         {
-            this._entityMapBuilder = entityMapBuilder;
-            this._propertyMapping = new PropertyMapping(propertyInfo);
+            this.entityMapBuilder = entityMapBuilder;
+            this.propertyMapping = new PropertyMapping(propertyInfo);
         }
 
         /// <summary>
@@ -58,8 +59,8 @@ namespace RuntimeStuff
                 throw new ArgumentException(nameof(columnName));
             }
 
-            this._propertyMapping.ColumnName = columnName;
-            this.MapColumnName(this._propertyMapping.Property, columnName);
+            this.propertyMapping.ColumnName = columnName;
+            this.MapColumnName(this.propertyMapping.Property, columnName);
             return this;
         }
 
@@ -70,8 +71,8 @@ namespace RuntimeStuff
         /// <returns>PropertyMapBuilder&lt;T, TProperty&gt;.</returns>
         public PropertyMapBuilder<T, TProperty> HasAlias(string alias)
         {
-            this._propertyMapping.Alias = alias;
-            this.MapAlias(this._propertyMapping.Property, alias);
+            this.propertyMapping.Alias = alias;
+            this.MapAlias(this.propertyMapping.Property, alias);
             return this;
         }
 
@@ -86,7 +87,7 @@ namespace RuntimeStuff
         public PropertyMapBuilder<T, TNewProperty> Property<TNewProperty>(Expression<Func<T, TNewProperty>> selector, string columnName, string alias = null)
         {
             var property = EntityMapBuilder<T>.GetProperty(selector);
-            var pb = new PropertyMapBuilder<T, TNewProperty>(this._entityMapBuilder, property);
+            var pb = new PropertyMapBuilder<T, TNewProperty>(this.entityMapBuilder, property);
             pb.HasColumn(columnName);
             pb.HasAlias(alias);
             return pb;
@@ -99,7 +100,7 @@ namespace RuntimeStuff
         /// <param name="tableName">Name of the table.</param>
         /// <returns>EntityMapBuilder&lt;TTable&gt;.</returns>
         public EntityMapBuilder<TTable> Table<TTable>(string tableName)
-            where TTable : class => new EntityMapBuilder<TTable>(this._entityMapBuilder._map, tableName);
+            where TTable : class => new EntityMapBuilder<TTable>(this.entityMapBuilder.Map, tableName);
 
         /// <summary>
         /// Maps the name of the column.
@@ -130,10 +131,10 @@ namespace RuntimeStuff
         /// <returns>PropertyMapping.</returns>
         private PropertyMapping GetOrAdd(PropertyInfo property)
         {
-            if (!this._entityMapBuilder._entityMapping.PropertyColumns.TryGetValue(property, out var propMapping))
+            if (!this.entityMapBuilder.EntityMapping.PropertyColumns.TryGetValue(property, out var propMapping))
             {
                 propMapping = new PropertyMapping(property);
-                this._entityMapBuilder._entityMapping.PropertyColumns[property] = propMapping;
+                this.entityMapBuilder.EntityMapping.PropertyColumns[property] = propMapping;
             }
 
             return propMapping;

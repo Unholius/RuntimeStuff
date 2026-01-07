@@ -161,8 +161,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="attributeName">Name of the attribute.</param>
         /// <param name="stringComparison">The string comparison.</param>
         /// <returns>Attribute.</returns>
-        public static Attribute GetCustomAttribute(this MemberInfo member, string attributeName,
-            StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) => Obj.GetCustomAttribute(member, attributeName, stringComparison);
+        public static Attribute GetCustomAttribute(this MemberInfo member, string attributeName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) => Obj.GetCustomAttribute(member, attributeName, stringComparison);
 
         /// <summary>
         /// Возвращает поле по условию фильтрации.

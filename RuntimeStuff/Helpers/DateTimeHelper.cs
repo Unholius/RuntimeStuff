@@ -165,7 +165,8 @@ namespace RuntimeStuff.Helpers
                     original = lastTimeStamp;
                     var now = DateTime.Now.Ticks;
                     newValue = Math.Max(now, original + 1);
-                } while (Interlocked.CompareExchange(ref lastTimeStamp, newValue, original) != original);
+                }
+                while (Interlocked.CompareExchange(ref lastTimeStamp, newValue, original) != original);
 
                 return newValue;
             }
@@ -344,16 +345,14 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Возвращает текущую дату и время с гарантией уникальности тиков.
         /// </summary>
-        /// <param name="_">Экземпляр DateTime (не используется).</param>
         /// <returns>Текущая дата и время с уникальными тиками.</returns>
-        public static DateTime ExactNow(DateTime _) => new DateTime(NowTicks);
+        public static DateTime ExactNow() => new DateTime(NowTicks);
 
         /// <summary>
         /// Возвращает уникальные тики для текущего момента времени.
         /// </summary>
-        /// <param name="_">Экземпляр DateTime (не используется).</param>
         /// <returns>Уникальные тики текущего момента времени.</returns>
-        public static long ExactTicks(DateTime _) => NowTicks;
+        public static long ExactTicks() => NowTicks;
 
         /// <summary>
         /// Возвращает последовательность дат и времени в заданном диапазоне
@@ -578,8 +577,7 @@ namespace RuntimeStuff.Helpers
             int totalDays = (int)ts.TotalDays;
             int years = totalDays / 365;
             int months = (totalDays % 365) / 30;
-            int weeks = (totalDays % 365 % 30) / 7;
-            int days = totalDays - years * 365 - months * 30;
+            int days = totalDays - (years * 365) - (months * 30);
             int hours = ts.Hours;
             int minutes = ts.Minutes;
             int seconds = ts.Seconds;
@@ -590,6 +588,7 @@ namespace RuntimeStuff.Helpers
 
             result = years > 0 ? result.Replace($"{nameof(DateTimeInterval.Year)}", $"{years}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Year) + "}.*?\\]", string.Empty);
             result = months > 0 ? result.Replace($"{nameof(DateTimeInterval.Month)}", $"{months}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Month) + "}.*?\\]", string.Empty);
+            int weeks = ((totalDays % 365) % 30) / 7;
             result = weeks > 0 ? result.Replace($"{nameof(DateTimeInterval.Week)}", $"{weeks}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Week) + "}.*?\\]", string.Empty);
             result = days > 0 ? result.Replace($"{nameof(DateTimeInterval.Day)}", $"{days}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Day) + "}.*?\\]", string.Empty);
             result = hours > 0 ? result.Replace($"{nameof(DateTimeInterval.Hour)}", $"{hours}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Hour) + "}.*?\\]", string.Empty);
@@ -846,9 +845,9 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Indexes the of.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="e">The e.</param>
-        /// <param name="match">The match.</param>
+        /// <typeparam name="T">The type of elements in the collection to search.</typeparam>
+        /// <param name="e">The collection to search.</param>
+        /// <param name="match">The predicate function to match elements.</param>
         /// <param name="reverseSearch">if set to <c>true</c> [reverse search].</param>
         /// <returns>System.Int32.</returns>
         private static int IndexOf<T>(IEnumerable<T> e, Func<T, int, bool> match, bool reverseSearch = false)

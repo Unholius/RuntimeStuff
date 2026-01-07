@@ -1,16 +1,17 @@
 ﻿// ***********************************************************************
 // Assembly         : RuntimeStuff
-// Author           : RS
+// Author           : Rudnev Sergey
 // Created          : 01-06-2026
 //
-// Last Modified By : RS
+// Last Modified By : Rudnev Sergey
 // Last Modified On : 01-07-2026
 // ***********************************************************************
 // <copyright file="MemberCache.cs" company="Rudnev Sergey">
-//     Copyright (c) . All rights reserved.
+//     Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff
 {
     using System;
@@ -78,52 +79,6 @@ namespace RuntimeStuff
     }
 
     /// <summary>
-    /// Class MemberInfoExtensions.
-    /// </summary>
-    public static class MemberInfoExtensions
-    {
-        /// <summary>
-        /// Получить расширенную информацию о члене класса.
-        /// </summary>
-        /// <param name="memberInfo">Информация о члене класса.</param>
-        /// <returns>Расширенная информация о члене класса.</returns>
-        public static MemberCache GetMemberCache(this MemberInfo memberInfo) => MemberCache.Create(memberInfo);
-
-        /// <summary>
-        /// Distincts the by.
-        /// </summary>
-        /// <typeparam name="TSource">The type of the t source.</typeparam>
-        /// <typeparam name="TKey">The type of the t key.</typeparam>
-        /// <param name="source">The source.</param>
-        /// <param name="keySelector">The key selector.</param>
-        /// <returns>IEnumerable&lt;TSource&gt;.</returns>
-        /// <exception cref="System.ArgumentNullException">source.</exception>
-        /// <exception cref="System.ArgumentNullException">keySelector.</exception>
-        internal static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-
-            if (keySelector == null)
-            {
-                throw new ArgumentNullException(nameof(keySelector));
-            }
-
-            var seenKeys = new HashSet<TKey>();
-
-            foreach (var element in source)
-            {
-                if (seenKeys.Add(keySelector(element)))
-                {
-                    yield return element;
-                }
-            }
-        }
-    }
-
-    /// <summary>
     /// v.2026.01.07 (RS) <br />
     /// Представляет расширенную обёртку над <see cref="MemberInfo" />, предоставляющую унифицированный доступ к
     /// дополнительной информации и операциям для членов типа .NET<br />
@@ -161,17 +116,10 @@ namespace RuntimeStuff
         // Кэш для расширенной информации о членах класса
 
         /// <summary>
-        /// The member information.
-        /// </summary>
-        internal readonly MemberInfo MemberInfo;
-
-        /// <summary>
         /// The member information cache.
         /// </summary>
         protected static readonly ConcurrentDictionary<MemberInfo, MemberCache> MemberInfoCache =
             new ConcurrentDictionary<MemberInfo, MemberCache>();
-
-        // Кэш делегатов для создания экземпляров типов
 
         /// <summary>
         /// The constructors cache.
@@ -179,116 +127,110 @@ namespace RuntimeStuff
         private static readonly ConcurrentDictionary<string, Func<object>> ConstructorsCache =
             new ConcurrentDictionary<string, Func<object>>();
 
-        // Кэш для делегатов получения значений членов
-
         /// <summary>
         /// The getters.
         /// </summary>
-        private readonly ConcurrentDictionary<string, Func<object, object>[]> _getters =
+        private readonly ConcurrentDictionary<string, Func<object, object>[]> getters =
             new ConcurrentDictionary<string, Func<object, object>[]>(
                 StringComparison.OrdinalIgnoreCase.ToStringComparer());
-
-        // Кэш для расширенной информации о членах класса по имени
 
         /// <summary>
         /// The member cache.
         /// </summary>
-        private readonly ConcurrentDictionary<string, MemberCache> _memberCache =
+        private readonly ConcurrentDictionary<string, MemberCache> memberCache =
             new ConcurrentDictionary<string, MemberCache>();
-
-        // Кэш для делегатов установки и получения значений членов
 
         /// <summary>
         /// The setters.
         /// </summary>
-        private readonly ConcurrentDictionary<string, Action<object, object>[]> _setters =
+        private readonly ConcurrentDictionary<string, Action<object, object>[]> setters =
             new ConcurrentDictionary<string, Action<object, object>[]>(StringComparison.OrdinalIgnoreCase
                 .ToStringComparer());
 
         /// <summary>
         /// The type.
         /// </summary>
-        private readonly Type _type;
+        private readonly Type type;
 
         /// <summary>
         /// The type cache.
         /// </summary>
-        private readonly MemberCache _typeCache;
+        private readonly MemberCache typeCache;
 
         /// <summary>
         /// The attributes.
         /// </summary>
-        private Attribute[] _attributes;
+        private Attribute[] attributes;
 
         /// <summary>
         /// The base types.
         /// </summary>
-        private Type[] _baseTypes;
+        private Type[] baseTypes;
 
         /// <summary>
         /// The columns.
         /// </summary>
-        private MemberCache[] _columns;
+        private MemberCache[] columns;
 
         /// <summary>
         /// The constructors.
         /// </summary>
-        private ConstructorInfo[] _constructors;
+        private ConstructorInfo[] constructors;
 
         /// <summary>
         /// The events.
         /// </summary>
-        private EventInfo[] _events;
+        private EventInfo[] events;
 
         /// <summary>
         /// The fields.
         /// </summary>
-        private FieldInfo[] _fields;
+        private FieldInfo[] fields;
 
         /// <summary>
         /// The FKS.
         /// </summary>
-        private MemberCache[] _fks;
+        private MemberCache[] fks;
 
         /// <summary>
         /// The json name.
         /// </summary>
-        private string _jsonName;
+        private string jsonName;
 
         /// <summary>
         /// The members.
         /// </summary>
-        private Dictionary<MemberInfo, MemberCache> _members;
+        private Dictionary<MemberInfo, MemberCache> members;
 
         /// <summary>
         /// The methods.
         /// </summary>
-        private MethodInfo[] _methods;
+        private MethodInfo[] methods;
 
         /// <summary>
         /// The PKS.
         /// </summary>
-        private MemberCache[] _pks;
+        private MemberCache[] pks;
 
         /// <summary>
         /// The properties.
         /// </summary>
-        private PropertyInfo[] _properties;
+        private PropertyInfo[] properties;
 
         /// <summary>
         /// The tables.
         /// </summary>
-        private MemberCache[] _tables;
+        private MemberCache[] tables;
 
         /// <summary>
         /// The XML attribute.
         /// </summary>
-        private string _xmlAttr;
+        private string xmlAttr;
 
         /// <summary>
         /// The XML elem.
         /// </summary>
-        private string _xmlElem;
+        private string xmlElem;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MemberCache" /> class.
@@ -300,20 +242,20 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="MemberCache" /> class.
         /// Конструктор для создания расширенной информации о члене класса.
         /// </summary>
         /// <param name="memberInfo">Информация о члене класса.</param>
         /// <param name="getMembers">Получить информацию о дочерних членах: свойства, поля, методы и т.п.</param>
         /// <param name="parent">The parent.</param>
-        /// <exception cref="System.NotSupportedException"></exception>
         private MemberCache(MemberInfo memberInfo, bool getMembers = false, MemberCache parent = null)
         {
             this.Parent = parent;
 
-            this._typeCache = memberInfo as MemberCache;
-            if (this._typeCache != null)
+            this.typeCache = memberInfo as MemberCache;
+            if (this.typeCache != null)
             {
-                memberInfo = this._typeCache.MemberInfo;
+                memberInfo = this.typeCache.MemberInfo;
             }
 
             this.MemberInfo = memberInfo;
@@ -330,62 +272,62 @@ namespace RuntimeStuff
             // Устанавливаем тип в зависимости от вида члена класса
             if (t != null)
             {
-                this._type = t;
+                this.type = t;
             }
 
             if (pi != null)
             {
-                this._type = pi.PropertyType;
+                this.type = pi.PropertyType;
             }
 
             if (fi != null)
             {
-                this._type = fi.FieldType;
+                this.type = fi.FieldType;
             }
 
             if (mi != null)
             {
-                this._type = mi.ReturnType;
+                this.type = mi.ReturnType;
             }
 
             if (ci != null)
             {
-                this._type = ci.DeclaringType;
+                this.type = ci.DeclaringType;
             }
 
             if (mx != null)
             {
-                this._type = mx.Type;
+                this.type = mx.Type;
             }
 
             if (e != null)
             {
-                this._type = e.EventHandlerType;
+                this.type = e.EventHandlerType;
             }
 
             // Устанавливаем свойства типа
-            this.Type = this._type ??
+            this.Type = this.type ??
                    throw new NotSupportedException(
                        $"{nameof(MemberCache)}: ({memberInfo.GetType().Name}) not supported!");
-            this.IsDictionary = this._typeCache?.IsDictionary ?? Obj.IsDictionary(this._type);
-            this.IsDelegate = this._typeCache?.IsDelegate ?? Obj.IsDelegate(this._type);
-            this.IsFloat = this._typeCache?.IsFloat ?? Obj.IsFloat(this._type);
-            this.IsNullable = this._typeCache?.IsNullable ?? Obj.IsNullable(this._type);
+            this.IsDictionary = this.typeCache?.IsDictionary ?? Obj.IsDictionary(this.type);
+            this.IsDelegate = this.typeCache?.IsDelegate ?? Obj.IsDelegate(this.type);
+            this.IsFloat = this.typeCache?.IsFloat ?? Obj.IsFloat(this.type);
+            this.IsNullable = this.typeCache?.IsNullable ?? Obj.IsNullable(this.type);
             if (e != null)
             {
-                this._type = e.EventHandlerType;
+                this.type = e.EventHandlerType;
             }
 
-            this.IsNumeric = this._typeCache?.IsNumeric ?? Obj.IsNumeric(this._type);
-            this.IsBoolean = this._typeCache?.IsBoolean ?? Obj.IsBoolean(this._type);
-            this.IsCollection = this._typeCache?.IsCollection ?? Obj.IsCollection(this._type);
-            this.ElementType = this.IsCollection ? this._typeCache?.ElementType ?? Obj.GetCollectionItemType(this.Type) : null;
-            this.IsBasic = this._typeCache?.IsBasic ?? Obj.IsBasic(this._type);
-            this.IsEnum = this._typeCache?.IsEnum ?? this._type.IsEnum;
-            this.IsConst = this._typeCache?.IsConst ?? (fi != null && fi.IsLiteral && !fi.IsInitOnly);
-            this.IsBasicCollection = this._typeCache?.IsBasicCollection ?? (this.IsCollection && Obj.IsBasic(this.ElementType));
-            this.IsObject = this._typeCache?.IsObject ?? this._type == typeof(object);
-            this.IsTuple = this._typeCache?.IsTuple ?? Obj.IsTuple(this._type);
+            this.IsNumeric = this.typeCache?.IsNumeric ?? Obj.IsNumeric(this.type);
+            this.IsBoolean = this.typeCache?.IsBoolean ?? Obj.IsBoolean(this.type);
+            this.IsCollection = this.typeCache?.IsCollection ?? Obj.IsCollection(this.type);
+            this.ElementType = this.IsCollection ? this.typeCache?.ElementType ?? Obj.GetCollectionItemType(this.Type) : null;
+            this.IsBasic = this.typeCache?.IsBasic ?? Obj.IsBasic(this.type);
+            this.IsEnum = this.typeCache?.IsEnum ?? this.type.IsEnum;
+            this.IsConst = this.typeCache?.IsConst ?? (fi != null && fi.IsLiteral && !fi.IsInitOnly);
+            this.IsBasicCollection = this.typeCache?.IsBasicCollection ?? (this.IsCollection && Obj.IsBasic(this.ElementType));
+            this.IsObject = this.typeCache?.IsObject ?? this.type == typeof(object);
+            this.IsTuple = this.typeCache?.IsTuple ?? Obj.IsTuple(this.type);
             this.IsProperty = pi != null;
             this.IsEvent = e != null;
             this.IsField = fi != null;
@@ -394,13 +336,13 @@ namespace RuntimeStuff
             this.IsConstructor = ci != null;
             this.CanWrite = pi != null ? pi.CanWrite : fi != null;
             this.CanRead = pi != null ? pi.CanRead : fi != null;
-            this.IsPublic = this._typeCache?.IsPublic ??
+            this.IsPublic = this.typeCache?.IsPublic ??
                        this.IsProperty ? this.AsPropertyInfo()?.GetAccessors().Any(m => m.IsPublic) == true :
                 this.IsField ? this.AsFieldInfo().IsPublic :
                 this.IsMethod ? this.AsMethodInfo().IsPublic :
                 this.IsConstructor ? this.AsConstructorInfo().IsPublic :
                 this.IsEvent || this.Type.IsPublic;
-            this.IsPrivate = this._typeCache?.IsPrivate ??
+            this.IsPrivate = this.typeCache?.IsPrivate ??
                         this.IsProperty ? this.AsPropertyInfo().GetAccessors().Any(m => m.IsPrivate) :
                 this.IsField ? this.AsFieldInfo().IsPrivate :
                 this.IsMethod ? this.AsMethodInfo().IsPrivate :
@@ -413,13 +355,13 @@ namespace RuntimeStuff
             this.Events = this.GetEvents().ToDictionary(x => x.Name);
 
             // Обработка имени
-            this.Name = this._typeCache?.Name ?? this.MemberInfo.Name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
+            this.Name = this.typeCache?.Name ?? this.MemberInfo.Name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
                 .LastOrDefault() ?? string.Empty;
 
             // Получение атрибутов
-            this.Description = this._typeCache?.Description ??
+            this.Description = this.typeCache?.Description ??
                           this.MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
-            this.DisplayName = this._typeCache?.DisplayName ?? this.MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
+            this.DisplayName = this.typeCache?.DisplayName ?? this.MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
 
             if (this.DisplayName == null && this.Attributes.TryGetValue("DisplayAttribute", out var da))
             {
@@ -429,9 +371,9 @@ namespace RuntimeStuff
             // Дополнительная обработка для типов
             if (this.IsType)
             {
-                this.DefaultConstructor = this._typeCache?.DefaultConstructor ?? CreateConstructorDelegate(t);
+                this.DefaultConstructor = this.typeCache?.DefaultConstructor ?? CreateConstructorDelegate(t);
 
-                if (this._typeCache == null)
+                if (this.typeCache == null)
                 {
                     var tblAttr = this.Attributes.GetValueOrDefault("TableAttribute");
                     if (tblAttr != null)
@@ -448,31 +390,31 @@ namespace RuntimeStuff
                 }
                 else
                 {
-                    this.TableName = this._typeCache.TableName;
-                    this.SchemaName = this._typeCache.SchemaName;
+                    this.TableName = this.typeCache.TableName;
+                    this.SchemaName = this.typeCache.SchemaName;
                 }
 
-                this.Properties = this._typeCache?.Properties ??
+                this.Properties = this.typeCache?.Properties ??
                              this.Members.Where(x => x.Value.IsProperty).ToDictionaryDistinct(x => x.Value.Name, y => y.Value);
-                this.PublicProperties = this._typeCache?.PublicProperties ??
+                this.PublicProperties = this.typeCache?.PublicProperties ??
                                    this.Properties.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
-                this.PrivateProperties = this._typeCache?.PrivateProperties ??
+                this.PrivateProperties = this.typeCache?.PrivateProperties ??
                                     this.Properties.Values.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
-                this.PublicBasicProperties = this._typeCache?.PublicBasicProperties ??
+                this.PublicBasicProperties = this.typeCache?.PublicBasicProperties ??
                                         this.PublicProperties.Values.Where(x => x.IsBasic).ToDictionary(x => x.Name);
-                this.PublicBasicEnumerableProperties = this._typeCache?.PublicBasicEnumerableProperties ??
+                this.PublicBasicEnumerableProperties = this.typeCache?.PublicBasicEnumerableProperties ??
                                                   this.PublicProperties.Values.Where(x => x.IsBasicCollection)
                                                       .ToDictionary(x => x.Name);
-                this.PublicEnumerableProperties = this._typeCache?.PublicEnumerableProperties ?? this.PublicProperties.Values
+                this.PublicEnumerableProperties = this.typeCache?.PublicEnumerableProperties ?? this.PublicProperties.Values
                     .Where(x => x.IsCollection && !x.IsBasicCollection).ToDictionary(x => x.Name);
 
-                this.Fields = this._typeCache?.Fields ?? this.Members.Where(x => x.Value.IsField).ToDictionary(x => x.Value.Name, y => y.Value);
-                this.PublicFields = this._typeCache?.PublicFields ??
+                this.Fields = this.typeCache?.Fields ?? this.Members.Where(x => x.Value.IsField).ToDictionary(x => x.Value.Name, y => y.Value);
+                this.PublicFields = this.typeCache?.PublicFields ??
                                this.Fields.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
-                this.PrivateFields = this._typeCache?.PrivateFields ??
+                this.PrivateFields = this.typeCache?.PrivateFields ??
                                 this.Fields.Values.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
 
-                this.PrimaryKeys = this._typeCache?.PrimaryKeys ??
+                this.PrimaryKeys = this.typeCache?.PrimaryKeys ??
                               this.PublicBasicProperties.Where(x => x.Value.Attributes.ContainsKey("KeyAttribute"))
                                   .Select(x => x.Value)
                                   .ToDictionary(x => x.Name);
@@ -489,12 +431,12 @@ namespace RuntimeStuff
                     }
                 }
 
-                this.ForeignKeys = this._typeCache?.ForeignKeys ?? this.PublicBasicProperties
+                this.ForeignKeys = this.typeCache?.ForeignKeys ?? this.PublicBasicProperties
                     .Where(x => x.Value.Attributes.ContainsKey("ForeignKeyAttribute"))
                     .Select(x => x.Value)
                     .ToDictionary(x => x.Name);
 
-                this.ColumnProperties = this._typeCache?.ColumnProperties ?? this.PublicBasicProperties.Where(x =>
+                this.ColumnProperties = this.typeCache?.ColumnProperties ?? this.PublicBasicProperties.Where(x =>
                         !x.Value.IsPrimaryKey
                         && x.Value.Attributes.ContainsKey("ColumnAttribute")
                         && !x.Value.Attributes.ContainsKey("NotMappedAttribute")).Select(x => x.Value)
@@ -511,14 +453,14 @@ namespace RuntimeStuff
                     .GroupBy(x => x.Value.Name, StringComparison.OrdinalIgnoreCase.ToStringComparer());
                 foreach (var pf in propsAndFields)
                 {
-                    this._setters[pf.Key] = pf.Select(x => x.Value.Setter).ToArray();
-                    this._getters[pf.Key] = pf.Select(x => x.Value.Getter).ToArray();
+                    this.setters[pf.Key] = pf.Select(x => x.Value.Setter).ToArray();
+                    this.getters[pf.Key] = pf.Select(x => x.Value.Getter).ToArray();
                 }
 
                 // Рекурсивная загрузка членов класса
                 if (getMembers)
                 {
-                    this._members = this._typeCache?._members ?? this.GetChildMembersInternal();
+                    this.members = this.typeCache?.members ?? this.GetChildMembersInternal();
                 }
             }
 
@@ -538,7 +480,7 @@ namespace RuntimeStuff
                 this.TableName = this.Parent?.TableName;
                 this.SchemaName = this.Parent?.SchemaName;
 
-                if (this._typeCache == null)
+                if (this.typeCache == null)
                 {
                     var keyAttr = this.Attributes.GetValueOrDefault("KeyAttribute");
                     var colAttr = this.Attributes.GetValueOrDefault("ColumnAttribute");
@@ -588,13 +530,13 @@ namespace RuntimeStuff
                 }
                 else
                 {
-                    this.Setter = this._typeCache.Setter;
-                    this.Getter = this._typeCache.Getter;
-                    this.PropertyBackingField = this._typeCache.PropertyBackingField;
-                    this.ColumnName = this._typeCache.ColumnName;
-                    this.ForeignKeyName = this._typeCache.ForeignKeyName;
-                    this.IsPrimaryKey = this._typeCache.IsPrimaryKey;
-                    this.IsForeignKey = this._typeCache.IsForeignKey;
+                    this.Setter = this.typeCache.Setter;
+                    this.Getter = this.typeCache.Getter;
+                    this.PropertyBackingField = this.typeCache.PropertyBackingField;
+                    this.ColumnName = this.typeCache.ColumnName;
+                    this.ForeignKeyName = this.typeCache.ForeignKeyName;
+                    this.IsPrimaryKey = this.typeCache.IsPrimaryKey;
+                    this.IsForeignKey = this.typeCache.IsForeignKey;
                 }
             }
 
@@ -607,7 +549,7 @@ namespace RuntimeStuff
                 this.FieldType = fi.FieldType;
                 try
                 {
-                    this.Setter = this._typeCache?.Setter ?? Obj.FieldSetterCache.Get(fi);
+                    this.Setter = this.typeCache?.Setter ?? Obj.FieldSetterCache.Get(fi);
                 }
                 catch
                 {
@@ -616,7 +558,7 @@ namespace RuntimeStuff
 
                 try
                 {
-                    this.Getter = this._typeCache?.Getter ?? Obj.FieldGetterCache.Get(fi);
+                    this.Getter = this.typeCache?.Getter ?? Obj.FieldGetterCache.Get(fi);
                 }
                 catch (Exception)
                 {
@@ -624,7 +566,7 @@ namespace RuntimeStuff
                 }
             }
 
-            if (this._typeCache == null)
+            if (this.typeCache == null)
             {
                 var displayAttr = this.Attributes.GetValueOrDefault("DisplayAttribute");
                 if (displayAttr == null)
@@ -640,7 +582,7 @@ namespace RuntimeStuff
             }
             else
             {
-                this.GroupName = this._typeCache.GroupName;
+                this.GroupName = this.typeCache.GroupName;
             }
         }
 
@@ -678,13 +620,13 @@ namespace RuntimeStuff
         {
             get
             {
-                if (this._baseTypes != null)
+                if (this.baseTypes != null)
                 {
-                    return this._baseTypes;
+                    return this.baseTypes;
                 }
 
-                this._baseTypes = Obj.GetBaseTypes(this._type, getInterfaces: true);
-                return this._baseTypes;
+                this.baseTypes = Obj.GetBaseTypes(this.type, getInterfaces: true);
+                return this.baseTypes;
             }
         }
 
@@ -963,7 +905,7 @@ namespace RuntimeStuff
         /// Gets a value indicating whether является ли тип значимым типом.
         /// </summary>
         /// <value><c>true</c> if this instance is value type; otherwise, <c>false</c>.</value>
-        public bool IsValueType => this._type.IsValueType;
+        public bool IsValueType => this.type.IsValueType;
 
         /// <summary>
         /// Gets имя в JSON (из атрибутов JsonPropertyNameAttribute или JsonPropertyAttribute).
@@ -973,32 +915,32 @@ namespace RuntimeStuff
         {
             get
             {
-                if (this._jsonName != null)
+                if (this.jsonName != null)
                 {
-                    return this._jsonName;
+                    return this.jsonName;
                 }
 
-                if (this._typeCache == null)
+                if (this.typeCache == null)
                 {
-                    this._jsonName = string.Empty;
+                    this.jsonName = string.Empty;
                     var jsonAttr = this.GetAttributes().FirstOrDefault(x => x.GetType().Name.StartsWith("Json"));
                     if (jsonAttr == null)
                     {
-                        return this._jsonName;
+                        return this.jsonName;
                     }
 
                     var propName = jsonAttr.GetType().GetProperties().FirstOrDefault(p => p.Name.EndsWith("Name"));
                     if (propName != null)
                     {
-                        this._jsonName = propName.GetValue(jsonAttr)?.ToString();
+                        this.jsonName = propName.GetValue(jsonAttr)?.ToString();
                     }
                 }
                 else
                 {
-                    this._jsonName = this._typeCache._jsonName;
+                    this.jsonName = this.typeCache.jsonName;
                 }
 
-                return this._jsonName;
+                return this.jsonName;
             }
         }
 
@@ -1010,13 +952,13 @@ namespace RuntimeStuff
         {
             get
             {
-                if (this._members != null)
+                if (this.members != null)
                 {
-                    return this._members;
+                    return this.members;
                 }
 
-                this._members = this._typeCache?._members ?? this.GetChildMembersInternal();
-                return this._members;
+                this.members = this.typeCache?.members ?? this.GetChildMembersInternal();
+                return this.members;
             }
         }
 
@@ -1140,12 +1082,12 @@ namespace RuntimeStuff
         {
             get
             {
-                if (this._xmlAttr != null)
+                if (this.xmlAttr != null)
                 {
-                    return this._xmlAttr;
+                    return this.xmlAttr;
                 }
 
-                if (this._typeCache == null)
+                if (this.typeCache == null)
                 {
                     var xmlAttrs = this.Attributes.Where(x => x.GetType().Name.StartsWith("Xml")).ToArray();
                     if (xmlAttrs.Any())
@@ -1156,11 +1098,11 @@ namespace RuntimeStuff
                             switch (propName?.Name)
                             {
                                 case "ElementName":
-                                    this._xmlElem = propName.GetValue(xa)?.ToString();
+                                    this.xmlElem = propName.GetValue(xa)?.ToString();
                                     break;
 
                                 case "AttributeName":
-                                    this._xmlAttr = propName.GetValue(xa)?.ToString();
+                                    this.xmlAttr = propName.GetValue(xa)?.ToString();
                                     break;
                             }
                         }
@@ -1168,10 +1110,10 @@ namespace RuntimeStuff
                 }
                 else
                 {
-                    this._xmlAttr = this._typeCache._xmlAttr;
+                    this.xmlAttr = this.typeCache.xmlAttr;
                 }
 
-                return this._xmlAttr ?? (this._xmlAttr = string.Empty);
+                return this.xmlAttr ?? (this.xmlAttr = string.Empty);
             }
         }
 
@@ -1183,12 +1125,12 @@ namespace RuntimeStuff
         {
             get
             {
-                if (this._xmlElem != null)
+                if (this.xmlElem != null)
                 {
-                    return this._xmlElem;
+                    return this.xmlElem;
                 }
 
-                if (this._typeCache == null)
+                if (this.typeCache == null)
                 {
                     var xmlAttrs = this.Attributes.Where(x => x.GetType().Name.StartsWith("Xml")).ToArray();
                     if (xmlAttrs.Any())
@@ -1199,27 +1141,27 @@ namespace RuntimeStuff
                             switch (propName?.Name)
                             {
                                 case "ElementName":
-                                    this._xmlElem = propName.GetValue(xa)?.ToString();
+                                    this.xmlElem = propName.GetValue(xa)?.ToString();
                                     break;
 
                                 case "AttributeName":
-                                    this._xmlAttr = propName.GetValue(xa)?.ToString();
+                                    this.xmlAttr = propName.GetValue(xa)?.ToString();
                                     break;
                             }
                         }
                     }
 
-                    if (this._xmlElem == null)
+                    if (this.xmlElem == null)
                     {
-                        this._xmlElem = string.Empty;
+                        this.xmlElem = string.Empty;
                     }
                 }
                 else
                 {
-                    this._xmlElem = this._typeCache._xmlElem;
+                    this.xmlElem = this.typeCache.xmlElem;
                 }
 
-                return this._xmlElem;
+                return this.xmlElem;
             }
         }
 
@@ -1228,6 +1170,12 @@ namespace RuntimeStuff
         /// </summary>
         /// <value>The name of the XML.</value>
         public string XmlName { get; } = null;
+
+        /// <summary>
+        /// Gets the member information.
+        /// </summary>
+        /// <value>The member information.</value>
+        internal MemberInfo MemberInfo { get; }
 
         /// <summary>
         /// Gets делегат для получения значения свойства.
@@ -1279,7 +1227,6 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="memberInfo">Информация о члене класса.</param>
         /// <returns>Расширенная информация о члене класса.</returns>
-        /// <exception cref="System.InvalidOperationException"></exception>
         public static MemberCache Create(MemberInfo memberInfo)
         {
             switch (memberInfo)
@@ -1333,197 +1280,12 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache"/> to <see cref="ConstructorInfo"/>.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator ConstructorInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var constructorInfo = mc.AsConstructorInfo();
-            return constructorInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache"/> to <see cref="EventInfo"/>.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator EventInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var eventInfo = mc.AsEventInfo();
-            return eventInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache"/> to <see cref="FieldInfo"/>.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator FieldInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var fieldInfo = mc.AsFieldInfo();
-            return fieldInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="PropertyInfo"/> to <see cref="MemberCache"/>.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(PropertyInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="FieldInfo"/> to <see cref="MemberCache"/>.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(FieldInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MethodInfo"/> to <see cref="MemberCache"/>.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(MethodInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="EventInfo"/> to <see cref="MemberCache"/>.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(EventInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="ConstructorInfo"/> to <see cref="MemberCache"/>.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(ConstructorInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="Type"/> to <see cref="MemberCache"/>.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(Type memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache"/> to <see cref="MethodInfo"/>.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator MethodInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var methodInfo = mc.AsMethodInfo();
-            return methodInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache"/> to <see cref="PropertyInfo"/>.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator PropertyInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var propertyInfo = mc.AsPropertyInfo();
-            return propertyInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache"/> to <see cref="Type"/>.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.</exception>
-        public static implicit operator Type(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            if (!mc.IsType)
-            {
-                throw new InvalidCastException(
-                    $"Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.");
-            }
-
-            return mc.Type;
-        }
-
-        /// <summary>
         /// Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
         /// </summary>
         /// <param name="type">Тип, экземпляр которого нужно создать.</param>
         /// <param name="ctorArgs">Аргументы конструктора.</param>
         /// <returns>Созданный экземпляр указанного типа.</returns>
         /// <exception cref="System.NullReferenceException">Create.</exception>
-        /// <exception cref="System.NotImplementedException"></exception>
         /// <exception cref="System.InvalidOperationException">Не найден конструктор для типа '{type}' с аргументами '{string.Join(",", ctorArgs.Select(arg => arg?.GetType()))}'.</exception>
         public static object New(Type type, params object[] ctorArgs)
         {
@@ -1668,19 +1430,19 @@ namespace RuntimeStuff
         /// <returns>Массив атрибутов.</returns>
         public Attribute[] GetAttributes()
         {
-            if (this._attributes != null)
+            if (this.attributes != null)
             {
-                return this._attributes;
+                return this.attributes;
             }
 
-            this._attributes = this.MemberInfo
+            this.attributes = this.MemberInfo
                 .GetCustomAttributes()
                 .Concat(this.BaseTypes.SelectMany(x => x.GetCustomAttributes()))
                 .Distinct()
                 .DistinctBy(x => x.GetType().Name)
                 .ToArray();
 
-            return this._attributes;
+            return this.attributes;
         }
 
         /// <summary>
@@ -1694,12 +1456,12 @@ namespace RuntimeStuff
         /// Результат кэшируется в поле <c>_columns</c> для повторного использования.</remarks>
         public MemberCache[] GetColumns()
         {
-            if (this._columns != null)
+            if (this.columns != null)
             {
-                return this._columns;
+                return this.columns;
             }
 
-            this._columns = this.Members.Where(x =>
+            this.columns = this.Members.Where(x =>
                     x.Value.IsProperty &&
                     x.Value.IsPublic &&
                     x.Value.IsBasic &&
@@ -1709,7 +1471,7 @@ namespace RuntimeStuff
                 .Select(x => x.Value)
                 .ToArray();
 
-            return this._columns;
+            return this.columns;
         }
 
         /// <summary>
@@ -1767,18 +1529,18 @@ namespace RuntimeStuff
         /// <returns>Массив информации о конструкторах.</returns>
         public ConstructorInfo[] GetConstructors()
         {
-            if (this._constructors != null)
+            if (this.constructors != null)
             {
-                return this._constructors;
+                return this.constructors;
             }
 
-            this._constructors = this._type.GetConstructors(DefaultBindingFlags)
+            this.constructors = this.type.GetConstructors(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                 .SelectMany(x => x.GetConstructors(DefaultBindingFlags)))
                 .OrderBy(c => c.GetParameters().Length)
                 .Distinct()
                 .ToArray();
-            return this._constructors;
+            return this.constructors;
         }
 
         /// <summary>
@@ -1809,17 +1571,17 @@ namespace RuntimeStuff
         /// <returns>Массив информации о событиях.</returns>
         public EventInfo[] GetEvents()
         {
-            if (this._events != null)
+            if (this.events != null)
             {
-                return this._events;
+                return this.events;
             }
 
-            this._events = this._type.GetEvents(DefaultBindingFlags)
+            this.events = this.type.GetEvents(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                 .SelectMany(x => x.GetEvents(DefaultBindingFlags)))
                 .Distinct()
                 .ToArray();
-            return this._events;
+            return this.events;
         }
 
         /// <summary>
@@ -1835,18 +1597,18 @@ namespace RuntimeStuff
         /// <returns>Массив информации о полях.</returns>
         public FieldInfo[] GetFields()
         {
-            if (this._fields != null)
+            if (this.fields != null)
             {
-                return this._fields;
+                return this.fields;
             }
 
-            this._fields = this._type.GetFields(DefaultBindingFlags)
+            this.fields = this.type.GetFields(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                     .SelectMany(x => x.GetFields(DefaultBindingFlags)))
                 .Distinct()
                 .ToArray();
 
-            return this._fields;
+            return this.fields;
         }
 
         /// <summary>
@@ -1871,17 +1633,17 @@ namespace RuntimeStuff
         /// <remarks>Результат кэшируется в поле <c>_fks</c> для повторного использования.</remarks>
         public MemberCache[] GetForeignKeys()
         {
-            if (this._fks != null)
+            if (this.fks != null)
             {
-                return this._fks;
+                return this.fks;
             }
 
-            this._fks = this.Members
+            this.fks = this.Members
                 .Where(x => x.Value.IsForeignKey)
                 .Select(x => x.Value)
                 .ToArray();
 
-            return this._fks;
+            return this.fks;
         }
 
         /// <summary>
@@ -1940,7 +1702,7 @@ namespace RuntimeStuff
                 return null;
             }
 
-            if (this._memberCache.TryGetValue(name, out var mx))
+            if (this.memberCache.TryGetValue(name, out var mx))
             {
                 return mx;
             }
@@ -1952,7 +1714,7 @@ namespace RuntimeStuff
                 if (quickProp != null)
                 {
                     mx = new MemberCache(quickProp);
-                    this._memberCache[name] = mx;
+                    this.memberCache[name] = mx;
                     if (membersFilter == null || membersFilter(mx))
                     {
                         return mx;
@@ -1964,7 +1726,7 @@ namespace RuntimeStuff
                 if (quickField != null)
                 {
                     mx = new MemberCache(quickField);
-                    this._memberCache[name] = mx;
+                    this.memberCache[name] = mx;
                     if (membersFilter == null || membersFilter(mx))
                     {
                         return mx;
@@ -1976,7 +1738,7 @@ namespace RuntimeStuff
                 if (quickMethod != null)
                 {
                     mx = new MemberCache(quickMethod);
-                    this._memberCache[name] = mx;
+                    this.memberCache[name] = mx;
                     if (membersFilter == null || membersFilter(mx))
                     {
                         return mx;
@@ -1988,7 +1750,7 @@ namespace RuntimeStuff
                 if (quickEvent != null)
                 {
                     mx = new MemberCache(quickEvent);
-                    this._memberCache[name] = mx;
+                    this.memberCache[name] = mx;
                     if (membersFilter == null || membersFilter(mx))
                     {
                         return mx;
@@ -2034,7 +1796,7 @@ namespace RuntimeStuff
 
                 if (mx != null)
                 {
-                    this._memberCache[name] = mx;
+                    this.memberCache[name] = mx;
                     return mx;
                 }
             }
@@ -2045,7 +1807,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Gets the member value.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="memberName">Name of the member.</param>
         /// <returns>T.</returns>
@@ -2064,18 +1826,18 @@ namespace RuntimeStuff
         /// <returns>Массив информации о методах.</returns>
         public MethodInfo[] GetMethods()
         {
-            if (this._methods != null)
+            if (this.methods != null)
             {
-                return this._methods;
+                return this.methods;
             }
 
-            this._methods = this._type.GetMethods(DefaultBindingFlags)
+            this.methods = this.type.GetMethods(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                     .SelectMany(x => x.GetMethods(DefaultBindingFlags)))
                 .Distinct()
                 .ToArray();
 
-            return this._methods;
+            return this.methods;
         }
 
         /// <summary>
@@ -2085,17 +1847,17 @@ namespace RuntimeStuff
         /// <remarks>Результат кэшируется в поле <c>_pks</c> для повторного использования.</remarks>
         public MemberCache[] GetPrimaryKeys()
         {
-            if (this._pks != null)
+            if (this.pks != null)
             {
-                return this._pks;
+                return this.pks;
             }
 
-            this._pks = this.Members
+            this.pks = this.Members
                 .Where(x => x.Value.IsPrimaryKey)
                 .Select(x => x.Value)
                 .ToArray();
 
-            return this._pks;
+            return this.pks;
         }
 
         /// <summary>
@@ -2104,12 +1866,12 @@ namespace RuntimeStuff
         /// <returns>Массив информации о свойствах.</returns>
         public PropertyInfo[] GetProperties()
         {
-            if (this._properties != null)
+            if (this.properties != null)
             {
-                return this._properties;
+                return this.properties;
             }
 
-            var props = this._type.GetProperties(DefaultBindingFlags)
+            var props = this.type.GetProperties(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                     .SelectMany(x => x.GetProperties(DefaultBindingFlags)))
                 .ToList();
@@ -2122,8 +1884,8 @@ namespace RuntimeStuff
                 }
             }
 
-            this._properties = l.Values.ToArray();
-            return this._properties;
+            this.properties = l.Values.ToArray();
+            return this.properties;
         }
 
         /// <summary>
@@ -2139,21 +1901,21 @@ namespace RuntimeStuff
         /// <returns>Массив <see cref="MemberCache" /> для таблиц.</returns>
         public MemberCache[] GetTables()
         {
-            if (this._tables != null)
+            if (this.tables != null)
             {
-                return this._tables;
+                return this.tables;
             }
 
-            this._tables = this.Members.Where(x =>
+            this.tables = this.Members.Where(x =>
                 x.Value.IsProperty &&
                 x.Value.IsPublic &&
-                (x.Value.IsCollection &&
-                !x.Value.IsBasicCollection || !x.Value.IsBasic) &&
+                ((x.Value.IsCollection &&
+                !x.Value.IsBasicCollection) || !x.Value.IsBasic) &&
                 !x.Value.HasAttributeOfType("ColumnAttribute", "NotMappedAttribute", "Key"))
                 .Select(x => x.Value)
                 .ToArray();
 
-            return this._tables;
+            return this.tables;
         }
 
         /// <summary>
@@ -2167,7 +1929,7 @@ namespace RuntimeStuff
         /// всех соответствующих членов. Если член не найден, возвращается null.</remarks>
         public virtual object GetValue(object source, string memberName)
         {
-            if (!this._getters.TryGetValue(memberName, out var getters))
+            if (!this.getters.TryGetValue(memberName, out var getters))
             {
                 return null;
             }
@@ -2199,7 +1961,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Проверяет наличие атрибута указанного типа.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <returns><c>true</c> if [has attribute of type]; otherwise, <c>false</c>.</returns>
         public bool HasAttributeOfType<T>() => this.HasAttributeOfType(typeof(T));
 
@@ -2228,7 +1990,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <returns>Созданный экземпляр указанного типа.</returns>
         public T New<T>()
             where T : class => this.DefaultConstructor() as T;
@@ -2249,7 +2011,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="ctorArgs">Аргументы конструктора.</param>
         /// <returns>Созданный экземпляр указанного типа.</returns>
         public T New<T>(params object[] ctorArgs) => Obj.ChangeType<T>(New(this.Type, ctorArgs));
@@ -2264,7 +2026,7 @@ namespace RuntimeStuff
         /// <param name="valueConverter">Конвертор значения в тип свойства, если не указан, то пытаемся установить как есть/&gt;.</param>
         public virtual void SetMemberValue(object source, string memberName, object value, Func<object, object> valueConverter = null)
         {
-            if (!this._setters.TryGetValue(memberName, out var setters))
+            if (!this.setters.TryGetValue(memberName, out var setters))
             {
                 return;
             }
@@ -2287,7 +2049,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Создать словарь из имен свойств и их значений.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="instance">The instance.</param>
         /// <param name="propertyNames">Имена свойств, если не указаны, то берутся <see cref="PublicProperties" />.</param>
         /// <returns>Dictionary&lt;System.String, System.Object&gt;.</returns>
@@ -2304,7 +2066,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Записать в словарь значения свойств объекта.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="instance">The instance.</param>
         /// <param name="dictionary">The dictionary.</param>
         /// <param name="propertyNames">Имена свойств, если не указаны, то берутся <see cref="PublicProperties" />.</param>
@@ -2397,57 +2159,189 @@ namespace RuntimeStuff
 
             return result;
         }
-    }
-
-    /// <summary>
-    /// Class MemberCache.
-    /// Implements the <see cref="RuntimeStuff.MemberCache" />.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <seealso cref="RuntimeStuff.MemberCache" />
-    public class MemberCache<T> : MemberCache
-    {
-        /// <summary>
-        /// The member information cache t.
-        /// </summary>
-        protected static readonly ConcurrentDictionary<Type, MemberCache<T>> MemberInfoCacheT =
-            new ConcurrentDictionary<Type, MemberCache<T>>();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MemberCache{T}" /> class.
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="ConstructorInfo" />.
         /// </summary>
-        public MemberCache()
-            : base(typeof(T))
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator ConstructorInfo(MemberCache mc)
         {
-            this.DefaultConstructor = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var constructorInfo = mc.AsConstructorInfo();
+            return constructorInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MemberCache{T}" /> class.
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="EventInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator EventInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var eventInfo = mc.AsEventInfo();
+            return eventInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="FieldInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator FieldInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var fieldInfo = mc.AsFieldInfo();
+            return fieldInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="PropertyInfo" /> to <see cref="MemberCache" />.
         /// </summary>
         /// <param name="memberInfo">The member information.</param>
-        public MemberCache(MemberInfo memberInfo)
-            : base(memberInfo)
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(PropertyInfo memberInfo)
         {
-            this.DefaultConstructor = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
         }
 
         /// <summary>
-        /// Gets the default constructor.
+        /// Performs an implicit conversion from <see cref="FieldInfo" /> to <see cref="MemberCache" />.
         /// </summary>
-        /// <value>The default constructor.</value>
-        public new Func<T> DefaultConstructor { get; }
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(FieldInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
 
         /// <summary>
-        /// Creates this instance.
+        /// Performs an implicit conversion from <see cref="MethodInfo" /> to <see cref="MemberCache" />.
         /// </summary>
-        /// <returns>MemberCache&lt;T&gt;.</returns>
-        public static MemberCache<T> Create()
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(MethodInfo memberInfo)
         {
-            var memberCache = MemberInfoCache.GetOrAdd(typeof(T), x => new MemberCache(typeof(T)));
-            var result = MemberInfoCacheT.GetOrAdd(typeof(T), x => new MemberCache<T>(memberCache));
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
 
-            return result;
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="EventInfo" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(EventInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="ConstructorInfo" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(ConstructorInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="Type" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(Type memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="MethodInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator MethodInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var methodInfo = mc.AsMethodInfo();
+            return methodInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="PropertyInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator PropertyInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var propertyInfo = mc.AsPropertyInfo();
+            return propertyInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="Type" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.</exception>
+        public static implicit operator Type(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            if (!mc.IsType)
+            {
+                throw new InvalidCastException(
+                    $"Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.");
+            }
+
+            return mc.Type;
         }
     }
 }

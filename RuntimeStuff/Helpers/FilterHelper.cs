@@ -30,17 +30,31 @@ namespace RuntimeStuff.Helpers
     /// экземпляра класса. Класс потокобезопасен при использовании в многопоточных сценариях.</remarks>
     public static class FilterHelper
     {
+        /// <summary>
+        /// The number regex.
+        /// </summary>
+        private static readonly Regex NumberRegex = new Regex(@"^\d+(\.\d+)?$", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The property regex.
+        /// </summary>
+        private static readonly Regex PropertyRegex = new Regex(@"^\[(.+)\]$", RegexOptions.Compiled);
+
+        /// <summary>
+        /// The string regex.
+        /// </summary>
+        private static readonly Regex StringRegex = new Regex(@"^'(.*)'$", RegexOptions.Compiled);
 
         /// <summary>
         ///     Фильтрует элементы последовательности на основе заданного строкового выражения.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">Исходная коллекция.</param>
         /// <param name="filterExpression">
         ///     Выражение, имена свойств задаются в квадратных скобках, строковые значения в одинарных
         ///     кавычках. Пример: [EventId] >= 100 && [Name] like '%hello%'.
         /// </param>
-        /// <returns></returns>
+        /// <returns>Отфильтрованный список элементов.</returns>
         public static IEnumerable<T> Filter<T>(IEnumerable<T> source, string filterExpression)
         {
             if (string.IsNullOrWhiteSpace(filterExpression))
@@ -55,6 +69,7 @@ namespace RuntimeStuff.Helpers
                 // Компилируем в Func<T,bool>
                 var lambda = ToLambda<T>(tree);
                 var predicate = lambda.Compile();
+
                 // Используем одним Where
                 return source.Where(predicate);
             }
@@ -132,19 +147,28 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// The number regex.
+        /// Преобразовать текстовый фильтр в выражение.
         /// </summary>
-        private static readonly Regex NumberRegex = new Regex(@"^\d+(\.\d+)?$", RegexOptions.Compiled);
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="filter">Текстовый фильтр.</param>
+        /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
+        public static Expression<Func<T, bool>> ToExpression<T>(string filter)
+        {
+            if (string.IsNullOrEmpty(filter))
+            {
+                return x => true;
+            }
+
+            return ToLambda<T>(Parse(filter));
+        }
 
         /// <summary>
-        /// The property regex.
+        /// Скомпилировать текстовый фильтр в предикат.
         /// </summary>
-        private static readonly Regex PropertyRegex = new Regex(@"^\[(.+)\]$", RegexOptions.Compiled);
-
-        /// <summary>
-        /// The string regex.
-        /// </summary>
-        private static readonly Regex StringRegex = new Regex(@"^'(.*)'$", RegexOptions.Compiled);
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="filter">Текстовый фильтр, например: [EventId] &gt;= 1000 || [name] like '%h%l%o%'.</param>
+        /// <returns>Func&lt;T, System.Boolean&gt;.</returns>
+        public static Func<T, bool> ToPredicate<T>(string filter) => ToExpression<T>(filter).Compile();
 
         /// <summary>
         /// Разбирает текстовое выражение в синтаксическое дерево.
@@ -156,25 +180,6 @@ namespace RuntimeStuff.Helpers
             var tokens = Tokenize(input);
             var pos = 0;
             return ParseOr(tokens, ref pos);
-        }
-
-        /// <summary>
-        /// Tokenizes the specified input.
-        /// </summary>
-        /// <param name="input">The input.</param>
-        /// <returns>List&lt;System.String&gt;.</returns>
-        private static List<string> Tokenize(string input)
-        {
-            var tokens = new List<string>();
-            var pattern =
-                @"(is not empty\b|is empty\b|is null\b|is not null\b|\|\||&&|==|!=|<=|>=|>|<|not in\b|in\b|like\b|not like\b|\[[^\]]+\]|[()\{\}\+\-\*/]|,|NULL\b|'[^']*'|\d+(\.\d+)?|\w+)";
-
-            foreach (Match m in Regex.Matches(input, pattern, RegexOptions.IgnoreCase))
-            {
-                tokens.Add(m.Value);
-            }
-
-            return tokens;
         }
 
         /// <summary>
@@ -474,43 +479,6 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Скомпилировать текстовый фильтр в предикат.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="filter">Текстовый фильтр, например: [EventId] &gt;= 1000 || [name] like '%h%l%o%'.</param>
-        /// <returns>Func&lt;T, System.Boolean&gt;.</returns>
-        public static Func<T, bool> ToPredicate<T>(string filter) => ToExpression<T>(filter).Compile();
-
-        /// <summary>
-        /// Преобразовать текстовый фильтр в выражение.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="filter">Текстовый фильтр.</param>
-        /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
-        public static Expression<Func<T, bool>> ToExpression<T>(string filter)
-        {
-            if (string.IsNullOrEmpty(filter))
-            {
-                return x => true;
-            }
-
-            return ToLambda<T>(Parse(filter));
-        }
-
-        /// <summary>
-        /// Converts to lambda.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="expr">The expr.</param>
-        /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
-        private static Expression<Func<T, bool>> ToLambda<T>(Expr expr)
-        {
-            var param = Expression.Parameter(typeof(T), "x");
-            var body = ToExpression(expr, param);
-            return Expression.Lambda<Func<T, bool>>(body, param);
-        }
-
-        /// <summary>
         /// Converts to expression.
         /// </summary>
         /// <param name="expr">The expr.</param>
@@ -518,11 +486,8 @@ namespace RuntimeStuff.Helpers
         /// <returns>Expression.</returns>
         /// <exception cref="System.FormatException">Свойство '{p.Name}' не существует в типе '{param.Type}'.</exception>
         /// <exception cref="System.FormatException">Оператор BETWEEN не подходит для строкового параметра {left}.</exception>
-        /// <exception cref="System.NotSupportedException"></exception>
         /// <exception cref="System.NotSupportedException">IS EMPTY применим только к строкам или коллекциям.</exception>
         /// <exception cref="System.NotSupportedException">IS NOT EMPTY применим только к строкам или коллекциям.</exception>
-        /// <exception cref="System.NullReferenceException"></exception>
-        /// <exception cref="System.InvalidOperationException"></exception>
         private static Expression ToExpression(Expr expr, ParameterExpression param)
         {
             if (expr is ConstantExpr c)
@@ -723,10 +688,35 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Базовый класс для всех узлов синтаксического дерева.
+        /// Tokenizes the specified input.
         /// </summary>
-        internal abstract class Expr
+        /// <param name="input">The input.</param>
+        /// <returns>List&lt;System.String&gt;.</returns>
+        private static List<string> Tokenize(string input)
         {
+            var tokens = new List<string>();
+            var pattern =
+                @"(is not empty\b|is empty\b|is null\b|is not null\b|\|\||&&|==|!=|<=|>=|>|<|not in\b|in\b|like\b|not like\b|\[[^\]]+\]|[()\{\}\+\-\*/]|,|NULL\b|'[^']*'|\d+(\.\d+)?|\w+)";
+
+            foreach (Match m in Regex.Matches(input, pattern, RegexOptions.IgnoreCase))
+            {
+                tokens.Add(m.Value);
+            }
+
+            return tokens;
+        }
+
+        /// <summary>
+        /// Converts to lambda.
+        /// </summary>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="expr">The expr.</param>
+        /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
+        private static Expression<Func<T, bool>> ToLambda<T>(Expr expr)
+        {
+            var param = Expression.Parameter(typeof(T), "x");
+            var body = ToExpression(expr, param);
+            return Expression.Lambda<Func<T, bool>>(body, param);
         }
 
         /// <summary>
@@ -762,16 +752,16 @@ namespace RuntimeStuff.Helpers
             public Expr Lower { get; }
 
             /// <summary>
-            /// Gets the upper.
-            /// </summary>
-            /// <value>The upper.</value>
-            public Expr Upper { get; }
-
-            /// <summary>
             /// Gets a value indicating whether this <see cref="BetweenExpr"/> is not.
             /// </summary>
             /// <value><c>true</c> if not; otherwise, <c>false</c>.</value>
             public bool Not { get; }
+
+            /// <summary>
+            /// Gets the upper.
+            /// </summary>
+            /// <value>The upper.</value>
+            public Expr Upper { get; }
 
             /// <summary>
             /// Returns a <see cref="string" /> that represents this instance.
@@ -848,6 +838,13 @@ namespace RuntimeStuff.Helpers
             /// </summary>
             /// <returns>A <see cref="string" /> that represents this instance.</returns>
             public override string ToString() => $"{this.Value}";
+        }
+
+        /// <summary>
+        /// Базовый класс для всех узлов синтаксического дерева.
+        /// </summary>
+        internal abstract class Expr
+        {
         }
 
         /// <summary>

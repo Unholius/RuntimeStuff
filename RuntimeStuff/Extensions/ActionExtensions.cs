@@ -13,9 +13,9 @@
 // ***********************************************************************
 namespace RuntimeStuff.Extensions
 {
+    using System;
     using RuntimeStuff.Helpers;
     using RuntimeStuff.Properties;
-    using System;
 
     /// <summary>
     /// Предоставляет методы расширения для преобразования между делегатами Action с разными сигнатурами.

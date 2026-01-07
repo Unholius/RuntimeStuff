@@ -34,7 +34,6 @@ namespace RuntimeStuff
     /// remove =&gt; _notifier.PropertyChanged -= value;
     /// }
     /// </code></remarks>
-
     public class PropertyChangeNotifier : INotifyPropertyChanged, INotifyPropertyChanging, IDisposable
     {
         /// <summary>
@@ -42,12 +41,12 @@ namespace RuntimeStuff
         /// <see cref="PropertyChangedEventHandler" />. Используется для автоматической отписки
         /// при замене вложенного объекта.
         /// </summary>
-        private readonly Cache<object, EventHandlers> _subscriptions = new Cache<object, EventHandlers>(x => new EventHandlers());
+        private readonly Cache<object, EventHandlers> subscriptions = new Cache<object, EventHandlers>(x => new EventHandlers());
 
         /// <summary>
         /// The synchronize root.
         /// </summary>
-        private readonly object _syncRoot = new object();
+        private readonly object syncRoot = new object();
 
         /// <summary>
         /// Событие <see cref="PropertyChanged" /> для внешних подписчиков.
@@ -156,17 +155,17 @@ namespace RuntimeStuff
         /// <param name="childPropertyName">Имя свойства во вложенном объекте, изменение которого должно вызывать <paramref name="childPropertyChangeHandler" />.</param>
         /// <param name="childPropertyChangeHandler">Действие, выполняемое при изменении <paramref name="childPropertyName" /> во вложенном объекте.</param>
         /// <remarks>Этот метод отписывает обработчик у старого объекта (если он присутствует) и подписывает новый обработчик
-        /// к <paramref name="newValue" />; обработчики хранятся в словаре <see cref="_subscriptions" /> для корректной последующей отписки.</remarks>
+        /// к <paramref name="newValue" />; обработчики хранятся в словаре <see cref="subscriptions" /> для корректной последующей отписки.</remarks>
         public void BindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler)
             where T : class, INotifyPropertyChanged
         {
-            lock (this._syncRoot)
+            lock (this.syncRoot)
             {
                 // Отписываем старый объект, если он был
-                if (oldValue != null && this._subscriptions.TryGetValue(oldValue, out var oldHandler))
+                if (oldValue != null && this.subscriptions.TryGetValue(oldValue, out var oldHandler))
                 {
                     oldValue.PropertyChanged -= oldHandler.Changed;
-                    this._subscriptions.Remove(oldValue);
+                    this.subscriptions.Remove(oldValue);
                 }
 
                 if (newValue != null && childPropertyChangeHandler != null)
@@ -180,7 +179,7 @@ namespace RuntimeStuff
                     });
 
                     newValue.PropertyChanged += newPropertyChangedEventHandler;
-                    var s = this._subscriptions.Get(newValue);
+                    var s = this.subscriptions.Get(newValue);
                     s.Changed = newPropertyChangedEventHandler;
 
                     if (typeof(T).IsImplements<INotifyPropertyChanging>())
@@ -221,9 +220,9 @@ namespace RuntimeStuff
                 return;
             }
 
-            lock (this._syncRoot)
+            lock (this.syncRoot)
             {
-                foreach (var kvp in this._subscriptions)
+                foreach (var kvp in this.subscriptions)
                 {
                     if (kvp.Key is INotifyPropertyChanged npc1)
                     {
@@ -236,7 +235,7 @@ namespace RuntimeStuff
                     }
                 }
 
-                this._subscriptions.Clear();
+                this.subscriptions.Clear();
             }
         }
 
@@ -245,24 +244,9 @@ namespace RuntimeStuff
         /// </summary>
         public void Dispose()
         {
+            this.subscriptions.Clear();
             this.Dispose(true);
             GC.SuppressFinalize(this);
         }
-    }
-
-    /// <summary>
-    /// Class EventHandlers.
-    /// </summary>
-    internal class EventHandlers
-    {
-        /// <summary>
-        /// The changed.
-        /// </summary>
-        public PropertyChangedEventHandler Changed;
-
-        /// <summary>
-        /// The changing.
-        /// </summary>
-        public PropertyChangingEventHandler Changing;
     }
 }

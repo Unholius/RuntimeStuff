@@ -13,9 +13,7 @@
 // ***********************************************************************
 namespace RuntimeStuff
 {
-    using System;
     using System.Data;
-    using System.Linq;
 
     /// <summary>
     /// Универсальный клиент доступа к базе данных, типизированный по конкретному
@@ -33,6 +31,7 @@ namespace RuntimeStuff
             new Cache<IDbConnection, DbClient<T>>(con => new DbClient<T>((T)con));
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
         /// Создаёт новый экземпляр клиента с автоматически созданным соединением.
         /// </summary>
         public DbClient()
@@ -41,6 +40,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
         /// Создаёт новый экземпляр клиента на основе переданного соединения.
         /// </summary>
         /// <param name="con">Открытое или закрытое соединение с БД.</param>
@@ -50,6 +50,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
         /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
         /// </summary>
         /// <param name="connectionString">Строка подключения к базе данных.</param>

@@ -14,8 +14,6 @@
 namespace RuntimeStuff.Helpers
 {
     using System;
-    using System.Collections.Concurrent;
-    using System.Threading;
     using System.Threading.Tasks;
 
     /// <summary>
@@ -28,12 +26,12 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// The on exception.
         /// </summary>
-        private static Action<Exception> _onException;
+        private static Action<Exception> onException;
 
         /// <summary>
         /// The should always rethrow exception.
         /// </summary>
-        private static bool _shouldAlwaysRethrowException;
+        private static bool shouldAlwaysRethrowException;
 
         /// <summary>
         /// Выполняет задачу в фоновом режиме без ожидания завершения, с обработкой исключений общего типа
@@ -77,12 +75,12 @@ namespace RuntimeStuff.Helpers
         /// обработки.
         /// </summary>
         /// <param name="shouldAlwaysRethrowException">Если <c>true</c>, исключения будут повторно выброшены после обработки.</param>
-        public static void Initialize(in bool shouldAlwaysRethrowException = false) => _shouldAlwaysRethrowException = shouldAlwaysRethrowException;
+        public static void Initialize(in bool shouldAlwaysRethrowException = false) => TaskHelper.shouldAlwaysRethrowException = shouldAlwaysRethrowException;
 
         /// <summary>
         /// Удаляет глобальный обработчик исключений, установленный методом <see cref="SetDefaultExceptionHandling" />.
         /// </summary>
-        public static void RemoveDefaultExceptionHandling() => _onException = null;
+        public static void RemoveDefaultExceptionHandling() => onException = null;
 
         /// <summary>
         /// Устанавливает глобальный обработчик исключений, вызываемый при возникновении ошибок в задачах, запущенных методом
@@ -90,7 +88,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="onException">Действие, выполняемое при возникновении исключения.</param>
         /// <exception cref="System.ArgumentNullException">onException.</exception>
-        public static void SetDefaultExceptionHandling(in Action<Exception> onException) => _onException = onException ?? throw new ArgumentNullException(nameof(onException));
+        public static void SetDefaultExceptionHandling(in Action<Exception> onException) => TaskHelper.onException = onException ?? throw new ArgumentNullException(nameof(onException));
 
         /// <summary>
         /// Обрабатывает выполнение задачи и перехватывает исключения указанного типа.
@@ -106,11 +104,11 @@ namespace RuntimeStuff.Helpers
             {
                 await task.ConfigureAwait(continueOnCapturedContext);
             }
-            catch (TException ex) when (!(_onException is null) || !(onException is null))
+            catch (TException ex) when (!(TaskHelper.onException is null) || !(onException is null))
             {
                 HandleException(ex, onException);
 
-                if (_shouldAlwaysRethrowException)
+                if (shouldAlwaysRethrowException)
                 {
 #if NET5_0_OR_GREATER
                     System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw(ex);
@@ -130,197 +128,8 @@ namespace RuntimeStuff.Helpers
         private static void HandleException<TException>(in TException exception, in Action<TException> onException)
             where TException : Exception
         {
-            _onException?.Invoke(exception);
+            TaskHelper.onException?.Invoke(exception);
             onException?.Invoke(exception);
         }
-    }
-
-    /// <summary>
-    /// Статический класс для асинхронного ожидания событий по идентификатору
-    /// и последующего оповещения ожидающих при изменении статуса.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <remarks>Позволяет из одного компонента ожидать событие по <see cref="string" /> id,
-    /// а из другого — завершить ожидание, установив статус и данные события.</remarks>
-    public static class TaskHelper<T>
-    {
-        /// <summary>
-        /// Хранилище ожидающих задач по идентификатору события.
-        /// </summary>
-        private static readonly ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>> Waiters
-            = new ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>>();
-
-        /// <summary>
-        /// Асинхронно ожидает событие с указанным идентификатором, пока не будет использовано <see cref="TryComplete" /> или истечет время ожидания.
-        /// </summary>
-        /// <param name="eventId">Уникальный идентификатор события.</param>
-        /// <param name="maxMillisecondsToWait">Максимальное время ожидания в секундах.
-        /// По истечении времени ожидание будет автоматически отменено.</param>
-        /// <returns>Задача, завершающаяся объектом <see cref="EventResult{T}" /> при установке события.</returns>
-        /// <exception cref="System.NullReferenceException">eventId.</exception>
-        /// <remarks>Если ожидание по указанному идентификатору уже существует,
-        /// будет возвращена существующая задача.</remarks>
-        public static Task<EventResult<T>> Wait(object eventId, int maxMillisecondsToWait = 5000)
-        {
-            if (eventId == null)
-            {
-                throw new NullReferenceException(nameof(eventId));
-            }
-
-            var tcs = new TaskCompletionSource<EventResult<T>>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-
-            if (!Waiters.TryAdd(eventId, tcs))
-            {
-                return Waiters[eventId].Task;
-            }
-
-            var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait));
-
-            cts.Token.Register(() =>
-            {
-                if (Waiters.TryRemove(eventId, out var removed))
-                {
-                    removed.TrySetCanceled();
-                }
-            });
-            return tcs.Task;
-        }
-
-        /// <summary>
-        /// Асинхронно ожидает событие с указанным идентификатором и возвращает результат с заданным статусом таймаута,
-        /// если событие не произошло в течение указанного времени.
-        /// </summary>
-        /// <param name="eventId">Уникальный идентификатор события, по которому ожидается уведомление.</param>
-        /// <param name="timeoutStatus">Статус, который будет установлен в <see cref="EventResult{T}.Status" /> при истечении времени ожидания.</param>
-        /// <param name="maxMillisecondsToWait">Максимальное время ожидания события в секундах. По истечении этого времени возвращается <paramref name="timeoutStatus" />.</param>
-        /// <returns>Задача, завершающаяся объектом <see cref="EventResult{T}" /> с указанным статусом или статусом таймаута.</returns>
-        /// <exception cref="System.NullReferenceException">eventId.</exception>
-        /// <remarks>Если ожидание с указанным идентификатором уже существует, возвращается существующая задача.</remarks>
-        public static Task<EventResult<T>> Wait(object eventId, T timeoutStatus, int maxMillisecondsToWait)
-        {
-            if (eventId == null)
-            {
-                throw new NullReferenceException(nameof(eventId));
-            }
-
-            var tcs = new TaskCompletionSource<EventResult<T>>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
-
-            if (!Waiters.TryAdd(eventId, tcs))
-            {
-                return Waiters[eventId].Task;
-            }
-
-            var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait));
-            cts.Token.Register(() =>
-            {
-                if (Waiters.TryRemove(eventId, out var removed))
-                {
-                    // Возвращаем EventResult с заданным статусом таймаута
-                    removed.TrySetResult(new EventResult<T>(eventId, timeoutStatus));
-                }
-            });
-
-            return tcs.Task;
-        }
-
-        /// <summary>
-        /// Устанавливает информацию о событии и завершает ожидание для указанного идентификатора.
-        /// </summary>
-        /// <param name="eventId">Идентификатор события.</param>
-        /// <param name="status">Статус события.</param>
-        /// <param name="eventData">Произвольные данные, связанные с событием.</param>
-        /// <returns><c>true</c>, если ожидание было найдено и успешно завершено;
-        /// <c>false</c>, если ожидания по данному идентификатору не существовало.</returns>
-        /// <exception cref="System.NullReferenceException">eventId.</exception>
-        public static bool TryComplete(object eventId, T status, object eventData = null)
-        {
-            if (eventId == null)
-            {
-                throw new NullReferenceException(nameof(eventId));
-            }
-
-            var eventInfo = new EventResult<T>(eventId, status, eventData);
-
-            if (Waiters.TryRemove(eventId, out var tsc))
-            {
-                tsc.SetResult(eventInfo);
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Принудительно отменяет ожидание события по указанному идентификатору.
-        /// </summary>
-        /// <param name="eventId">Идентификатор события.</param>
-        /// <returns><c>true</c>, если ожидание было найдено и отменено;
-        /// <c>false</c>, если ожидание отсутствовало.</returns>
-        /// <exception cref="System.NullReferenceException">eventId.</exception>
-        public static bool CancelWait(object eventId)
-        {
-            if (eventId == null)
-            {
-                throw new NullReferenceException(nameof(eventId));
-            }
-
-            return Waiters.TryRemove(eventId, out var tsc) && tsc.TrySetCanceled();
-        }
-
-        /// <summary>
-        /// Отменяет все активные ожидания и очищает внутреннее хранилище.
-        /// </summary>
-        /// <remarks>Используется при завершении работы приложения или
-        /// при необходимости полного сброса состояния ожиданий.</remarks>
-        public static void ClearAll()
-        {
-            foreach (var tsc in Waiters.Values)
-            {
-                tsc.TrySetCanceled();
-            }
-
-            Waiters.Clear();
-        }
-    }
-
-    /// <summary>
-    /// Информация о произошедшем событии.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    public sealed class EventResult<T>
-    {
-        /// <summary>
-        /// Создаёт новый экземпляр информации о событии.
-        /// </summary>
-        /// <param name="eventId">Идентификатор события.</param>
-        /// <param name="status">Статус события.</param>
-        /// <param name="data">Произвольные данные события.</param>
-        /// <exception cref="System.NullReferenceException">eventId.</exception>
-        public EventResult(object eventId, T status, object data = null)
-        {
-            this.EventId = eventId ?? throw new NullReferenceException(nameof(eventId));
-            this.Status = status;
-            this.Data = data;
-        }
-
-        /// <summary>
-        /// Gets идентификатор события.
-        /// </summary>
-        /// <value>The event identifier.</value>
-        public object EventId { get; }
-
-        /// <summary>
-        /// Gets статус события.
-        /// </summary>
-        /// <value>The status.</value>
-        public T Status { get; }
-
-        /// <summary>
-        /// Gets or sets дополнительные данные, связанные с событием.
-        /// </summary>
-        /// <value>The data.</value>
-        public object Data { get; set; }
     }
 }

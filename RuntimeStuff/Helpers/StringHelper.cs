@@ -635,16 +635,6 @@ namespace RuntimeStuff.Helpers
         public class Token
         {
             /// <summary>
-            /// The identifier internal.
-            /// </summary>
-            internal static int IdInternal = 1;
-
-            /// <summary>
-            /// The children internal.
-            /// </summary>
-            internal List<Token> ChildrenInternal = new List<Token>();
-
-            /// <summary>
             /// Initializes a new instance of the <see cref="Token" /> class.
             /// </summary>
             /// <param name="source">The source.</param>
@@ -908,6 +898,16 @@ namespace RuntimeStuff.Helpers
             /// </summary>
             /// <value>The text.</value>
             public string Text { get; internal set; }
+
+            /// <summary>
+            /// Gets or sets the identifier internal.
+            /// </summary>
+            internal static int IdInternal { get; set; } = 1;
+
+            /// <summary>
+            /// Gets the children internal.
+            /// </summary>
+            internal List<Token> ChildrenInternal { get; } = new List<Token>();
 
             /// <summary>
             /// Все токены после текущего (по цепочке Next).

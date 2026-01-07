@@ -29,6 +29,11 @@ namespace RuntimeStuff.Builders
     public static class SqlQueryBuilder
     {
         /// <summary>
+        /// The empty parameters.
+        /// </summary>
+        private static readonly IReadOnlyDictionary<string, object> EmptyParams = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+
+        /// <summary>
         /// Enum JoinType.
         /// </summary>
         public enum JoinType
@@ -55,9 +60,141 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// The empty parameters.
+        /// Adds the limit offset clause to query.
         /// </summary>
-        private static readonly IReadOnlyDictionary<string, object> EmptyParams = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+        /// <param name="fetchRows">The fetch rows.</param>
+        /// <param name="offsetRows">The offset rows.</param>
+        /// <param name="query">The query.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="entityType">Type of the entity.</param>
+        /// <returns>System.String.</returns>
+        public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null)
+        {
+            if (fetchRows < 0 || offsetRows < 0)
+            {
+                return query;
+            }
+
+            var offsetRowsFetchNextRowsOnly =
+                options.OverrideOffsetRowsTemplate ?? "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
+
+            var clause = new StringBuilder(query);
+
+            if (query?.Contains("ORDER BY", StringComparison.OrdinalIgnoreCase) != true)
+            {
+                var mi = MemberCache.Create(entityType);
+
+                clause.Append(" ORDER BY ");
+                _ = clause.Append(string.Join(
+                    ", ",
+                    mi.PrimaryKeys.Count > 0 ? mi.PrimaryKeys.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix)) : mi.ColumnProperties.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))));
+                clause.Append(" ");
+            }
+
+            clause.Append(string.Format(
+                offsetRowsFetchNextRowsOnly,
+                offsetRows,
+                fetchRows));
+
+            return clause.ToString().Trim();
+        }
+
+        /// <summary>
+        /// Gets the aggregate select clause.
+        /// </summary>
+        /// <typeparam name="TFrom">The type of the t from.</typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="columnSelectors">The column selectors.</param>
+        /// <returns>System.String.</returns>
+        public static string GetAggSelectClause<TFrom>(SqlProviderOptions options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
+            where TFrom : class
+        {
+            var query = "SELECT " + (columnSelectors.Length == 0
+                          ? "COUNT(*)"
+                          : string.Join(
+                                ", ",
+                                columnSelectors.Select(c =>
+                              {
+                                  var colName = $"{options.NamePrefix}{options.Map?.ResolveColumnName(c.column?.GetPropertyInfo(), null, null) ?? c.column?.GetMemberCache()?.ColumnName ?? "*"}{options.NameSuffix}".Replace("\"*\"", "*");
+                                  return $"{c.aggFunction}({colName})";
+                              }))
+                      + $" FROM {options.NamePrefix}{options.Map?.ResolveTableName(typeof(TFrom), null, null) ?? typeof(TFrom).GetMemberCache().TableName}{options.NameSuffix}");
+
+            return query;
+        }
+
+        /// <summary>
+        /// Gets the delete query.
+        /// </summary>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="options">The options.</param>
+        /// <returns>System.String.</returns>
+        public static string GetDeleteQuery<T>(SqlProviderOptions options)
+            where T : class
+        {
+            var mi = MemberCache<T>.Create();
+            var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.ParamPrefix, options.NameSuffix));
+            return query.ToString();
+        }
+
+        /// <summary>
+        /// Gets the insert query.
+        /// </summary>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="insertColumns">The insert columns.</param>
+        /// <returns>System.String.</returns>
+        public static string GetInsertQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] insertColumns)
+            where T : class
+        {
+            var query = new StringBuilder("INSERT INTO ");
+            var mi = MemberCache<T>.Create();
+            query
+                .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.NamePrefix, options.NameSuffix))
+                .Append(" (");
+
+            var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
+            if (insertCols.Length == 0)
+            {
+                insertCols = mi.ColumnProperties.Values.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
+            }
+
+            for (var i = 0; i < insertCols.Length; i++)
+            {
+                var col = insertCols[i];
+
+                query
+                    .Append(options.NamePrefix)
+                    .Append(options.Map?.ResolveColumnName(mi[col], null, null) ?? mi[col].ColumnName)
+                    .Append(options.NameSuffix);
+
+                if (i < insertCols.Length - 1)
+                {
+                    query.Append(", ");
+                }
+            }
+
+            query
+                .Append(") VALUES (");
+
+            for (var i = 0; i < insertCols.Length; i++)
+            {
+                var col = insertCols[i];
+
+                query
+                    .Append(options.ParamPrefix)
+                    .Append(mi[col].Name);
+
+                if (i < insertCols.Length - 1)
+                {
+                    query.Append(", ");
+                }
+            }
+
+            query.Append(")");
+
+            return query.ToString();
+        }
 
         /// <summary>
         /// Gets the join clause.
@@ -128,105 +265,59 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the aggregate select clause.
+        /// Gets the order by.
         /// </summary>
-        /// <typeparam name="TFrom">The type of the t from.</typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="options">The options.</param>
-        /// <param name="columnSelectors">The column selectors.</param>
+        /// <param name="orderBy">The order by.</param>
         /// <returns>System.String.</returns>
-        public static string GetAggSelectClause<TFrom>(SqlProviderOptions options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
-            where TFrom : class
+        public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
-            var query = "SELECT " + (columnSelectors.Length == 0
-                          ? "COUNT(*)"
-                          : string.Join(
-                                ", ",
-                                columnSelectors.Select(c =>
-                              {
-                                  var colName = $"{options.NamePrefix}{options.Map?.ResolveColumnName(c.column?.GetPropertyInfo(), null, null) ?? c.column?.GetMemberCache()?.ColumnName ?? "*"}{options.NameSuffix}".Replace("\"*\"", "*");
-                                  return $"{c.aggFunction}({colName})";
-                              }))
-                      + $" FROM {options.NamePrefix}{options.Map?.ResolveTableName(typeof(TFrom), null, null) ?? typeof(TFrom).GetMemberCache().TableName}{options.NameSuffix}");
-
-            return query;
-        }
-
-        /// <summary>
-        /// Gets the where clause.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="whereExpression">The where expression.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
-        public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
-        {
-            cmdParams = EmptyParams;
-            var dic = new Dictionary<string, object>();
-            var whereClause = whereExpression == null ? string.Empty : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();
-            cmdParams = dic;
-            return whereClause;
-        }
-
-        /// <summary>
-        /// Gets the where clause.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
-        public static string GetWhereClause<T>(SqlProviderOptions options, out Dictionary<string, object> cmdParams)
-        {
-            var mi = MemberCache.Create(typeof(T));
-            var keys = mi.PrimaryKeys.Values.ToArray();
-            if (keys.Length == 0)
+            if (orderBy == null)
             {
-                keys = mi.PublicBasicProperties.Values.ToArray();
+                return string.Empty;
             }
 
-            return GetWhereClause(keys, options, out cmdParams);
+            var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetMemberCache(), x.Item2)).ToArray();
+            return GetOrderBy(options, props);
         }
 
         /// <summary>
-        /// Gets the where clause.
+        /// Gets the order by.
         /// </summary>
-        /// <param name="whereProperties">The where properties.</param>
         /// <param name="options">The options.</param>
-        /// <param name="cmdParams">The command parameters.</param>
+        /// <param name="orderBy">The order by.</param>
         /// <returns>System.String.</returns>
-        public static string GetWhereClause(MemberCache[] whereProperties, SqlProviderOptions options, out Dictionary<string, object> cmdParams)
+        public static string GetOrderBy(SqlProviderOptions options, params (MemberCache, bool)[] orderBy)
         {
-            cmdParams = new Dictionary<string, object>();
-            var whereClause = new StringBuilder("WHERE ");
-
-            for (var i = 0; i < whereProperties.Length; i++)
+            if (orderBy == null || orderBy.Length == 0)
             {
-                var key = whereProperties[i];
+                return string.Empty;
+            }
 
-                whereClause
+            var query = new StringBuilder("ORDER BY ");
+
+            foreach (var mi in orderBy)
+            {
+                query
                     .Append(options.NamePrefix)
-                    .Append(options.Map?.ResolveColumnName(key, null, null) ?? key.ColumnName)
+                    .Append(options.Map?.ResolveColumnName(mi.Item1, null, null) ?? mi.Item1.ColumnName)
                     .Append(options.NameSuffix)
-                    .Append(" = ")
-                    .Append(options.ParamPrefix)
-                    .Append(key.Name);
-
-                if (i < whereProperties.Length - 1)
-                {
-                    whereClause.Append(" AND ");
-                }
-
-                cmdParams[key.ColumnName] = null;
+                    .Append(mi.Item2 ? " ASC, " : " DESC, ");
             }
 
-            return whereClause.ToString();
+            if (query[query.Length - 2] == ',')
+            {
+                query.Remove(query.Length - 2, 2);
+            }
+
+            return query.ToString();
         }
 
         /// <summary>
         /// Gets the select query.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="options">The options.</param>
         /// <param name="selectColumns">The select columns.</param>
         /// <returns>System.String.</returns>
@@ -250,7 +341,7 @@ namespace RuntimeStuff.Builders
         /// <summary>
         /// Gets the select query.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <typeparam name="TProp">The type of the t property.</typeparam>
         /// <param name="options">The options.</param>
         /// <param name="selectColumns">The select columns.</param>
@@ -295,7 +386,7 @@ namespace RuntimeStuff.Builders
         /// <summary>
         /// Gets the update query.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="options">The options.</param>
         /// <param name="updateColumns">The update columns.</param>
         /// <returns>System.String.</returns>
@@ -347,166 +438,126 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the insert query.
+        /// Gets the where clause.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="whereExpression">The where expression.</param>
         /// <param name="options">The options.</param>
-        /// <param name="insertColumns">The insert columns.</param>
+        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
+        /// <param name="cmdParams">The command parameters.</param>
         /// <returns>System.String.</returns>
-        public static string GetInsertQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] insertColumns)
-            where T : class
+        public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
         {
-            var query = new StringBuilder("INSERT INTO ");
-            var mi = MemberCache<T>.Create();
-            query
-                .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.NamePrefix, options.NameSuffix))
-                .Append(" (");
+            cmdParams = EmptyParams;
+            var dic = new Dictionary<string, object>();
+            var whereClause = whereExpression == null ? string.Empty : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();
+            cmdParams = dic;
+            return whereClause;
+        }
 
-            var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
-            if (insertCols.Length == 0)
+        /// <summary>
+        /// Gets the where clause.
+        /// </summary>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
+        public static string GetWhereClause<T>(SqlProviderOptions options, out Dictionary<string, object> cmdParams)
+        {
+            var mi = MemberCache.Create(typeof(T));
+            var keys = mi.PrimaryKeys.Values.ToArray();
+            if (keys.Length == 0)
             {
-                insertCols = mi.ColumnProperties.Values.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
+                keys = mi.PublicBasicProperties.Values.ToArray();
             }
 
-            for (var i = 0; i < insertCols.Length; i++)
-            {
-                var col = insertCols[i];
+            return GetWhereClause(keys, options, out cmdParams);
+        }
 
-                query
+        /// <summary>
+        /// Gets the where clause.
+        /// </summary>
+        /// <param name="whereProperties">The where properties.</param>
+        /// <param name="options">The options.</param>
+        /// <param name="cmdParams">The command parameters.</param>
+        /// <returns>System.String.</returns>
+        public static string GetWhereClause(MemberCache[] whereProperties, SqlProviderOptions options, out Dictionary<string, object> cmdParams)
+        {
+            cmdParams = new Dictionary<string, object>();
+            var whereClause = new StringBuilder("WHERE ");
+
+            for (var i = 0; i < whereProperties.Length; i++)
+            {
+                var key = whereProperties[i];
+
+                whereClause
                     .Append(options.NamePrefix)
-                    .Append(options.Map?.ResolveColumnName(mi[col], null, null) ?? mi[col].ColumnName)
-                    .Append(options.NameSuffix);
-
-                if (i < insertCols.Length - 1)
-                {
-                    query.Append(", ");
-                }
-            }
-
-            query
-                .Append(") VALUES (");
-
-            for (var i = 0; i < insertCols.Length; i++)
-            {
-                var col = insertCols[i];
-
-                query
-                    .Append(options.ParamPrefix)
-                    .Append(mi[col].Name);
-
-                if (i < insertCols.Length - 1)
-                {
-                    query.Append(", ");
-                }
-            }
-
-            query.Append(")");
-
-            return query.ToString();
-        }
-
-        /// <summary>
-        /// Gets the delete query.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="options">The options.</param>
-        /// <returns>System.String.</returns>
-        public static string GetDeleteQuery<T>(SqlProviderOptions options)
-            where T : class
-        {
-            var mi = MemberCache<T>.Create();
-            var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.ParamPrefix, options.NameSuffix));
-            return query.ToString();
-        }
-
-        /// <summary>
-        /// Gets the order by.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="orderBy">The order by.</param>
-        /// <returns>System.String.</returns>
-        public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
-        {
-            if (orderBy == null)
-            {
-                return string.Empty;
-            }
-
-            var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetMemberCache(), x.Item2)).ToArray();
-            return GetOrderBy(options, props);
-        }
-
-        /// <summary>
-        /// Gets the order by.
-        /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="orderBy">The order by.</param>
-        /// <returns>System.String.</returns>
-        public static string GetOrderBy(SqlProviderOptions options, params (MemberCache, bool)[] orderBy)
-        {
-            if (orderBy == null || orderBy.Length == 0)
-            {
-                return string.Empty;
-            }
-
-            var query = new StringBuilder("ORDER BY ");
-
-            foreach (var mi in orderBy)
-            {
-                query
-                    .Append(options.NamePrefix)
-                    .Append(options.Map?.ResolveColumnName(mi.Item1, null, null) ?? mi.Item1.ColumnName)
+                    .Append(options.Map?.ResolveColumnName(key, null, null) ?? key.ColumnName)
                     .Append(options.NameSuffix)
-                    .Append(mi.Item2 ? " ASC, " : " DESC, ");
+                    .Append(" = ")
+                    .Append(options.ParamPrefix)
+                    .Append(key.Name);
+
+                if (i < whereProperties.Length - 1)
+                {
+                    whereClause.Append(" AND ");
+                }
+
+                cmdParams[key.ColumnName] = null;
             }
 
-            if (query[query.Length - 2] == ',')
-            {
-                query.Remove(query.Length - 2, 2);
-            }
-
-            return query.ToString();
+            return whereClause.ToString();
         }
 
         /// <summary>
-        /// Adds the limit offset clause to query.
+        /// Gets the SQL operator.
         /// </summary>
-        /// <param name="fetchRows">The fetch rows.</param>
-        /// <param name="offsetRows">The offset rows.</param>
-        /// <param name="query">The query.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="entityType">Type of the entity.</param>
+        /// <param name="type">The type.</param>
         /// <returns>System.String.</returns>
-        public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null)
+        /// <exception cref="System.NotSupportedException">Operator '{type}' not supported.</exception>
+        private static string GetSqlOperator(ExpressionType type)
         {
-            if (fetchRows < 0 || offsetRows < 0)
+            switch (type)
             {
-                return query;
+                case ExpressionType.Equal:
+                    return "=";
+
+                case ExpressionType.NotEqual:
+                    return "<>";
+
+                case ExpressionType.GreaterThan:
+                    return ">";
+
+                case ExpressionType.GreaterThanOrEqual:
+                    return ">=";
+
+                case ExpressionType.LessThan:
+                    return "<";
+
+                case ExpressionType.LessThanOrEqual:
+                    return "<=";
+
+                case ExpressionType.AndAlso:
+                    return "AND";
+
+                case ExpressionType.OrElse:
+                    return "OR";
+
+                default:
+                    throw new NotSupportedException($"Operator '{type}' not supported.");
             }
+        }
 
-            var offsetRowsFetchNextRowsOnly =
-                options.OverrideOffsetRowsTemplate ?? "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
-
-            var clause = new StringBuilder(query);
-
-            if (query?.Contains("ORDER BY", StringComparison.OrdinalIgnoreCase) != true)
-            {
-                var mi = MemberCache.Create(entityType);
-
-                clause.Append(" ORDER BY ");
-                _ = clause.Append(string.Join(
-                    ", ",
-                    mi.PrimaryKeys.Count > 0 ? mi.PrimaryKeys.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix)) : mi.ColumnProperties.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))));
-                clause.Append(" ");
-            }
-
-            clause.Append(string.Format(
-                offsetRowsFetchNextRowsOnly,
-                offsetRows,
-                fetchRows));
-
-            return clause.ToString().Trim();
+        /// <summary>
+        /// Gets the value.
+        /// </summary>
+        /// <param name="me">Me.</param>
+        /// <returns>System.Object.</returns>
+        private static object GetValue(MemberExpression me)
+        {
+            var lambda = Expression.Lambda<Func<object>>(
+                Expression.Convert(me, typeof(object)));
+            return lambda.Compile().Invoke();
         }
 
         /// <summary>
@@ -582,28 +633,12 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Visits the unary.
+        /// Visits the constant.
         /// </summary>
-        /// <param name="ue">The ue.</param>
+        /// <param name="ce">The ce.</param>
         /// <param name="options">The options.</param>
-        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
-        /// <param name="cmdParams">The command parameters.</param>
         /// <returns>System.String.</returns>
-        /// <exception cref="System.NotSupportedException">Unary '{ue.NodeType}' not supported.</exception>
-        private static string VisitUnary(UnaryExpression ue, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
-        {
-            switch (ue.NodeType)
-            {
-                case ExpressionType.Not:
-                    return $"(NOT {Visit(ue.Operand, options, useParams, cmdParams)})";
-
-                case ExpressionType.Convert:
-                    return Visit(ue.Operand, options, useParams, cmdParams);
-
-                default:
-                    throw new NotSupportedException($"Unary '{ue.NodeType}' not supported.");
-            }
-        }
+        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options) => options.ToSqlLiteral(ce.Value);
 
         /// <summary>
         /// Visits the member.
@@ -627,61 +662,26 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Visits the constant.
+        /// Visits the unary.
         /// </summary>
-        /// <param name="ce">The ce.</param>
+        /// <param name="ue">The ue.</param>
         /// <param name="options">The options.</param>
+        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
+        /// <param name="cmdParams">The command parameters.</param>
         /// <returns>System.String.</returns>
-        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options) => options.ToSqlLiteral(ce.Value);
-
-        /// <summary>
-        /// Gets the value.
-        /// </summary>
-        /// <param name="me">Me.</param>
-        /// <returns>System.Object.</returns>
-        private static object GetValue(MemberExpression me)
+        /// <exception cref="System.NotSupportedException">Unary '{ue.NodeType}' not supported.</exception>
+        private static string VisitUnary(UnaryExpression ue, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
-            var lambda = Expression.Lambda<Func<object>>(
-                Expression.Convert(me, typeof(object)));
-            return lambda.Compile().Invoke();
-        }
-
-        /// <summary>
-        /// Gets the SQL operator.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>System.String.</returns>
-        /// <exception cref="System.NotSupportedException">Operator '{type}' not supported.</exception>
-        private static string GetSqlOperator(ExpressionType type)
-        {
-            switch (type)
+            switch (ue.NodeType)
             {
-                case ExpressionType.Equal:
-                    return "=";
+                case ExpressionType.Not:
+                    return $"(NOT {Visit(ue.Operand, options, useParams, cmdParams)})";
 
-                case ExpressionType.NotEqual:
-                    return "<>";
-
-                case ExpressionType.GreaterThan:
-                    return ">";
-
-                case ExpressionType.GreaterThanOrEqual:
-                    return ">=";
-
-                case ExpressionType.LessThan:
-                    return "<";
-
-                case ExpressionType.LessThanOrEqual:
-                    return "<=";
-
-                case ExpressionType.AndAlso:
-                    return "AND";
-
-                case ExpressionType.OrElse:
-                    return "OR";
+                case ExpressionType.Convert:
+                    return Visit(ue.Operand, options, useParams, cmdParams);
 
                 default:
-                    throw new NotSupportedException($"Operator '{type}' not supported.");
+                    throw new NotSupportedException($"Unary '{ue.NodeType}' not supported.");
             }
         }
     }

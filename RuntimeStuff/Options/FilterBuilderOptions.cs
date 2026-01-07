@@ -23,11 +23,13 @@ namespace RuntimeStuff.Options
     public class FilterBuilderOptions : OptionsBase<FilterBuilderOptions>
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="FilterBuilderOptions"/> class.
         /// Инициализирует новый экземпляр класса
         /// <see cref="FilterBuilderOptions" /> со значениями по умолчанию.
         /// </summary>
         public FilterBuilderOptions()
-        { }
+        {
+        }
 
         /// <summary>
         /// Gets or sets получает или задаёт параметры форматирования значений,

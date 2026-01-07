@@ -44,7 +44,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Sorts the specified source.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="sorts">The sorts.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -65,7 +65,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Сортирует последовательность по указанным свойствам по возрастанию.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="propertyNames">The property names.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -75,7 +75,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Дополняет сортировку (ThenBy) по указанным свойствам по возрастанию.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="propertyNames">The property names.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -85,7 +85,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Сортирует последовательность по указанным свойствам по убыванию.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="propertyNames">The property names.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -95,7 +95,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Дополняет сортировку (ThenByDescending) по указанным свойствам по убыванию.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="propertyNames">The property names.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -105,7 +105,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Внутренний метод сортировки по нескольким свойствам.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="sorts">The sorts.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>

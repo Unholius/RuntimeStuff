@@ -203,39 +203,6 @@ namespace RuntimeStuff.MSTests
 
         #endregion ChangeType Tests
 
-        #region ComputeHash Tests
-
-        [TestMethod]
-        public void ComputeHash_TwoObjects_ReturnsConsistentHash()
-        {
-            // Arrange
-            var obj1 = "test";
-            var obj2 = 123;
-
-            // Act
-            var hash1 = Obj.ComputeHash(obj1, obj2);
-            var hash2 = Obj.ComputeHash(obj1, obj2);
-
-            // Assert
-            Assert.AreEqual(hash1, hash2);
-        }
-
-        [TestMethod]
-        public void ComputeHash_WithNull_ReturnsHash()
-        {
-            // Arrange
-            string? obj1 = null;
-            var obj2 = 123;
-
-            // Act
-            var hash = Obj.ComputeHash(obj1, obj2);
-
-            // Assert
-            Assert.IsTrue(hash != 0);
-        }
-
-        #endregion ComputeHash Tests
-
         #region Default Tests
 
         [TestMethod]

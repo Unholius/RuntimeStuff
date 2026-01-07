@@ -23,16 +23,26 @@ namespace RuntimeStuff
     public sealed class EntityMapping
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="EntityMapping" /> class.
+        /// </summary>
+        /// <param name="entityType">Type of the entity.</param>
+        internal EntityMapping(Type entityType)
+        {
+            this.EntityType = entityType;
+            this.PropertyColumnsValue = new Dictionary<PropertyInfo, PropertyMapping>();
+        }
+
+        /// <summary>
         /// Gets the type of the entity.
         /// </summary>
         /// <value>The type of the entity.</value>
         public Type EntityType { get; }
 
         /// <summary>
-        /// Gets the name of the table.
+        /// Gets the property columns.
         /// </summary>
-        /// <value>The name of the table.</value>
-        public string TableName { get; internal set; }
+        /// <value>The property columns.</value>
+        public IDictionary<PropertyInfo, PropertyMapping> PropertyColumns => this.PropertyColumnsValue;
 
         /// <summary>
         /// Gets the schema.
@@ -41,63 +51,14 @@ namespace RuntimeStuff
         public string Schema { get; internal set; }
 
         /// <summary>
+        /// Gets the name of the table.
+        /// </summary>
+        /// <value>The name of the table.</value>
+        public string TableName { get; internal set; }
+
+        /// <summary>
         /// Gets the property columns.
         /// </summary>
-        /// <value>The property columns.</value>
-        public IDictionary<PropertyInfo, PropertyMapping> PropertyColumns => this._propertyColumns;
-
-        /// <summary>
-        /// The property columns.
-        /// </summary>
-        internal readonly Dictionary<PropertyInfo, PropertyMapping> _propertyColumns;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="EntityMapping" /> class.
-        /// </summary>
-        /// <param name="entityType">Type of the entity.</param>
-        internal EntityMapping(Type entityType)
-        {
-            this.EntityType = entityType;
-            this._propertyColumns = new Dictionary<PropertyInfo, PropertyMapping>();
-        }
-    }
-
-    /// <summary>
-    /// Class PropertyMapping. This class cannot be inherited.
-    /// </summary>
-    public sealed class PropertyMapping
-    {
-        /// <summary>
-        /// Gets the property.
-        /// </summary>
-        /// <value>The property.</value>
-        public PropertyInfo Property { get; }
-
-        /// <summary>
-        /// Gets or sets the name of the column.
-        /// </summary>
-        /// <value>The name of the column.</value>
-        public string ColumnName { get; set; }
-
-        /// <summary>
-        /// Gets or sets the alias.
-        /// </summary>
-        /// <value>The alias.</value>
-        public string Alias { get; set; }
-
-        /// <summary>
-        /// Gets or sets the function.
-        /// </summary>
-        /// <value>The function.</value>
-        public string Function { get; set; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="PropertyMapping" /> class.
-        /// </summary>
-        /// <param name="property">The property.</param>
-        public PropertyMapping(PropertyInfo property)
-        {
-            this.Property = property;
-        }
+        internal Dictionary<PropertyInfo, PropertyMapping> PropertyColumnsValue { get; }
     }
 }

@@ -6,18 +6,28 @@
 // Last Modified By : RS
 // Last Modified On : 01-07-2026
 // ***********************************************************************
-// <copyright file="Class1.cs" company="Rudnev Sergey">
+// <copyright file="PropertyChangeNotifier.cs" company="Rudnev Sergey">
 //     Copyright (c) . All rights reserved.
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-
 namespace RuntimeStuff
 {
+    using System.ComponentModel;
+
     /// <summary>
-    /// Class Class1.
+    /// Class EventHandlers.
     /// </summary>
-    internal class Class1
+    internal class EventHandlers
     {
+        /// <summary>
+        /// Gets or sets the changed.
+        /// </summary>
+        public PropertyChangedEventHandler Changed { get; set; }
+
+        /// <summary>
+        /// Gets or sets the changing.
+        /// </summary>
+        public PropertyChangingEventHandler Changing { get; set; }
     }
 }

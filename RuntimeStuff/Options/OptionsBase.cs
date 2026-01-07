@@ -13,7 +13,6 @@
 // ***********************************************************************
 namespace RuntimeStuff.Options
 {
-    using System;
     using System.Collections.Generic;
     using System.Reflection;
     using RuntimeStuff.Helpers;
@@ -25,12 +24,7 @@ namespace RuntimeStuff.Options
     public abstract class OptionsBase
     {
         /// <summary>
-        /// Карта свойств текущего типа:
-        /// ключ — имя свойства, значение — информация о свойстве.
-        /// </summary>
-        protected readonly Dictionary<string, PropertyInfo> PropertyMap;
-
-        /// <summary>
+        /// Initializes a new instance of the <see cref="OptionsBase"/> class.
         /// Инициализирует экземпляр класса и строит карту свойств
         /// для текущего типа.
         /// </summary>
@@ -40,6 +34,7 @@ namespace RuntimeStuff.Options
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="OptionsBase"/> class.
         /// Инициализирует экземпляр класса и устанавливает значения свойств
         /// из переданного словаря.
         /// </summary>
@@ -53,6 +48,11 @@ namespace RuntimeStuff.Options
                 this.PropertyMap[kvp.Key].SetValue(this, kvp.Value);
             }
         }
+
+        /// <summary>
+        /// Gets карта свойств текущего типа: ключ — имя свойства, значение — информация о свойстве.
+        /// </summary>
+        protected Dictionary<string, PropertyInfo> PropertyMap { get; }
 
         /// <summary>
         /// Индексатор для получения или установки значения свойства по имени.
@@ -118,61 +118,6 @@ namespace RuntimeStuff.Options
             }
 
             return dict;
-        }
-    }
-
-    /// <summary>
-    /// Обобщённый базовый класс опций с поддержкой клонирования,
-    /// объединения и построения через конфигурационный делегат.
-    /// </summary>
-    /// <typeparam name="T">Тип-наследник, реализующий шаблон CRTP
-    /// (Curiously Recurring Template Pattern).</typeparam>
-    public abstract class OptionsBase<T> : OptionsBase
-        where T : OptionsBase<T>, new()
-    {
-        /// <summary>
-        /// Gets создаёт экземпляр опций со значениями по умолчанию.
-        /// </summary>
-        /// <value>The default.</value>
-        public static T Default => new T();
-
-        /// <summary>
-        /// Создаёт поверхностную копию текущего объекта.
-        /// </summary>
-        /// <returns>Клонированный экземпляр опций.</returns>
-        public T Clone() => (T)this.MemberwiseClone();
-
-        /// <summary>
-        /// Объединяет текущие опции с другими,
-        /// копируя только ненулевые значения.
-        /// </summary>
-        /// <param name="other">Другой объект опций.</param>
-        /// <returns>Текущий экземпляр после объединения.</returns>
-        public T Merge(OptionsBase other)
-        {
-            foreach (var prop in this.PropertyMap)
-            {
-                var value = prop.Value.GetValue(other);
-                if (value != null)
-                {
-                    prop.Value.SetValue(this, value);
-                }
-            }
-
-            return (T)this;
-        }
-
-        /// <summary>
-        /// Создаёт и конфигурирует экземпляр опций
-        /// с помощью переданного делегата.
-        /// </summary>
-        /// <param name="configure">Делегат конфигурации.</param>
-        /// <returns>Сконфигурированный экземпляр опций.</returns>
-        public static T Build(Action<T> configure)
-        {
-            var instance = Default;
-            configure(instance);
-            return instance;
         }
     }
 }

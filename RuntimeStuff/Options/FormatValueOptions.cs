@@ -24,11 +24,13 @@ namespace RuntimeStuff.Options
     public class FormatValueOptions : OptionsBase<FormatValueOptions>
     {
         /// <summary>
+        /// Initializes a new instance of the <see cref="FormatValueOptions"/> class.
         /// Инициализирует новый экземпляр класса
         /// <see cref="FormatValueOptions" /> со значениями по умолчанию.
         /// </summary>
         public FormatValueOptions()
-        { }
+        {
+        }
 
         /// <summary>
         /// Gets or sets получает или задаёт формат даты и времени.

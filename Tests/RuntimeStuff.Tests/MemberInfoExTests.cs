@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using RuntimeStuff.Extensions;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace RuntimeStuff.MSTests
 {

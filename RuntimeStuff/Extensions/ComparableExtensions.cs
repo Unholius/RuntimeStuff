@@ -25,7 +25,7 @@ namespace RuntimeStuff.Extensions
         /// Проверяет, содержится ли элемент в указанном наборе значений.
         /// Поддерживается массив значений, ISet и кастомный компаратор.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="item">The item.</param>
         /// <param name="values">The values.</param>
         /// <param name="comparer">The comparer.</param>
@@ -47,7 +47,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Удобная перегрузка для массива значений (params).
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="item">The item.</param>
         /// <param name="comparer">The comparer.</param>
         /// <param name="values">The values.</param>
@@ -57,7 +57,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Удобная перегрузка для массива значений (params) для коллекций.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="item">The item.</param>
         /// <param name="values">The values.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>

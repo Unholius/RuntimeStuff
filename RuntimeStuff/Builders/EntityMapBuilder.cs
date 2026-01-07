@@ -11,11 +11,12 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+namespace RuntimeStuff.Builders
 {
     using System;
     using System.Linq.Expressions;
     using System.Reflection;
+    using RuntimeStuff;
 
     /// <summary>
     /// Class EntityMapBuilder. This class cannot be inherited.
@@ -23,16 +24,6 @@ namespace RuntimeStuff
     /// <typeparam name="T">Type.</typeparam>
     public sealed class EntityMapBuilder<T>
     {
-        /// <summary>
-        /// The entity mapping.
-        /// </summary>
-        internal readonly EntityMapping _entityMapping;
-
-        /// <summary>
-        /// The map.
-        /// </summary>
-        internal readonly EntityMap _map;
-
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityMapBuilder{T}" /> class.
         /// </summary>
@@ -51,10 +42,20 @@ namespace RuntimeStuff
         /// <param name="mapping">The mapping.</param>
         internal EntityMapBuilder(EntityMap map, EntityMapping mapping)
         {
-            this._map = map;
-            this._entityMapping = mapping;
-            this._map._entityMapping[typeof(T)] = this._entityMapping;
+            this.Map = map;
+            this.EntityMapping = mapping;
+            this.Map.EntityMapping[typeof(T)] = this.EntityMapping;
         }
+
+        /// <summary>
+        /// Gets or sets the entity mapping.
+        /// </summary>
+        internal EntityMapping EntityMapping { get; set; }
+
+        /// <summary>
+        /// Gets the map.
+        /// </summary>
+        internal EntityMap Map { get; }
 
         /// <summary>
         /// Gets the property.
@@ -120,8 +121,8 @@ namespace RuntimeStuff
                 throw new ArgumentException(nameof(tableName));
             }
 
-            this._entityMapping.TableName = tableName;
-            this._entityMapping.Schema = schema;
+            this.EntityMapping.TableName = tableName;
+            this.EntityMapping.Schema = schema;
             return this;
         }
 
@@ -129,6 +130,6 @@ namespace RuntimeStuff
         /// Maps the name of the table.
         /// </summary>
         /// <param name="tableName">Name of the table.</param>
-        internal void MapTableName(string tableName) => this._entityMapping.TableName = tableName;
+        internal void MapTableName(string tableName) => this.EntityMapping.TableName = tableName;
     }
 }

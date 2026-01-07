@@ -39,7 +39,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Concats the specified arrays.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="array">The array.</param>
         /// <param name="arrays">The arrays.</param>
         /// <returns>T[].</returns>
@@ -253,7 +253,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Filters the specified filter expression.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="filterExpression">The filter expression.</param>
         /// <returns>IEnumerable&lt;T&gt;.</returns>
@@ -263,7 +263,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Filters the by text.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="text">The text.</param>
         /// <returns>IEnumerable&lt;T&gt;.</returns>
@@ -494,7 +494,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Sorts the specified sort description.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="sortDescription">The sort description.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -504,7 +504,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Сортирует последовательность по указанным свойствам по возрастанию.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="propertyNames">The property names.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -514,7 +514,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Дополняет сортировку (ThenBy) по указанным свойствам по возрастанию.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="propertyNames">The property names.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -524,7 +524,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Сортирует последовательность по указанным свойствам по убыванию.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="propertyNames">The property names.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
@@ -534,7 +534,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// Дополняет сортировку (ThenByDescending) по указанным свойствам по убыванию.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">The source.</param>
         /// <param name="propertyNames">The property names.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>

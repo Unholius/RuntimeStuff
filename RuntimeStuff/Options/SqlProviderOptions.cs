@@ -43,6 +43,52 @@ namespace RuntimeStuff.Options
         }
 
         /// <summary>
+        /// Gets the sqlite options.
+        /// </summary>
+        /// <value>The sqlite options.</value>
+        public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
+            x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
+            x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
+            x => x.TrueValue = "TRUE",
+            x => x.FalseValue = "FALSE",
+            x => x.ParamPrefix = ":");
+
+        /// <summary>
+        /// Gets the SQL server options.
+        /// </summary>
+        /// <value>The SQL server options.</value>
+        public static SqlProviderOptions SqlServerOptions { get; } = new SqlProviderOptions(
+            x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
+            x => x.OverrideOffsetRowsTemplate = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY",
+            x => x.TrueValue = "1",
+            x => x.FalseValue = "0",
+            x => x.ParamPrefix = "@");
+
+        /// <summary>
+        /// Gets or sets the date format.
+        /// </summary>
+        /// <value>The date format.</value>
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        /// <summary>
+        /// Gets or sets the date time format.
+        /// </summary>
+        /// <value>The date time format.</value>
+        public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
+
+        /// <summary>
+        /// Gets or sets the false value.
+        /// </summary>
+        /// <value>The false value.</value>
+        public string FalseValue { get; set; } = "0";
+
+        /// <summary>
+        /// Gets or sets the get inserted identifier query.
+        /// </summary>
+        /// <value>The get inserted identifier query.</value>
+        public string GetInsertedIdQuery { get; set; }
+
+        /// <summary>
         /// Gets or sets the map.
         /// </summary>
         /// <value>The map.</value>
@@ -61,42 +107,6 @@ namespace RuntimeStuff.Options
         public string NameSuffix { get; set; } = "\"";
 
         /// <summary>
-        /// Gets or sets the date time format.
-        /// </summary>
-        /// <value>The date time format.</value>
-        public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
-
-        /// <summary>
-        /// Gets or sets the date format.
-        /// </summary>
-        /// <value>The date format.</value>
-        public string DateFormat { get; set; } = "yyyy-MM-dd";
-
-        /// <summary>
-        /// Gets or sets the parameter prefix.
-        /// </summary>
-        /// <value>The parameter prefix.</value>
-        public string ParamPrefix { get; set; } = ":";
-
-        /// <summary>
-        /// Gets or sets the get inserted identifier query.
-        /// </summary>
-        /// <value>The get inserted identifier query.</value>
-        public string GetInsertedIdQuery { get; set; }
-
-        /// <summary>
-        /// Gets or sets the true value.
-        /// </summary>
-        /// <value>The true value.</value>
-        public string TrueValue { get; set; } = "1";
-
-        /// <summary>
-        /// Gets or sets the false value.
-        /// </summary>
-        /// <value>The false value.</value>
-        public string FalseValue { get; set; } = "0";
-
-        /// <summary>
         /// Gets or sets the null value.
         /// </summary>
         /// <value>The null value.</value>
@@ -107,6 +117,18 @@ namespace RuntimeStuff.Options
         /// </summary>
         /// <value>The override offset rows template.</value>
         public string OverrideOffsetRowsTemplate { get; set; } = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
+
+        /// <summary>
+        /// Gets or sets the parameter prefix.
+        /// </summary>
+        /// <value>The parameter prefix.</value>
+        public string ParamPrefix { get; set; } = ":";
+
+        /// <summary>
+        /// Gets or sets the statement terminator.
+        /// </summary>
+        /// <value>The statement terminator.</value>
+        public string StatementTerminator { get; set; } = ";";
 
         /// <summary>
         /// Gets or sets the string prefix.
@@ -121,10 +143,10 @@ namespace RuntimeStuff.Options
         public string StringSuffix { get; set; } = "'";
 
         /// <summary>
-        /// Gets or sets the statement terminator.
+        /// Gets or sets the true value.
         /// </summary>
-        /// <value>The statement terminator.</value>
-        public string StatementTerminator { get; set; } = ";";
+        /// <value>The true value.</value>
+        public string TrueValue { get; set; } = "1";
 
         /// <summary>
         /// Gets the instance.
@@ -145,28 +167,6 @@ namespace RuntimeStuff.Options
                     return Default;
             }
         }
-
-        /// <summary>
-        /// Gets the SQL server options.
-        /// </summary>
-        /// <value>The SQL server options.</value>
-        public static SqlProviderOptions SqlServerOptions { get; } = new SqlProviderOptions(
-            x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
-            x => x.OverrideOffsetRowsTemplate = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY",
-            x => x.TrueValue = "1",
-            x => x.FalseValue = "0",
-            x => x.ParamPrefix = "@");
-
-        /// <summary>
-        /// Gets the sqlite options.
-        /// </summary>
-        /// <value>The sqlite options.</value>
-        public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
-            x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
-            x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
-            x => x.TrueValue = "TRUE",
-            x => x.FalseValue = "FALSE",
-            x => x.ParamPrefix = ":");
 
         /// <summary>
         /// Converts to sqlliteral.

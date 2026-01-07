@@ -17,6 +17,7 @@ namespace RuntimeStuff
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using RuntimeStuff.Builders;
 
     /// <summary>
     /// Class EntityMap.
@@ -24,9 +25,9 @@ namespace RuntimeStuff
     public class EntityMap
     {
         /// <summary>
-        /// The entity mapping.
+        /// Gets the entity mapping.
         /// </summary>
-        internal readonly Dictionary<Type, EntityMapping> _entityMapping = new Dictionary<Type, EntityMapping>();
+        internal Dictionary<Type, EntityMapping> EntityMapping { get; } = new Dictionary<Type, EntityMapping>();
 
         /// <summary>
         /// Gets the column to property map.
@@ -40,7 +41,7 @@ namespace RuntimeStuff
                 return null;
             }
 
-            if (!this._entityMapping.TryGetValue(type, out var typeMapping))
+            if (!this.EntityMapping.TryGetValue(type, out var typeMapping))
             {
                 return null;
             }
@@ -60,7 +61,7 @@ namespace RuntimeStuff
                 return null;
             }
 
-            if (!this._entityMapping.TryGetValue(type, out var typeMapping))
+            if (!this.EntityMapping.TryGetValue(type, out var typeMapping))
             {
                 return null;
             }
@@ -82,7 +83,7 @@ namespace RuntimeStuff
                 return null;
             }
 
-            return this._entityMapping.TryGetValue(property.DeclaringType, out var typeMapping) ? (typeMapping.PropertyColumns.TryGetValue(property, out var propertyMapping) ? $"{namePrefix}{propertyMapping.ColumnName}{nameSuffix}" : null) : null;
+            return this.EntityMapping.TryGetValue(property.DeclaringType, out var typeMapping) ? (typeMapping.PropertyColumns.TryGetValue(property, out var propertyMapping) ? $"{namePrefix}{propertyMapping.ColumnName}{nameSuffix}" : null) : null;
         }
 
         /// <summary>
@@ -98,7 +99,7 @@ namespace RuntimeStuff
                 return null;
             }
 
-            if (!this._entityMapping.TryGetValue(type, out var typeMapping))
+            if (!this.EntityMapping.TryGetValue(type, out var typeMapping))
             {
                 return null;
             }
@@ -120,7 +121,7 @@ namespace RuntimeStuff
                 return null;
             }
 
-            return this._entityMapping.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.Schema}{nameSuffix}" : null;
+            return this.EntityMapping.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.Schema}{nameSuffix}" : null;
         }
 
         /// <summary>
@@ -137,7 +138,7 @@ namespace RuntimeStuff
                 return null;
             }
 
-            return this._entityMapping.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.TableName}{nameSuffix}" : null;
+            return this.EntityMapping.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.TableName}{nameSuffix}" : null;
         }
 
         /// <summary>
@@ -152,13 +153,13 @@ namespace RuntimeStuff
                 return null;
             }
 
-            return this._entityMapping.FirstOrDefault(x => x.Value.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)).Key;
+            return this.EntityMapping.FirstOrDefault(x => x.Value.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)).Key;
         }
 
         /// <summary>
         /// Tables this instance.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <returns>EntityMapBuilder&lt;T&gt;.</returns>
         public EntityMapBuilder<T> Table<T>()
             where T : class => new EntityMapBuilder<T>(this, this.GetOrAdd(typeof(T)));
@@ -166,7 +167,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Tables the specified table name.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="T">Type.</typeparam>
         /// <param name="tableName">Name of the table.</param>
         /// <returns>EntityMapBuilder&lt;T&gt;.</returns>
         public EntityMapBuilder<T> Table<T>(string tableName)
@@ -185,10 +186,10 @@ namespace RuntimeStuff
         /// <returns>EntityMapping.</returns>
         private EntityMapping GetOrAdd(Type type)
         {
-            if (!this._entityMapping.TryGetValue(type, out var typeProps))
+            if (!this.EntityMapping.TryGetValue(type, out var typeProps))
             {
                 typeProps = new EntityMapping(type);
-                this._entityMapping.Add(type, typeProps);
+                this.EntityMapping.Add(type, typeProps);
             }
 
             return typeProps;

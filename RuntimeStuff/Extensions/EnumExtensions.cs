@@ -28,32 +28,32 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         /// The ordinal ignore case.
         /// </summary>
-        private static readonly StringComparer _OrdinalIgnoreCase = StringComparer.OrdinalIgnoreCase;
+        private static readonly StringComparer OrdinalIgnoreCase = StringComparer.OrdinalIgnoreCase;
 
         /// <summary>
         /// The current culture.
         /// </summary>
-        private static readonly StringComparer _CurrentCulture = StringComparer.CurrentCulture;
+        private static readonly StringComparer CurrentCulture = StringComparer.CurrentCulture;
 
         /// <summary>
         /// The current culture ignore case.
         /// </summary>
-        private static readonly StringComparer _CurrentCultureIgnoreCase = StringComparer.CurrentCultureIgnoreCase;
+        private static readonly StringComparer CurrentCultureIgnoreCase = StringComparer.CurrentCultureIgnoreCase;
 
         /// <summary>
         /// The invariant culture.
         /// </summary>
-        private static readonly StringComparer _InvariantCulture = StringComparer.InvariantCulture;
+        private static readonly StringComparer InvariantCulture = StringComparer.InvariantCulture;
 
         /// <summary>
         /// The invariant culture ignore case.
         /// </summary>
-        private static readonly StringComparer _InvariantCultureIgnoreCase = StringComparer.InvariantCultureIgnoreCase;
+        private static readonly StringComparer InvariantCultureIgnoreCase = StringComparer.InvariantCultureIgnoreCase;
 
         /// <summary>
         /// The ordinal.
         /// </summary>
-        private static readonly StringComparer _Ordinal = StringComparer.Ordinal;
+        private static readonly StringComparer Ordinal = StringComparer.Ordinal;
 
         /// <summary>
         /// Преобразует значение <see cref="StringComparison" /> в эквивалентный объект <see cref="StringComparer" />.
@@ -70,22 +70,22 @@ namespace RuntimeStuff.Extensions
             switch (comparison)
             {
                 case StringComparison.CurrentCulture:
-                    return _CurrentCulture;
+                    return CurrentCulture;
 
                 case StringComparison.CurrentCultureIgnoreCase:
-                    return _CurrentCultureIgnoreCase;
+                    return CurrentCultureIgnoreCase;
 
                 case StringComparison.InvariantCulture:
-                    return _InvariantCulture;
+                    return InvariantCulture;
 
                 case StringComparison.InvariantCultureIgnoreCase:
-                    return _InvariantCultureIgnoreCase;
+                    return InvariantCultureIgnoreCase;
 
                 case StringComparison.Ordinal:
-                    return _Ordinal;
+                    return Ordinal;
 
                 case StringComparison.OrdinalIgnoreCase:
-                    return _OrdinalIgnoreCase;
+                    return OrdinalIgnoreCase;
 
                 default:
                     throw new ArgumentException("Invalid StringComparison value", nameof(comparison));
@@ -104,32 +104,32 @@ namespace RuntimeStuff.Extensions
         /// <exception cref="System.ArgumentException">Неизвестный StringComparer - comparer.</exception>
         public static StringComparison ToStringComparison(this StringComparer comparer)
         {
-            if (comparer == _Ordinal)
+            if (comparer == Ordinal)
             {
                 return StringComparison.Ordinal;
             }
 
-            if (comparer == _OrdinalIgnoreCase)
+            if (comparer == OrdinalIgnoreCase)
             {
                 return StringComparison.OrdinalIgnoreCase;
             }
 
-            if (comparer == _CurrentCulture)
+            if (comparer == CurrentCulture)
             {
                 return StringComparison.CurrentCulture;
             }
 
-            if (comparer == _CurrentCultureIgnoreCase)
+            if (comparer == CurrentCultureIgnoreCase)
             {
                 return StringComparison.CurrentCultureIgnoreCase;
             }
 
-            if (comparer == _InvariantCulture)
+            if (comparer == InvariantCulture)
             {
                 return StringComparison.InvariantCulture;
             }
 
-            if (comparer == _InvariantCultureIgnoreCase)
+            if (comparer == InvariantCultureIgnoreCase)
             {
                 return StringComparison.InvariantCultureIgnoreCase;
             }

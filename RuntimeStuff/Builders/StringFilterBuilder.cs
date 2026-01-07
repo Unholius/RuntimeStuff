@@ -31,7 +31,7 @@ namespace RuntimeStuff.Builders
         /// <summary>
         /// The operations.
         /// </summary>
-        private readonly Dictionary<Operation, string> _operations = new Dictionary<Operation, string>
+        private readonly Dictionary<Operation, string> operations = new Dictionary<Operation, string>
         {
             { Operation.Equal, "==" },
             { Operation.NotEqual, "!=" },
@@ -50,12 +50,12 @@ namespace RuntimeStuff.Builders
         /// <summary>
         /// The sb.
         /// </summary>
-        private readonly StringBuilder _sb = new StringBuilder();
+        private readonly StringBuilder sb = new StringBuilder();
 
         /// <summary>
         /// The needs op.
         /// </summary>
-        private bool _needsOp;
+        private bool needsOp;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StringFilterBuilder" /> class.
@@ -227,7 +227,7 @@ namespace RuntimeStuff.Builders
                     return this.NotLike(value?.ToString() ?? throw new ArgumentNullException(nameof(value)));
 
                 default:
-                    if (!this._operations.TryGetValue(operation, out var opString))
+                    if (!this.operations.TryGetValue(operation, out var opString))
                     {
                         throw new NotSupportedException($"Operation {operation} is not supported.");
                     }
@@ -243,7 +243,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder And()
         {
             this.Append(" && ");
-            this._needsOp = false;
+            this.needsOp = false;
             return this;
         }
 
@@ -265,7 +265,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder Between(object low, object high)
         {
             this.Append($" BETWEEN {this.Format(low)} AND {this.Format(high)}");
-            this._needsOp = true;
+            this.needsOp = true;
             return this;
         }
 
@@ -275,8 +275,8 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
         public StringFilterBuilder Clear()
         {
-            this._sb.Clear();
-            this._needsOp = false;
+            this.sb.Clear();
+            this.needsOp = false;
             return this;
         }
 
@@ -287,7 +287,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder CloseGroup()
         {
             this.Append(")");
-            this._needsOp = true;
+            this.needsOp = true;
             return this;
         }
 
@@ -320,7 +320,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder In(IEnumerable<object> values)
         {
             this.Append(" IN { ").Append(string.Join(", ", values.Select(this.Format))).Append(" }");
-            this._needsOp = true;
+            this.needsOp = true;
             return this;
         }
 
@@ -332,7 +332,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder Like(string pattern)
         {
             this.Append(" LIKE ").Append(this.Format(pattern));
-            this._needsOp = true;
+            this.needsOp = true;
             return this;
         }
 
@@ -369,7 +369,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder NotBetween(object low, object high)
         {
             this.Append($" NOT BETWEEN {this.Format(low)} AND {this.Format(high)}");
-            this._needsOp = true;
+            this.needsOp = true;
             return this;
         }
 
@@ -388,7 +388,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder NotIn(IEnumerable<object> values)
         {
             this.Append(" NOT IN { ").Append(string.Join(", ", values.Select(this.Format))).Append(" }");
-            this._needsOp = true;
+            this.needsOp = true;
             return this;
         }
 
@@ -400,7 +400,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder NotLike(string pattern)
         {
             this.Append(" NOT LIKE ").Append(this.Format(pattern));
-            this._needsOp = true;
+            this.needsOp = true;
             return this;
         }
 
@@ -412,7 +412,7 @@ namespace RuntimeStuff.Builders
         /// <remarks>Если перед группой ожидается логический оператор, выбрасывается исключение.</remarks>
         public StringFilterBuilder OpenGroup()
         {
-            if (this._needsOp)
+            if (this.needsOp)
             {
                 throw new InvalidOperationException("Перед группой нужен оператор AND/OR.");
             }
@@ -427,7 +427,7 @@ namespace RuntimeStuff.Builders
         public StringFilterBuilder Or()
         {
             this.Append(" || ");
-            this._needsOp = false;
+            this.needsOp = false;
             return this;
         }
 
@@ -448,7 +448,7 @@ namespace RuntimeStuff.Builders
         /// <exception cref="System.InvalidOperationException">Перед операцией требуется логический оператор.</exception>
         public StringFilterBuilder Property(string name)
         {
-            if (this._needsOp)
+            if (this.needsOp)
             {
                 throw new InvalidOperationException("Перед операцией требуется логический оператор.");
             }
@@ -469,7 +469,7 @@ namespace RuntimeStuff.Builders
         /// Возвращает итоговое строковое представление фильтра.
         /// </summary>
         /// <returns>Строка фильтра.</returns>
-        public override string ToString() => this._sb.ToString();
+        public override string ToString() => this.sb.ToString();
 
         /// <summary>
         /// Преобразует предикат в строковое представление фильтра и добавляет его.
@@ -489,7 +489,7 @@ namespace RuntimeStuff.Builders
             var text = FilterExpressionStringBuilder.ConvertExpression(predicate);
 
             this.Append(text);
-            this._needsOp = true;
+            this.needsOp = true;
 
             return this;
         }
@@ -501,7 +501,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" /> для цепочек вызовов.</returns>
         private StringFilterBuilder Append(string text)
         {
-            this._sb.Append(text);
+            this.sb.Append(text);
             return this;
         }
 
@@ -514,7 +514,7 @@ namespace RuntimeStuff.Builders
         private StringFilterBuilder Binary(string op, object value)
         {
             this.Append($" {op} {this.Format(value)}");
-            this._needsOp = true;
+            this.needsOp = true;
             return this;
         }
 
@@ -551,178 +551,6 @@ namespace RuntimeStuff.Builders
             }
 
             return Convert.ToString(value, CultureInfo.InvariantCulture);
-        }
-    }
-
-    /// <summary>
-    /// Вспомогательный класс для преобразования linq-выражений в строковое представление фильтра.
-    /// </summary>
-    internal class FilterExpressionStringBuilder : ExpressionVisitor
-    {
-        /// <summary>
-        /// The sb.
-        /// </summary>
-        private readonly StringBuilder _sb = new StringBuilder();
-
-        /// <summary>
-        /// Преобразует выражение в строку фильтра.
-        /// </summary>
-        /// <param name="expr">Выражение (обычно лямбда-предикат).</param>
-        /// <returns>Строковое представление выражения в виде фильтра.</returns>
-        public static string ConvertExpression(Expression expr)
-        {
-            var visitor = new FilterExpressionStringBuilder();
-            visitor.Visit(expr);
-            return visitor._sb.ToString();
-        }
-
-        /// <summary>
-        /// Visits the children of the <see cref="T:System.Linq.Expressions.BinaryExpression"></see>.
-        /// </summary>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
-        /// <exception cref="System.NotSupportedException"></exception>
-        protected override Expression VisitBinary(BinaryExpression node)
-        {
-            this._sb.Append("(");
-
-            this.Visit(node.Left);
-
-            switch (node.NodeType)
-            {
-                case ExpressionType.Equal: this._sb.Append(" == "); break;
-                case ExpressionType.NotEqual: this._sb.Append(" != "); break;
-                case ExpressionType.GreaterThan: this._sb.Append(" > "); break;
-                case ExpressionType.GreaterThanOrEqual: this._sb.Append(" >= "); break;
-                case ExpressionType.LessThan: this._sb.Append(" < "); break;
-                case ExpressionType.LessThanOrEqual: this._sb.Append(" <= "); break;
-                case ExpressionType.AndAlso:
-                    this._sb.Append(" && "); break;
-                case ExpressionType.OrElse: this._sb.Append(" || "); break;
-                default: throw new NotSupportedException(node.NodeType.ToString());
-            }
-
-            this.Visit(node.Right);
-
-            this._sb.Append(")");
-
-            return node;
-        }
-
-        /// <summary>
-        /// Visits the <see cref="T:System.Linq.Expressions.ConstantExpression"></see>.
-        /// </summary>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
-        protected override Expression VisitConstant(ConstantExpression node)
-        {
-            this.AppendConstant(node.Value);
-            return node;
-        }
-
-        /// <summary>
-        /// Visits the children of the <see cref="T:System.Linq.Expressions.Expression`1"></see>.
-        /// </summary>
-        /// <typeparam name="T">The type of the delegate.</typeparam>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
-        protected override Expression VisitLambda<T>(Expression<T> node)
-        {
-            this.Visit(node.Body);
-            return node;
-        }
-
-        /// <summary>
-        /// Visits the children of the <see cref="T:System.Linq.Expressions.MemberExpression"></see>.
-        /// </summary>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
-        protected override Expression VisitMember(MemberExpression node)
-        {
-            if (node.Expression != null && node.Expression.NodeType == ExpressionType.Parameter)
-            {
-                this._sb.Append($"[{node.Member.Name}]");
-                return node;
-            }
-
-            var value = Expression.Lambda(node).Compile().DynamicInvoke();
-            this.AppendConstant(value);
-            return node;
-        }
-
-        /// <summary>
-        /// Visits the children of the <see cref="T:System.Linq.Expressions.MethodCallExpression"></see>.
-        /// </summary>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
-        /// <exception cref="System.NotSupportedException">Method call {node.Method.Name} not supported.</exception>
-        protected override Expression VisitMethodCall(MethodCallExpression node)
-        {
-            if (node.Method.Name == "Contains" &&
-                node.Object != null &&
-                node.Object.Type == typeof(string))
-            {
-                this.Visit(node.Object);
-                this._sb.Append(" LIKE ");
-                var val = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke()?.ToString();
-
-                this._sb.Append($"'%{val}%'");
-                return node;
-            }
-
-            if (node.Method.Name == nameof(string.StartsWith))
-            {
-                this.Visit(node.Object);
-                this._sb.Append(" LIKE ");
-                var val = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke()?.ToString();
-
-                this._sb.Append($"'{val}%'");
-                return node;
-            }
-
-            if (node.Method.Name == nameof(string.EndsWith))
-            {
-                this.Visit(node.Object);
-                this._sb.Append(" LIKE ");
-                var val = Expression.Lambda(node.Arguments[0]).Compile().DynamicInvoke()?.ToString();
-
-                this._sb.Append($"'%{val}'");
-                return node;
-            }
-
-            throw new NotSupportedException($"Method call {node.Method.Name} not supported.");
-        }
-
-        /// <summary>
-        /// Добавляет константу в строковое представление, корректно форматируя её в зависимости от типа.
-        /// </summary>
-        /// <param name="value">Значение константы.</param>
-        private void AppendConstant(object value)
-        {
-            if (value == null)
-            {
-                this._sb.Append("null");
-                return;
-            }
-
-            switch (value)
-            {
-                case string s:
-                    this._sb.Append($"'{s.Replace("'", "''")}'");
-                    return;
-
-                case DateTime dt:
-                    this._sb.Append($"'{dt:yyyy-MM-dd HH:mm:ss}'");
-                    return;
-
-                case bool b:
-                    this._sb.Append(b ? "1" : "0");
-                    return;
-
-                default:
-                    this._sb.Append(Convert.ToString(value, CultureInfo.InvariantCulture));
-                    return;
-            }
         }
     }
 }
