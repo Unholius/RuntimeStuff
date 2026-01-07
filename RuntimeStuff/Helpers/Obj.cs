@@ -250,9 +250,11 @@ namespace RuntimeStuff.Helpers
                     .Concat(BoolTypes)
                     .Concat(new[]
                     {
-                        typeof(string), typeof(DateTime), typeof(DateTime?), typeof(TimeSpan), typeof(Guid),
-                        typeof(Guid?),
-                        typeof(char), typeof(char?), typeof(Enum),
+                        typeof(char), typeof(char?), typeof(string),
+                        typeof(DateTime), typeof(DateTime?), typeof(TimeSpan),
+                        typeof(Guid), typeof(Guid?),
+                        typeof(Uri),
+                        typeof(Enum),
                     })
                     .ToArray();
 
@@ -473,6 +475,11 @@ namespace RuntimeStuff.Helpers
                     // fallback на замену, если формат "1,23"
                     s = s.Replace(",", ".");
                     return Convert.ChangeType(s, toType, CultureInfo.InvariantCulture);
+                }
+
+                if (toType.IsClass)
+                {
+                    return New(toType, s);
                 }
             }
 

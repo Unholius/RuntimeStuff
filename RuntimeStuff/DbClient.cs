@@ -624,7 +624,16 @@ namespace RuntimeStuff
                 {
                     IDbDataParameter p = cmd.CreateParameter();
                     p.ParameterName = cp.Key;
-                    p.Value = cp.Value ?? DBNull.Value;
+                    var valueType = cp.Value?.GetType();
+                    if (valueType != null && valueType.IsClass)
+                    {
+                        p.Value = cp.Value.ToString();
+                    }
+                    else
+                    {
+                        p.Value = cp.Value ?? DBNull.Value;
+                    }
+
                     cmd.Parameters.Add(p);
                 }
             }
