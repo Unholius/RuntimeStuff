@@ -1,10 +1,9 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace RuntimeStuff.Helpers
+﻿namespace RuntimeStuff.Helpers
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Threading;
+    using System.Threading.Tasks;
 
     /// <summary>
     ///     Предоставляет вспомогательные методы для безопасного запуска задач в фоновом режиме без ожидания завершения
@@ -23,10 +22,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="task">Задача, которую нужно запустить.</param>
         /// <param name="onException">Действие, выполняемое при возникновении исключения.</param>
         /// <param name="continueOnCapturedContext">Если <c>true</c>, продолжение выполняется в исходном контексте синхронизации.</param>
-        public static void RunAndForget(Task task, Action<Exception> onException, bool continueOnCapturedContext = false)
-        {
-            RunAndForget(task, in onException, in continueOnCapturedContext);
-        }
+        public static void RunAndForget(Task task, Action<Exception> onException, bool continueOnCapturedContext = false) => RunAndForget(task, in onException, in continueOnCapturedContext);
 
         /// <summary>
         ///     Выполняет задачу в фоновом режиме без ожидания завершения, с обработкой исключений определённого типа.
@@ -37,10 +33,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="continueOnCapturedContext">Если <c>true</c>, продолжение выполняется в исходном контексте синхронизации.</param>
         public static void RunAndForget<TException>(Task task, Action<TException> onException,
             bool continueOnCapturedContext = false)
-            where TException : Exception
-        {
-            RunAndForget(task, in onException, in continueOnCapturedContext);
-        }
+            where TException : Exception => RunAndForget(task, in onException, in continueOnCapturedContext);
 
         /// <summary>
         ///     Выполняет задачу в фоновом режиме без ожидания завершения и с необязательной обработкой исключений.
@@ -49,10 +42,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="onException">Действие, выполняемое при возникновении исключения (необязательно).</param>
         /// <param name="continueOnCapturedContext">Если <c>true</c>, продолжение выполняется в исходном контексте синхронизации.</param>
         public static void RunAndForget(Task task, in Action<Exception> onException = null,
-            in bool continueOnCapturedContext = false)
-        {
-            HandleRunAndForget(task, continueOnCapturedContext, onException);
-        }
+            in bool continueOnCapturedContext = false) => HandleRunAndForget(task, continueOnCapturedContext, onException);
 
         /// <summary>
         ///     Выполняет задачу в фоновом режиме без ожидания завершения и с необязательной обработкой исключений указанного типа.
@@ -63,28 +53,19 @@ namespace RuntimeStuff.Helpers
         /// <param name="continueOnCapturedContext">Если <c>true</c>, продолжение выполняется в исходном контексте синхронизации.</param>
         public static void RunAndForget<TException>(Task task, in Action<TException> onException = null,
             in bool continueOnCapturedContext = false)
-            where TException : Exception
-        {
-            HandleRunAndForget(task, continueOnCapturedContext, onException);
-        }
+            where TException : Exception => HandleRunAndForget(task, continueOnCapturedContext, onException);
 
         /// <summary>
         ///     Инициализирует вспомогательную систему, указывая, следует ли всегда повторно выбрасывать исключения после
         ///     обработки.
         /// </summary>
         /// <param name="shouldAlwaysRethrowException">Если <c>true</c>, исключения будут повторно выброшены после обработки.</param>
-        public static void Initialize(in bool shouldAlwaysRethrowException = false)
-        {
-            _shouldAlwaysRethrowException = shouldAlwaysRethrowException;
-        }
+        public static void Initialize(in bool shouldAlwaysRethrowException = false) => _shouldAlwaysRethrowException = shouldAlwaysRethrowException;
 
         /// <summary>
         ///     Удаляет глобальный обработчик исключений, установленный методом <see cref="SetDefaultExceptionHandling" />.
         /// </summary>
-        public static void RemoveDefaultExceptionHandling()
-        {
-            _onException = null;
-        }
+        public static void RemoveDefaultExceptionHandling() => _onException = null;
 
         /// <summary>
         ///     Устанавливает глобальный обработчик исключений, вызываемый при возникновении ошибок в задачах, запущенных методом
@@ -92,10 +73,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="onException">Действие, выполняемое при возникновении исключения.</param>
         /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="onException" /> имеет значение <c>null</c>.</exception>
-        public static void SetDefaultExceptionHandling(in Action<Exception> onException)
-        {
-            _onException = onException ?? throw new ArgumentNullException(nameof(onException));
-        }
+        public static void SetDefaultExceptionHandling(in Action<Exception> onException) => _onException = onException ?? throw new ArgumentNullException(nameof(onException));
 
         /// <summary>
         ///     Обрабатывает выполнение задачи и перехватывает исключения указанного типа.
@@ -155,7 +133,7 @@ namespace RuntimeStuff.Helpers
             = new ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>>();
 
         /// <summary>
-        ///     Асинхронно ожидает событие с указанным идентификатором, пока не будет использовано <see cref="TryComplete"/> или истечет время ожидания
+        ///     Асинхронно ожидает событие с указанным идентификатором, пока не будет использовано <see cref="TryComplete"/> или истечет время ожидания.
         /// </summary>
         /// <param name="eventId">Уникальный идентификатор события.</param>
         /// <param name="maxMillisecondsToWait">
@@ -172,18 +150,26 @@ namespace RuntimeStuff.Helpers
         public static Task<EventResult<T>> Wait(object eventId, int maxMillisecondsToWait = 5000)
         {
             if (eventId == null)
+            {
                 throw new NullReferenceException(nameof(eventId));
+            }
 
             var tcs = new TaskCompletionSource<EventResult<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
-            if (!Waiters.TryAdd(eventId, tcs)) return Waiters[eventId].Task;
+            if (!Waiters.TryAdd(eventId, tcs))
+            {
+                return Waiters[eventId].Task;
+            }
 
             var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait));
 
             cts.Token.Register(() =>
             {
-                if (Waiters.TryRemove(eventId, out var removed)) removed.TrySetCanceled();
+                if (Waiters.TryRemove(eventId, out var removed))
+                {
+                    removed.TrySetCanceled();
+                }
             });
             return tcs.Task;
         }
@@ -208,13 +194,17 @@ namespace RuntimeStuff.Helpers
         public static Task<EventResult<T>> Wait(object eventId, T timeoutStatus, int maxMillisecondsToWait)
         {
             if (eventId == null)
+            {
                 throw new NullReferenceException(nameof(eventId));
+            }
 
             var tcs = new TaskCompletionSource<EventResult<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
             if (!Waiters.TryAdd(eventId, tcs))
+            {
                 return Waiters[eventId].Task;
+            }
 
             var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait));
             cts.Token.Register(() =>
@@ -242,7 +232,9 @@ namespace RuntimeStuff.Helpers
         public static bool TryComplete(object eventId, T status, object eventData = null)
         {
             if (eventId == null)
+            {
                 throw new NullReferenceException(nameof(eventId));
+            }
 
             var eventInfo = new EventResult<T>(eventId, status, eventData);
 
@@ -266,7 +258,9 @@ namespace RuntimeStuff.Helpers
         public static bool CancelWait(object eventId)
         {
             if (eventId == null)
+            {
                 throw new NullReferenceException(nameof(eventId));
+            }
 
             return Waiters.TryRemove(eventId, out var tsc) && tsc.TrySetCanceled();
         }
@@ -280,7 +274,10 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         public static void ClearAll()
         {
-            foreach (var tsc in Waiters.Values) tsc.TrySetCanceled();
+            foreach (var tsc in Waiters.Values)
+            {
+                tsc.TrySetCanceled();
+            }
 
             Waiters.Clear();
         }
@@ -299,23 +296,23 @@ namespace RuntimeStuff.Helpers
         /// <param name="data">Произвольные данные события.</param>
         public EventResult(object eventId, T status, object data = null)
         {
-            EventId = eventId ?? throw new NullReferenceException(nameof(eventId));
-            Status = status;
-            Data = data;
+            this.EventId = eventId ?? throw new NullReferenceException(nameof(eventId));
+            this.Status = status;
+            this.Data = data;
         }
 
         /// <summary>
-        ///     Идентификатор события.
+        ///     Gets идентификатор события.
         /// </summary>
         public object EventId { get; }
 
         /// <summary>
-        ///     Статус события.
+        ///     Gets статус события.
         /// </summary>
         public T Status { get; }
 
         /// <summary>
-        ///     Дополнительные данные, связанные с событием.
+        ///     Gets or sets дополнительные данные, связанные с событием.
         /// </summary>
         public object Data { get; set; }
     }

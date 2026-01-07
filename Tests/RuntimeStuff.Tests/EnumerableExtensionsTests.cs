@@ -59,7 +59,7 @@ public class EnumerableExtensionsTests
         Assert.AreEqual(-1, result);
     }
 
-    #endregion
+    #endregion Tests for IndexOf<T>(this IEnumerable<T> e, Func<T, bool> match, bool reverseSearch = false)
 
     #region Tests for IndexOf<T>(this IEnumerable<T> e, T item, int fromIndex)
 
@@ -111,7 +111,7 @@ public class EnumerableExtensionsTests
         collection.IndexOf(1, -1);
     }
 
-    #endregion
+    #endregion Tests for IndexOf<T>(this IEnumerable<T> e, T item, int fromIndex)
 
     #region Tests for IndexOf<T>(this IEnumerable<T> e, T item, int fromIndex, IEqualityComparer<T> comparer)
 
@@ -156,7 +156,7 @@ public class EnumerableExtensionsTests
         Assert.AreEqual(2, result);
     }
 
-    #endregion
+    #endregion Tests for IndexOf<T>(this IEnumerable<T> e, T item, int fromIndex, IEqualityComparer<T> comparer)
 
     #region Tests for IndexOf<T>(this IEnumerable<T> e, Func<T, int, bool> match, bool reverseSearch = false)
 
@@ -225,7 +225,7 @@ public class EnumerableExtensionsTests
         Assert.AreEqual(2, result);
     }
 
-    #endregion
+    #endregion Tests for IndexOf<T>(this IEnumerable<T> e, Func<T, int, bool> match, bool reverseSearch = false)
 
     #region Tests for InvalidOperationException (Collection Modified During Enumeration)
 
@@ -276,7 +276,7 @@ public class EnumerableExtensionsTests
         Assert.AreEqual(2, result);
     }
 
-    #endregion
+    #endregion Tests for InvalidOperationException (Collection Modified During Enumeration)
 
     #region Additional Edge Case Tests
 
@@ -350,7 +350,7 @@ public class EnumerableExtensionsTests
         Assert.AreEqual(9999, result);
     }
 
-    #endregion
+    #endregion Additional Edge Case Tests
 
     #region Helper Class
 
@@ -360,5 +360,5 @@ public class EnumerableExtensionsTests
         public string? Name { get; set; }
     }
 
-    #endregion
+    #endregion Helper Class
 }

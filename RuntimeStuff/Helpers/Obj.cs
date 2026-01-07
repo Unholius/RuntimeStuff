@@ -1,19 +1,17 @@
-﻿using RuntimeStuff.Extensions;
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Reflection.Emit;
-
-namespace RuntimeStuff.Helpers
+﻿namespace RuntimeStuff.Helpers
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Globalization;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Reflection;
+    using System.Reflection.Emit;
+    using RuntimeStuff.Extensions;
+
     /// <summary>
     ///     v.2025.12.24 (RS)<br/>
     ///     Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
@@ -37,7 +35,7 @@ namespace RuntimeStuff.Helpers
     ///     <code>
     /// var getter = PropertyHelper.Getter&lt;Person&gt;("Name");
     /// var setter = PropertyHelper.Setter&lt;Person&gt;("Name");
-    /// 
+    ///
     /// var p = new Person { Name = "Alice" };
     /// Console.WriteLine(getter(p)); // Alice
     /// setter(p, "Bob");
@@ -105,20 +103,28 @@ namespace RuntimeStuff.Helpers
         private static readonly Converter<string, DateTime?> StringToDateTimeConverter = s =>
         {
             if (string.IsNullOrWhiteSpace(s))
+            {
                 return null;
+            }
 
             const DateTimeStyles styles = DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal;
 
             if (DateTime.TryParseExact(s.Trim(), DateFormats, CultureInfo.InvariantCulture, styles, out var result))
+            {
                 return result;
+            }
 
             // Пробуем угадать формат:
 
             if (DateTime.TryParse(s, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var d))
+            {
                 return d;
+            }
 
             if (DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out d))
+            {
                 return d;
+            }
 
             var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
             var dateParts = dateTimeParts[0]
@@ -146,12 +152,17 @@ namespace RuntimeStuff.Helpers
                 : null;
 
             if (year != null && month != null && day != null)
+            {
                 return new DateTime((int)year, (int)month, (int)day);
+            }
 
             if (dateTimeParts[0].Length == 8)
-                return new DateTime((int)Convert.ChangeType(s.Substring(0, 4), typeof(int)),
+            {
+                return new DateTime(
+                    (int)Convert.ChangeType(s.Substring(0, 4), typeof(int)),
                     (int)Convert.ChangeType(s.Substring(4, 2), typeof(int)),
                     (int)Convert.ChangeType(s.Substring(6, 2), typeof(int)));
+            }
 
             return null;
         };
@@ -216,43 +227,43 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        ///     Набор основных типов: числа, логические, строки, даты, Guid, Enum и др.
+        ///     Gets набор основных типов: числа, логические, строки, даты, Guid, Enum и др.
         /// </summary>
         public static Type[] BasicTypes { get; }
 
         /// <summary>
-        ///     Типы, представляющие логические значения.
+        ///     Gets типы, представляющие логические значения.
         /// </summary>
         public static HashSet<Type> BoolTypes { get; }
 
         /// <summary>
-        ///     Типы, представляющие дату и время.
+        ///     Gets типы, представляющие дату и время.
         /// </summary>
         public static HashSet<Type> DateTypes { get; }
 
         /// <summary>
-        ///     Флаги для поиска членов класса по умолчанию
+        ///     Gets флаги для поиска членов класса по умолчанию.
         /// </summary>
         public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
                                                                   BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
-        ///     Типы с плавающей запятой (float, double, decimal).
+        ///     Gets типы с плавающей запятой (float, double, decimal).
         /// </summary>
         public static HashSet<Type> FloatNumberTypes { get; }
 
         /// <summary>
-        ///     Целочисленные типы (byte, int, long и т.д. с nullable и без).
+        ///     Gets целочисленные типы (byte, int, long и т.д. с nullable и без).
         /// </summary>
         public static HashSet<Type> IntNumberTypes { get; }
 
         /// <summary>
-        ///     Значения, трактуемые как null (null, DBNull, NaN).
+        ///     Gets значения, трактуемые как null (null, DBNull, NaN).
         /// </summary>
         public static object[] NullValues { get; }
 
         /// <summary>
-        ///     Все числовые типы: целочисленные и с плавающей точкой.
+        ///     Gets все числовые типы: целочисленные и с плавающей точкой.
         /// </summary>
         public static HashSet<Type> NumberTypes { get; }
 
@@ -268,7 +279,6 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         public static Dictionary<Type, Dictionary<Type, Func<object, object>>> CustomTypeConverters
             = new Dictionary<Type, Dictionary<Type, Func<object, object>>>();
-
 
         /// <summary>
         /// Регистрирует пользовательский конвертер между двумя типами.
@@ -295,7 +305,6 @@ namespace RuntimeStuff.Helpers
                 converter.ConvertFunc(arg => (TFrom)arg);
         }
 
-
         /// <summary>
         /// Возвращает пользовательский конвертер типов в строго типизированном виде.
         /// </summary>
@@ -305,12 +314,8 @@ namespace RuntimeStuff.Helpers
         /// Функция преобразования из <typeparamref name="TFrom"/> в <typeparamref name="TTo"/>,
         /// либо <see langword="null"/>, если конвертер не зарегистрирован.
         /// </returns>
-        public static Func<TFrom, TTo> GetCustomTypeConverter<TFrom, TTo>()
-        {
-            return GetCustomTypeConverter(typeof(TFrom), typeof(TTo))
+        public static Func<TFrom, TTo> GetCustomTypeConverter<TFrom, TTo>() => GetCustomTypeConverter(typeof(TFrom), typeof(TTo))
                 ?.ConvertFunc<TFrom, TTo>();
-        }
-
 
         /// <summary>
         /// Возвращает пользовательский конвертер между двумя типами.
@@ -328,10 +333,14 @@ namespace RuntimeStuff.Helpers
         public static Func<object, object> GetCustomTypeConverter(Type typeFrom, Type typeTo)
         {
             if (!CustomTypeConverters.TryGetValue(typeFrom, out var typeConverters) || typeConverters == null)
+            {
                 return null;
+            }
 
             if (!typeConverters.TryGetValue(typeTo, out var converter) || converter == null)
+            {
                 return null;
+            }
 
             return converter;
         }
@@ -349,56 +358,81 @@ namespace RuntimeStuff.Helpers
         public static object ChangeType(object value, Type toType, IFormatProvider formatProvider = null)
         {
             if (value == null || (value.Equals(DBNull.Value) && IsNullable(toType)))
+            {
                 return null;
+            }
 
             if (toType == typeof(object))
+            {
                 return value;
+            }
 
             if (formatProvider == null)
+            {
                 formatProvider = CultureInfo.InvariantCulture;
+            }
+
             toType = Nullable.GetUnderlyingType(toType) ?? toType;
 
             var fromType = value.GetType();
 
             // Быстрый возврат
             if (fromType == toType || toType.IsAssignableFrom(fromType))
+            {
                 return value;
+            }
 
             var customConverter = GetCustomTypeConverter(fromType, toType);
             if (customConverter != null)
+            {
                 return customConverter(value);
+            }
 
             // Преобразование в строку
             if (toType == typeof(string))
+            {
                 return string.Format(formatProvider, "{0}", value);
+            }
 
             // ENUM
             if (toType.IsEnum)
             {
                 if (value is string es)
+                {
                     return Enum.Parse(toType, es, true);
+                }
 
                 if (value is bool b)
+                {
                     return Enum.ToObject(toType, b ? 1 : 0);
+                }
 
                 if (IsNumeric(fromType))
+                {
                     return Enum.ToObject(toType, Convert.ToInt32(value, CultureInfo.InvariantCulture));
+                }
             }
 
             // Преобразование строк
             if (value is string s)
             {
                 if (string.IsNullOrWhiteSpace(s) && IsNullable(toType))
+                {
                     return Default(toType);
+                }
 
                 if (toType == typeof(DateTime))
+                {
                     return StringToDateTimeConverter(s);
+                }
 
                 if (IsNumeric(toType))
                 {
                     // сначала пытаемся корректный parse
                     if (decimal.TryParse(s, NumberStyles.Any, formatProvider, out var dec))
+                    {
                         return Convert.ChangeType(dec, toType, CultureInfo.InvariantCulture);
+                    }
 
                     // fallback на замену, если формат "1,23"
                     s = s.Replace(",", ".");
@@ -408,7 +442,10 @@ namespace RuntimeStuff.Helpers
 
             // SQL Boolean
             if (fromType == typeof(bool) && toType.Name == "SqlBoolean")
+            {
                 return Activator.CreateInstance(toType, (bool)value);
+            }
+
             try
             {
                 // Универсальное приведение
@@ -427,10 +464,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="value">Значение для преобразования.</param>
         /// <param name="formatProvider">Провайдер формата (по умолчанию <see cref="CultureInfo.InvariantCulture" />).</param>
         /// <returns>Преобразованное значение.</returns>
-        public static T ChangeType<T>(object value, IFormatProvider formatProvider = null)
-        {
-            return (T)ChangeType(value, typeof(T), formatProvider);
-        }
+        public static T ChangeType<T>(object value, IFormatProvider formatProvider = null) => (T)ChangeType(value, typeof(T), formatProvider);
 
         /// <summary>
         /// Преобразует указанный объект в тип. Если преобразование невозможно, возвращает
@@ -577,10 +611,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="type">Тип, для которого нужно получить значение по умолчанию.</param>
         /// <returns>Значение по умолчанию для указанного типа.</returns>
-        public static object Default(Type type)
-        {
-            return type?.IsValueType == true ? Activator.CreateInstance(type) : null;
-        }
+        public static object Default(Type type) => type?.IsValueType == true ? Activator.CreateInstance(type) : null;
 
         /// <summary>
         /// Выполняет поиск члена с указанным именем в заданном типе и возвращает информацию о найденном члене.
@@ -594,7 +625,10 @@ namespace RuntimeStuff.Helpers
         public static MemberInfo FindMember(Type type, string name)
         {
             if (MemberInfoCache.TryGetValue(type.FullName + "." + name, out var memberInfo))
+            {
                 return memberInfo;
+            }
+
             memberInfo = FindMember(type, name, false, null) ?? FindMember(type, name, true, DefaultBindingFlags);
             MemberInfoCache.Set(type.FullName + "." + name, memberInfo);
             return memberInfo;
@@ -641,30 +675,40 @@ namespace RuntimeStuff.Helpers
         {
             var flags = bindingFlags ?? DefaultBindingFlags;
             if (ignoreCase)
+            {
                 flags |= BindingFlags.IgnoreCase;
+            }
 
             // 1. Property
             var prop = type.GetProperty(name, flags);
             if (prop != null)
+            {
                 return prop;
+            }
 
             // 2. Field
             var field = type.GetField(name, flags);
             if (field != null)
+            {
                 return field;
+            }
 
             // 3. Interface properties
             foreach (var it in type.GetInterfaces())
             {
                 var iprop = it.GetProperty(name, flags);
                 if (iprop != null)
+                {
                     return iprop;
+                }
             }
 
             // 4. Method
             var method = type.GetMethod(name, flags);
             if (method != null)
+            {
                 return method;
+            }
 
             // 5. Base types (итерация вместо рекурсии)
             var bt = type.BaseType;
@@ -672,7 +716,10 @@ namespace RuntimeStuff.Helpers
             {
                 var m = FindMember(bt, name, ignoreCase, bindingFlags);
                 if (m != null)
+                {
                     return m;
+                }
+
                 bt = bt.BaseType;
             }
 
@@ -697,9 +744,15 @@ namespace RuntimeStuff.Helpers
             }
 
             if (includeThis)
+            {
                 baseTypes.Add(type);
+            }
+
             if (getInterfaces)
+            {
                 baseTypes.AddRange(type.GetInterfaces());
+            }
+
             return baseTypes.ToArray();
         }
 
@@ -711,7 +764,10 @@ namespace RuntimeStuff.Helpers
         public static Type GetCollectionItemType(Type type)
         {
             if (type == null)
+            {
                 return null;
+            }
+
             var isDic = typeof(IDictionary).IsAssignableFrom(type);
             var ga = type.GetGenericArguments();
             return type.IsArray
@@ -743,9 +799,14 @@ namespace RuntimeStuff.Helpers
             {
                 var aName = a.GetType().Name;
                 if (trimAttributeName)
+                {
                     aName = aName.Substring(0, aName.Length - 9);
+                }
+
                 if (attributeName.Equals(aName, stringComparison))
+                {
                     return a;
+                }
             }
 
             return null;
@@ -762,18 +823,15 @@ namespace RuntimeStuff.Helpers
             var fieldMap = GetFieldsMap(type);
             return fieldMap.Values.FirstOrDefault(matchCriteria);
         }
-        private static readonly Dictionary<short, OpCode> OpCodes;
 
+        private static readonly Dictionary<short, OpCode> OpCodes;
 
         /// <summary>
         ///     Возвращает отображение имён полей типа на объекты <see cref="FieldInfo" />.
         /// </summary>
         /// <typeparam name="T">Тип, поля которого требуется получить.</typeparam>
         /// <returns>Словарь «имя поля → FieldInfo».</returns>
-        public static Dictionary<string, FieldInfo> GetFieldsMap<T>()
-        {
-            return GetFieldsMap(typeof(T));
-        }
+        public static Dictionary<string, FieldInfo> GetFieldsMap<T>() => GetFieldsMap(typeof(T));
 
         /// <summary>
         /// Возвращает делегат, позволяющий установить значение указанного поля или свойства объекта типа по имени члена.
@@ -781,9 +839,9 @@ namespace RuntimeStuff.Helpers
         /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
         /// значение будет <see langword="null"/>. Делегат использует отражение и может иметь меньшую производительность
         /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
-        /// <param name="type">Тип в котором искать свойство или поле</param>
+        /// <param name="type">Тип в котором искать свойство или поле.</param>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
-        /// <param name="memberType">Тип свойства или поля</param>
+        /// <param name="memberType">Тип свойства или поля.</param>
         /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
         /// типа <typeparamref name="{T}"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
         /// не поддерживает установку значения.</returns>
@@ -800,6 +858,7 @@ namespace RuntimeStuff.Helpers
                     memberType = pi.PropertyType;
                     return PropertySetterCache.Get(pi);
             }
+
             memberType = null;
             return null;
         }
@@ -811,12 +870,11 @@ namespace RuntimeStuff.Helpers
         /// значение будет <see langword="null"/>. Делегат использует отражение и может иметь меньшую производительность
         /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
-        /// <param name="memberType">Тип свойства или поля</param>
+        /// <param name="memberType">Тип свойства или поля.</param>
         /// <returns>Делегат <see cref="Action{object, object}"/>, который устанавливает значение указанного члена для объекта
         /// типа <typeparamref name="T"/>. Возвращает <see langword="null"/>, если член с заданным именем не найден или
         /// не поддерживает установку значения.</returns>
         public static Action<object, object> GetMemberSetter<T>(string memberName, out Type memberType) => GetMemberSetter(typeof(T), memberName, out memberType);
-
 
         /// <summary>
         /// Возвращает делегат, позволяющий получить значение указанного поля или свойства объекта заданного типа по
@@ -829,7 +887,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо получить. Не может быть null или пустой строкой.</param>
         /// <returns>Делегат, принимающий объект типа <typeparamref name="T"/> и возвращающий значение указанного поля или
         /// свойства. Возвращает null, если член с заданным именем не найден.</returns>
-        public static Func<object, object> GetMemberGetter<T>(string memberName)=> GetMemberGetter(typeof(T),memberName);
+        public static Func<object, object> GetMemberGetter<T>(string memberName) => GetMemberGetter(typeof(T), memberName);
 
         /// <summary>
         /// Возвращает делегат, позволяющий получить значение указанного поля или свойства объекта заданного типа по
@@ -853,6 +911,7 @@ namespace RuntimeStuff.Helpers
                 case PropertyInfo pi:
                     return PropertyGetterCache.Get(pi);
             }
+
             return null;
         }
 
@@ -864,12 +923,16 @@ namespace RuntimeStuff.Helpers
         public static Dictionary<string, FieldInfo> GetFieldsMap(Type type)
         {
             if (FieldsCache.TryGetValue(type, out var cached))
+            {
                 return cached;
+            }
 
             var typeFields = type.GetFields(DefaultBindingFlags);
             var dic = new Dictionary<string, FieldInfo>();
             foreach (var field in typeFields)
+            {
                 dic[field.Name] = field;
+            }
 
             FieldsCache[type] = dic;
             return dic;
@@ -899,9 +962,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="baseType">Базовый тип или интерфейс для поиска реализаций.</param>
         /// <returns>Массив типов, удовлетворяющих условию.</returns>
-        public static Type[] GetImplementationsOf(Type baseType)
-        {
-            return AppDomain.CurrentDomain
+        public static Type[] GetImplementationsOf(Type baseType) => AppDomain.CurrentDomain
                 .GetAssemblies()
                 .SelectMany(a =>
                 {
@@ -917,7 +978,6 @@ namespace RuntimeStuff.Helpers
                 })
                 .Where(x => IsImplements(x, baseType) && x != baseType)
                 .ToArray();
-        }
 
         /// <summary>
         ///     Получает событие с наименьшего уровня иерархии.
@@ -931,7 +991,10 @@ namespace RuntimeStuff.Helpers
             {
                 var member = type.GetEvent(name, DefaultBindingFlags);
                 if (member != null)
+                {
                     return member;
+                }
+
                 type = type.BaseType;
             }
 
@@ -950,7 +1013,10 @@ namespace RuntimeStuff.Helpers
             {
                 var member = type.GetField(name, DefaultBindingFlags);
                 if (member != null)
+                {
                     return member;
+                }
+
                 type = type.BaseType;
             }
 
@@ -969,7 +1035,10 @@ namespace RuntimeStuff.Helpers
             {
                 var member = type.GetMethod(name, DefaultBindingFlags);
                 if (member != null)
+                {
                     return member;
+                }
+
                 type = type.BaseType;
             }
 
@@ -988,7 +1057,10 @@ namespace RuntimeStuff.Helpers
             {
                 var member = type.GetProperty(name, DefaultBindingFlags);
                 if (member != null)
+                {
                     return member;
+                }
+
                 type = type.BaseType;
             }
 
@@ -996,14 +1068,17 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        ///     Получить свойство указанное в выражении
+        ///     Получить свойство указанное в выражении.
         /// </summary>
         /// <param name="expr"></param>
         /// <returns></returns>
         public static MemberInfo GetMemberInfo(Expression expr)
         {
             if (expr == null)
+            {
                 return null;
+            }
+
             switch (expr)
             {
                 case LambdaExpression le: return GetMemberInfoFromLambda(le);
@@ -1026,7 +1101,11 @@ namespace RuntimeStuff.Helpers
         /// <param name="searchInCollections">Если true, рекурсивно ищет элементы типа T в коллекциях.</param>
         public static IEnumerable<T> GetMembersOfType<T>(this object obj, Func<T, bool> memberFilter = null, bool recursive = false, bool searchInCollections = false)
         {
-            if (obj == null) throw new ArgumentNullException(nameof(obj));
+            if (obj == null)
+            {
+                throw new ArgumentNullException(nameof(obj));
+            }
+
             var visited = new HashSet<object>();
             return GetMembersInternal(obj, memberFilter, recursive, searchInCollections, visited);
         }
@@ -1044,7 +1123,9 @@ namespace RuntimeStuff.Helpers
         public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory)
         {
             if (dic.TryGetValue(key, out var val))
+            {
                 return val;
+            }
 
             val = valueFactory();
             dic[key] = val;
@@ -1057,10 +1138,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <typeparam name="T">Тип, для которого нужно получить свойства.</typeparam>
         /// <returns>Массив <see cref="PropertyInfo" /> всех публичных свойств.</returns>
-        public static PropertyInfo[] GetProperties<T>() where T : class
-        {
-            return GetProperties(typeof(T));
-        }
+        public static PropertyInfo[] GetProperties<T>() where T : class => GetProperties(typeof(T));
 
         /// <summary>
         ///     Получает все публичные свойства указанного типа.
@@ -1068,20 +1146,14 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="type">Тип, для которого нужно получить свойства.</param>
         /// <returns>Массив <see cref="PropertyInfo" /> всех публичных свойств.</returns>
-        public static PropertyInfo[] GetProperties(Type type)
-        {
-            return GetPropertiesMap(type).Values.ToArray();
-        }
+        public static PropertyInfo[] GetProperties(Type type) => GetPropertiesMap(type).Values.ToArray();
 
         /// <summary>
         ///     Возвращает отображение имён свойств типа на объекты <see cref="PropertyInfo" />.
         /// </summary>
         /// <typeparam name="T">Тип, свойства которого требуется получить.</typeparam>
         /// <returns>Словарь «имя свойства → PropertyInfo».</returns>
-        public static Dictionary<string, PropertyInfo> GetPropertiesMap<T>()
-        {
-            return GetPropertiesMap(typeof(T));
-        }
+        public static Dictionary<string, PropertyInfo> GetPropertiesMap<T>() => GetPropertiesMap(typeof(T));
 
         /// <summary>
         ///     Возвращает отображение имён свойств указанного типа на объекты <see cref="PropertyInfo" />.
@@ -1091,68 +1163,79 @@ namespace RuntimeStuff.Helpers
         public static Dictionary<string, PropertyInfo> GetPropertiesMap(Type type)
         {
             if (PropertiesCache.TryGetValue(type, out var cached))
+            {
                 return cached;
+            }
 
             var typeProperties = type.GetProperties(DefaultBindingFlags);
             var dic = new Dictionary<string, PropertyInfo>();
             foreach (var prop in typeProperties)
+            {
                 dic[prop.Name] = prop;
+            }
 
             PropertiesCache[type] = dic;
             return dic;
         }
 
         /// <summary>
-        ///     Получить свойство по его имени
+        ///     Получить свойство по его имени.
         /// </summary>
-        /// <param name="type">Тип в котором искать свойство</param>
-        /// <param name="propertyName">Имя свойства</param>
-        /// <param name="stringComparison">Сравнение имен</param>
+        /// <param name="type">Тип в котором искать свойство.</param>
+        /// <param name="propertyName">Имя свойства.</param>
+        /// <param name="stringComparison">Сравнение имен.</param>
         /// <returns></returns>
         public static PropertyInfo GetProperty(Type type, string propertyName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
-            if (stringComparison == StringComparison.OrdinalIgnoreCase) return GetPropertiesMap(type).Values.FirstOrDefault(x => string.Compare(x.Name, propertyName, stringComparison) == 0);
+            if (stringComparison == StringComparison.OrdinalIgnoreCase)
+            {
+                return GetPropertiesMap(type).Values.FirstOrDefault(x => string.Compare(x.Name, propertyName, stringComparison) == 0);
+            }
+
             return GetPropertiesMap(type).TryGetValue(propertyName, out var pi) ? pi : null;
         }
 
         /// <summary>
-        ///     Получить свойство указанное в выражении
+        ///     Получить свойство указанное в выражении.
         /// </summary>
         /// <param name="expr"></param>
         /// <returns></returns>
-        public static PropertyInfo GetProperty(Expression expr)
-        {
-            return GetMemberInfo(expr) as PropertyInfo;
-        }
+        public static PropertyInfo GetProperty(Expression expr) => GetMemberInfo(expr) as PropertyInfo;
 
         public static FieldInfo GetFieldInfoFromGetAccessor(MethodInfo accessor)
         {
             if (accessor == null)
+            {
                 throw new ArgumentNullException(nameof(accessor));
+            }
 
             var declaringType = accessor.DeclaringType;
             if (declaringType == null)
+            {
                 throw new ArgumentException(@"Method has no declaring type", nameof(accessor));
+            }
 
             var propertyName = accessor.Name.Substring(4);
 
             // Вариант 1: Поиск автоматически сгенерированного поля для автосвойств
             var autoBackingFieldName = $"<{propertyName}>k__BackingField";
-            var field = declaringType.GetField(autoBackingFieldName,
-                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+            var field = declaringType.GetField(autoBackingFieldName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
 
             if (field != null)
+            {
                 return field;
+            }
 
             // Вариант 2: Поиск в базовых типах
             var baseType = declaringType.BaseType;
             while (baseType != null && baseType != typeof(object))
             {
-                field = baseType.GetField(autoBackingFieldName,
-                    BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+                field = baseType.GetField(autoBackingFieldName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
 
                 if (field != null)
+                {
                     return field;
+                }
 
                 baseType = baseType.BaseType;
             }
@@ -1160,7 +1243,9 @@ namespace RuntimeStuff.Helpers
             // Вариант 3: Анализ IL-кода
             field = GetBackingFieldFromIl(accessor);
             if (field != null)
+            {
                 return field;
+            }
 
             // Вариант 4: Поиск по стандартным шаблонам именования
             return FindFieldByNamingPatterns(declaringType, propertyName);
@@ -1172,11 +1257,15 @@ namespace RuntimeStuff.Helpers
             {
                 var methodBody = getter.GetMethodBody();
                 if (methodBody == null)
+                {
                     return null;
+                }
 
                 var ilBytes = methodBody.GetILAsByteArray();
                 if (ilBytes.Length == 0)
+                {
                     return null;
+                }
 
                 // Анализируем IL-байты
                 for (int i = 0; i < ilBytes.Length; i++)
@@ -1205,7 +1294,9 @@ namespace RuntimeStuff.Helpers
                                 {
                                     var field = getter.Module.ResolveField(token);
                                     if (field != null && IsValidBackingField(field, getter.DeclaringType))
+                                    {
                                         return field;
+                                    }
                                 }
                                 catch
                                 {
@@ -1251,6 +1342,7 @@ namespace RuntimeStuff.Helpers
                         int count = BitConverter.ToInt32(ilBytes, position);
                         return 4 + (count * 4);
                     }
+
                     return 0;
 
                 case OperandType.InlineVar:
@@ -1270,17 +1362,23 @@ namespace RuntimeStuff.Helpers
         private static bool IsValidBackingField(FieldInfo field, Type declaringType)
         {
             if (field == null)
+            {
                 return false;
+            }
 
             // Поле должно быть приватным (или защищенным для базовых классов)
             if (!field.IsPrivate && !field.IsFamily && !field.IsAssembly && !field.IsFamilyOrAssembly)
+            {
                 return false;
+            }
 
             // Поле должно принадлежать этому типу или его базовому типу
             Debug.Assert(field.DeclaringType != null, "field.DeclaringType != null");
             if (!declaringType.IsAssignableFrom(field.DeclaringType) &&
                 !field.DeclaringType.IsAssignableFrom(declaringType))
+            {
                 return false;
+            }
 
             return true;
         }
@@ -1288,11 +1386,12 @@ namespace RuntimeStuff.Helpers
         private static FieldInfo FindFieldByNamingPatterns(Type declaringType, string propertyName)
         {
             // Получаем свойство для проверки типа
-            var property = declaringType.GetProperty(propertyName,
-                BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            var property = declaringType.GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
             if (property == null)
+            {
                 return null;
+            }
 
             // Стандартные шаблоны именования полей
             var possibleFieldNames = new[]
@@ -1308,13 +1407,12 @@ namespace RuntimeStuff.Helpers
             // Поиск в текущем типе
             foreach (var fieldName in possibleFieldNames)
             {
-                var field = declaringType.GetField(fieldName,
-                    BindingFlags.NonPublic | BindingFlags.Public |
-                    BindingFlags.Instance | BindingFlags.Static |
-                    BindingFlags.DeclaredOnly);
+                var field = declaringType.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
 
                 if (field != null && field.FieldType == property.PropertyType)
+                {
                     return field;
+                }
             }
 
             // Поиск в базовых классах
@@ -1323,14 +1421,14 @@ namespace RuntimeStuff.Helpers
             {
                 foreach (var fieldName in possibleFieldNames)
                 {
-                    var field = baseType.GetField(fieldName,
-                        BindingFlags.NonPublic | BindingFlags.Public |
-                        BindingFlags.Instance | BindingFlags.Static |
-                        BindingFlags.DeclaredOnly);
+                    var field = baseType.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
 
                     if (field != null && field.FieldType == property.PropertyType)
+                    {
                         return field;
+                    }
                 }
+
                 baseType = baseType.BaseType;
             }
 
@@ -1342,10 +1440,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <typeparam name="T">Тип, для которого нужно получить имена свойств.</typeparam>
         /// <returns>Массив имен свойств.</returns>
-        public static string[] GetPropertyNames<T>()
-        {
-            return GetPropertyNames(typeof(T));
-        }
+        public static string[] GetPropertyNames<T>() => GetPropertyNames(typeof(T));
 
         /// <summary>
         ///     Получает имена всех публичных свойств указанного типа.
@@ -1353,17 +1448,14 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="type">Тип, для которого нужно получить имена свойств.</param>
         /// <returns>Массив имен свойств.</returns>
-        public static string[] GetPropertyNames(Type type)
-        {
-            return GetPropertiesMap(type).Keys.ToArray();
-        }
+        public static string[] GetPropertyNames(Type type) => GetPropertiesMap(type).Keys.ToArray();
 
         /// <summary>
-        ///     Получает значения свойств объекта в указанном порядке
+        ///     Получает значения свойств объекта в указанном порядке.
         /// </summary>
         /// <typeparam name="TObject"></typeparam>
-        /// <param name="source">Исходный объект</param>
-        /// <param name="memberNames">Имена свойств объекта с учетом регистра</param>
+        /// <param name="source">Исходный объект.</param>
+        /// <param name="memberNames">Имена свойств объекта с учетом регистра.</param>
         /// <returns></returns>
         public static object[] GetValues<TObject>(TObject source, params string[] memberNames) where TObject : class
         {
@@ -1378,17 +1470,14 @@ namespace RuntimeStuff.Helpers
 
         /// <summary>
         ///     Получает значения свойств объекта в указанном порядке и преобразует в указанный тип через
-        ///     <see cref="Obj.ChangeType{T}(object, IFormatProvider)" />
+        ///     <see cref="Obj.ChangeType{T}(object, IFormatProvider)" />.
         /// </summary>
         /// <typeparam name="TObject"></typeparam>
         /// <typeparam name="TValue"></typeparam>
-        /// <param name="source">Исходный объект</param>
-        /// <param name="memberNames">Имена свойств объекта с учетом регистра</param>
+        /// <param name="source">Исходный объект.</param>
+        /// <param name="memberNames">Имена свойств объекта с учетом регистра.</param>
         /// <returns></returns>
-        public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames) where TObject : class
-        {
-            return GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
-        }
+        public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames) where TObject : class => GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
 
         /// <summary>
         ///     Ищет тип или интерфейс по указанному имени во всех сборках, загруженных в текущий <see cref="AppDomain" />.
@@ -1412,32 +1501,37 @@ namespace RuntimeStuff.Helpers
         ///     <code language="csharp">
         /// var type1 = TypeHelper.GetTypeByName("System.String");
         /// Console.WriteLine(type1); // Вывод: System.String
-        /// 
+        ///
         /// var type2 = TypeHelper.GetTypeByName("String");
         /// Console.WriteLine(type2); // Вывод: System.String
-        /// 
+        ///
         /// var type3 = TypeHelper.GetTypeByName("IEnumerable");
         /// Console.WriteLine(type3); // Вывод: System.Collections.IEnumerable
-        /// 
+        ///
         /// // Повторный вызов — берётся из кэша, без обхода сборок
         /// var cached = TypeHelper.GetTypeByName("System.String");
-        /// 
+        ///
         /// Console.WriteLine(ReferenceEquals(type1, cached)); // True
         /// </code>
         /// </example>
         public static Type GetTypeByName(string typeOrInterfaceName)
         {
             if (string.IsNullOrWhiteSpace(typeOrInterfaceName))
+            {
                 throw new ArgumentException(@"Type name cannot be null or empty.", nameof(typeOrInterfaceName));
+            }
 
             // Проверяем кэш
             if (TypeCache.TryGetValue(typeOrInterfaceName, out var cachedType))
+            {
                 return cachedType;
+            }
 
             Type foundType = null;
             var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 
             foreach (var assembly in loadedAssemblies)
+            {
                 try
                 {
                     var type = assembly.GetTypes()
@@ -1465,6 +1559,7 @@ namespace RuntimeStuff.Helpers
                         break;
                     }
                 }
+            }
 
             // Кэшируем результат (в том числе null, чтобы избежать повторных обходов)
             TypeCache[typeOrInterfaceName] = foundType;
@@ -1507,14 +1602,20 @@ namespace RuntimeStuff.Helpers
         public static TValue GetValueOrDefault<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dic, TKey key, IComparer<TKey> comparer = null)
         {
             if (dic == null)
+            {
                 throw new ArgumentNullException(nameof(dic));
+            }
 
             // 1️ Компаратор не задан — быстрый линейный поиск
             if (comparer == null)
             {
                 foreach (var kv in dic)
+                {
                     if (EqualityComparer<TKey>.Default.Equals(kv.Key, key))
+                    {
                         return kv.Value;
+                    }
+                }
 
                 return default;
             }
@@ -1523,8 +1624,12 @@ namespace RuntimeStuff.Helpers
             // Считаем элементы, чтобы определить способ поиска
             // Маленькая коллекция — линейный поиск
             foreach (var kv in dic)
+            {
                 if (comparer.Compare(kv.Key, key) == 0)
+                {
                     return kv.Value;
+                }
+            }
 
             return default;
         }
@@ -1534,20 +1639,14 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
         /// <returns>True, если тип является базовым, иначе False.</returns>
-        public static bool IsBasic(Type t)
-        {
-            return t != null && (t.IsEnum || BasicTypes.Contains(t));
-        }
+        public static bool IsBasic(Type t) => t != null && (t.IsEnum || BasicTypes.Contains(t));
 
         /// <summary>
         ///     Проверяет, является ли тип логическим.
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
         /// <returns>True, если тип является логическим, иначе False.</returns>
-        public static bool IsBoolean(Type t)
-        {
-            return BoolTypes.Contains(t);
-        }
+        public static bool IsBoolean(Type t) => BoolTypes.Contains(t);
 
         /// <summary>
         ///     Проверяет, является ли тип коллекцией.
@@ -1557,9 +1656,15 @@ namespace RuntimeStuff.Helpers
         public static bool IsCollection(Type t)
         {
             if (t.IsArray)
+            {
                 return true;
+            }
+
             if (t == typeof(string))
+            {
                 return false;
+            }
+
             var hasGenericType = t.GenericTypeArguments.Length > 0;
             return (typeof(IList).IsAssignableFrom(t) || typeof(ICollection).IsAssignableFrom(t) ||
                     typeof(IEnumerable).IsAssignableFrom(t)) && hasGenericType;
@@ -1570,43 +1675,31 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
         /// <returns>True, если тип представляет дату/время, иначе False.</returns>
-        public static bool IsDate(Type t)
-        {
-            return DateTypes.Contains(t);
-        }
+        public static bool IsDate(Type t) => DateTypes.Contains(t);
 
         /// <summary>
         ///     Проверяет, является ли тип делегатом.
         /// </summary>
         /// <param name="type">Тип для проверки.</param>
         /// <returns>True, если тип является делегатом, иначе False.</returns>
-        public static bool IsDelegate(Type type)
-        {
-            return typeof(MulticastDelegate).IsAssignableFrom(type.BaseType);
-        }
+        public static bool IsDelegate(Type type) => typeof(MulticastDelegate).IsAssignableFrom(type.BaseType);
 
         /// <summary>
         ///     Проверяет, является ли тип словарём.
         /// </summary>
         /// <param name="type">Тип для проверки.</param>
         /// <returns>True, если тип является словарём, иначе False.</returns>
-        public static bool IsDictionary(Type type)
-        {
-            return IsImplements<IDictionary>(type) ||
+        public static bool IsDictionary(Type type) => IsImplements<IDictionary>(type) ||
                    (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>)) || type
                        .GetInterfaces()
                        .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
-        }
 
         /// <summary>
         ///     Проверяет, является ли тип числом с плавающей точкой.
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
         /// <returns>True, если тип является числом с плавающей точкой, иначе False.</returns>
-        public static bool IsFloat(Type t)
-        {
-            return FloatNumberTypes.Contains(t);
-        }
+        public static bool IsFloat(Type t) => FloatNumberTypes.Contains(t);
 
         /// <summary>
         ///     Проверяет, реализует ли тип заданный интерфейс.
@@ -1614,10 +1707,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="t">Тип для проверки.</param>
         /// <param name="implementType">Интерфейс, который нужно проверить.</param>
         /// <returns>True, если тип реализует указанный интерфейс, иначе False.</returns>
-        public static bool IsImplements(Type t, Type implementType)
-        {
-            return implementType.IsAssignableFrom(t);
-        }
+        public static bool IsImplements(Type t, Type implementType) => implementType.IsAssignableFrom(t);
 
         /// <summary>
         ///     Проверяет, реализует ли тип заданный интерфейс (generic).
@@ -1625,20 +1715,14 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="T">Интерфейс, который нужно проверить.</typeparam>
         /// <param name="t"> Тип для проверки.</param>
         /// <returns>True, если тип реализует указанный интерфейс, иначе False.</returns>
-        public static bool IsImplements<T>(Type t)
-        {
-            return typeof(T).IsAssignableFrom(t);
-        }
+        public static bool IsImplements<T>(Type t) => typeof(T).IsAssignableFrom(t);
 
         /// <summary>
         ///     Проверяет, является ли тип nullable.
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
         /// <returns>True, если тип является nullable, иначе False.</returns>
-        public static bool IsNullable(Type t)
-        {
-            return !t.IsValueType || Nullable.GetUnderlyingType(t) != null || t == typeof(object);
-        }
+        public static bool IsNullable(Type t) => !t.IsValueType || Nullable.GetUnderlyingType(t) != null || t == typeof(object);
 
         /// <summary>
         ///     Проверяет, является ли тип числовым.
@@ -1646,10 +1730,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="t">Тип для проверки.</param>
         /// <param name="includeFloatTypes">Включать ли типы с плавающей точкой.</param>
         /// <returns>True, если тип является числовым, иначе False.</returns>
-        public static bool IsNumeric(Type t, bool includeFloatTypes = true)
-        {
-            return includeFloatTypes ? NumberTypes.Contains(t) : IntNumberTypes.Contains(t);
-        }
+        public static bool IsNumeric(Type t, bool includeFloatTypes = true) => includeFloatTypes ? NumberTypes.Contains(t) : IntNumberTypes.Contains(t);
 
         /// <summary>
         ///     Проверяет, является ли тип кортежем (ValueTuple/Tuple).
@@ -1682,10 +1763,7 @@ namespace RuntimeStuff.Helpers
         ///     Метод является быстрым способом создания объектов, так как использует
         ///     предварительно скомпилированный делегат конструктора, полученный через IL-генерацию.
         /// </remarks>
-        public static T New<T>(params object[] args)
-        {
-            return (T)New(typeof(T), args);
-        }
+        public static T New<T>(params object[] args) => (T)New(typeof(T), args);
 
         /// <summary>
         /// Находит конструктор указанного типа, параметры которого совместимы
@@ -1714,13 +1792,19 @@ namespace RuntimeStuff.Helpers
                 .FirstOrDefault(c =>
                 {
                     var ps = c.GetParameters();
-                    if (ps.Length != argTypes.Length) return false;
+                    if (ps.Length != argTypes.Length)
+                    {
+                        return false;
+                    }
 
                     for (int i = 0; i < ps.Length; i++)
                     {
                         if (!ps[i].ParameterType.IsAssignableFrom(argTypes[i]))
+                        {
                             return false;
+                        }
                     }
+
                     return true;
                 });
         }
@@ -1752,10 +1836,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="type">Тип создаваемого объекта. Должен иметь конструктор без параметров.</param>
         /// <returns>Новый экземпляр типа <typeparamref name="T" />.</returns>
         /// <exception cref="InvalidOperationException">Выбрасывается, если тип не имеет конструктора по умолчанию.</exception>
-        public static T New<T>(Type type)
-        {
-            return (T)New(type);
-        }
+        public static T New<T>(Type type) => (T)New(type);
 
         /// <summary>
         /// Устанавливает значение поля или свойства объекта по имени члена.
@@ -1777,11 +1858,15 @@ namespace RuntimeStuff.Helpers
         public static bool Set(object instance, string memberName, object value)
         {
             if (instance == null)
+            {
                 return false;
+            }
 
             var setter = GetMemberSetter(instance.GetType(), memberName, out var memberType);
             if (setter == null)
+            {
                 return false;
+            }
 
             setter(instance, value?.GetType() == memberType ? value : ChangeType(value, memberType));
             return true;
@@ -1818,10 +1903,14 @@ namespace RuntimeStuff.Helpers
         public static void Copy<TSource, TDest>(TSource source, TDest destination, params string[] memberNames) where TSource : class where TDest : class
         {
             if (source == null || typeof(TSource) == typeof(string))
+            {
                 throw new ArgumentNullException(nameof(source));
+            }
 
             if (destination == null || typeof(TDest) == typeof(string))
+            {
                 throw new ArgumentNullException(nameof(destination));
+            }
 
             if (memberNames == null || memberNames.Length == 0)
             {
@@ -1837,9 +1926,11 @@ namespace RuntimeStuff.Helpers
                 {
                     var srcItem = srcEnumerator.Current;
                     object dstItem;
-                    
+
                     if (!dstListChanged && dstEnumerator.MoveNext())
+                    {
                         dstItem = dstEnumerator.Current;
+                    }
                     else
                     {
                         dstItem = NewItem(dstList);
@@ -1849,16 +1940,23 @@ namespace RuntimeStuff.Helpers
                             dstIList.Add(dstItem);
                         }
                         else
+                        {
                             throw new InvalidOperationException("Destination collection is not IList and cannot add new items.");
+                        }
                     }
+
                     Copy(srcItem, dstItem);
                 }
 
                 if (srcEnumerator is IDisposable disposableSrc)
+                {
                     disposableSrc.Dispose();
+                }
 
                 if (dstEnumerator is IDisposable disposableDst)
+                {
                     disposableDst.Dispose();
+                }
             }
             else
             {
@@ -1897,7 +1995,9 @@ namespace RuntimeStuff.Helpers
         public static bool Set(object instance, IEnumerable<string> pathToMemberName, object value)
         {
             if (instance == null)
+            {
                 return false;
+            }
 
             var path = pathToMemberName as string[] ?? pathToMemberName.ToArray();
             if (path.Length == 1)
@@ -1908,7 +2008,9 @@ namespace RuntimeStuff.Helpers
 
             var getter = GetMemberGetter(instance.GetType(), path[0]);
             if (getter == null)
+            {
                 return false;
+            }
 
             var subMemberInstance = Get(instance, path[0]);
             if (subMemberInstance == null)
@@ -1925,7 +2027,6 @@ namespace RuntimeStuff.Helpers
 
             return Set(subMemberInstance, path.Skip(1).ToArray(), value);
         }
-
 
         /// <summary>
         /// Возвращает значение поля или свойства объекта по имени члена.
@@ -1948,11 +2049,15 @@ namespace RuntimeStuff.Helpers
         public static object Get(object instance, string memberName, Type convertToType = null)
         {
             if (instance == null)
+            {
                 return null;
+            }
 
             var getter = GetMemberGetter(instance.GetType(), memberName);
             if (getter == null)
+            {
                 return null;
+            }
 
             var memberValue = getter(instance);
             return convertToType == null
@@ -1988,7 +2093,9 @@ namespace RuntimeStuff.Helpers
         public static object Get(object instance, IEnumerable<string> pathToMemberName, Type convertToType = null)
         {
             if (instance == null)
+            {
                 return null;
+            }
 
             var path = pathToMemberName as string[] ?? pathToMemberName.ToArray();
 
@@ -2005,10 +2112,7 @@ namespace RuntimeStuff.Helpers
                 : Get(memberValue, path.Skip(1).ToArray(), convertToType);
         }
 
-        public static T Get<T>(object instance, IEnumerable<string> pathToMemberName)
-        {
-            return (T)Get(instance, pathToMemberName, typeof(T));
-        }
+        public static T Get<T>(object instance, IEnumerable<string> pathToMemberName) => (T)Get(instance, pathToMemberName, typeof(T));
 
         /// <summary>
         /// Возвращает значение поля или свойства объекта по имени члена,
@@ -2026,10 +2130,7 @@ namespace RuntimeStuff.Helpers
         /// <returns>
         /// Значение поля или свойства, приведённое к типу <typeparamref name="T"/>.
         /// </returns>
-        public static T Get<T>(object instance, string memberName)
-        {
-            return (T)Get(instance, memberName, typeof(T));
-        }
+        public static T Get<T>(object instance, string memberName) => (T)Get(instance, memberName, typeof(T));
 
         private static readonly ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache = new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
 
@@ -2054,11 +2155,15 @@ namespace RuntimeStuff.Helpers
         {
             // если интерфейс, подставляем стандартную реализацию
             if (type.IsInterface)
+            {
                 type = GetDefaultImplementation(type);
+            }
 
             var ctor = FindConstructor(type, args);
             if (ctor == null)
+            {
                 throw new InvalidOperationException($"No constructor found for type {type}");
+            }
 
             var factory = CtorCache.GetOrAdd(ctor, CreateFactory);
             return factory(args);
@@ -2068,7 +2173,7 @@ namespace RuntimeStuff.Helpers
         /// Словарь соответствий интерфейсов и фабрик по умолчанию для их реализации.
         /// </summary>
         /// <remarks>
-        /// Ключом является тип интерфейса (например, <see cref="IEnumerable{T}"/>), 
+        /// Ключом является тип интерфейса (например, <see cref="IEnumerable{T}"/>),
         /// значением — функция, принимающая массив типов generic-параметров и возвращающая экземпляр подходящей реализации.
         /// По умолчанию:
         /// <list type="bullet">
@@ -2112,24 +2217,39 @@ namespace RuntimeStuff.Helpers
         public static void SetDefaultImplementation(Type interfaceType, Type implementationType)
         {
             if (interfaceType == null)
+            {
                 throw new ArgumentNullException(nameof(interfaceType));
+            }
+
             if (implementationType == null)
+            {
                 throw new ArgumentNullException(nameof(implementationType));
+            }
+
             if (!interfaceType.IsInterface)
+            {
                 throw new ArgumentException($"{interfaceType} is not an interface", nameof(interfaceType));
+            }
+
             if (implementationType.IsInterface)
+            {
                 throw new ArgumentException($"{implementationType} cannot be an interface", nameof(implementationType));
+            }
 
             // проверка generic-совместимости
             if (interfaceType.IsGenericTypeDefinition != implementationType.IsGenericTypeDefinition)
+            {
                 throw new ArgumentException("Both types must be generic definitions or both non-generic");
+            }
 
             // создаём фабрику
             Func<Type[], object> factory = genericArgs =>
             {
                 Type targetType = implementationType;
                 if (implementationType.IsGenericTypeDefinition)
+                {
                     targetType = implementationType.MakeGenericType(genericArgs);
+                }
 
                 return Activator.CreateInstance(targetType);
             };
@@ -2143,7 +2263,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="type">Тип интерфейса, для которого необходимо получить реализацию.</param>
         /// <returns>
         /// Если <paramref name="type"/> не является интерфейсом, возвращает сам <paramref name="type"/>.
-        /// Для известных generic-интерфейсов (<see cref="IEnumerable{T}"/>, <see cref="IList{T}"/>, 
+        /// Для известных generic-интерфейсов (<see cref="IEnumerable{T}"/>, <see cref="IList{T}"/>,
         /// <see cref="ICollection{T}"/>, <see cref="IDictionary{TKey, TValue}"/>) возвращает соответствующий конкретный тип:
         /// <list type="bullet">
         /// <item><description><see cref="IEnumerable{T}"/> → <see cref="List{T}"/></description></item>
@@ -2162,7 +2282,9 @@ namespace RuntimeStuff.Helpers
         public static Type GetDefaultImplementation(Type type)
         {
             if (!type.IsInterface)
+            {
                 return type;
+            }
 
             if (type.IsGenericType)
             {
@@ -2177,9 +2299,13 @@ namespace RuntimeStuff.Helpers
         }
 
         public static Cache<FieldInfo, Func<object, object>> FieldGetterCache { get; } = new Cache<FieldInfo, Func<object, object>>(CreateFieldGetter);
+
         public static Cache<FieldInfo, Action<object, object>> FieldSetterCache { get; } = new Cache<FieldInfo, Action<object, object>>(CreateDirectFieldSetter);
+
         public static Cache<PropertyInfo, Func<object, object>> PropertyGetterCache { get; } = new Cache<PropertyInfo, Func<object, object>>(CreatePropertyGetter);
+
         public static Cache<PropertyInfo, Action<object, object>> PropertySetterCache { get; } = new Cache<PropertyInfo, Action<object, object>>(CreatePropertySetter);
+
         public static Cache<string, MemberInfo> MemberInfoCache { get; } = new Cache<string, MemberInfo>();
 
         public static Func<object, object> CreateFieldGetter(FieldInfo fi)
@@ -2187,16 +2313,20 @@ namespace RuntimeStuff.Helpers
             try
             {
                 if (fi == null)
+                {
                     throw new ArgumentNullException(nameof(fi));
+                }
 
                 var declaringType = fi.DeclaringType;
                 if (declaringType == null)
+                {
                     throw new ArgumentException(@"Field has no declaring type", nameof(fi));
+                }
 
                 var fieldType = fi.FieldType;
 
                 // Проверяем, является ли поле константой
-                if (fi.IsLiteral && !fi.IsInitOnly) // IsLiteral = const field
+                if (fi.IsLiteral && !fi.IsInitOnly)
                 {
                     // Для const полей возвращаем делегат, который всегда возвращает значение константы
                     var constValue = fi.GetRawConstantValue();
@@ -2217,7 +2347,10 @@ namespace RuntimeStuff.Helpers
                 {
                     il.Emit(System.Reflection.Emit.OpCodes.Ldsfld, fi); // Загружаем статическое поле
                     if (fieldType.IsValueType)
+                    {
                         il.Emit(System.Reflection.Emit.OpCodes.Box, fieldType); // Боксим value type
+                    }
+
                     il.Emit(System.Reflection.Emit.OpCodes.Ret);
                     return (Func<object, object>)dm.CreateDelegate(typeof(Func<object, object>));
                 }
@@ -2234,8 +2367,7 @@ namespace RuntimeStuff.Helpers
                     il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
 
                     // Если тип не подходит, выбрасываем исключение
-                    il.Emit(System.Reflection.Emit.OpCodes.Newobj,
-                        typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                    il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                     il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                     il.MarkLabel(lblOk);
@@ -2258,8 +2390,7 @@ namespace RuntimeStuff.Helpers
                     il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
 
                     // Если null, выбрасываем исключение
-                    il.Emit(System.Reflection.Emit.OpCodes.Newobj,
-                        typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                    il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                     il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                     il.MarkLabel(lblNotNull);
@@ -2279,7 +2410,9 @@ namespace RuntimeStuff.Helpers
 
                 // Боксим результат, если это value type
                 if (fieldType.IsValueType)
+                {
                     il.Emit(System.Reflection.Emit.OpCodes.Box, fieldType);
+                }
 
                 il.Emit(System.Reflection.Emit.OpCodes.Ret);
 
@@ -2294,10 +2427,9 @@ namespace RuntimeStuff.Helpers
         public static Action<object, object> CreateFieldSetter(FieldInfo field)
         {
             if (field == null)
+            {
                 throw new ArgumentNullException(nameof(field));
-
-            //if (!field.DeclaringType.IsValueType)
-            //    throw new InvalidOperationException("Работает только со структурами");
+            }
 
             var dm = new DynamicMethod(
                 $"Set_{field.Name}",
@@ -2326,9 +2458,13 @@ namespace RuntimeStuff.Helpers
             il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1);
 
             if (field.FieldType.IsValueType)
+            {
                 il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, field.FieldType);
+            }
             else
+            {
                 il.Emit(System.Reflection.Emit.OpCodes.Castclass, field.FieldType);
+            }
 
             il.Emit(System.Reflection.Emit.OpCodes.Stobj, field.FieldType);
             il.Emit(System.Reflection.Emit.OpCodes.Ret);
@@ -2336,14 +2472,11 @@ namespace RuntimeStuff.Helpers
             return (Action<object, object>)dm.CreateDelegate(typeof(Action<object, object>));
         }
 
-        public static Action<object, object> CreateDirectFieldSetter(FieldInfo fi)
-        {
-            return (instance, value) =>
-            {
-                var tr = __makeref(instance);
-                fi.SetValueDirect(tr, value);
-            };
-        }
+        public static Action<object, object> CreateDirectFieldSetter(FieldInfo fi) => (instance, value) =>
+                                                                                               {
+                                                                                                   var tr = __makeref(instance);
+                                                                                                   fi.SetValueDirect(tr, value);
+                                                                                               };
 
         public static Func<object, object> CreatePropertyGetter(PropertyInfo pi)
         {
@@ -2366,7 +2499,10 @@ namespace RuntimeStuff.Helpers
             {
                 il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
                 if (propertyType.IsValueType && !propertyType.IsPrimitive)
+                {
                     il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
+                }
+
                 il.Emit(System.Reflection.Emit.OpCodes.Ret);
                 return (Func<object, object>)dm.CreateDelegate(typeof(Func<object, object>));
             }
@@ -2381,8 +2517,7 @@ namespace RuntimeStuff.Helpers
                 il.Emit(System.Reflection.Emit.OpCodes.Isinst, declaring);
                 il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
 
-                il.Emit(System.Reflection.Emit.OpCodes.Newobj,
-                    typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                 il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                 il.MarkLabel(lblOk);
@@ -2405,8 +2540,7 @@ namespace RuntimeStuff.Helpers
                 il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
 
                 // Если null, выбрасываем исключение
-                il.Emit(System.Reflection.Emit.OpCodes.Newobj,
-                    typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                 il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                 il.MarkLabel(lblNotNull);
@@ -2426,7 +2560,9 @@ namespace RuntimeStuff.Helpers
 
             // Бокс возвращаемого значения, если это value type
             if (propertyType.IsValueType)
+            {
                 il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
+            }
 
             il.Emit(System.Reflection.Emit.OpCodes.Ret);
 
@@ -2440,9 +2576,13 @@ namespace RuntimeStuff.Helpers
             {
                 var backingField = GetFieldInfoFromGetAccessor(pi.GetMethod);
                 if (backingField != null)
+                {
                     return CreateDirectFieldSetter(backingField);
+                }
+
                 return null;
             }
+
             var declaring = pi.DeclaringType;
             var propertyType = pi.PropertyType;
 
@@ -2461,9 +2601,13 @@ namespace RuntimeStuff.Helpers
             {
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1); // Загружаем значение
                 if (propertyType.IsValueType)
+                {
                     il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, propertyType);
+                }
                 else
+                {
                     il.Emit(System.Reflection.Emit.OpCodes.Castclass, propertyType);
+                }
 
                 il.Emit(System.Reflection.Emit.OpCodes.Call, setter);
                 il.Emit(System.Reflection.Emit.OpCodes.Ret);
@@ -2481,8 +2625,7 @@ namespace RuntimeStuff.Helpers
                 il.Emit(System.Reflection.Emit.OpCodes.Isinst, declaring);
                 il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
 
-                il.Emit(System.Reflection.Emit.OpCodes.Newobj,
-                    typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                 il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                 il.MarkLabel(lblOk);
@@ -2494,9 +2637,13 @@ namespace RuntimeStuff.Helpers
                 // Загружаем значение
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1);
                 if (propertyType.IsValueType)
+                {
                     il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, propertyType);
+                }
                 else
+                {
                     il.Emit(System.Reflection.Emit.OpCodes.Castclass, propertyType);
+                }
 
                 il.Emit(System.Reflection.Emit.OpCodes.Callvirt, setter);
             }
@@ -2513,8 +2660,7 @@ namespace RuntimeStuff.Helpers
                 il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
 
                 // Если null, выбрасываем исключение
-                il.Emit(System.Reflection.Emit.OpCodes.Newobj,
-                    typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                 il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                 il.MarkLabel(lblNotNull);
@@ -2531,9 +2677,13 @@ namespace RuntimeStuff.Helpers
                 // Загружаем значение
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1);
                 if (propertyType.IsValueType)
+                {
                     il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, propertyType);
+                }
                 else
+                {
                     il.Emit(System.Reflection.Emit.OpCodes.Castclass, propertyType);
+                }
 
                 // Вызываем setter
                 il.Emit(System.Reflection.Emit.OpCodes.Call, setter);
@@ -2548,7 +2698,6 @@ namespace RuntimeStuff.Helpers
 
             return (Action<object, object>)dm.CreateDelegate(typeof(Action<object, object>));
         }
-
 
         private static MemberInfo GetMemberInfoFromLambda(LambdaExpression le)
         {
@@ -2567,7 +2716,10 @@ namespace RuntimeStuff.Helpers
 
         private static IEnumerable<T> GetMembersInternal<T>(object obj, Func<T, bool> memberFilter, bool recursive, bool searchInCollections, HashSet<object> visited)
         {
-            if (obj == null) yield break;
+            if (obj == null)
+            {
+                yield break;
+            }
 
             var type = obj.GetType();
 
@@ -2575,31 +2727,50 @@ namespace RuntimeStuff.Helpers
             if (type.IsPrimitive || obj is string)
             {
                 if (obj is T tValue && (memberFilter == null || memberFilter(tValue)))
+                {
                     yield return tValue;
+                }
+
                 yield break;
             }
 
-            if (!visited.Add(obj)) yield break;
+            if (!visited.Add(obj))
+            {
+                yield break;
+            }
 
             // Если коллекция и нужно искать в коллекциях
             if (searchInCollections && obj is IEnumerable enumerable)
+            {
                 foreach (var item in enumerable)
-                    foreach (var nested in GetMembersInternal(item, memberFilter, recursive, true, visited))
-                        yield return nested;
+                foreach (var nested in GetMembersInternal(item, memberFilter, recursive, true, visited))
+                {
+                    yield return nested;
+                }
+            }
 
             // Поля
             var fields = GetFieldsMap(type).Values;
             foreach (var field in fields)
             {
                 var value = field.GetValue(obj);
-                if (value == null) continue;
+                if (value == null)
+                {
+                    continue;
+                }
 
                 if (value is T tValue && (memberFilter == null || memberFilter(tValue)))
+                {
                     yield return tValue;
+                }
 
                 if (recursive && !value.GetType().IsPrimitive && !(value is string))
+                {
                     foreach (var nested in GetMembersInternal(value, memberFilter, true, searchInCollections, visited))
+                    {
                         yield return nested;
+                    }
+                }
             }
 
             // Свойства
@@ -2626,15 +2797,21 @@ namespace RuntimeStuff.Helpers
                 }
 
                 if (recursive && !value.GetType().IsPrimitive && !(value is string))
+                {
                     foreach (var nested in GetMembersInternal(value, memberFilter, true, searchInCollections, visited))
+                    {
                         yield return nested;
+                    }
+                }
             }
         }
 
         private static int IndexOf<T>(IEnumerable<T> e, Func<T, int, bool> match, bool reverseSearch = false)
         {
             if (e == null)
+            {
                 return -1;
+            }
 
             // Если исходная коллекция - массив или IList<T>, используем индексацию
             if (e is IList<T> list)
@@ -2642,14 +2819,22 @@ namespace RuntimeStuff.Helpers
                 if (!reverseSearch)
                 {
                     for (var i = 0; i < list.Count; i++)
+                    {
                         if (match(list[i], i))
+                        {
                             return i;
+                        }
+                    }
                 }
                 else
                 {
                     for (var i = list.Count - 1; i >= 0; i--)
+                    {
                         if (match(list[i], i))
+                        {
                             return i;
+                        }
+                    }
                 }
 
                 return -1;
@@ -2662,7 +2847,10 @@ namespace RuntimeStuff.Helpers
                 foreach (var item in e)
                 {
                     if (match(item, i))
+                    {
                         return i;
+                    }
+
                     i++;
                 }
             }
@@ -2671,8 +2859,12 @@ namespace RuntimeStuff.Helpers
                 // К сожалению, для IEnumerable<T> без индексации придётся материализовать в список
                 var arr = e.ToArray();
                 for (var i = arr.Length - 1; i >= 0; i--)
+                {
                     if (match(arr[i], i))
+                    {
                         return i;
+                    }
+                }
             }
 
             return -1;

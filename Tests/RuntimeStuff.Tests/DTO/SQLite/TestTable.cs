@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RuntimeStuff.MSTests.DTO.SQLite
+﻿namespace RuntimeStuff.MSTests.DTO.SQLite
 {
     public sealed class TestTable
     {
@@ -25,5 +18,4 @@ namespace RuntimeStuff.MSTests.DTO.SQLite
         public string NotNullValue { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
     }
-
 }

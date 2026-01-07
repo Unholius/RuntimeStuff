@@ -1,11 +1,11 @@
-﻿using System.ComponentModel;
+﻿using FastMember;
+using RuntimeStuff.Helpers;
+using RuntimeStuff.MSTests.Models;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Reflection;
-using FastMember;
-using RuntimeStuff.Helpers;
-using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
@@ -21,6 +21,7 @@ namespace RuntimeStuff.MSTests
             public string? Name { get; set; }
             private string? PrivateField;
             public string? PublicField;
+
             public event EventHandler? TestEvent;
         }
 
@@ -68,6 +69,7 @@ namespace RuntimeStuff.MSTests
 
             // readonly fields
             public readonly string PublicReadonlyField;
+
             private readonly string PrivateReadonlyField;
 
             // const (нельзя менять ни при каких условиях)
@@ -121,7 +123,6 @@ namespace RuntimeStuff.MSTests
             }
         }
 
-
         // Класс с атрибутами
         [Table("TestTable", Schema = "dbo")]
         [DisplayName("Test Entity")]
@@ -164,7 +165,7 @@ namespace RuntimeStuff.MSTests
             public int InterfaceProperty { get; set; }
         }
 
-        #endregion
+        #endregion Тестовые классы
 
         #region Базовые тесты
 
@@ -230,7 +231,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreSame(memberCache1, memberCache2);
         }
 
-        #endregion
+        #endregion Базовые тесты
 
         #region Тесты свойств
 
@@ -305,7 +306,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsTrue(memberCache.IsPublic);
         }
 
-        #endregion
+        #endregion Тесты свойств
 
         #region Тесты атрибутов
 
@@ -336,7 +337,6 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("TestTable", memberCache.TableName);
             if (memberCache.Properties[nameof(ClassWithAttributes.Name)].TableName == null)
             {
-
             }
             Assert.AreEqual("TestTable", memberCache.Properties[nameof(ClassWithAttributes.Name)].TableName);
             Assert.AreEqual("dbo", memberCache.SchemaName);
@@ -409,7 +409,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsTrue(memberCache.PrimaryKeys.ContainsKey("Id"));
         }
 
-        #endregion
+        #endregion Тесты атрибутов
 
         #region Тесты поиска членов
 
@@ -476,7 +476,7 @@ namespace RuntimeStuff.MSTests
             // Приватные поля могут не включаться в зависимости от BindingFlags
         }
 
-        #endregion
+        #endregion Тесты поиска членов
 
         #region Тесты работы с ORM
 
@@ -540,7 +540,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsTrue(foreignKeys.Any(fk => fk.Name == "ForeignKeyProperty"));
         }
 
-        #endregion
+        #endregion Тесты работы с ORM
 
         #region Тесты работы со значениями
 
@@ -595,7 +595,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("New", newNameValue);
         }
 
-        #endregion
+        #endregion Тесты работы со значениями
 
         #region Тесты создания экземпляров
 
@@ -644,7 +644,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsInstanceOfType(instance, typeof(SimpleClass));
         }
 
-        #endregion
+        #endregion Тесты создания экземпляров
 
         #region Тесты для интерфейсов и наследования
 
@@ -679,7 +679,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsTrue(derivedCache.Members.Any(m => m.Value.Name == "DerivedProperty"));
         }
 
-        #endregion
+        #endregion Тесты для интерфейсов и наследования
 
         [TestMethod]
         public void AnonymousType_Test()
@@ -788,7 +788,6 @@ namespace RuntimeStuff.MSTests
                 {
                     Debug.WriteLine($"Field '{f.Name}' - Exception: {ex.Message}");
                 }
-
             }
 
             object kv = new KeyValuePair<string, string>("key1", "value1");
@@ -834,6 +833,6 @@ namespace RuntimeStuff.MSTests
             public string? DerivedProperty { get; set; }
         }
 
-        #endregion
+        #endregion Вспомогательные классы для тестов
     }
 }

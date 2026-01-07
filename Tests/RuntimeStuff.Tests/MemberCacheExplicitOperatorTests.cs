@@ -10,18 +10,26 @@ namespace RuntimeStuff.MSTests
         public class TestClassForOperators
         {
             public int PublicProperty { get; set; }
+
             [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0044:Add readonly modifier", Justification = "<Pending>")]
             private string? PrivateField;
+
             public event EventHandler? TestEvent;
 
-            public void PublicMethod() { }
-            private void PrivateMethod() { }
+            public void PublicMethod()
+            { }
 
-            public TestClassForOperators() { }
-            public TestClassForOperators(int value) { }
+            private void PrivateMethod()
+            { }
+
+            public TestClassForOperators()
+            { }
+
+            public TestClassForOperators(int value)
+            { }
         }
 
-        #endregion
+        #endregion Тестовые классы
 
         #region Тест оператора PropertyInfo
 
@@ -70,7 +78,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreSame(viaMethod, viaOperator);
         }
 
-        #endregion
+        #endregion Тест оператора PropertyInfo
 
         #region Тест оператора FieldInfo
 
@@ -102,7 +110,6 @@ namespace RuntimeStuff.MSTests
             // Act
             FieldInfo fieldInfo = memberCache;
             Assert.IsNotNull(fieldInfo);
-
         }
 
         [TestMethod]
@@ -120,7 +127,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreSame(viaMethod, viaOperator);
         }
 
-        #endregion
+        #endregion Тест оператора FieldInfo
 
         #region Тест оператора MethodInfo
 
@@ -152,7 +159,6 @@ namespace RuntimeStuff.MSTests
             // Act
             MethodInfo methodInfo = memberCache;
             Assert.IsNotNull(methodInfo);
-
         }
 
         [TestMethod]
@@ -170,7 +176,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreSame(viaMethod, viaOperator);
         }
 
-        #endregion
+        #endregion Тест оператора MethodInfo
 
         #region Тест оператора EventInfo
 
@@ -219,7 +225,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreSame(viaMethod, viaOperator);
         }
 
-        #endregion
+        #endregion Тест оператора EventInfo
 
         #region Тест оператора ConstructorInfo
 
@@ -285,7 +291,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreSame(viaMethod, viaOperator);
         }
 
-        #endregion
+        #endregion Тест оператора ConstructorInfo
 
         #region Тесты для Type (нет оператора, но проверка AsType)
 
@@ -318,7 +324,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsNull(typeResult);
         }
 
-        #endregion
+        #endregion Тесты для Type (нет оператора, но проверка AsType)
 
         #region Комплексные тесты с проверкой поведения
 
@@ -337,10 +343,12 @@ namespace RuntimeStuff.MSTests
                     PropertyInfo propInfo = memberCache;
                     result = $"Property: {propInfo.Name}";
                     break;
+
                 case MemberTypes.Field:
                     FieldInfo fieldInfo = memberCache;
                     result = $"Field: {fieldInfo.Name}";
                     break;
+
                 case MemberTypes.Method:
                     MethodInfo methodInfo = memberCache;
                     result = $"Method: {methodInfo.Name}";
@@ -410,6 +418,6 @@ namespace RuntimeStuff.MSTests
             }
         }
 
-        #endregion
+        #endregion Комплексные тесты с проверкой поведения
     }
 }

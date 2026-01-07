@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Linq.Expressions;
-
-namespace RuntimeStuff.Helpers
+﻿namespace RuntimeStuff.Helpers
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Data;
+    using System.Linq;
+    using System.Linq.Expressions;
+
     /// <summary>
     /// Предоставляет вспомогательные методы для работы с
     /// <see cref="DataTable"/>, включая добавление колонок и строк,
@@ -56,13 +56,25 @@ namespace RuntimeStuff.Helpers
             Type columnType,
             bool isPrimaryKey = false)
         {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
             if (string.IsNullOrWhiteSpace(columnName))
+            {
                 throw new ArgumentException(@"Column name is required", nameof(columnName));
-            if (columnType == null) throw new ArgumentNullException(nameof(columnType));
+            }
+
+            if (columnType == null)
+            {
+                throw new ArgumentNullException(nameof(columnType));
+            }
 
             if (table.Columns.Contains(columnName))
+            {
                 throw new ArgumentException($"Column '{columnName}' already exists");
+            }
 
             var column = new DataColumn(columnName, columnType)
             {
@@ -71,7 +83,10 @@ namespace RuntimeStuff.Helpers
 
             table.Columns.Add(column);
 
-            if (!isPrimaryKey) return column;
+            if (!isPrimaryKey)
+            {
+                return column;
+            }
 
             var keys = table.PrimaryKey.ToList();
             keys.Add(column);
@@ -106,17 +121,28 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         public static DataRow AddRow(DataTable table, object[] rowData)
         {
-            if (table == null) throw new ArgumentNullException(nameof(table));
-            if (rowData == null) throw new ArgumentNullException(nameof(rowData));
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            if (rowData == null)
+            {
+                throw new ArgumentNullException(nameof(rowData));
+            }
 
             if (rowData.Length != table.Columns.Count)
+            {
                 throw new ArgumentException(
                     "Row data length does not match table columns count");
+            }
 
             var row = table.NewRow();
 
             for (int i = 0; i < rowData.Length; i++)
+            {
                 row[i] = rowData[i] ?? DBNull.Value;
+            }
 
             table.Rows.Add(row);
             return row;
@@ -148,13 +174,22 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         public static DataRow AddRow<T>(DataTable table, T item)
         {
-            if (table == null) throw new ArgumentNullException(nameof(table));
-            if (item == null) throw new ArgumentNullException(nameof(item));
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
+            if (item == null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
 
             var row = table.NewRow();
 
             foreach (DataColumn col in table.Columns)
+            {
                 row[col] = Obj.Get(item, col.ColumnName, col.DataType) ?? DBNull.Value;
+            }
 
             table.Rows.Add(row);
             return row;
@@ -188,19 +223,29 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         public static List<T> ToList<T>(DataTable table, string columnName)
         {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
+
             if (string.IsNullOrWhiteSpace(columnName))
+            {
                 throw new ArgumentException(nameof(columnName));
+            }
 
             if (!table.Columns.Contains(columnName))
+            {
                 throw new ArgumentException($"Column '{columnName}' not found");
+            }
 
             var result = new List<T>(table.Rows.Count);
 
             foreach (DataRow row in table.Rows)
             {
                 if (row[columnName] == DBNull.Value)
+                {
                     continue;
+                }
 
                 result.Add(Obj.ChangeType<T>(row[columnName]));
             }
@@ -227,7 +272,10 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         public static List<T> ToList<T>(DataTable table) where T : class, new()
         {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            if (table == null)
+            {
+                throw new ArgumentNullException(nameof(table));
+            }
 
             var result = new List<T>(table.Rows.Count);
             var props = MemberCache.Create(typeof(T)).Properties;
@@ -239,11 +287,15 @@ namespace RuntimeStuff.Helpers
                 foreach (DataColumn col in table.Columns)
                 {
                     if (!props.TryGetValue(col.ColumnName, out var prop))
+                    {
                         continue;
+                    }
 
                     var value = row[col];
                     if (value == DBNull.Value)
+                    {
                         continue;
+                    }
 
                     prop.SetValue(item, Obj.ChangeType(value, prop.PropertyType));
                 }
@@ -263,21 +315,18 @@ namespace RuntimeStuff.Helpers
         /// соответствует имени типа <typeparamref name="T"/>.</remarks>
         /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
         /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
-        /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса</param>
-        /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства</param>
+        /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса.</param>
+        /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
         /// <returns>Экземпляр <see cref="DataTable"/>, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
         /// только с определёнными столбцами.</returns>
         /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list"/> равен null.</exception>
-        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName = null, params Expression<Func<T, object>>[] propertySelectors) where T : class
-        {
-            return  ToDataTable(list, tableName, propertySelectors.Select(x=>(x, (string)null)).ToArray());
-        }
+        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName = null, params Expression<Func<T, object>>[] propertySelectors) where T : class => ToDataTable(list, tableName, propertySelectors.Select(x => (x, (string)null)).ToArray());
 
         /// <summary>
-        /// Проверяет добавлена ли строка в таблицу
+        /// Проверяет добавлена ли строка в таблицу.
         /// </summary>
-        /// <param name="dt">Таблица</param>
-        /// <param name="row">Строка</param>
+        /// <param name="dt">Таблица.</param>
+        /// <param name="row">Строка.</param>
         /// <returns></returns>
         public static bool ContainsRow(DataTable dt, object row)
         {
@@ -294,24 +343,31 @@ namespace RuntimeStuff.Helpers
         /// соответствует имени типа <typeparamref name="T"/>.</remarks>
         /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
         /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
-        /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса</param>
-        /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства</param>
+        /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса.</param>
+        /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
         /// <returns>Экземпляр <see cref="DataTable"/>, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
         /// только с определёнными столбцами.</returns>
         /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list"/> равен null.</exception>
-        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName, params (Expression<Func<T, object>> propSelector, string columnName)[] propertySelectors) where T: class
+        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName, params (Expression<Func<T, object>> propSelector, string columnName)[] propertySelectors) where T : class
         {
-            if (list == null) throw new ArgumentNullException(nameof(list));
-            var table =  new DataTable(tableName ?? typeof(T).Name);
-            var props = propertySelectors.Any() ? propertySelectors.Select(x=>(ExpressionHelper.GetMemberCache(x.propSelector), x.columnName)).ToArray() : MemberCache.Create(typeof(T)).Properties.Select(x => (x.Value, x.Value.ColumnName)).ToArray();
+            if (list == null)
+            {
+                throw new ArgumentNullException(nameof(list));
+            }
+
+            var table = new DataTable(tableName ?? typeof(T).Name);
+            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.propSelector), x.columnName)).ToArray() : MemberCache.Create(typeof(T)).Properties.Select(x => (x.Value, x.Value.ColumnName)).ToArray();
             var pks = new List<DataColumn>();
             foreach (var prop in props)
             {
                 var colType = Nullable.GetUnderlyingType(prop.Item1.PropertyType) ?? prop.Item1.PropertyType;
                 AddCol(table, prop.Item2 ?? prop.Item1.ColumnName, colType);
                 if (prop.Item1.IsPrimaryKey)
+                {
                     pks.Add(table.Columns[prop.Item2 ?? prop.Item1.ColumnName]);
+                }
             }
+
             table.PrimaryKey = pks.ToArray();
             foreach (var item in list)
             {
@@ -321,8 +377,10 @@ namespace RuntimeStuff.Helpers
                     var value = prop.Item1.GetValue(item);
                     row[prop.Item2 ?? prop.Item1.ColumnName] = value ?? DBNull.Value;
                 }
+
                 table.Rows.Add(row);
             }
+
             return table;
         }
     }

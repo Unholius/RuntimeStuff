@@ -1,8 +1,8 @@
-﻿using System;
-using RuntimeStuff.Helpers;
-
-namespace RuntimeStuff.Extensions
+﻿namespace RuntimeStuff.Extensions
 {
+    using System;
+    using RuntimeStuff.Helpers;
+
     /// <summary>
     ///     Предоставляет методы расширения для преобразования делегатов типа <see cref="Func" /> с произвольным числом
     ///     параметров в делегаты, принимающие и возвращающие значения типа <see cref="object" />. Это позволяет выполнять
@@ -18,11 +18,12 @@ namespace RuntimeStuff.Extensions
     /// </remarks>
     public static class FuncExtensions
     {
-
-        public static Func<T1, R> ConvertFunc<T1, R>(this Func<object, object> func)
+        public static Func<T1, TR> ConvertFunc<T1, TR>(this Func<object, object> func)
         {
             if (func == null)
+            {
                 throw new ArgumentNullException(nameof(func));
+            }
 
             return arg =>
             {
@@ -30,9 +31,11 @@ namespace RuntimeStuff.Extensions
 
                 // null → default
                 if (result == null)
+                {
                     return default;
+                }
 
-                return (R)result;
+                return (TR)result;
             };
         }
 
@@ -45,7 +48,7 @@ namespace RuntimeStuff.Extensions
         ///     например, при работе с рефлексией или динамическими сценариями. Если преобразователи не указаны, используется
         ///     стандартное приведение типов, что может привести к исключениям при несовпадении типов.
         /// </remarks>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать. Не может быть равна null.</param>
         /// к типу T1 с помощью приведения.
         /// <param name="resultConverter">
@@ -56,12 +59,9 @@ namespace RuntimeStuff.Extensions
         ///     Функция, принимающая значение типа object, преобразующая его к типу T1, вызывающая исходную функцию и
         ///     возвращающая результат в виде object.
         /// </returns>
-        public static Func<object> ConvertFunc<R>(
-            this Func<R> func,
-            Func<R, object> resultConverter = null)
-        {
-            return ConvertFunc<R, object>(func, resultConverter);
-        }
+        public static Func<object> ConvertFunc<TR>(
+            this Func<TR> func,
+            Func<TR, object> resultConverter = null) => ConvertFunc<TR, object>(func, resultConverter);
 
         /// <summary>
         ///     Преобразует функцию с типизированным входом и выходом в функцию, принимающую и возвращающую значения типа
@@ -73,7 +73,7 @@ namespace RuntimeStuff.Extensions
         ///     стандартное приведение типов, что может привести к исключениям при несовпадении типов.
         /// </remarks>
         /// <typeparam name="T1">Тип входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать. Не может быть равна null.</param>
         /// <param name="converter1">
         ///     Функция для преобразования входного значения типа object в тип T1. Если не указана, входное значение приводится
@@ -87,13 +87,10 @@ namespace RuntimeStuff.Extensions
         ///     Функция, принимающая значение типа object, преобразующая его к типу T1, вызывающая исходную функцию и
         ///     возвращающая результат в виде object.
         /// </returns>
-        public static Func<object, object> ConvertFunc<T1, R>(
-            this Func<T1, R> func,
+        public static Func<object, object> ConvertFunc<T1, TR>(
+            this Func<T1, TR> func,
             Func<object, T1> converter1,
-            Func<R, object> resultConverter = null)
-        {
-            return ConvertFunc<T1, R, object, object>(func, converter1, resultConverter);
-        }
+            Func<TR, object> resultConverter = null) => ConvertFunc<T1, TR, object, object>(func, converter1, resultConverter);
 
         /// <summary>
         ///     Преобразует функцию с типизированным входом и выходом в функцию, принимающую и возвращающую значения типа
@@ -105,8 +102,8 @@ namespace RuntimeStuff.Extensions
         ///     стандартное приведение типов, что может привести к исключениям при несовпадении типов.
         /// </remarks>
         /// <typeparam name="T1">Тип входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R1">Тип возвращаемого значения исходной функции.</typeparam>
-        /// <typeparam name="R2">Тип возвращаемого значения преобразованной функции.</typeparam>
+        /// <typeparam name="TR1">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR2">Тип возвращаемого значения преобразованной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать. Не может быть равна null.</param>
         /// <param name="converter1">
         ///     Функция для преобразования входного значения типа object в тип T1. Если не указана, входное значение приводится
@@ -120,18 +117,12 @@ namespace RuntimeStuff.Extensions
         ///     Функция, принимающая значение типа object, преобразующая его к типу T1, вызывающая исходную функцию и
         ///     возвращающая результат в виде object.
         /// </returns>
-        public static Func<object, R2> ConvertFunc<T1, R1, R2>(
-            this Func<T1, R1> func,
+        public static Func<object, TR2> ConvertFunc<T1, TR1, TR2>(
+            this Func<T1, TR1> func,
             Func<object, T1> converter1 = null,
-            Func<R1, R2> resultConverter = null)
-        {
-            return ConvertFunc<T1, R1, object, R2>(func, converter1, resultConverter);
-        }
+            Func<TR1, TR2> resultConverter = null) => ConvertFunc<T1, TR1, object, TR2>(func, converter1, resultConverter);
 
-        public static Func<object, R1> ConvertFunc<T1, R1>(this Func<T1, R1> func)
-        {
-            return ConvertFunc<T1, R1, object, R1>(func);
-        }
+        public static Func<object, TR1> ConvertFunc<T1, TR1>(this Func<T1, TR1> func) => ConvertFunc<T1, TR1, object, TR1>(func);
 
         /// <summary>
         ///     Преобразует функцию с типизированным входом и выходом в функцию, принимающую и возвращающую значения типа
@@ -144,7 +135,7 @@ namespace RuntimeStuff.Extensions
         /// </remarks>
         /// <typeparam name="T1">Тип входного параметра исходной функции.</typeparam>
         /// <typeparam name="T2">Тип входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать. Не может быть равна null.</param>
         /// <param name="converter1">
         ///     Функция для преобразования входного значения типа object в тип T1. Если не указана, входное
@@ -158,31 +149,22 @@ namespace RuntimeStuff.Extensions
         ///     Функция для преобразования результата типа R в тип object. Если не указана, результат
         ///     приводится к типу object.
         /// </param>
-        public static Func<object, object, object> ConvertFunc<T1, T2, R>(
-            this Func<T1, T2, R> func,
+        public static Func<object, object, object> ConvertFunc<T1, T2, TR>(
+            this Func<T1, T2, TR> func,
             Func<object, T1> converter1,
             Func<object, T2> converter2,
-            Func<R, object> resultConverter)
-        {
-            return ConvertFunc<T1, T2, R, object, object, object>(func, converter1, converter2, resultConverter);
-        }
+            Func<TR, object> resultConverter) => ConvertFunc<T1, T2, TR, object, object, object>(func, converter1, converter2, resultConverter);
 
-        public static Func<object, object, R2> ConvertFunc<T1, T2, R1, R2>(
-            this Func<T1, T2, R1> func,
+        public static Func<object, object, TR2> ConvertFunc<T1, T2, TR1, TR2>(
+            this Func<T1, T2, TR1> func,
             Func<object, T1> converter1 = null,
             Func<object, T2> converter2 = null,
-            Func<R1, R2> resultConverter = null)
-        {
-            return ConvertFunc<T1, T2, R1, object, object, R2>(func, converter1, converter2, resultConverter);
-        }
+            Func<TR1, TR2> resultConverter = null) => ConvertFunc<T1, T2, TR1, object, object, TR2>(func, converter1, converter2, resultConverter);
 
-        public static Func<object, object, R1> ConvertFunc<T1, T2, R1>(
-            this Func<T1, T2, R1> func,
+        public static Func<object, object, TR1> ConvertFunc<T1, T2, TR1>(
+            this Func<T1, T2, TR1> func,
             Func<object, T1> converter1 = null,
-            Func<object, T2> converter2 = null)
-        {
-            return ConvertFunc<T1, T2, R1, object, object, R1>(func, converter1, converter2);
-        }
+            Func<object, T2> converter2 = null) => ConvertFunc<T1, T2, TR1, object, object, TR1>(func, converter1, converter2);
 
         /// <summary>
         ///     Преобразует функцию с типизированным входом и выходом в функцию, принимающую и возвращающую значения типа
@@ -196,7 +178,7 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T1">Тип входного параметра исходной функции.</typeparam>
         /// <typeparam name="T2">Тип входного параметра исходной функции.</typeparam>
         /// <typeparam name="T3">Тип входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать. Не может быть равна null.</param>
         /// <param name="converter1">
         ///     Функция для преобразования входного значения типа object в тип T1. Если не указана, входное
@@ -214,16 +196,12 @@ namespace RuntimeStuff.Extensions
         ///     Функция для преобразования результата типа R в тип object. Если не указана, результат
         ///     приводится к типу object.
         /// </param>
-        public static Func<object, object, object, object> ConvertFunc<T1, T2, T3, R>(
-            this Func<T1, T2, T3, R> func,
+        public static Func<object, object, object, object> ConvertFunc<T1, T2, T3, TR>(
+            this Func<T1, T2, T3, TR> func,
             Func<object, T1> converter1 = null,
             Func<object, T2> converter2 = null,
             Func<object, T3> converter3 = null,
-            Func<R, object> resultConverter = null)
-        {
-            return ConvertFunc<T1, T2, T3, R, object, object, object, object>(func, converter1, converter2, converter3,
-                resultConverter);
-        }
+            Func<TR, object> resultConverter = null) => ConvertFunc<T1, T2, T3, TR, object, object, object, object>(func, converter1, converter2, converter3, resultConverter);
 
         /// <summary>
         ///     Преобразует функцию с типизированным входом и выходом в функцию, принимающую и возвращающую значения типа
@@ -238,7 +216,7 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T2">Тип входного параметра исходной функции.</typeparam>
         /// <typeparam name="T3">Тип входного параметра исходной функции.</typeparam>
         /// <typeparam name="T4">Тип входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать. Не может быть равна null.</param>
         /// <param name="converter1">
         ///     Функция для преобразования входного значения типа object в тип T1. Если не указана, входное
@@ -260,17 +238,13 @@ namespace RuntimeStuff.Extensions
         ///     Функция для преобразования результата типа R в тип object. Если не указана, результат
         ///     приводится к типу object.
         /// </param>
-        public static Func<object, object, object, object, object> ConvertFunc<T1, T2, T3, T4, R>(
-            this Func<T1, T2, T3, T4, R> func,
+        public static Func<object, object, object, object, object> ConvertFunc<T1, T2, T3, T4, TR>(
+            this Func<T1, T2, T3, T4, TR> func,
             Func<object, T1> converter1 = null,
             Func<object, T2> converter2 = null,
             Func<object, T3> converter3 = null,
             Func<object, T4> converter4 = null,
-            Func<R, object> resultConverter = null)
-        {
-            return ConvertFunc<T1, T2, T3, T4, R, object, object, object, object, object>(func, converter1, converter2,
-                converter3, converter4, resultConverter);
-        }
+            Func<TR, object> resultConverter = null) => ConvertFunc<T1, T2, T3, T4, TR, object, object, object, object, object>(func, converter1, converter2, converter3, converter4, resultConverter);
 
         /// <summary>
         ///     Преобразует функцию с типизированным входом и выходом в функцию, принимающую и возвращающую значения типа
@@ -286,7 +260,7 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T3">Тип входного параметра исходной функции.</typeparam>
         /// <typeparam name="T4">Тип входного параметра исходной функции.</typeparam>
         /// <typeparam name="T5">Тип входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать. Не может быть равна null.</param>
         /// <param name="converter1">
         ///     Функция для преобразования входного значения типа object в тип T1. Если не указана, входное
@@ -312,18 +286,14 @@ namespace RuntimeStuff.Extensions
         ///     Функция для преобразования результата типа R в тип object. Если не указана, результат
         ///     приводится к типу object.
         /// </param>
-        public static Func<object, object, object, object, object, object> ConvertFunc<T1, T2, T3, T4, T5, R>(
-            this Func<T1, T2, T3, T4, T5, R> func,
+        public static Func<object, object, object, object, object, object> ConvertFunc<T1, T2, T3, T4, T5, TR>(
+            this Func<T1, T2, T3, T4, T5, TR> func,
             Func<object, T1> converter1 = null,
             Func<object, T2> converter2 = null,
             Func<object, T3> converter3 = null,
             Func<object, T4> converter4 = null,
             Func<object, T5> converter5 = null,
-            Func<R, object> resultConverter = null)
-        {
-            return ConvertFunc<T1, T2, T3, T4, T5, R, object, object, object, object, object, object>(func, converter1,
-                converter2, converter3, converter4, converter5, resultConverter);
-        }
+            Func<TR, object> resultConverter = null) => ConvertFunc<T1, T2, T3, T4, T5, TR, object, object, object, object, object, object>(func, converter1, converter2, converter3, converter4, converter5, resultConverter);
 
         /// <summary>
         ///     Преобразует функцию с шестью типизированными аргументами в функцию, принимающую аргументы типа object, с
@@ -341,7 +311,7 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T4">Тип четвертого аргумента исходной функции.</typeparam>
         /// <typeparam name="T5">Тип пятого аргумента исходной функции.</typeparam>
         /// <typeparam name="T6">Тип шестого аргумента исходной функции.</typeparam>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">
         ///     Исходная функция, принимающая шесть аргументов указанных типов и возвращающая результат типа R. Не может быть
         ///     null.
@@ -378,19 +348,15 @@ namespace RuntimeStuff.Extensions
         ///     Функция, принимающая шесть аргументов типа object, преобразующая их к соответствующим типам и возвращающая
         ///     результат в виде object.
         /// </returns>
-        public static Func<object, object, object, object, object, object, object> ConvertFunc<T1, T2, T3, T4, T5, T6, R>(
-            this Func<T1, T2, T3, T4, T5, T6, R> func,
+        public static Func<object, object, object, object, object, object, object> ConvertFunc<T1, T2, T3, T4, T5, T6, TR>(
+            this Func<T1, T2, T3, T4, T5, T6, TR> func,
             Func<object, T1> converter1 = null,
             Func<object, T2> converter2 = null,
             Func<object, T3> converter3 = null,
             Func<object, T4> converter4 = null,
             Func<object, T5> converter5 = null,
             Func<object, T6> converter6 = null,
-            Func<R, object> resultConverter = null)
-        {
-            return ConvertFunc<T1, T2, T3, T4, T5, T6, R, object, object, object, object, object, object, object>(func,
-                converter1, converter2, converter3, converter4, converter5, converter6, resultConverter);
-        }
+            Func<TR, object> resultConverter = null) => ConvertFunc<T1, T2, T3, T4, T5, T6, TR, object, object, object, object, object, object, object>(func, converter1, converter2, converter3, converter4, converter5, converter6, resultConverter);
 
         /// <summary>
         ///     Преобразует функцию с семью типизированными аргументами в функцию, принимающую аргументы типа object, с
@@ -408,7 +374,7 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T5">Тип пятого аргумента исходной функции.</typeparam>
         /// <typeparam name="T6">Тип шестого аргумента исходной функции.</typeparam>
         /// <typeparam name="T7">Тип седьмого аргумента исходной функции.</typeparam>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">Исходная функция, принимающая семь типизированных аргументов и возвращающая результат типа R.</param>
         /// <param name="converter1">
         ///     Необязательный конвертер для преобразования первого аргумента из object в тип T1. Если не указан, используется
@@ -447,8 +413,8 @@ namespace RuntimeStuff.Extensions
         ///     конвертеров.
         /// </returns>
         public static Func<object, object, object, object, object, object, object, object> ConvertFunc<T1, T2, T3, T4, T5,
-            T6, T7, R>(
-            this Func<T1, T2, T3, T4, T5, T6, T7, R> func,
+            T6, T7, TR>(
+            this Func<T1, T2, T3, T4, T5, T6, T7, TR> func,
             Func<object, T1> converter1 = null,
             Func<object, T2> converter2 = null,
             Func<object, T3> converter3 = null,
@@ -456,12 +422,7 @@ namespace RuntimeStuff.Extensions
             Func<object, T5> converter5 = null,
             Func<object, T6> converter6 = null,
             Func<object, T7> converter7 = null,
-            Func<R, object> resultConverter = null)
-        {
-            return ConvertFunc<T1, T2, T3, T4, T5, T6, T7, R, object, object, object, object, object, object, object,
-                object>(func, converter1, converter2, converter3, converter4, converter5, converter6, converter7,
-                resultConverter);
-        }
+            Func<TR, object> resultConverter = null) => ConvertFunc<T1, T2, T3, T4, T5, T6, T7, TR, object, object, object, object, object, object, object, object>(func, converter1, converter2, converter3, converter4, converter5, converter6, converter7, resultConverter);
 
         /// <summary>
         ///     Преобразует функцию с восемью типизированными аргументами в функцию, принимающую аргументы типа object, с
@@ -480,7 +441,7 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T6">Тип шестого аргумента исходной функции.</typeparam>
         /// <typeparam name="T7">Тип седьмого аргумента исходной функции.</typeparam>
         /// <typeparam name="T8">Тип восьмого аргумента исходной функции.</typeparam>
-        /// <typeparam name="R">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TR">Тип возвращаемого значения исходной функции.</typeparam>
         /// <param name="func">Исходная функция, принимающая восемь типизированных аргументов и возвращающая результат типа R.</param>
         /// <param name="converter1">
         ///     Необязательный конвертер для преобразования первого аргумента из object в тип T1. Если не указан, выполняется
@@ -523,8 +484,8 @@ namespace RuntimeStuff.Extensions
         ///     конвертеров.
         /// </returns>
         public static Func<object, object, object, object, object, object, object, object, object> ConvertFunc<T1, T2, T3,
-            T4, T5, T6, T7, T8, R>(
-            this Func<T1, T2, T3, T4, T5, T6, T7, T8, R> func,
+            T4, T5, T6, T7, T8, TR>(
+            this Func<T1, T2, T3, T4, T5, T6, T7, T8, TR> func,
             Func<object, T1> converter1 = null,
             Func<object, T2> converter2 = null,
             Func<object, T3> converter3 = null,
@@ -533,20 +494,13 @@ namespace RuntimeStuff.Extensions
             Func<object, T6> converter6 = null,
             Func<object, T7> converter7 = null,
             Func<object, T8> converter8 = null,
-            Func<R, object> resultConverter = null)
-        {
-            return ConvertFunc<T1, T2, T3, T4, T5, T6, T7, T8, R, object, object, object, object, object, object, object,
-                object, object>(func, converter1, converter2, converter3, converter4, converter5, converter6, converter7,
-                converter8, resultConverter);
-        }
-
+            Func<TR, object> resultConverter = null) => ConvertFunc<T1, T2, T3, T4, T5, T6, T7, T8, TR, object, object, object, object, object, object, object, object, object>(func, converter1, converter2, converter3, converter4, converter5, converter6, converter7, converter8, resultConverter);
 
         // -------------------------------- Дополнительные методы расширения для Func с большим числом параметров можно добавить здесь ---------------------------------
 
-
         /// <summary>
-        ///     Преобразует функцию без параметров, возвращающую значение типа <typeparamref name="R1" />, в функцию без
-        ///     параметров, возвращающую значение типа <typeparamref name="R2" /> с помощью указанного преобразователя результата
+        ///     Преобразует функцию без параметров, возвращающую значение типа <typeparamref name="TR1" />, в функцию без
+        ///     параметров, возвращающую значение типа <typeparamref name="TR2" /> с помощью указанного преобразователя результата
         ///     или стандартного преобразования типа.
         /// </summary>
         /// <remarks>
@@ -554,27 +508,24 @@ namespace RuntimeStuff.Extensions
         ///     стандартный механизм <see cref="Obj.ChangeType{T}" />. Метод может быть полезен для адаптации функций к
         ///     требуемому типу результата, например, при работе с обобщёнными API.
         /// </remarks>
-        /// <typeparam name="R1">Тип исходного значения, возвращаемого исходной функцией.</typeparam>
-        /// <typeparam name="R2">Тип значения, возвращаемого преобразованной функцией.</typeparam>
+        /// <typeparam name="TR1">Тип исходного значения, возвращаемого исходной функцией.</typeparam>
+        /// <typeparam name="TR2">Тип значения, возвращаемого преобразованной функцией.</typeparam>
         /// <param name="func">
-        ///     Исходная функция без параметров, возвращающая значение типа <typeparamref name="R1" />. Не может
+        ///     Исходная функция без параметров, возвращающая значение типа <typeparamref name="TR1" />. Не может
         ///     быть равна null.
         /// </param>
         /// <param name="resultConverter">
-        ///     Функция преобразования результата, принимающая значение типа <typeparamref name="R1" /> и возвращающая значение
-        ///     типа <typeparamref name="R2" />. Если не указана, используется стандартное преобразование типа.
+        ///     Функция преобразования результата, принимающая значение типа <typeparamref name="TR1" /> и возвращающая значение
+        ///     типа <typeparamref name="TR2" />. Если не указана, используется стандартное преобразование типа.
         /// </param>
-        /// <returns>Функция без параметров, возвращающая значение типа <typeparamref name="R2" />.</returns>
-        public static Func<R2> ConvertFunc<R1, R2>(
-            this Func<R1> func,
-            Func<R1, R2> resultConverter = null)
-        {
-            return () =>
-            {
-                var r = func();
-                return resultConverter == null ? Obj.ChangeType<R2>(r) : resultConverter(r);
-            };
-        }
+        /// <returns>Функция без параметров, возвращающая значение типа <typeparamref name="TR2" />.</returns>
+        public static Func<TR2> ConvertFunc<TR1, TR2>(
+            this Func<TR1> func,
+            Func<TR1, TR2> resultConverter = null) => () =>
+                                                               {
+                                                                   var r = func();
+                                                                   return resultConverter == null ? Obj.ChangeType<TR2>(r) : resultConverter(r);
+                                                               };
 
         /// <summary>
         ///     Преобразует функцию с типизированным входом и выходом в функцию, принимающую и возвращающую значения типа
@@ -586,9 +537,9 @@ namespace RuntimeStuff.Extensions
         ///     стандартное приведение типов, что может привести к исключениям при несовпадении типов.
         /// </remarks>
         /// <typeparam name="T1">Тип входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R1">Тип возвращаемого значения исходной функции.</typeparam>
-        /// <typeparam name="R2">Тип возвращаемого значения преобразованной функции.</typeparam>
-        /// <typeparam name="U1">Тип входного параметра преобразованной функции</typeparam>
+        /// <typeparam name="TR1">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TU1">Тип входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TR2">Тип возвращаемого значения преобразованной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать. Не может быть равна null.</param>
         /// <param name="converter1">
         ///     Функция для преобразования входного значения типа object в тип T1. Если не указана, входное значение приводится
@@ -602,21 +553,14 @@ namespace RuntimeStuff.Extensions
         ///     Функция, принимающая значение типа object, преобразующая его к типу T1, вызывающая исходную функцию и
         ///     возвращающая результат в виде object.
         /// </returns>
-        public static Func<U1, R2> ConvertFunc<T1, R1, U1, R2>(
-            this Func<T1, R1> func,
-            Func<U1, T1> converter1 = null,
-            Func<R1, R2> resultConverter = null)
-        {
-            return f =>
-            {
-                var r = func(converter1 == null ? Obj.ChangeType<T1>(f) : converter1(f));
-                return resultConverter == null ? Obj.ChangeType<R2>(r) : resultConverter(r);
-            };
-        }
-
-        //public static Func<U1, R2> ConvertFunc<U1, R2, T1, R1>(this Func<T1, R1> func)
-        //    => func.ConvertFunc<T1, R1, U1, R2>(null, null);
-
+        public static Func<TU1, TR2> ConvertFunc<T1, TR1, TU1, TR2>(
+            this Func<T1, TR1> func,
+            Func<TU1, T1> converter1 = null,
+            Func<TR1, TR2> resultConverter = null) => f =>
+                                                               {
+                                                                   var r = func(converter1 == null ? Obj.ChangeType<T1>(f) : converter1(f));
+                                                                   return resultConverter == null ? Obj.ChangeType<TR2>(r) : resultConverter(r);
+                                                               };
 
         /// <summary>
         ///     Преобразует функцию с двумя аргументами в новую функцию с изменёнными типами входных и выходного параметров,
@@ -629,10 +573,10 @@ namespace RuntimeStuff.Extensions
         /// </remarks>
         /// <typeparam name="T1">Тип первого входного параметра исходной функции.</typeparam>
         /// <typeparam name="T2">Тип второго входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R1">Тип возвращаемого значения исходной функции.</typeparam>
-        /// <typeparam name="U1">Тип первого входного параметра результирующей функции.</typeparam>
-        /// <typeparam name="U2">Тип второго входного параметра результирующей функции.</typeparam>
-        /// <typeparam name="R2">Тип возвращаемого значения результирующей функции.</typeparam>
+        /// <typeparam name="TR1">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TU1">Тип первого входного параметра результирующей функции.</typeparam>
+        /// <typeparam name="TU2">Тип второго входного параметра результирующей функции.</typeparam>
+        /// <typeparam name="TR2">Тип возвращаемого значения результирующей функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать.</param>
         /// <param name="converter1">
         ///     Функция для преобразования первого входного параметра из типа U1 в тип T1. Если не указана, используется
@@ -650,22 +594,17 @@ namespace RuntimeStuff.Extensions
         ///     Функция, принимающая параметры типов U1 и U2 и возвращающая значение типа R2, с применёнными преобразованиями
         ///     входных и выходного параметров.
         /// </returns>
-        public static Func<U1, U2, R2> ConvertFunc<T1, T2, R1, U1, U2, R2>(
-            this Func<T1, T2, R1> func,
-            Func<U1, T1> converter1 = null,
-            Func<U2, T2> converter2 = null,
-            Func<R1, R2> r2 = null)
-        {
-            return (t1, t2) =>
-            {
-                var r1 = func(
-                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2)
-                );
-                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
-            };
-        }
-
+        public static Func<TU1, TU2, TR2> ConvertFunc<T1, T2, TR1, TU1, TU2, TR2>(
+            this Func<T1, T2, TR1> func,
+            Func<TU1, T1> converter1 = null,
+            Func<TU2, T2> converter2 = null,
+            Func<TR1, TR2> r2 = null) => (t1, t2) =>
+                                                  {
+                                                      var r1 = func(
+                                                          converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                                                          converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2));
+                                                      return r2 == null ? Obj.ChangeType<TR2>(r1) : r2(r1);
+                                                  };
 
         /// <summary>
         ///     Преобразует функцию с тремя аргументами и возвращаемым значением, позволяя использовать преобразователи типов
@@ -678,11 +617,11 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T1">Тип первого входного параметра исходной функции.</typeparam>
         /// <typeparam name="T2">Тип второго входного параметра исходной функции.</typeparam>
         /// <typeparam name="T3">Тип третьего входного параметра исходной функции.</typeparam>
-        /// <typeparam name="R1">Тип возвращаемого значения исходной функции.</typeparam>
-        /// <typeparam name="U1">Тип первого входного параметра результирующей функции.</typeparam>
-        /// <typeparam name="U2">Тип второго входного параметра результирующей функции.</typeparam>
-        /// <typeparam name="U3">Тип третьего входного параметра результирующей функции.</typeparam>
-        /// <typeparam name="R2">Тип возвращаемого значения результирующей функции.</typeparam>
+        /// <typeparam name="TR1">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TU1">Тип первого входного параметра результирующей функции.</typeparam>
+        /// <typeparam name="TU2">Тип второго входного параметра результирующей функции.</typeparam>
+        /// <typeparam name="TU3">Тип третьего входного параметра результирующей функции.</typeparam>
+        /// <typeparam name="TR2">Тип возвращаемого значения результирующей функции.</typeparam>
         /// <param name="func">Исходная функция, принимающая три параметра типа T1, T2, T3 и возвращающая значение типа R1.</param>
         /// <param name="converter1">
         ///     Функция преобразования первого входного параметра из типа U1 в тип T1. Если не указана, используется стандартное
@@ -701,27 +640,22 @@ namespace RuntimeStuff.Extensions
         ///     преобразование типов.
         /// </param>
         /// <returns>
-        ///     Функция, принимающая три параметра типа U1, U2, U3 и возвращающая значение типа R2, с применением указанных
+        ///     Функция, принимающая три параметра типа U1, TU2, TU3 и возвращающая значение типа R2, с применением указанных
         ///     преобразователей.
         /// </returns>
-        public static Func<U1, U2, U3, R2> ConvertFunc<T1, T2, T3, R1, U1, U2, U3, R2>(
-            this Func<T1, T2, T3, R1> func,
-            Func<U1, T1> converter1 = null,
-            Func<U2, T2> converter2 = null,
-            Func<U3, T3> converter3 = null,
-            Func<R1, R2> r2 = null)
-        {
-            return (t1, t2, t3) =>
-            {
-                var r1 = func(
-                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3)
-                );
-                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
-            };
-        }
-
+        public static Func<TU1, TU2, TU3, TR2> ConvertFunc<T1, T2, T3, TR1, TU1, TU2, TU3, TR2>(
+            this Func<T1, T2, T3, TR1> func,
+            Func<TU1, T1> converter1 = null,
+            Func<TU2, T2> converter2 = null,
+            Func<TU3, T3> converter3 = null,
+            Func<TR1, TR2> r2 = null) => (t1, t2, t3) =>
+                                                  {
+                                                      var r1 = func(
+                                                          converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                                                          converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                                                          converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3));
+                                                      return r2 == null ? Obj.ChangeType<TR2>(r1) : r2(r1);
+                                                  };
 
         /// <summary>
         ///     Преобразует функцию с четырьмя аргументами, позволяя задать преобразование типов входных параметров и
@@ -736,12 +670,12 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T2">Тип второго исходного аргумента функции.</typeparam>
         /// <typeparam name="T3">Тип третьего исходного аргумента функции.</typeparam>
         /// <typeparam name="T4">Тип четвертого исходного аргумента функции.</typeparam>
-        /// <typeparam name="R1">Тип исходного возвращаемого значения функции.</typeparam>
-        /// <typeparam name="U1">Тип первого аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="U2">Тип второго аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="U3">Тип третьего аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="U4">Тип четвертого аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="R2">Тип возвращаемого значения преобразованной функции.</typeparam>
+        /// <typeparam name="TR1">Тип исходного возвращаемого значения функции.</typeparam>
+        /// <typeparam name="TU1">Тип первого аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TU2">Тип второго аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TU3">Тип третьего аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TU4">Тип четвертого аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TR2">Тип возвращаемого значения преобразованной функции.</typeparam>
         /// <param name="func">Исходная функция, принимающая четыре аргумента и возвращающая результат.</param>
         /// <param name="converter1">
         ///     Функция преобразования первого аргумента. Если не указана, используется приведение типа по
@@ -764,26 +698,21 @@ namespace RuntimeStuff.Extensions
         ///     умолчанию.
         /// </param>
         /// <returns>Функция, принимающая четыре аргумента преобразованных типов и возвращающая результат преобразованного типа.</returns>
-        public static Func<U1, U2, U3, U4, R2> ConvertFunc<T1, T2, T3, T4, R1, U1, U2, U3, U4, R2>(
-            this Func<T1, T2, T3, T4, R1> func,
-            Func<U1, T1> converter1 = null,
-            Func<U2, T2> converter2 = null,
-            Func<U3, T3> converter3 = null,
-            Func<U4, T4> converter4 = null,
-            Func<R1, R2> r2 = null)
-        {
-            return (t1, t2, t3, t4) =>
-            {
-                var r1 = func(
-                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4)
-                );
-                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
-            };
-        }
-
+        public static Func<TU1, TU2, TU3, TU4, TR2> ConvertFunc<T1, T2, T3, T4, TR1, TU1, TU2, TU3, TU4, TR2>(
+            this Func<T1, T2, T3, T4, TR1> func,
+            Func<TU1, T1> converter1 = null,
+            Func<TU2, T2> converter2 = null,
+            Func<TU3, T3> converter3 = null,
+            Func<TU4, T4> converter4 = null,
+            Func<TR1, TR2> r2 = null) => (t1, t2, t3, t4) =>
+                                                  {
+                                                      var r1 = func(
+                                                          converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                                                          converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                                                          converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                                                          converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4));
+                                                      return r2 == null ? Obj.ChangeType<TR2>(r1) : r2(r1);
+                                                  };
 
         /// <summary>
         ///     Преобразует функцию с пятью аргументами, позволяя задать преобразование типов входных параметров и возвращаемого
@@ -799,13 +728,13 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T3">Тип третьего исходного параметра функции.</typeparam>
         /// <typeparam name="T4">Тип четвертого исходного параметра функции.</typeparam>
         /// <typeparam name="T5">Тип пятого исходного параметра функции.</typeparam>
-        /// <typeparam name="R1">Тип исходного возвращаемого значения функции.</typeparam>
-        /// <typeparam name="U1">Тип первого параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U2">Тип второго параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U3">Тип третьего параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U4">Тип четвертого параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U5">Тип пятого параметра преобразованной функции.</typeparam>
-        /// <typeparam name="R2">Тип возвращаемого значения преобразованной функции.</typeparam>
+        /// <typeparam name="TR1">Тип исходного возвращаемого значения функции.</typeparam>
+        /// <typeparam name="TU1">Тип первого параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU2">Тип второго параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU3">Тип третьего параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU4">Тип четвертого параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU5">Тип пятого параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TR2">Тип возвращаемого значения преобразованной функции.</typeparam>
         /// <param name="func">Исходная функция, которую требуется преобразовать.</param>
         /// <param name="converter1">
         ///     Функция преобразования первого параметра. Если не указана, используется приведение типа по
@@ -832,28 +761,23 @@ namespace RuntimeStuff.Extensions
         ///     умолчанию.
         /// </param>
         /// <returns>Функция, принимающая пять параметров преобразованных типов и возвращающая преобразованное значение.</returns>
-        public static Func<U1, U2, U3, U4, U5, R2> ConvertFunc<T1, T2, T3, T4, T5, R1, U1, U2, U3, U4, U5, R2>(
-            this Func<T1, T2, T3, T4, T5, R1> func,
-            Func<U1, T1> converter1 = null,
-            Func<U2, T2> converter2 = null,
-            Func<U3, T3> converter3 = null,
-            Func<U4, T4> converter4 = null,
-            Func<U5, T5> converter5 = null,
-            Func<R1, R2> r2 = null)
-        {
-            return (t1, t2, t3, t4, t5) =>
-            {
-                var r1 = func(
-                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
-                    converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5)
-                );
-                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
-            };
-        }
-
+        public static Func<TU1, TU2, TU3, TU4, TU5, TR2> ConvertFunc<T1, T2, T3, T4, T5, TR1, TU1, TU2, TU3, TU4, TU5, TR2>(
+            this Func<T1, T2, T3, T4, T5, TR1> func,
+            Func<TU1, T1> converter1 = null,
+            Func<TU2, T2> converter2 = null,
+            Func<TU3, T3> converter3 = null,
+            Func<TU4, T4> converter4 = null,
+            Func<TU5, T5> converter5 = null,
+            Func<TR1, TR2> r2 = null) => (t1, t2, t3, t4, t5) =>
+                                                  {
+                                                      var r1 = func(
+                                                          converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                                                          converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                                                          converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                                                          converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
+                                                          converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5));
+                                                      return r2 == null ? Obj.ChangeType<TR2>(r1) : r2(r1);
+                                                  };
 
         /// <summary>
         ///     Преобразует функцию с шестью аргументами, позволяя задать преобразование типов входных параметров и
@@ -870,14 +794,14 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T4">Тип четвертого исходного аргумента функции.</typeparam>
         /// <typeparam name="T5">Тип пятого исходного аргумента функции.</typeparam>
         /// <typeparam name="T6">Тип шестого исходного аргумента функции.</typeparam>
-        /// <typeparam name="R1">Тип исходного возвращаемого значения функции.</typeparam>
-        /// <typeparam name="U1">Тип первого аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="U2">Тип второго аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="U3">Тип третьего аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="U4">Тип четвертого аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="U5">Тип пятого аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="U6">Тип шестого аргумента преобразованной функции.</typeparam>
-        /// <typeparam name="R2">Тип возвращаемого значения преобразованной функции.</typeparam>
+        /// <typeparam name="TR1">Тип исходного возвращаемого значения функции.</typeparam>
+        /// <typeparam name="TU1">Тип первого аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TU2">Тип второго аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TU3">Тип третьего аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TU4">Тип четвертого аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TU5">Тип пятого аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TU6">Тип шестого аргумента преобразованной функции.</typeparam>
+        /// <typeparam name="TR2">Тип возвращаемого значения преобразованной функции.</typeparam>
         /// <param name="func">Исходная функция с шестью аргументами, которую требуется преобразовать.</param>
         /// <param name="converter1">
         ///     Функция преобразования первого аргумента из типа U1 в тип T1. Если не указана, используется стандартное
@@ -908,30 +832,25 @@ namespace RuntimeStuff.Extensions
         ///     преобразование типов.
         /// </param>
         /// <returns>Функция, принимающая шесть аргументов новых типов и возвращающая результат преобразованного типа.</returns>
-        public static Func<U1, U2, U3, U4, U5, U6, R2> ConvertFunc<T1, T2, T3, T4, T5, T6, R1, U1, U2, U3, U4, U5, U6, R2>(
-            this Func<T1, T2, T3, T4, T5, T6, R1> func,
-            Func<U1, T1> converter1 = null,
-            Func<U2, T2> converter2 = null,
-            Func<U3, T3> converter3 = null,
-            Func<U4, T4> converter4 = null,
-            Func<U5, T5> converter5 = null,
-            Func<U6, T6> converter6 = null,
-            Func<R1, R2> r2 = null)
-        {
-            return (t1, t2, t3, t4, t5, t6) =>
-            {
-                var r1 = func(
-                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
-                    converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
-                    converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6)
-                );
-                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
-            };
-        }
-
+        public static Func<TU1, TU2, TU3, TU4, TU5, TU6, TR2> ConvertFunc<T1, T2, T3, T4, T5, T6, TR1, TU1, TU2, TU3, TU4, TU5, TU6, TR2>(
+            this Func<T1, T2, T3, T4, T5, T6, TR1> func,
+            Func<TU1, T1> converter1 = null,
+            Func<TU2, T2> converter2 = null,
+            Func<TU3, T3> converter3 = null,
+            Func<TU4, T4> converter4 = null,
+            Func<TU5, T5> converter5 = null,
+            Func<TU6, T6> converter6 = null,
+            Func<TR1, TR2> r2 = null) => (t1, t2, t3, t4, t5, t6) =>
+                                                  {
+                                                      var r1 = func(
+                                                          converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                                                          converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                                                          converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                                                          converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
+                                                          converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
+                                                          converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6));
+                                                      return r2 == null ? Obj.ChangeType<TR2>(r1) : r2(r1);
+                                                  };
 
         /// <summary>
         ///     Преобразует функцию с семью аргументами, позволяя задать преобразование типов входных параметров и возвращаемого
@@ -949,15 +868,15 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T5">Тип пятого исходного аргумента функции.</typeparam>
         /// <typeparam name="T6">Тип шестого исходного аргумента функции.</typeparam>
         /// <typeparam name="T7">Тип седьмого исходного аргумента функции.</typeparam>
-        /// <typeparam name="R1">Тип исходного возвращаемого значения функции.</typeparam>
-        /// <typeparam name="U1">Тип первого преобразованного аргумента.</typeparam>
-        /// <typeparam name="U2">Тип второго преобразованного аргумента.</typeparam>
-        /// <typeparam name="U3">Тип третьего преобразованного аргумента.</typeparam>
-        /// <typeparam name="U4">Тип четвертого преобразованного аргумента.</typeparam>
-        /// <typeparam name="U5">Тип пятого преобразованного аргумента.</typeparam>
-        /// <typeparam name="U6">Тип шестого преобразованного аргумента.</typeparam>
-        /// <typeparam name="U7">Тип седьмого преобразованного аргумента.</typeparam>
-        /// <typeparam name="R2">Тип преобразованного возвращаемого значения.</typeparam>
+        /// <typeparam name="TR1">Тип исходного возвращаемого значения функции.</typeparam>
+        /// <typeparam name="TU1">Тип первого преобразованного аргумента.</typeparam>
+        /// <typeparam name="TU2">Тип второго преобразованного аргумента.</typeparam>
+        /// <typeparam name="TU3">Тип третьего преобразованного аргумента.</typeparam>
+        /// <typeparam name="TU4">Тип четвертого преобразованного аргумента.</typeparam>
+        /// <typeparam name="TU5">Тип пятого преобразованного аргумента.</typeparam>
+        /// <typeparam name="TU6">Тип шестого преобразованного аргумента.</typeparam>
+        /// <typeparam name="TU7">Тип седьмого преобразованного аргумента.</typeparam>
+        /// <typeparam name="TR2">Тип преобразованного возвращаемого значения.</typeparam>
         /// <param name="func">Исходная функция с семью аргументами, которую требуется преобразовать.</param>
         /// <param name="converter1">
         ///     Функция преобразования первого аргумента из типа U1 в T1. Если не указана, используется стандартное
@@ -995,33 +914,28 @@ namespace RuntimeStuff.Extensions
         ///     Функция, принимающая аргументы типов U1–U7 и возвращающая значение типа R2, с применёнными преобразованиями к
         ///     каждому аргументу и результату.
         /// </returns>
-        public static Func<U1, U2, U3, U4, U5, U6, U7, R2> ConvertFunc<T1, T2, T3, T4, T5, T6, T7, R1, U1, U2, U3, U4, U5,
-            U6, U7, R2>(
-            this Func<T1, T2, T3, T4, T5, T6, T7, R1> func,
-            Func<U1, T1> converter1 = null,
-            Func<U2, T2> converter2 = null,
-            Func<U3, T3> converter3 = null,
-            Func<U4, T4> converter4 = null,
-            Func<U5, T5> converter5 = null,
-            Func<U6, T6> converter6 = null,
-            Func<U7, T7> converter7 = null,
-            Func<R1, R2> r2 = null)
-        {
-            return (t1, t2, t3, t4, t5, t6, t7) =>
-            {
-                var r1 = func(
-                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
-                    converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
-                    converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6),
-                    converter7 == null ? Obj.ChangeType<T7>(t7) : converter7(t7)
-                );
-                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
-            };
-        }
-
+        public static Func<TU1, TU2, TU3, TU4, TU5, TU6, TU7, TR2> ConvertFunc<T1, T2, T3, T4, T5, T6, T7, TR1, TU1, TU2, TU3, TU4, TU5,
+            TU6, TU7, TR2>(
+            this Func<T1, T2, T3, T4, T5, T6, T7, TR1> func,
+            Func<TU1, T1> converter1 = null,
+            Func<TU2, T2> converter2 = null,
+            Func<TU3, T3> converter3 = null,
+            Func<TU4, T4> converter4 = null,
+            Func<TU5, T5> converter5 = null,
+            Func<TU6, T6> converter6 = null,
+            Func<TU7, T7> converter7 = null,
+            Func<TR1, TR2> r2 = null) => (t1, t2, t3, t4, t5, t6, t7) =>
+                                                  {
+                                                      var r1 = func(
+                                                          converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                                                          converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                                                          converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                                                          converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
+                                                          converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
+                                                          converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6),
+                                                          converter7 == null ? Obj.ChangeType<T7>(t7) : converter7(t7));
+                                                      return r2 == null ? Obj.ChangeType<TR2>(r1) : r2(r1);
+                                                  };
 
         /// <summary>
         ///     Преобразует функцию с восемью аргументами, позволяя задать преобразование типов входных параметров и результата.
@@ -1039,16 +953,16 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T6">Тип шестого исходного параметра функции.</typeparam>
         /// <typeparam name="T7">Тип седьмого исходного параметра функции.</typeparam>
         /// <typeparam name="T8">Тип восьмого исходного параметра функции.</typeparam>
-        /// <typeparam name="R1">Тип возвращаемого значения исходной функции.</typeparam>
-        /// <typeparam name="U1">Тип первого входного параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U2">Тип второго входного параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U3">Тип третьего входного параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U4">Тип четвертого входного параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U5">Тип пятого входного параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U6">Тип шестого входного параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U7">Тип седьмого входного параметра преобразованной функции.</typeparam>
-        /// <typeparam name="U8">Тип восьмого входного параметра преобразованной функции.</typeparam>
-        /// <typeparam name="R2">Тип возвращаемого значения преобразованной функции.</typeparam>
+        /// <typeparam name="TR1">Тип возвращаемого значения исходной функции.</typeparam>
+        /// <typeparam name="TU1">Тип первого входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU2">Тип второго входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU3">Тип третьего входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU4">Тип четвертого входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU5">Тип пятого входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU6">Тип шестого входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU7">Тип седьмого входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TU8">Тип восьмого входного параметра преобразованной функции.</typeparam>
+        /// <typeparam name="TR2">Тип возвращаемого значения преобразованной функции.</typeparam>
         /// <param name="func">Исходная функция, принимающая восемь параметров и возвращающая значение типа R1.</param>
         /// <param name="converter1">
         ///     Функция преобразования первого входного параметра из типа U1 в тип T1. Если не указана, используется стандартное
@@ -1087,32 +1001,29 @@ namespace RuntimeStuff.Extensions
         ///     типов.
         /// </param>
         /// <returns>Функция, принимающая восемь параметров преобразованных типов и возвращающая результат преобразованного типа.</returns>
-        public static Func<U1, U2, U3, U4, U5, U6, U7, U8, R2> ConvertFunc<T1, T2, T3, T4, T5, T6, T7, T8, R1, U1, U2, U3,
-            U4, U5, U6, U7, U8, R2>(
-            this Func<T1, T2, T3, T4, T5, T6, T7, T8, R1> func,
-            Func<U1, T1> converter1 = null,
-            Func<U2, T2> converter2 = null,
-            Func<U3, T3> converter3 = null,
-            Func<U4, T4> converter4 = null,
-            Func<U5, T5> converter5 = null,
-            Func<U6, T6> converter6 = null,
-            Func<U7, T7> converter7 = null,
-            Func<U8, T8> converter8 = null,
-            Func<R1, R2> r2 = null)
-        {
-            return (t1, t2, t3, t4, t5, t6, t7, t8) =>
-            {
-                var r1 = func(
-                    converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
-                    converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
-                    converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
-                    converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
-                    converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
-                    converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6),
-                    converter7 == null ? Obj.ChangeType<T7>(t7) : converter7(t7),
-                    converter8 == null ? Obj.ChangeType<T8>(t8) : converter8(t8));
-                return r2 == null ? Obj.ChangeType<R2>(r1) : r2(r1);
-            };
-        }
+        public static Func<TU1, TU2, TU3, TU4, TU5, TU6, TU7, TU8, TR2> ConvertFunc<T1, T2, T3, T4, T5, T6, T7, T8, TR1, TU1, TU2, TU3,
+            TU4, TU5, TU6, TU7, TU8, TR2>(
+            this Func<T1, T2, T3, T4, T5, T6, T7, T8, TR1> func,
+            Func<TU1, T1> converter1 = null,
+            Func<TU2, T2> converter2 = null,
+            Func<TU3, T3> converter3 = null,
+            Func<TU4, T4> converter4 = null,
+            Func<TU5, T5> converter5 = null,
+            Func<TU6, T6> converter6 = null,
+            Func<TU7, T7> converter7 = null,
+            Func<TU8, T8> converter8 = null,
+            Func<TR1, TR2> r2 = null) => (t1, t2, t3, t4, t5, t6, t7, t8) =>
+                                                  {
+                                                      var r1 = func(
+                                                          converter1 == null ? Obj.ChangeType<T1>(t1) : converter1(t1),
+                                                          converter2 == null ? Obj.ChangeType<T2>(t2) : converter2(t2),
+                                                          converter3 == null ? Obj.ChangeType<T3>(t3) : converter3(t3),
+                                                          converter4 == null ? Obj.ChangeType<T4>(t4) : converter4(t4),
+                                                          converter5 == null ? Obj.ChangeType<T5>(t5) : converter5(t5),
+                                                          converter6 == null ? Obj.ChangeType<T6>(t6) : converter6(t6),
+                                                          converter7 == null ? Obj.ChangeType<T7>(t7) : converter7(t7),
+                                                          converter8 == null ? Obj.ChangeType<T8>(t8) : converter8(t8));
+                                                      return r2 == null ? Obj.ChangeType<TR2>(r1) : r2(r1);
+                                                  };
     }
 }

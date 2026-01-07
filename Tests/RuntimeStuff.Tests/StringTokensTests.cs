@@ -17,7 +17,7 @@ namespace RuntimeStuff.MSTests
             masks.Add(new StringHelper.TokenMask(" AND ", null, _ => "and"));
             masks.Add(new StringHelper.TokenMask(" OR ", null, _ => "or"));
             masks.Add(new StringHelper.TokenMask("'", "'", _ => "string_value"));
-            var tokens = StringHelper.GetTokens(s, masks, true, t=> int.TryParse(t.Body, out var intval) ? intval : t.Body).Flatten();
+            var tokens = StringHelper.GetTokens(s, masks, true, t => int.TryParse(t.Body, out var intval) ? intval : t.Body).Flatten();
         }
 
         [TestMethod]

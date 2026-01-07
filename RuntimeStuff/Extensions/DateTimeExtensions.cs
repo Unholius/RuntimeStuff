@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using RuntimeStuff.Helpers;
-
-namespace RuntimeStuff.Extensions
+﻿namespace RuntimeStuff.Extensions
 {
+    using System;
+    using System.Collections.Generic;
+    using RuntimeStuff.Helpers;
+
     /// <summary>
     /// Предоставляет методы расширения для работы с типом <see cref="DateTime"/>.
     /// </summary>
@@ -14,10 +14,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         /// <param name="date">Дата для проверки.</param>
         /// <returns>true, если время не равно 00:00:00; в противном случае — false.</returns>
-        public static bool HasTime(this DateTime date)
-        {
-            return DateTimeHelper.HasTime(date);
-        }
+        public static bool HasTime(this DateTime date) => DateTimeHelper.HasTime(date);
 
         /// <summary>
         /// Добавляет к дате временной интервал, заданный строкой.
@@ -25,100 +22,70 @@ namespace RuntimeStuff.Extensions
         /// <param name="date">Исходная дата.</param>
         /// <param name="timeSpan">Строка с временным интервалом.</param>
         /// <returns>Новая дата после добавления интервала.</returns>
-        public static DateTime AddInterval(this DateTime date, string timeSpan)
-        {
-            return DateTimeHelper.Add(date, timeSpan);
-        }
+        public static DateTime AddInterval(this DateTime date, string timeSpan) => DateTimeHelper.Add(date, timeSpan);
 
         /// <summary>
         /// Возвращает начало дня (00:00:00) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
         /// <returns>Дата с временем 00:00:00.</returns>
-        public static DateTime BeginDay(this DateTime date)
-        {
-            return DateTimeHelper.BeginDay(date);
-        }
+        public static DateTime BeginDay(this DateTime date) => DateTimeHelper.BeginDay(date);
 
         /// <summary>
         /// Возвращает конец дня (23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
         /// <returns>Дата с временем 23:59:59.999.</returns>
-        public static DateTime EndDay(this DateTime date)
-        {
-            return DateTimeHelper.EndDay(date);
-        }
+        public static DateTime EndDay(this DateTime date) => DateTimeHelper.EndDay(date);
 
         /// <summary>
         /// Возвращает начало месяца (первый день, 00:00:00) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
         /// <returns>Дата с первым днем месяца и временем 00:00:00.</returns>
-        public static DateTime BeginMonth(this DateTime date)
-        {
-            return DateTimeHelper.BeginMonth(date);
-        }
+        public static DateTime BeginMonth(this DateTime date) => DateTimeHelper.BeginMonth(date);
 
         /// <summary>
         /// Возвращает конец месяца (последний день, 23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
         /// <returns>Дата с последним днем месяца и временем 23:59:59.999.</returns>
-        public static DateTime EndMonth(this DateTime date)
-        {
-            return DateTimeHelper.EndMonth(date);
-        }
+        public static DateTime EndMonth(this DateTime date) => DateTimeHelper.EndMonth(date);
 
         /// <summary>
         /// Возвращает начало года (первый день, 00:00:00) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
         /// <returns>Дата с первым днем года и временем 00:00:00.</returns>
-        public static DateTime BeginYear(this DateTime date)
-        {
-            return DateTimeHelper.BeginYear(date);
-        }
+        public static DateTime BeginYear(this DateTime date) => DateTimeHelper.BeginYear(date);
 
         /// <summary>
         /// Возвращает конец года (последний день, 23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
         /// <returns>Дата с последним днем года и временем 23:59:59.999.</returns>
-        public static DateTime EndYear(this DateTime date)
-        {
-            return DateTimeHelper.EndYear(date);
-        }
+        public static DateTime EndYear(this DateTime date) => DateTimeHelper.EndYear(date);
 
         /// <summary>
         /// Возвращает вчерашнюю дату (начало дня).
         /// </summary>
         /// <param name="date">Исходная дата.</param>
         /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
-        public static DateTime Yesterday(this DateTime date)
-        {
-            return DateTimeHelper.Yesterday(date);
-        }
+        public static DateTime Yesterday(this DateTime date) => DateTimeHelper.Yesterday(date);
 
         /// <summary>
         /// Возвращает уникальные тики для текущего момента времени.
         /// </summary>
         /// <param name="date">Исходная дата (не используется).</param>
         /// <returns>Уникальные тики текущего момента времени.</returns>
-        public static long ExactTicks(this DateTime date)
-        {
-            return DateTimeHelper.ExactTicks(date);
-        }
+        public static long ExactTicks(this DateTime date) => DateTimeHelper.ExactTicks(date);
 
         /// <summary>
         /// Возвращает текущую дату и время с гарантией уникальности тиков.
         /// </summary>
         /// <param name="date">Исходная дата (не используется).</param>
         /// <returns>Текущая дата и время с уникальными тиками.</returns>
-        public static DateTime ExactNow(this DateTime date)
-        {
-            return DateTimeHelper.ExactNow(date);
-        }
+        public static DateTime ExactNow(this DateTime date) => DateTimeHelper.ExactNow(date);
 
         /// <summary>
         /// Возвращает последовательность дат от текущей даты до указанной даты с заданным шагом.
@@ -136,10 +103,7 @@ namespace RuntimeStuff.Extensions
             int step = 1,
             DateTimeHelper.DateTimeInterval interval = DateTimeHelper.DateTimeInterval.Day,
             Func<DateTime, int, bool> includeDate = null,
-            Func<DateTime, int, bool> excludeDate = null)
-        {
-            return DateTimeHelper.GetDates(startDate, endDate, step, interval, includeDate, excludeDate);
-        }
+            Func<DateTime, int, bool> excludeDate = null) => DateTimeHelper.GetDates(startDate, endDate, step, interval, includeDate, excludeDate);
 
         /// <summary>
         /// Возвращает последовательность дней от текущей даты до указанной даты.
@@ -147,10 +111,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="startDate">Начальная дата.</param>
         /// <param name="endDate">Конечная дата.</param>
         /// <returns>Последовательность дней.</returns>
-        public static IEnumerable<DateTime> EachDayTo(this DateTime startDate, DateTime endDate)
-        {
-            return DateTimeHelper.EachDay(startDate, endDate);
-        }
+        public static IEnumerable<DateTime> EachDayTo(this DateTime startDate, DateTime endDate) => DateTimeHelper.EachDay(startDate, endDate);
 
         /// <summary>
         /// Возвращает максимальную дату из текущей и переданных дат.
@@ -192,20 +153,14 @@ namespace RuntimeStuff.Extensions
         /// <param name="startDate">Начальная дата.</param>
         /// <param name="endDate">Конечная дата.</param>
         /// <returns>Интервал времени между датами.</returns>
-        public static TimeSpan ElapsedTo(this DateTime startDate, DateTime endDate)
-        {
-            return endDate - startDate;
-        }
+        public static TimeSpan ElapsedTo(this DateTime startDate, DateTime endDate) => endDate - startDate;
 
         /// <summary>
         /// Возвращает временной интервал между текущей датой и текущим моментом.
         /// </summary>
         /// <param name="date">Начальная дата.</param>
         /// <returns>Интервал времени от указанной даты до текущего момента.</returns>
-        public static TimeSpan ElapsedFromNow(this DateTime date)
-        {
-            return DateTime.Now - date;
-        }
+        public static TimeSpan ElapsedFromNow(this DateTime date) => DateTime.Now - date;
 
         /// <summary>
         /// Проверяет, находится ли дата в указанном диапазоне (включительно).
@@ -214,60 +169,42 @@ namespace RuntimeStuff.Extensions
         /// <param name="startDate">Начало диапазона.</param>
         /// <param name="endDate">Конец диапазона.</param>
         /// <returns>true, если дата находится в диапазоне; в противном случае — false.</returns>
-        public static bool IsBetween(this DateTime date, DateTime startDate, DateTime endDate)
-        {
-            return date >= startDate && date <= endDate;
-        }
+        public static bool IsBetween(this DateTime date, DateTime startDate, DateTime endDate) => date >= startDate && date <= endDate;
 
         /// <summary>
         /// Проверяет, является ли дата сегодняшним днем (без учета времени).
         /// </summary>
         /// <param name="date">Проверяемая дата.</param>
         /// <returns>true, если дата сегодняшняя; в противном случае — false.</returns>
-        public static bool IsToday(this DateTime date)
-        {
-            return date.Date == DateTime.Today;
-        }
+        public static bool IsToday(this DateTime date) => date.Date == DateTime.Today;
 
         /// <summary>
         /// Проверяет, является ли дата вчерашним днем (без учета времени).
         /// </summary>
         /// <param name="date">Проверяемая дата.</param>
         /// <returns>true, если дата вчерашняя; в противном случае — false.</returns>
-        public static bool IsYesterday(this DateTime date)
-        {
-            return date.Date == DateTime.Today.AddDays(-1);
-        }
+        public static bool IsYesterday(this DateTime date) => date.Date == DateTime.Today.AddDays(-1);
 
         /// <summary>
         /// Проверяет, является ли дата завтрашним днем (без учета времени).
         /// </summary>
         /// <param name="date">Проверяемая дата.</param>
         /// <returns>true, если дата завтрашняя; в противном случае — false.</returns>
-        public static bool IsTomorrow(this DateTime date)
-        {
-            return date.Date == DateTime.Today.AddDays(1);
-        }
+        public static bool IsTomorrow(this DateTime date) => date.Date == DateTime.Today.AddDays(1);
 
         /// <summary>
         /// Проверяет, является ли дата выходным днем.
         /// </summary>
         /// <param name="date">Проверяемая дата.</param>
         /// <returns>true, если это суббота или воскресенье; в противном случае — false.</returns>
-        public static bool IsWeekend(this DateTime date)
-        {
-            return date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
-        }
+        public static bool IsWeekend(this DateTime date) => date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
 
         /// <summary>
         /// Проверяет, является ли дата рабочим днем.
         /// </summary>
         /// <param name="date">Проверяемая дата.</param>
         /// <returns>true, если это понедельник-пятница; в противном случае — false.</returns>
-        public static bool IsWeekday(this DateTime date)
-        {
-            return !date.IsWeekend();
-        }
+        public static bool IsWeekday(this DateTime date) => !date.IsWeekend();
 
         /// <summary>
         /// Возвращает первый день недели для указанной даты.

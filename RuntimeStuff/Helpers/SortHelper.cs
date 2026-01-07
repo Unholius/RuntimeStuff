@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-
-namespace RuntimeStuff.Helpers
+﻿namespace RuntimeStuff.Helpers
 {
+    using System;
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.Linq;
+    using System.Reflection;
+
     /// <summary>
     /// Предоставляет статические методы для сортировки коллекций объектов по одному или нескольким свойствам с указанием
     /// порядка сортировки.
@@ -25,15 +25,9 @@ namespace RuntimeStuff.Helpers
         /// <param name="order">Порядок сортировки.</param>
         /// <param name="propertyNames">Имена свойств для сортировки.</param>
         /// <returns>Отсортированная коллекция.</returns>
-        public static IOrderedEnumerable<T> Sort<T>(IEnumerable<T> source, ListSortDirection order, params string[] propertyNames) where T : class
-        {
-            return ApplySort(source, propertyNames.Select(x => (x, order)).ToArray());
-        }
+        public static IOrderedEnumerable<T> Sort<T>(IEnumerable<T> source, ListSortDirection order, params string[] propertyNames) where T : class => ApplySort(source, propertyNames.Select(x => (x, order)).ToArray());
 
-        public static IOrderedEnumerable<T> Sort<T>(IEnumerable<T> source, ListSortDescriptionCollection sorts) where T : class
-        {
-            return ApplySort(source, sorts.Cast<ListSortDescription>().Select(x => (x.PropertyDescriptor.Name, x.SortDirection)).ToArray());
-        }
+        public static IOrderedEnumerable<T> Sort<T>(IEnumerable<T> source, ListSortDescriptionCollection sorts) where T : class => ApplySort(source, sorts.Cast<ListSortDescription>().Select(x => (x.PropertyDescriptor.Name, x.SortDirection)).ToArray());
 
         /// <summary>
         ///     Выполняет дополнительную сортировку (ThenBy/ThenByDescending) для уже отсортированной последовательности.
@@ -44,45 +38,30 @@ namespace RuntimeStuff.Helpers
         /// <param name="propertyNames">Имена свойств для сортировки.</param>
         /// <returns>Повторно отсортированная коллекция.</returns>
         public static IOrderedEnumerable<T> Sort<T>(IOrderedEnumerable<T> source, ListSortDirection order,
-            params string[] propertyNames) where T : class
-        {
-            return ApplySort(source, propertyNames.Select(x => (x, order)).ToArray());
-        }
+            params string[] propertyNames) where T : class => ApplySort(source, propertyNames.Select(x => (x, order)).ToArray());
 
         /// <summary>
         ///     Сортирует последовательность по указанным свойствам по возрастанию.
         /// </summary>
-        public static IOrderedEnumerable<T> SortAsc<T>(IEnumerable<T> source, params string[] propertyNames) where T : class
-        {
-            return Sort(source, ListSortDirection.Ascending, propertyNames);
-        }
+        public static IOrderedEnumerable<T> SortAsc<T>(IEnumerable<T> source, params string[] propertyNames) where T : class => Sort(source, ListSortDirection.Ascending, propertyNames);
 
         /// <summary>
         ///     Дополняет сортировку (ThenBy) по указанным свойствам по возрастанию.
         /// </summary>
         public static IOrderedEnumerable<T> SortAsc<T>(IOrderedEnumerable<T> source, params string[] propertyNames)
-            where T : class
-        {
-            return Sort(source, ListSortDirection.Ascending, propertyNames);
-        }
+            where T : class => Sort(source, ListSortDirection.Ascending, propertyNames);
 
         /// <summary>
         ///     Сортирует последовательность по указанным свойствам по убыванию.
         /// </summary>
         public static IOrderedEnumerable<T> SortDesc<T>(IEnumerable<T> source, params string[] propertyNames)
-            where T : class
-        {
-            return Sort(source, ListSortDirection.Descending, propertyNames);
-        }
+            where T : class => Sort(source, ListSortDirection.Descending, propertyNames);
 
         /// <summary>
         ///     Дополняет сортировку (ThenByDescending) по указанным свойствам по убыванию.
         /// </summary>
         public static IOrderedEnumerable<T> SortDesc<T>(IOrderedEnumerable<T> source, params string[] propertyNames)
-            where T : class
-        {
-            return Sort(source, ListSortDirection.Descending, propertyNames);
-        }
+            where T : class => Sort(source, ListSortDirection.Descending, propertyNames);
 
         /// <summary>
         ///     Внутренний метод сортировки по нескольким свойствам.
@@ -90,7 +69,9 @@ namespace RuntimeStuff.Helpers
         private static IOrderedEnumerable<T> ApplySort<T>(IEnumerable<T> source, params (string propertyName, ListSortDirection order)[] sorts) where T : class
         {
             if (sorts == null || sorts.Length == 0)
+            {
                 throw new ArgumentException("Нужно указать хотя бы одно свойство.");
+            }
 
             IOrderedEnumerable<T> result = null;
 

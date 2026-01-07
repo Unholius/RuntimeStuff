@@ -22,6 +22,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(3, blv.Count);
             Assert.AreEqual(3, blv.TotalCount);
         }
+
         [TestMethod]
         public void Test3()
         {

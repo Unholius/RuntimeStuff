@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
-using RuntimeStuff.Options;
-
-namespace RuntimeStuff.Builders
+﻿namespace RuntimeStuff.Builders
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Text;
+    using RuntimeStuff.Extensions;
+    using RuntimeStuff.Helpers;
+    using RuntimeStuff.Options;
+
     public static class SqlQueryBuilder
     {
         public enum JoinType
@@ -21,10 +21,18 @@ namespace RuntimeStuff.Builders
         }
 
         private static readonly IReadOnlyDictionary<string, object> EmptyParams = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
+
         public static string GetJoinClause(Type from, Type joinOn, SqlProviderOptions options, JoinType joinType = JoinType.Inner)
         {
-            if (from == null) throw new ArgumentNullException(nameof(from));
-            if (joinOn == null) throw new ArgumentNullException(nameof(joinOn));
+            if (from == null)
+            {
+                throw new ArgumentNullException(nameof(from));
+            }
+
+            if (joinOn == null)
+            {
+                throw new ArgumentNullException(nameof(joinOn));
+            }
 
             var parentCache = MemberCache.Create(from);
             var childrenCache = MemberCache.Create(joinOn);
@@ -60,7 +68,9 @@ namespace RuntimeStuff.Builders
             }
 
             if (parentColumn == null || childColumn == null)
+            {
                 throw new InvalidOperationException("Failed to determine join columns.");
+            }
 
             var np = options.NamePrefix;
             var ns = options.NameSuffix;
@@ -68,17 +78,26 @@ namespace RuntimeStuff.Builders
             return $"{joinType.ToString().ToUpper()} JOIN {np}{childTable}{ns} ON {np}{childTable}{ns}.{np}{childColumn}{ns} = {np}{parentTable}{ns}.{np}{parentColumn}{ns}";
         }
 
-        public static string GetAggSelectClause<TFrom>(SqlProviderOptions options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors) where TFrom : class
+        /// <summary>
+        /// Gets the aggregate select clause.
+        /// </summary>
+        /// <typeparam name="TFrom">The type of the t from.</typeparam>
+        /// <param name="options">The options.</param>
+        /// <param name="columnSelectors">The column selectors.</param>
+        /// <returns>System.String.</returns>
+        public static string GetAggSelectClause<TFrom>(SqlProviderOptions options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
+            where TFrom : class
         {
             var query = "SELECT " + (columnSelectors.Length == 0
                           ? "COUNT(*)"
-                          : string.Join(", ",
-                              columnSelectors.Select(c =>
+                          : string.Join(
+                                ", ",
+                                columnSelectors.Select(c =>
                               {
-                                  var colName = $"{options.NamePrefix}{(options.Map?.ResolveColumnName(c.column?.GetPropertyInfo(), null, null) ?? c.column?.GetMemberCache()?.ColumnName ?? "*")}{options.NameSuffix}".Replace("\"*\"", "*");
+                                  var colName = $"{options.NamePrefix}{options.Map?.ResolveColumnName(c.column?.GetPropertyInfo(), null, null) ?? c.column?.GetMemberCache()?.ColumnName ?? "*"}{options.NameSuffix}".Replace("\"*\"", "*");
                                   return $"{c.aggFunction}({colName})";
                               }))
-                      + $" FROM {options.NamePrefix}{(options.Map?.ResolveTableName(typeof(TFrom), null, null) ?? typeof(TFrom).GetMemberCache().TableName)}{options.NameSuffix}");
+                      + $" FROM {options.NamePrefix}{options.Map?.ResolveTableName(typeof(TFrom), null, null) ?? typeof(TFrom).GetMemberCache().TableName}{options.NameSuffix}");
 
             return query;
         }
@@ -87,7 +106,7 @@ namespace RuntimeStuff.Builders
         {
             cmdParams = EmptyParams;
             var dic = new Dictionary<string, object>();
-            var whereClause = whereExpression == null ? "" : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();
+            var whereClause = whereExpression == null ? string.Empty : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();
             cmdParams = dic;
             return whereClause;
         }
@@ -97,7 +116,9 @@ namespace RuntimeStuff.Builders
             var mi = MemberCache.Create(typeof(T));
             var keys = mi.PrimaryKeys.Values.ToArray();
             if (keys.Length == 0)
+            {
                 keys = mi.PublicBasicProperties.Values.ToArray();
+            }
 
             return GetWhereClause(keys, options, out cmdParams);
         }
@@ -120,11 +141,13 @@ namespace RuntimeStuff.Builders
                     .Append(key.Name);
 
                 if (i < whereProperties.Length - 1)
+                {
                     whereClause.Append(" AND ");
+                }
 
                 cmdParams[key.ColumnName] = null;
             }
-            
+
             return whereClause.ToString();
         }
 
@@ -133,22 +156,26 @@ namespace RuntimeStuff.Builders
             var mi = MemberCache<T>.Create();
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
             if (members.Length == 0)
+            {
                 members = mi.ColumnProperties.Values.ToArray().Concat(mi.PrimaryKeys.Values).ToArray();
+            }
+
             if (members.Length == 0)
+            {
                 return $"SELECT * FROM {options.NamePrefix}{options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.TableName}{options.NameSuffix}";
+            }
 
             return GetSelectQuery(options, mi, members);
         }
 
-        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns)
-        {
-            return GetSelectQuery(options, MemberCache<T>.Create(), selectColumns.Select(x=>x.GetMemberCache()).ToArray());
-        }
+        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns) => GetSelectQuery(options, MemberCache<T>.Create(), selectColumns.Select(x => x.GetMemberCache()).ToArray());
 
         public static string GetSelectQuery(SqlProviderOptions options, MemberCache typeInfo, params MemberCache[] selectColumns)
         {
             if (selectColumns.Length == 0)
+            {
                 selectColumns = typeInfo.GetColumns();
+            }
 
             var query = new StringBuilder("SELECT ");
 
@@ -161,7 +188,9 @@ namespace RuntimeStuff.Builders
             }
 
             if (query[query.Length - 2] == ',')
+            {
                 query.Remove(query.Length - 2, 2);
+            }
 
             query.Append(" FROM ")
                 .Append(options.Map?.ResolveTableName(typeInfo, options.NamePrefix, options.NameSuffix) ?? typeInfo.GetFullTableName(options.NamePrefix, options.NameSuffix));
@@ -180,14 +209,18 @@ namespace RuntimeStuff.Builders
                         ?? new List<string>();
 
             if (props.Count == 0)
+            {
                 props.AddRange(mi.ColumnProperties
                     .Where(x => !x.Value.IsPrimaryKey && x.Value.IsSetterPublic)
                     .Select(x => x.Value.ColumnName));
+            }
 
             if (props.Count == 0)
+            {
                 props.AddRange(mi.PublicBasicProperties
                     .Where(x => x.Key.ToLower() != "id" && x.Value.IsSetterPublic)
                     .Select(x => x.Value.ColumnName));
+            }
             else
             {
                 foreach (var p in props)
@@ -204,7 +237,9 @@ namespace RuntimeStuff.Builders
             }
 
             if (query[query.Length - 2] == ',')
+            {
                 query.Remove(query.Length - 2, 2);
+            }
 
             return query.ToString();
         }
@@ -219,7 +254,9 @@ namespace RuntimeStuff.Builders
 
             var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
             if (insertCols.Length == 0)
+            {
                 insertCols = mi.ColumnProperties.Values.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
+            }
 
             for (var i = 0; i < insertCols.Length; i++)
             {
@@ -231,7 +268,9 @@ namespace RuntimeStuff.Builders
                     .Append(options.NameSuffix);
 
                 if (i < insertCols.Length - 1)
+                {
                     query.Append(", ");
+                }
             }
 
             query
@@ -246,7 +285,9 @@ namespace RuntimeStuff.Builders
                     .Append(mi[col].Name);
 
                 if (i < insertCols.Length - 1)
+                {
                     query.Append(", ");
+                }
             }
 
             query.Append(")");
@@ -261,11 +302,13 @@ namespace RuntimeStuff.Builders
             return query.ToString();
         }
 
-
         public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
             if (orderBy == null)
-                return "";
+            {
+                return string.Empty;
+            }
+
             var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetMemberCache(), x.Item2)).ToArray();
             return GetOrderBy(options, props);
         }
@@ -273,7 +316,9 @@ namespace RuntimeStuff.Builders
         public static string GetOrderBy(SqlProviderOptions options, params (MemberCache, bool)[] orderBy)
         {
             if (orderBy == null || orderBy.Length == 0)
-                return "";
+            {
+                return string.Empty;
+            }
 
             var query = new StringBuilder("ORDER BY ");
 
@@ -287,7 +332,9 @@ namespace RuntimeStuff.Builders
             }
 
             if (query[query.Length - 2] == ',')
+            {
                 query.Remove(query.Length - 2, 2);
+            }
 
             return query.ToString();
         }
@@ -295,7 +342,9 @@ namespace RuntimeStuff.Builders
         public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null)
         {
             if (fetchRows < 0 || offsetRows < 0)
+            {
                 return query;
+            }
 
             var offsetRowsFetchNextRowsOnly =
                 options.OverrideOffsetRowsTemplate ?? "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
@@ -307,10 +356,9 @@ namespace RuntimeStuff.Builders
                 var mi = MemberCache.Create(entityType);
 
                 clause.Append(" ORDER BY ");
-                clause.Append(string.Join(", ",
-                    mi.PrimaryKeys.Count > 0
-                        ? mi.PrimaryKeys.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))
-                        : mi.ColumnProperties.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))));
+                _ = clause.Append(string.Join(
+                    ", ",
+                    mi.PrimaryKeys.Count > 0 ? mi.PrimaryKeys.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix)) : mi.ColumnProperties.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))));
                 clause.Append(" ");
             }
 
@@ -322,11 +370,8 @@ namespace RuntimeStuff.Builders
             return clause.ToString().Trim();
         }
 
-        #region PRIVATE
-
         private static string Visit(Expression exp, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
-
             switch (exp)
             {
                 case BinaryExpression be:
@@ -359,9 +404,14 @@ namespace RuntimeStuff.Builders
                     var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
                     right = options.ParamPrefix + paramName;
                     if (ue.Operand is ConstantExpression ce)
+                    {
                         cmdParams[paramName] = ce?.Value;
+                    }
+
                     if (ue.Operand is MemberExpression me2)
+                    {
                         cmdParams[paramName] = GetValue(me2);
+                    }
                 }
 
                 if (be.Right is MemberExpression rme)
@@ -400,20 +450,15 @@ namespace RuntimeStuff.Builders
 
             var value = GetValue(me);
             var paramName = (mi.ColumnName ?? mi.Name) + "_" + (cmdParams.Count + 1);
-            //cmdParams[paramName] = value;
-            return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value); //FormatValue(value, useParams, cmdParams);
+            return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value);
         }
 
-        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options)
-        {
-            return options.ToSqlLiteral(ce.Value); //FormatValue(ce.Value);
-        }
+        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options) => options.ToSqlLiteral(ce.Value);
 
         private static object GetValue(MemberExpression me)
         {
             var lambda = Expression.Lambda<Func<object>>(
-                Expression.Convert(me, typeof(object))
-            );
+                Expression.Convert(me, typeof(object)));
             return lambda.Compile().Invoke();
         }
 
@@ -450,6 +495,4 @@ namespace RuntimeStuff.Builders
             }
         }
     }
-
-    #endregion PRIVATE
 }

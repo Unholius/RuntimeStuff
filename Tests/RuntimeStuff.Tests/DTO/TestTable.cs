@@ -1,1 +1,35 @@
-using System;using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnnotations.Schema;namespace RuntimeStuff.MSTests.DTO{    [Table("TestTable", Schema = "dbo")]    public class TestTable    {        [Key]        [Column("IdInt")]        public int IdInt { get; set; }        [Column("ColBigInt")]        public long? ColBigInt { get; set; }        [Column("ColBinary")]        public byte[] ColBinary { get; set; }        [Column("ColBit")]        public bool? ColBit { get; set; }        [Column("ColChar")]        public string ColChar { get; set; }        [Column("ColComputed")]        public int? ColComputed { get; set; }        [Column("ColDate")]        public DateTime? ColDate { get; set; }        [Column("ColDateTime")]        public DateTime? ColDateTime { get; set; }        [Column("ColDateTime2")]        public DateTime? ColDateTime2 { get; set; }        [Column("ColDateTimeOffset")]        public string ColDateTimeOffset { get; set; }        [Column("ColDecimal")]        public decimal? ColDecimal { get; set; }        [Column("ColFloat")]        public double? ColFloat { get; set; }        [Column("ColJson")]        public string ColJson { get; set; }        [Column("ColMoney")]        public decimal? ColMoney { get; set; }        [Column("ColNChar")]        public string ColNChar { get; set; }        [Column("ColNullableInt")]        public int? ColNullableInt { get; set; }        [Column("ColNumeric")]        public decimal? ColNumeric { get; set; }        [Column("ColNVarChar")]        public string ColNVarChar { get; set; }        [Column("ColNVarCharMax")]        public string ColNVarCharMax { get; set; }        [Column("ColReal")]        public float? ColReal { get; set; }        [Column("ColRowVersion")]        public string ColRowVersion { get; set; }        [Column("ColSmallDateTime")]        public DateTime? ColSmallDateTime { get; set; }        [Column("ColSmallInt")]        public short? ColSmallInt { get; set; }        [Column("ColSmallMoney")]        public decimal? ColSmallMoney { get; set; }        [Column("ColSqlVariant")]        public string ColSqlVariant { get; set; }        [Column("ColTime")]        public DateTime? ColTime { get; set; }        [Column("ColTinyInt")]        public byte? ColTinyInt { get; set; }        [Column("ColUniqueIdentifier")]        public Guid? ColUniqueIdentifier { get; set; }        [Column("ColVarBinary")]        public byte[] ColVarBinary { get; set; }        [Column("ColVarBinaryMax")]        public byte[] ColVarBinaryMax { get; set; }        [Column("ColVarChar")]        public string ColVarChar { get; set; }        [Column("ColVarCharMax")]        public string ColVarCharMax { get; set; }        [Column("ColXml")]        public string ColXml { get; set; }    }}
+using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnnotations.Schema;namespace RuntimeStuff.MSTests.DTO{    [Table("TestTable", Schema = "dbo")]
+    public class TestTable    {        [Key]        [Column("IdInt")]
+        public int IdInt { get; set; }        [Column("ColBigInt")]
+        public long? ColBigInt { get; set; }        [Column("ColBinary")]
+        public byte[] ColBinary { get; set; }        [Column("ColBit")]
+        public bool? ColBit { get; set; }        [Column("ColChar")]
+        public string ColChar { get; set; }        [Column("ColComputed")]
+        public int? ColComputed { get; set; }        [Column("ColDate")]
+        public DateTime? ColDate { get; set; }        [Column("ColDateTime")]
+        public DateTime? ColDateTime { get; set; }        [Column("ColDateTime2")]
+        public DateTime? ColDateTime2 { get; set; }        [Column("ColDateTimeOffset")]
+        public string ColDateTimeOffset { get; set; }        [Column("ColDecimal")]
+        public decimal? ColDecimal { get; set; }        [Column("ColFloat")]
+        public double? ColFloat { get; set; }        [Column("ColJson")]
+        public string ColJson { get; set; }        [Column("ColMoney")]
+        public decimal? ColMoney { get; set; }        [Column("ColNChar")]
+        public string ColNChar { get; set; }        [Column("ColNullableInt")]
+        public int? ColNullableInt { get; set; }        [Column("ColNumeric")]
+        public decimal? ColNumeric { get; set; }        [Column("ColNVarChar")]
+        public string ColNVarChar { get; set; }        [Column("ColNVarCharMax")]
+        public string ColNVarCharMax { get; set; }        [Column("ColReal")]
+        public float? ColReal { get; set; }        [Column("ColRowVersion")]
+        public string ColRowVersion { get; set; }        [Column("ColSmallDateTime")]
+        public DateTime? ColSmallDateTime { get; set; }        [Column("ColSmallInt")]
+        public short? ColSmallInt { get; set; }        [Column("ColSmallMoney")]
+        public decimal? ColSmallMoney { get; set; }        [Column("ColSqlVariant")]
+        public string ColSqlVariant { get; set; }        [Column("ColTime")]
+        public DateTime? ColTime { get; set; }        [Column("ColTinyInt")]
+        public byte? ColTinyInt { get; set; }        [Column("ColUniqueIdentifier")]
+        public Guid? ColUniqueIdentifier { get; set; }        [Column("ColVarBinary")]
+        public byte[] ColVarBinary { get; set; }        [Column("ColVarBinaryMax")]
+        public byte[] ColVarBinaryMax { get; set; }        [Column("ColVarChar")]
+        public string ColVarChar { get; set; }        [Column("ColVarCharMax")]
+        public string ColVarCharMax { get; set; }        [Column("ColXml")]
+        public string ColXml { get; set; }    }}

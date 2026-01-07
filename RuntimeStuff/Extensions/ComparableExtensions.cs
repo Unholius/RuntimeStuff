@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace RuntimeStuff.Extensions
+﻿namespace RuntimeStuff.Extensions
 {
+    using System;
+    using System.Collections.Generic;
+
     /// <summary>
     ///     Методы расширения для типов, поддерживающих сравнение.
     /// </summary>
@@ -14,7 +14,10 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         public static bool In<T>(this T item, IEnumerable<T> values, IEqualityComparer<T> comparer = null)
         {
-            if (values == null) return false;
+            if (values == null)
+            {
+                return false;
+            }
 
             var set = values is ISet<T> s && (comparer == null || (s is HashSet<T> hs && hs.Comparer.Equals(comparer)))
                 ? s
@@ -26,10 +29,7 @@ namespace RuntimeStuff.Extensions
         /// <summary>
         ///     Удобная перегрузка для массива значений (params).
         /// </summary>
-        public static bool In<T>(this T item, IEqualityComparer<T> comparer, params T[] values)
-        {
-            return item.In(values, comparer);
-        }
+        public static bool In<T>(this T item, IEqualityComparer<T> comparer, params T[] values) => item.In(values, comparer);
 
         /// <summary>
         ///     Удобная перегрузка для массива значений (params) для коллекций.
@@ -38,10 +38,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="item"></param>
         /// <param name="values"></param>
         /// <returns></returns>
-        public static bool In<T>(this T item, params T[] values)
-        {
-            return item.In(null, values);
-        }
+        public static bool In<T>(this T item, params T[] values) => item.In(null, values);
 
         /// <summary>
         ///     Проверяет, находится ли строка <paramref name="value" /> в диапазоне от <paramref name="from" /> до
@@ -58,9 +55,20 @@ namespace RuntimeStuff.Extensions
         /// </returns>
         public static bool Between(this string value, string from, string to, StringComparison comparison)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
-            if (from == null) throw new ArgumentNullException(nameof(from));
-            if (to == null) throw new ArgumentNullException(nameof(to));
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            if (from == null)
+            {
+                throw new ArgumentNullException(nameof(from));
+            }
+
+            if (to == null)
+            {
+                throw new ArgumentNullException(nameof(to));
+            }
 
             return string.Compare(value, from, comparison) >= 0
                    && string.Compare(value, to, comparison) <= 0;
@@ -81,10 +89,25 @@ namespace RuntimeStuff.Extensions
         /// </returns>
         public static bool Between(this string value, string from, string to, StringComparer comparer)
         {
-            if (value == null) throw new ArgumentNullException(nameof(value));
-            if (from == null) throw new ArgumentNullException(nameof(from));
-            if (to == null) throw new ArgumentNullException(nameof(to));
-            if (comparer == null) throw new ArgumentNullException(nameof(comparer));
+            if (value == null)
+            {
+                throw new ArgumentNullException(nameof(value));
+            }
+
+            if (from == null)
+            {
+                throw new ArgumentNullException(nameof(from));
+            }
+
+            if (to == null)
+            {
+                throw new ArgumentNullException(nameof(to));
+            }
+
+            if (comparer == null)
+            {
+                throw new ArgumentNullException(nameof(comparer));
+            }
 
             return comparer.Compare(value, from) >= 0
                    && comparer.Compare(value, to) <= 0;
@@ -100,12 +123,25 @@ namespace RuntimeStuff.Extensions
         /// <returns>true, если x находится в диапазоне [from, to]; иначе false.</returns>
         public static bool Between<T>(this T x, T from, T to) where T : IComparable<T>
         {
-            if (x == null) throw new ArgumentNullException(nameof(x));
-            if (from == null) throw new ArgumentNullException(nameof(from));
-            if (to == null) throw new ArgumentNullException(nameof(to));
+            if (x == null)
+            {
+                throw new ArgumentNullException(nameof(x));
+            }
+
+            if (from == null)
+            {
+                throw new ArgumentNullException(nameof(from));
+            }
+
+            if (to == null)
+            {
+                throw new ArgumentNullException(nameof(to));
+            }
 
             if (x is string s1 && from is string s2 && to is string s3)
+            {
                 return Between(s1, s2, s3, StringComparison.Ordinal);
+            }
 
             return x.CompareTo(from) >= 0 && x.CompareTo(to) <= 0;
         }
@@ -124,7 +160,9 @@ namespace RuntimeStuff.Extensions
             foreach (var (when, then) in cases)
             {
                 if (obj?.Equals(when) == true)
+                {
                     return then;
+                }
             }
 
             return defaultValue(obj);
@@ -137,7 +175,7 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="TThen">Тип возвращаемого значения.</typeparam>
         /// <param name="obj">Значение для сравнения.</param>
         /// <param name="defaultValue">Значение по умолчанию.</param>
-        /// <param name="objParser">Парсер значения</param>
+        /// <param name="objParser">Парсер значения.</param>
         /// <param name="cases">Массив пар (значение для сравнения, возвращаемое значение).</param>
         /// <returns>Значение then для первого совпадения или defaultValue.</returns>
         public static TThen Case<TWhen, TThen>(this TWhen obj, Func<TWhen, TThen> defaultValue, Func<TWhen, TWhen> objParser, params (TWhen when, TThen then)[] cases)
@@ -145,7 +183,9 @@ namespace RuntimeStuff.Extensions
             foreach (var (when, then) in cases)
             {
                 if ((objParser == null ? obj : objParser(obj))?.Equals(when) == true)
+                {
                     return then;
+                }
             }
 
             return defaultValue(obj);
@@ -165,7 +205,9 @@ namespace RuntimeStuff.Extensions
             foreach (var (when, then) in cases)
             {
                 if (when(obj))
+                {
                     return then;
+                }
             }
 
             return defaultValue(obj);

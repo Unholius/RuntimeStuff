@@ -90,7 +90,6 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual($"[Created] == '{string.Format("{0:" + b.Options.FormatOptions.DateFormat + "}", dt)}'", b.ToString());
         }
 
-
         [TestMethod]
         public void Bool_True_IsFormattedAs1()
         {
@@ -98,7 +97,6 @@ namespace RuntimeStuff.MSTests
             b.Property("Active").Equal(true);
             Assert.AreEqual("[Active] == 1", b.ToString());
         }
-
 
         [TestMethod]
         public void Bool_False_IsFormattedAs0()

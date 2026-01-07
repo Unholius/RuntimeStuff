@@ -1,9 +1,9 @@
-﻿using System.Linq.Expressions;
-using System.Reflection;
-using RuntimeStuff.Helpers;
-
-namespace RuntimeStuff.Extensions
+﻿namespace RuntimeStuff.Extensions
 {
+    using System.Linq.Expressions;
+    using System.Reflection;
+    using RuntimeStuff.Helpers;
+
     /// <summary>
     /// Предоставляет вспомогательные методы для анализа и извлечения информации из LINQ-выражений, таких как получение
     /// значения выражения, определение связанного свойства или члена, а также извлечение метаданных о членах типа.

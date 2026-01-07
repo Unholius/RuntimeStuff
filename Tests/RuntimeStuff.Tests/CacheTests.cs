@@ -59,7 +59,7 @@
             Assert.IsNotNull(cache);
         }
 
-        #endregion
+        #endregion Basic Functionality Tests
 
         #region Get Method Tests
 
@@ -166,7 +166,7 @@
                 "All threads should receive the same value");
         }
 
-        #endregion
+        #endregion Get Method Tests
 
         #region GetAsync Method Tests
 
@@ -270,7 +270,7 @@
             Assert.IsTrue(results.All(r => r == "value42"));
         }
 
-        #endregion
+        #endregion GetAsync Method Tests
 
         #region TryGetValue Tests
 
@@ -393,7 +393,7 @@
             Assert.AreEqual(-1, value);
         }
 
-        #endregion
+        #endregion TryGetValue Tests
 
         #region Remove Tests
 
@@ -445,7 +445,7 @@
             Assert.AreEqual("test", removedKey);
         }
 
-        #endregion
+        #endregion Remove Tests
 
         #region Clear Tests
 
@@ -466,7 +466,7 @@
             Assert.AreEqual(0, cache.Count);
         }
 
-        #endregion
+        #endregion Clear Tests
 
         #region Event Tests
 
@@ -523,7 +523,7 @@
             Assert.AreEqual("test", addedKey);
         }
 
-        #endregion
+        #endregion Event Tests
 
         #region IReadOnlyDictionary Implementation Tests
 
@@ -641,7 +641,7 @@
             Assert.AreEqual(0, cache.Count);
         }
 
-        #endregion
+        #endregion IReadOnlyDictionary Implementation Tests
 
         #region Edge Cases Tests
 
@@ -688,7 +688,7 @@
             Assert.AreEqual("value1-test", result);
         }
 
-        #endregion
+        #endregion Edge Cases Tests
 
         #region Performance Tests
 
@@ -721,7 +721,7 @@
                 $"Cache should be faster than 10 sequential calls (took {stopwatch.ElapsedMilliseconds}ms)");
         }
 
-        #endregion
+        #endregion Performance Tests
 
         #region Set, SetAsync
 
@@ -861,7 +861,6 @@
             Assert.AreEqual(1, cache.Count);
         }
 
-
         [TestMethod]
         public void Set_WithoutFactory_GetThrowsKeyNotFoundException()
         {
@@ -932,7 +931,7 @@
             Assert.AreEqual("value", cache.Get("key2"));
         }
 
-        #endregion
+        #endregion Set, SetAsync
 
         #region SizeLimit
 
@@ -965,7 +964,7 @@
         {
             var cache1 = new Cache<int, string>((i) => i.ToString() + "_Str", sizeLimit: 2, evictionPolicy: EvictionPolicy.FIFO);
             Assert.AreEqual(0, cache1.Count);
-            _= cache1.Get(1);
+            _ = cache1.Get(1);
             Assert.AreEqual(1, cache1.Count);
             _ = cache1.Get(2);
             _ = cache1.Get(2);
@@ -1003,6 +1002,6 @@
             Assert.AreEqual(2, cache1.Count);
         }
 
-        #endregion
+        #endregion SizeLimit
     }
 }

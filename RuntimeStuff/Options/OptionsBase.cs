@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
-using RuntimeStuff.Helpers;
-
-namespace RuntimeStuff.Options
+﻿namespace RuntimeStuff.Options
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Reflection;
+    using RuntimeStuff.Helpers;
+
     /// <summary>
     /// Базовый класс для работы с набором опций,
     /// доступ к которым осуществляется через отражение (Reflection).
@@ -23,7 +23,7 @@ namespace RuntimeStuff.Options
         /// </summary>
         protected OptionsBase()
         {
-            PropertyMap = Obj.GetPropertiesMap(this.GetType());
+            this.PropertyMap = Obj.GetPropertiesMap(this.GetType());
         }
 
         /// <summary>
@@ -34,10 +34,13 @@ namespace RuntimeStuff.Options
         /// Словарь значений параметров, где ключ — имя свойства,
         /// значение — устанавливаемое значение.
         /// </param>
-        protected OptionsBase(IDictionary<string, object> paramValues) : this()
+        protected OptionsBase(IDictionary<string, object> paramValues)
+            : this()
         {
             foreach (var kvp in paramValues)
-                PropertyMap[kvp.Key].SetValue(this, kvp.Value);
+            {
+                this.PropertyMap[kvp.Key].SetValue(this, kvp.Value);
+            }
         }
 
         /// <summary>
@@ -47,8 +50,8 @@ namespace RuntimeStuff.Options
         /// <returns>Значение свойства.</returns>
         public object this[string name]
         {
-            get => Get<object>(name);
-            set => Set(name, value);
+            get => this.Get<object>(name);
+            set => this.Set(name, value);
         }
 
         /// <summary>
@@ -57,12 +60,9 @@ namespace RuntimeStuff.Options
         /// <typeparam name="TValue">Ожидаемый тип значения.</typeparam>
         /// <param name="name">Имя свойства.</param>
         /// <returns>Значение свойства, приведённое к указанному типу.</returns>
-        public TValue Get<TValue>(string name)
-        {
-            return typeof(TValue) == typeof(object)
-                ? (TValue)PropertyMap[name].GetValue(this)
-                : Obj.ChangeType<TValue>(PropertyMap[name].GetValue(this));
-        }
+        public TValue Get<TValue>(string name) => typeof(TValue) == typeof(object)
+                ? (TValue)this.PropertyMap[name].GetValue(this)
+                : Obj.ChangeType<TValue>(this.PropertyMap[name].GetValue(this));
 
         /// <summary>
         /// Устанавливает значение свойства по имени.
@@ -76,8 +76,10 @@ namespace RuntimeStuff.Options
         /// </returns>
         public bool Set<TValue>(string name, TValue value)
         {
-            if (!PropertyMap.TryGetValue(name, out var p))
+            if (!this.PropertyMap.TryGetValue(name, out var p))
+            {
                 return false;
+            }
 
             try
             {
@@ -102,7 +104,7 @@ namespace RuntimeStuff.Options
         {
             var dict = new Dictionary<string, object>();
 
-            foreach (var prop in PropertyMap)
+            foreach (var prop in this.PropertyMap)
             {
                 var value = prop.Value.GetValue(this);
                 dict[prop.Key] = value;
@@ -123,7 +125,7 @@ namespace RuntimeStuff.Options
     public abstract class OptionsBase<T> : OptionsBase where T : OptionsBase<T>, new()
     {
         /// <summary>
-        /// Создаёт экземпляр опций со значениями по умолчанию.
+        /// Gets создаёт экземпляр опций со значениями по умолчанию.
         /// </summary>
         public static T Default => new T();
 
@@ -131,10 +133,7 @@ namespace RuntimeStuff.Options
         /// Создаёт поверхностную копию текущего объекта.
         /// </summary>
         /// <returns>Клонированный экземпляр опций.</returns>
-        public T Clone()
-        {
-            return (T)MemberwiseClone();
-        }
+        public T Clone() => (T)this.MemberwiseClone();
 
         /// <summary>
         /// Объединяет текущие опции с другими,
@@ -144,11 +143,13 @@ namespace RuntimeStuff.Options
         /// <returns>Текущий экземпляр после объединения.</returns>
         public T Merge(OptionsBase other)
         {
-            foreach (var prop in PropertyMap)
+            foreach (var prop in this.PropertyMap)
             {
                 var value = prop.Value.GetValue(other);
                 if (value != null)
+                {
                     prop.Value.SetValue(this, value);
+                }
             }
 
             return (T)this;

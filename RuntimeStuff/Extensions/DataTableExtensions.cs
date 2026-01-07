@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Linq.Expressions;
-using RuntimeStuff.Helpers;
-
-namespace RuntimeStuff.Extensions
+﻿namespace RuntimeStuff.Extensions
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Data;
+    using RuntimeStuff.Helpers;
+
     /// <summary>
     /// Предоставляет вспомогательные методы для работы с
     /// <see cref="DataTable"/>, включая добавление колонок и строк,
@@ -51,10 +49,7 @@ namespace RuntimeStuff.Extensions
         /// она автоматически добавляется в массив
         /// <see cref="DataTable.PrimaryKey"/>.
         /// </remarks>
-        public static DataColumn AddCol(this DataTable table,string columnName,Type columnType,bool isPrimaryKey = false)
-        {
-            return DataTableHelper.AddCol(table, columnName, columnType, isPrimaryKey);
-        }
+        public static DataColumn AddCol(this DataTable table, string columnName, Type columnType, bool isPrimaryKey = false) => DataTableHelper.AddCol(table, columnName, columnType, isPrimaryKey);
 
         /// <summary>
         /// Добавляет строку в таблицу данных из массива значений.
@@ -80,10 +75,7 @@ namespace RuntimeStuff.Extensions
         /// Значения <see langword="null"/> автоматически преобразуются
         /// в <see cref="DBNull.Value"/>.
         /// </remarks>
-        public static DataRow AddRow(this DataTable table, object[] rowData)
-        {
-            return DataTableHelper.AddRow(table, rowData);
-        }
+        public static DataRow AddRow(this DataTable table, object[] rowData) => DataTableHelper.AddRow(table, rowData);
 
         /// <summary>
         /// Добавляет строку в таблицу данных на основе свойств объекта.
@@ -109,10 +101,7 @@ namespace RuntimeStuff.Extensions
         /// Значения берутся из свойств объекта по имени,
         /// совпадающему с именем колонки таблицы.
         /// </remarks>
-        public static DataRow AddRow<T>(this DataTable table, T item)
-        {
-            return DataTableHelper.AddRow(table, item);
-        }
+        public static DataRow AddRow<T>(this DataTable table, T item) => DataTableHelper.AddRow(table, item);
 
         /// <summary>
         /// Преобразует значения указанной колонки таблицы
@@ -140,10 +129,7 @@ namespace RuntimeStuff.Extensions
         /// Строки со значением <see cref="DBNull.Value"/>
         /// пропускаются.
         /// </remarks>
-        public static List<T> ToList<T>(this DataTable table, string columnName)
-        {
-            return DataTableHelper.ToList<T>(table, columnName);
-        }
+        public static List<T> ToList<T>(this DataTable table, string columnName) => DataTableHelper.ToList<T>(table, columnName);
 
         /// <summary>
         /// Преобразует строки таблицы данных в список объектов
@@ -162,20 +148,14 @@ namespace RuntimeStuff.Extensions
         /// Свойства объекта сопоставляются с колонками таблицы
         /// по имени. Значения <see cref="DBNull.Value"/> игнорируются.
         /// </remarks>
-        public static List<T> ToList<T>(this DataTable table) where T : class, new()
-        {
-            return DataTableHelper.ToList<T>(table);
-        }
+        public static List<T> ToList<T>(this DataTable table) where T : class, new() => DataTableHelper.ToList<T>(table);
 
         /// <summary>
-        /// Проверяет добавлена ли строка в таблицу
+        /// Проверяет добавлена ли строка в таблицу.
         /// </summary>
-        /// <param name="dt">Таблица</param>
-        /// <param name="row">Строка</param>
+        /// <param name="dt">Таблица.</param>
+        /// <param name="row">Строка.</param>
         /// <returns></returns>
-        public static bool ContainsRow(this DataTable dt, object row)
-        {
-            return DataTableHelper.ContainsRow(dt, row);
-        }
+        public static bool ContainsRow(this DataTable dt, object row) => DataTableHelper.ContainsRow(dt, row);
     }
 }

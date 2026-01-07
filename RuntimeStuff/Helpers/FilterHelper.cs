@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text.RegularExpressions;
-
-namespace RuntimeStuff.Helpers
+﻿namespace RuntimeStuff.Helpers
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Text.RegularExpressions;
+
     /// <summary>
     ///     Предоставляет методы для фильтрации коллекций по строковым выражениям и тексту, позволяя гибко выбирать элементы на
     ///     основе значений их свойств.
@@ -19,22 +19,24 @@ namespace RuntimeStuff.Helpers
     /// </remarks>
     public static class FilterHelper
     {
-        #region Public
 
         /// <summary>
         ///     Фильтрует элементы последовательности на основе заданного строкового выражения.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="source">Исходная коллекция</param>
+        /// <param name="source">Исходная коллекция.</param>
         /// <param name="filterExpression">
         ///     Выражение, имена свойств задаются в квадратных скобках, строковые значения в одинарных
-        ///     кавычках. Пример: [EventId] >= 100 && [Name] like '%hello%'
+        ///     кавычках. Пример: [EventId] >= 100 && [Name] like '%hello%'.
         /// </param>
         /// <returns></returns>
         public static IEnumerable<T> Filter<T>(IEnumerable<T> source, string filterExpression)
         {
             if (string.IsNullOrWhiteSpace(filterExpression))
+            {
                 return source;
+            }
+
             // Парсим в дерево
             var tree = Parse(filterExpression);
             try
@@ -67,49 +69,57 @@ namespace RuntimeStuff.Helpers
         public static IEnumerable<T> FilterByText<T>(IEnumerable<T> source, string text, string[] propertyNames = null) where T : class
         {
             if (string.IsNullOrWhiteSpace(text))
+            {
                 return source;
+            }
 
             // если свойства не заданы — берем все публичные
             if (propertyNames == null || propertyNames.Length == 0)
+            {
                 propertyNames = Obj.GetProperties<T>()
                     .Select(p => p.Name)
                     .ToArray();
+            }
 
             text = text.ToLower();
 
             return source.Where(item =>
             {
                 if (item == null)
+                {
                     return false;
+                }
 
                 foreach (var propName in propertyNames)
                 {
                     var value = Obj.Get(item, propName);
                     if (value == null)
+                    {
                         continue;
+                    }
 
                     // быстрее, чем ToString(): используем IsAssignableFrom + каст
                     if (value is string s)
                     {
                         if (s.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0)
+                        {
                             return true;
+                        }
                     }
                     else
                     {
                         var str = value.ToString();
                         if (!string.IsNullOrEmpty(str) &&
                             str.ToLowerInvariant().Contains(text))
+                        {
                             return true;
+                        }
                     }
                 }
 
                 return false;
             });
         }
-
-        #endregion Public
-
-        #region Internal logic
 
         private static readonly Regex NumberRegex = new Regex(@"^\d+(\.\d+)?$", RegexOptions.Compiled);
         private static readonly Regex PropertyRegex = new Regex(@"^\[(.+)\]$", RegexOptions.Compiled);
@@ -125,8 +135,6 @@ namespace RuntimeStuff.Helpers
             return ParseOr(tokens, ref pos);
         }
 
-        #region Лексер
-
         private static List<string> Tokenize(string input)
         {
             var tokens = new List<string>();
@@ -134,13 +142,12 @@ namespace RuntimeStuff.Helpers
                 @"(is not empty\b|is empty\b|is null\b|is not null\b|\|\||&&|==|!=|<=|>=|>|<|not in\b|in\b|like\b|not like\b|\[[^\]]+\]|[()\{\}\+\-\*/]|,|NULL\b|'[^']*'|\d+(\.\d+)?|\w+)";
 
             foreach (Match m in Regex.Matches(input, pattern, RegexOptions.IgnoreCase))
+            {
                 tokens.Add(m.Value);
+            }
+
             return tokens;
         }
-
-        #endregion Лексер
-
-        #region Парсер (рекурсивный спуск)
 
         private static Expr ParseAddSub(List<string> tokens, ref int pos)
         {
@@ -180,12 +187,19 @@ namespace RuntimeStuff.Helpers
                 {
                     var not = op == "NOT IN";
                     pos++;
-                    if (tokens[pos++] != "{") throw new Exception("Ожидалась {");
+                    if (tokens[pos++] != "{")
+                    {
+                        throw new Exception("Ожидалась {");
+                    }
+
                     var values = new List<Expr>();
                     while (tokens[pos] != "}")
                     {
                         values.Add(ParseValue(tokens[pos++]));
-                        if (tokens[pos] == ",") pos++;
+                        if (tokens[pos] == ",")
+                        {
+                            pos++;
+                        }
                     }
 
                     pos++; // }
@@ -198,7 +212,11 @@ namespace RuntimeStuff.Helpers
                     pos++;
                     var right = ParseTerm(tokens, ref pos);
                     Expr expr = new BinaryExpr(left, "Like", right);
-                    if (not) expr = new UnaryExpr("!", expr);
+                    if (not)
+                    {
+                        expr = new UnaryExpr("!", expr);
+                    }
+
                     return expr;
                 }
 
@@ -218,7 +236,9 @@ namespace RuntimeStuff.Helpers
                     var lower = ParseAddSub(tokens, ref pos);
 
                     if (tokens[pos].Equals("AND", StringComparison.OrdinalIgnoreCase))
+                    {
                         pos++; // пропускаем AND
+                    }
 
                     pos++;
                     var upper = ParseAddSub(tokens, ref pos);
@@ -234,6 +254,7 @@ namespace RuntimeStuff.Helpers
                         pos += 2; // IS NULL
                         return new BinaryExpr(left, "IS NULL", new ConstantExpr(null));
                     }
+
                     if (next == "NOT" && pos + 2 < tokens.Count && tokens[pos + 2].ToUpper() == "NULL")
                     {
                         pos += 3; // IS NOT NULL
@@ -312,7 +333,9 @@ namespace RuntimeStuff.Helpers
         private static Expr ParseTerm(List<string> tokens, ref int pos)
         {
             if (pos >= tokens.Count)
+            {
                 throw new FormatException("Ошибка обработки фильтра");
+            }
 
             if (tokens[pos] == "!" || tokens[pos] == "-" || tokens[pos] == "+")
             {
@@ -325,7 +348,11 @@ namespace RuntimeStuff.Helpers
             {
                 pos++;
                 var expr = ParseOr(tokens, ref pos);
-                if (tokens[pos++] != ")") throw new Exception("Ожидалась )");
+                if (tokens[pos++] != ")")
+                {
+                    throw new Exception("Ожидалась )");
+                }
+
                 return expr;
             }
 
@@ -336,56 +363,64 @@ namespace RuntimeStuff.Helpers
         {
             // число decimal
             if (NumberRegex.IsMatch(token))
+            {
                 return new ConstantExpr(decimal.Parse(token, CultureInfo.InvariantCulture));
+            }
 
             // строка
             if (StringRegex.IsMatch(token))
+            {
                 return new ConstantExpr(StringRegex.Match(token).Groups[1].Value);
+            }
 
             // property
             if (PropertyRegex.IsMatch(token))
+            {
                 return new PropertyExpr(PropertyRegex.Match(token).Groups[1].Value);
+            }
 
             // дата
             if (DateTime.TryParse(token, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+            {
                 return new ConstantExpr(dt);
+            }
 
             // NULL literal
             if (string.Equals(token, "NULL", StringComparison.OrdinalIgnoreCase))
+            {
                 return new ConstantExpr(null);
-            
+            }
+
             // NULL literal
             if (string.Equals(token, "NULL", StringComparison.OrdinalIgnoreCase))
+            {
                 return new ConstantExpr(null);
+            }
 
             throw new FormatException($"Неизвестный токен {token}");
         }
 
-        #endregion Парсер (рекурсивный спуск)
-
-        #region AST → Expression
-
         /// <summary>
-        ///     Скомпилировать текстовый фильтр в предикат
+        ///     Скомпилировать текстовый фильтр в предикат.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="filter">Текстовый фильтр, например: [EventId] >= 1000 || [name] like '%h%l%o%'</param>
+        /// <param name="filter">Текстовый фильтр, например: [EventId] >= 1000 || [name] like '%h%l%o%'.</param>
         /// <returns></returns>
-        public static Func<T, bool> ToPredicate<T>(string filter)
-        {
-            return ToExpression<T>(filter).Compile();
-        }
+        public static Func<T, bool> ToPredicate<T>(string filter) => ToExpression<T>(filter).Compile();
 
         /// <summary>
-        ///     Преобразовать текстовый фильтр в выражение
+        ///     Преобразовать текстовый фильтр в выражение.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="filter">Текстовый фильтр</param>
+        /// <param name="filter">Текстовый фильтр.</param>
         /// <returns></returns>
         public static Expression<Func<T, bool>> ToExpression<T>(string filter)
         {
             if (string.IsNullOrEmpty(filter))
+            {
                 return x => true;
+            }
+
             return ToLambda<T>(Parse(filter));
         }
 
@@ -399,12 +434,17 @@ namespace RuntimeStuff.Helpers
         private static Expression ToExpression(Expr expr, ParameterExpression param)
         {
             if (expr is ConstantExpr c)
+            {
                 return Expression.Constant(c.Value, c.Value?.GetType() ?? typeof(object));
+            }
 
             if (expr is PropertyExpr p)
             {
                 if (Obj.GetProperty(param.Type, p.Name) == null)
+                {
                     throw new FormatException($"Свойство '{p.Name}' не существует в типе '{param.Type}'");
+                }
+
                 return Expression.PropertyOrField(param, p.Name);
             }
 
@@ -441,48 +481,54 @@ namespace RuntimeStuff.Helpers
                         return Expression.NotEqual(left, Expression.Constant(null, left.Type));
 
                     case "IS EMPTY":
-                    {
-                        if (left.Type == typeof(string))
-                            return Expression.Equal(left, Expression.Constant("", typeof(string)));
-
-                        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(left.Type))
                         {
-                            var countProp = left.Type.GetProperty("Count");
-                            if (countProp != null)
-                                return Expression.Equal(Expression.Property(left, countProp),
-                                    Expression.Constant(0));
+                            if (left.Type == typeof(string))
+                            {
+                                return Expression.Equal(left, Expression.Constant(string.Empty, typeof(string)));
+                            }
 
-                            var anyMethod = typeof(Enumerable).GetMethods()
-                                .First(m => m.Name == "Any" && m.GetParameters().Length == 1)
-                                .MakeGenericMethod(left.Type.GetGenericArguments()[0]);
+                            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(left.Type))
+                            {
+                                var countProp = left.Type.GetProperty("Count");
+                                if (countProp != null)
+                                {
+                                    return Expression.Equal(Expression.Property(left, countProp), Expression.Constant(0));
+                                }
 
-                            return Expression.Not(Expression.Call(anyMethod, left));
+                                var anyMethod = typeof(Enumerable).GetMethods()
+                                    .First(m => m.Name == "Any" && m.GetParameters().Length == 1)
+                                    .MakeGenericMethod(left.Type.GetGenericArguments()[0]);
+
+                                return Expression.Not(Expression.Call(anyMethod, left));
+                            }
+
+                            throw new NotSupportedException("IS EMPTY применим только к строкам или коллекциям.");
                         }
-
-                        throw new NotSupportedException("IS EMPTY применим только к строкам или коллекциям.");
-                    }
 
                     case "IS NOT EMPTY":
-                    {
-                        if (left.Type == typeof(string))
-                            return Expression.NotEqual(left, Expression.Constant("", typeof(string)));
-
-                        if (typeof(System.Collections.IEnumerable).IsAssignableFrom(left.Type))
                         {
-                            var countProp = left.Type.GetProperty("Count");
-                            if (countProp != null)
-                                return Expression.GreaterThan(Expression.Property(left, countProp),
-                                    Expression.Constant(0));
+                            if (left.Type == typeof(string))
+                            {
+                                return Expression.NotEqual(left, Expression.Constant(string.Empty, typeof(string)));
+                            }
 
-                            var anyMethod = typeof(Enumerable).GetMethods()
-                                .First(m => m.Name == "Any" && m.GetParameters().Length == 1)
-                                .MakeGenericMethod(left.Type.GetGenericArguments()[0]);
+                            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(left.Type))
+                            {
+                                var countProp = left.Type.GetProperty("Count");
+                                if (countProp != null)
+                                {
+                                    return Expression.GreaterThan(Expression.Property(left, countProp), Expression.Constant(0));
+                                }
 
-                            return Expression.Call(anyMethod, left);
+                                var anyMethod = typeof(Enumerable).GetMethods()
+                                    .First(m => m.Name == "Any" && m.GetParameters().Length == 1)
+                                    .MakeGenericMethod(left.Type.GetGenericArguments()[0]);
+
+                                return Expression.Call(anyMethod, left);
+                            }
+
+                            throw new NotSupportedException("IS NOT EMPTY применим только к строкам или коллекциям.");
                         }
-
-                        throw new NotSupportedException("IS NOT EMPTY применим только к строкам или коллекциям.");
-                    }
 
                     case "+": return Expression.Add(left, right);
                     case "-": return Expression.Subtract(left, right);
@@ -501,7 +547,11 @@ namespace RuntimeStuff.Helpers
                         var pattern = ((ConstantExpr)b.Right).Value.ToString();
                         pattern = $"^{Regex.Escape(pattern).Replace("%", ".*").Replace("_", ".")}$";
                         var regexConst = Expression.Constant(new Regex(pattern, RegexOptions.IgnoreCase));
-                        if (left?.Type != null && left.Type != typeof(string)) left = Expression.Call(left, left.Type.GetMethod("ToString", Type.EmptyTypes) ?? throw new NullReferenceException());
+                        if (left?.Type != null && left.Type != typeof(string))
+                        {
+                            left = Expression.Call(left, left.Type.GetMethod("ToString", Type.EmptyTypes) ?? throw new NullReferenceException());
+                        }
+
                         return Expression.Call(regexConst, "IsMatch", null, left);
 
                     default: throw new NotSupportedException(b.Op);
@@ -517,7 +567,9 @@ namespace RuntimeStuff.Helpers
 
                 var array = Array.CreateInstance(leftExpr.Type, convertedValues.Length);
                 for (var idx = 0; idx < convertedValues.Length; idx++)
+                {
                     array.SetValue(convertedValues[idx], idx);
+                }
 
                 var listType = typeof(List<>).MakeGenericType(leftExpr.Type);
                 var ctor = listType.GetConstructor(new[] { typeof(IEnumerable<>).MakeGenericType(leftExpr.Type) });
@@ -530,7 +582,11 @@ namespace RuntimeStuff.Helpers
 
                 var containsCall = Expression.Call(containsMethod, listExpr, leftExpr);
 
-                if (i.Not) return Expression.Not(containsCall);
+                if (i.Not)
+                {
+                    return Expression.Not(containsCall);
+                }
+
                 return containsCall;
             }
 
@@ -541,7 +597,9 @@ namespace RuntimeStuff.Helpers
                 var upper = ToExpression(be.Upper, param);
 
                 if (left.Type == typeof(string))
+                {
                     throw new FormatException($"Оператор BETWEEN не подходит для строкового параметра {left}");
+                }
 
                 // Приводим типы нижней и верхней границы
                 if (lower is ConstantExpression lc && left.Type != lc.Type)
@@ -562,15 +620,15 @@ namespace RuntimeStuff.Helpers
                 var betweenExpr = Expression.AndAlso(ge, le);
 
                 if (be.Not)
+                {
                     return Expression.Not(betweenExpr);
+                }
 
                 return betweenExpr;
             }
 
             throw new NotSupportedException(expr.GetType().Name);
         }
-
-        #endregion AST → Expression
 
         /// <summary>
         ///     Базовый класс для всех узлов синтаксического дерева.
@@ -584,23 +642,30 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         internal class BetweenExpr : Expr
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="BetweenExpr"/> class.
+            /// </summary>
+            /// <param name="left"></param>
+            /// <param name="lower"></param>
+            /// <param name="upper"></param>
+            /// <param name="not"></param>
             public BetweenExpr(Expr left, Expr lower, Expr upper, bool not = false)
             {
-                Left = left;
-                Lower = lower;
-                Upper = upper;
-                Not = not;
+                this.Left = left;
+                this.Lower = lower;
+                this.Upper = upper;
+                this.Not = not;
             }
 
             public Expr Left { get; }
+
             public Expr Lower { get; }
+
             public Expr Upper { get; }
+
             public bool Not { get; }
 
-            public override string ToString()
-            {
-                return $"{Left} {(Not ? "NOT " : "")}BETWEEN {Lower} AND {Upper}";
-            }
+            public override string ToString() => $"{this.Left} {(this.Not ? "NOT " : string.Empty)}BETWEEN {this.Lower} AND {this.Upper}";
         }
 
         /// <summary>
@@ -608,21 +673,26 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         internal class BinaryExpr : Expr
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="BinaryExpr"/> class.
+            /// </summary>
+            /// <param name="left"></param>
+            /// <param name="op"></param>
+            /// <param name="right"></param>
             public BinaryExpr(Expr left, string op, Expr right)
             {
-                Left = left;
-                Op = op;
-                Right = right;
+                this.Left = left;
+                this.Op = op;
+                this.Right = right;
             }
 
             public Expr Left { get; }
+
             public string Op { get; }
+
             public Expr Right { get; }
 
-            public override string ToString()
-            {
-                return $"{Left} {Op} {Right}";
-            }
+            public override string ToString() => $"{this.Left} {this.Op} {this.Right}";
         }
 
         /// <summary>
@@ -630,17 +700,18 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         internal class ConstantExpr : Expr
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="ConstantExpr"/> class.
+            /// </summary>
+            /// <param name="value"></param>
             public ConstantExpr(object value)
             {
-                Value = value;
+                this.Value = value;
             }
 
             public object Value { get; }
 
-            public override string ToString()
-            {
-                return $"{Value}";
-            }
+            public override string ToString() => $"{this.Value}";
         }
 
         /// <summary>
@@ -648,21 +719,26 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         internal class InExpr : Expr
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="InExpr"/> class.
+            /// </summary>
+            /// <param name="left"></param>
+            /// <param name="values"></param>
+            /// <param name="not"></param>
             public InExpr(Expr left, List<Expr> values, bool not = false)
             {
-                Left = left;
-                Values = values;
-                Not = not;
+                this.Left = left;
+                this.Values = values;
+                this.Not = not;
             }
 
             public Expr Left { get; }
+
             public bool Not { get; }
+
             public List<Expr> Values { get; }
 
-            public override string ToString()
-            {
-                return $"{Left} {(Not ? "NOT " : "")}IN {string.Join(", ", Values)}";
-            }
+            public override string ToString() => $"{this.Left} {(this.Not ? "NOT " : string.Empty)}IN {string.Join(", ", this.Values)}";
         }
 
         /// <summary>
@@ -670,17 +746,18 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         internal class PropertyExpr : Expr
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="PropertyExpr"/> class.
+            /// </summary>
+            /// <param name="name"></param>
             public PropertyExpr(string name)
             {
-                Name = name;
+                this.Name = name;
             }
 
             public string Name { get; }
 
-            public override string ToString()
-            {
-                return $"[{Name}]";
-            }
+            public override string ToString() => $"[{this.Name}]";
         }
 
         /// <summary>
@@ -688,21 +765,22 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         internal class UnaryExpr : Expr
         {
+            /// <summary>
+            /// Initializes a new instance of the <see cref="UnaryExpr"/> class.
+            /// </summary>
+            /// <param name="op"></param>
+            /// <param name="operand"></param>
             public UnaryExpr(string op, Expr operand)
             {
-                Op = op;
-                Operand = operand;
+                this.Op = op;
+                this.Operand = operand;
             }
 
             public string Op { get; }
+
             public Expr Operand { get; }
 
-            public override string ToString()
-            {
-                return $"{Op} {Operand}";
-            }
+            public override string ToString() => $"{this.Op} {this.Operand}";
         }
-
-        #endregion Internal logic
     }
 }

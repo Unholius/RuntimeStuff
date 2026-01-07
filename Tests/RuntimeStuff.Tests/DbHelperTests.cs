@@ -1,18 +1,11 @@
-using System.Data;
-using System.Data.SqlClient;
-using System.Diagnostics;
 using Microsoft.Data.Sqlite;
-using RuntimeStuff.Extensions;
-using RuntimeStuff.MSTests.DTO;
-using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
-#if DEBUG
     [TestClass]
-#endif
     public partial class DbHelperIntegrationTests
     {
+        private static EntityMap map;
         private static string? _connectionString;
 
         [ClassInitialize]
@@ -20,7 +13,13 @@ namespace RuntimeStuff.MSTests
         {
             // Получаем строку подключения из конфигурации тестов
             _connectionString = "Data Source=.\\Databases\\sqlte_test.db";
-
+            map = new EntityMap();
+            map
+                .Table<DTO.SQLite.TestTable>("test_table")
+                .Property(x => x.IntValue, "int_value")
+                .Property(x => x.TextValue, "text_value")
+                .Table<DTO.SQLite.User>("users")
+                ;
             // Создаем тестовые таблицы
             CreateTestTables();
         }
@@ -28,9 +27,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Dumb_Test()
         {
-
         }
-
 
         // Вспомогательные методы
         private static void CreateTestTables()
@@ -129,17 +126,10 @@ CREATE TABLE student_courses (
         [TestMethod]
         public void DbClient_Test_01()
         {
-            var map = new EntityMap();
-            map
-                .Table<DTO.SQLite.TestTable>("test_table")
-                .Property(x => x.IntValue, "int_value")
-                .Property(x => x.TextValue, "text_value")
-                ;
-
             using var db = DbClient.Create<SqliteConnection>(_connectionString);
             db.Options.Map = map;
             db.EnableLogging = true;
-            var row = new DTO.SQLite.TestTable() { IntValue  = 1, TextValue = "1" };
+            var row = new DTO.SQLite.TestTable() { IntValue = 1, TextValue = "1" };
             var id = db.Insert(row, x => x.IntValue, x => x.TextValue);
             var row2 = db.First<DTO.SQLite.TestTable>(x => x.Id == (long)id);
             Assert.AreEqual(1, row2.IntValue);
@@ -147,7 +137,7 @@ CREATE TABLE student_courses (
             var result = db.Delete<DTO.SQLite.TestTable>(x => x.Id == (long)id);
             Assert.AreEqual(1, result);
             var count = db.Count<DTO.SQLite.TestTable, long>(x => x.Id == (long)id);
-            Assert.AreEqual (0L, count);
+            Assert.AreEqual(0L, count);
         }
 
         [TestMethod]
@@ -155,9 +145,20 @@ CREATE TABLE student_courses (
         {
             using var db = DbClient.Create<SqliteConnection>(_connectionString);
             var user = db.Insert<DTO.SQLite.User>(x => x.Name = "user_1");
-            var profile = db.Insert<DTO.SQLite.UserProfile>(x=>x.UserId = user.Id,  x => x.AvatarUrl = new Uri("https://ya.ru"));
+            var profile = db.Insert<DTO.SQLite.UserProfile>(x => x.UserId = user.Id, x => x.AvatarUrl = new Uri("https://ya.ru"));
             var up = db.First<DTO.SQLite.UserProfile>(x => x.UserId == profile.UserId);
         }
 
+        [TestMethod]
+        public void DbClient_Test_03()
+        {
+            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+            for (int i = 0; i < 10; i++)
+            {
+                var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
+            }
+
+            var d = db.ToDictionary<long, string, DTO.SQLite.User>(x => x.Id, x => x.Name);
+        }
     }
 }

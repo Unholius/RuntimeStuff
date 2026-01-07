@@ -16,10 +16,11 @@
         /// Инициализирует новый экземпляр класса
         /// <see cref="FormatValueOptions"/> со значениями по умолчанию.
         /// </summary>
-        public FormatValueOptions() { }
+        public FormatValueOptions()
+        { }
 
         /// <summary>
-        /// Получает или задаёт формат даты и времени.
+        /// Gets or sets получает или задаёт формат даты и времени.
         /// </summary>
         /// <remarks>
         /// Используется стандартный формат .NET для
@@ -29,7 +30,7 @@
         public string DateFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
 
         /// <summary>
-        /// Получает или задаёт строковое представление логического значения
+        /// Gets or sets получает или задаёт строковое представление логического значения
         /// <see langword="true"/>.
         /// </summary>
         /// <remarks>
@@ -38,7 +39,7 @@
         public string TrueString { get; set; } = "1";
 
         /// <summary>
-        /// Получает или задаёт строковое представление логического значения
+        /// Gets or sets получает или задаёт строковое представление логического значения
         /// <see langword="false"/>.
         /// </summary>
         /// <remarks>
@@ -47,7 +48,7 @@
         public string FalseString { get; set; } = "0";
 
         /// <summary>
-        /// Получает или задаёт префикс строкового значения.
+        /// Gets or sets получает или задаёт префикс строкового значения.
         /// </summary>
         /// <remarks>
         /// Обычно используется для обрамления строк,
@@ -57,7 +58,7 @@
         public string StringValuePrefix { get; set; } = "'";
 
         /// <summary>
-        /// Получает или задаёт суффикс строкового значения.
+        /// Gets or sets получает или задаёт суффикс строкового значения.
         /// </summary>
         /// <remarks>
         /// Обычно используется совместно с

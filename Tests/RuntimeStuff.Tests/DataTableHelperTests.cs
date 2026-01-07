@@ -1,5 +1,5 @@
-﻿using System.Data;
-using RuntimeStuff.Helpers;
+﻿using RuntimeStuff.Helpers;
+using System.Data;
 
 namespace RuntimeStuff.MSTests;
 

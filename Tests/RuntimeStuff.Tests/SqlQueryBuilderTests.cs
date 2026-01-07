@@ -1,9 +1,4 @@
 ﻿using RuntimeStuff.Builders;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RuntimeStuff.MSTests
 {
@@ -20,7 +15,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void TestJoin_02()
         {
-            var join = SqlQueryBuilder.GetJoinClause( typeof(DTO.SQLite.UserProfile), typeof(DTO.SQLite.User), Options.SqlProviderOptions.SqliteOptions);
+            var join = SqlQueryBuilder.GetJoinClause(typeof(DTO.SQLite.UserProfile), typeof(DTO.SQLite.User), Options.SqlProviderOptions.SqliteOptions);
             Assert.AreEqual("INNER JOIN \"users\" ON \"users\".\"user_id\" = \"user_profiles\".\"user_id\"", join);
         }
     }

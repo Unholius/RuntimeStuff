@@ -1,15 +1,15 @@
-﻿using RuntimeStuff.Helpers;
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace RuntimeStuff
+﻿namespace RuntimeStuff
 {
+    using System;
+    using System.Collections;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using RuntimeStuff.Helpers;
+
     /// <summary>
     /// Определяет стратегию вытеснения элементов из ограниченной коллекции
     /// при превышении максимально допустимого размера.
@@ -81,13 +81,19 @@ namespace RuntimeStuff
         private readonly uint? _sizeLimit;
         private readonly EvictionPolicy _evictionPolicy;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Cache{TKey, TValue}"/> class.
+        /// </summary>
+        /// <param name="expiration"></param>
+        /// <param name="sizeLimit"></param>
+        /// <param name="evictionPolicy"></param>
         public Cache(TimeSpan? expiration = null, uint? sizeLimit = null, EvictionPolicy evictionPolicy = default)
         {
-            _cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
-            _hasFactory = false;
-            _expiration = expiration;
-            _sizeLimit = sizeLimit;
-            _evictionPolicy = evictionPolicy;
+            this._cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
+            this._hasFactory = false;
+            this._expiration = expiration;
+            this._sizeLimit = sizeLimit;
+            this._evictionPolicy = evictionPolicy;
         }
 
         /// <summary>
@@ -97,12 +103,12 @@ namespace RuntimeStuff
         /// <param name="expiration">Опциональное время жизни элементов кэша.</param>
         public Cache(Func<TKey, Task<TValue>> valueFactory, TimeSpan? expiration = null, uint? sizeLimit = null, EvictionPolicy evictionPolicy = default)
         {
-            _cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
-            _asyncFactory = valueFactory ?? throw new ArgumentNullException(nameof(valueFactory));
-            _expiration = expiration;
-            _hasFactory = true;
-            _sizeLimit = sizeLimit;
-            _evictionPolicy = evictionPolicy;
+            this._cache = new ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>>();
+            this._asyncFactory = valueFactory ?? throw new ArgumentNullException(nameof(valueFactory));
+            this._expiration = expiration;
+            this._hasFactory = true;
+            this._sizeLimit = sizeLimit;
+            this._evictionPolicy = evictionPolicy;
         }
 
         /// <summary>
@@ -131,35 +137,35 @@ namespace RuntimeStuff
         public event Action<TKey> ItemAccessed;
 
         /// <summary>
-        /// Количество актуальных элементов кэша.
+        /// Gets количество актуальных элементов кэша.
         /// Учитываются только успешно созданные и неистёкшие элементы.
         /// </summary>
         public int Count =>
-            _cache.Count(p =>
+            this._cache.Count(p =>
                 p.Value.IsValueCreated &&
                 p.Value.Value.IsCompleted &&
-                (_expiration == null || Now() - p.Value.Value.Result.Created < _expiration));
+                (this._expiration == null || this.Now() - p.Value.Value.Result.Created < this._expiration));
 
         /// <summary>
-        /// Возвращает ключи актуальных элементов кэша.
+        /// Gets возвращает ключи актуальных элементов кэша.
         /// Не запускает фабрику и не блокирует поток.
         /// </summary>
         public IEnumerable<TKey> Keys =>
-            _cache
+            this._cache
                 .Where(p => p.Value.IsValueCreated &&
                             p.Value.Value.IsCompleted &&
-                            (_expiration == null || Now() - p.Value.Value.Result.Created < _expiration))
+                            (this._expiration == null || this.Now() - p.Value.Value.Result.Created < this._expiration))
                 .Select(p => p.Key);
 
         /// <summary>
-        /// Возвращает значения актуальных элементов кэша.
+        /// Gets возвращает значения актуальных элементов кэша.
         /// Только успешно созданные и неистёкшие элементы.
         /// </summary>
         public IEnumerable<TValue> Values =>
-            _cache
+            this._cache
                 .Where(p => p.Value.IsValueCreated &&
                             p.Value.Value.IsCompleted &&
-                            (_expiration == null || Now() - p.Value.Value.Result.Created < _expiration))
+                            (this._expiration == null || this.Now() - p.Value.Value.Result.Created < this._expiration))
                 .Select(p => p.Value.Value.Result.Value);
 
         /// <summary>
@@ -169,7 +175,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="key">Ключ.</param>
         /// <returns>Значение кэша.</returns>
-        public TValue this[TKey key] => Get(key);
+        public TValue this[TKey key] => this.Get(key);
 
         /// <summary>
         /// Очистка всего кэша.
@@ -177,12 +183,12 @@ namespace RuntimeStuff
         /// </summary>
         public void Clear()
         {
-            var keys = _cache.Keys.ToArray();
-            _cache.Clear();
+            var keys = this._cache.Keys.ToArray();
+            this._cache.Clear();
 
             foreach (var key in keys)
             {
-                OnItemRemoved(key, RemovalReason.Cleared);
+                this.OnItemRemoved(key, RemovalReason.Cleared);
             }
         }
 
@@ -194,23 +200,17 @@ namespace RuntimeStuff
         /// <returns>
         /// <c>true</c>, если элемент существует, не истёк и успешно создан.
         /// </returns>
-        public bool ContainsKey(TKey key)
-        {
-            return TryGetValue(key, out _);
-        }
+        public bool ContainsKey(TKey key) => this.TryGetValue(key, out _);
 
         /// <summary>
         /// Синхронно получает значение из кэша или создаёт его.
         /// </summary>
         /// <param name="key">Ключ.</param>
         /// <returns>Значение кэша.</returns>
-        public TValue Get(TKey key)
-        {
-            return GetAsync(key)
+        public TValue Get(TKey key) => this.GetAsync(key)
                 .ConfigureAwait(false)
                 .GetAwaiter()
                 .GetResult();
-        }
 
         /// <summary>
         /// Получает значение из кэша по указанному ключу
@@ -240,8 +240,10 @@ namespace RuntimeStuff
         /// </remarks>
         public TValue GetOrDefault(TKey key, TValue defaultValue)
         {
-            if (TryGetValue(key, out var value))
+            if (this.TryGetValue(key, out var value))
+            {
                 return value;
+            }
 
             return defaultValue;
         }
@@ -254,10 +256,12 @@ namespace RuntimeStuff
         public async Task<TValue> GetAsync(TKey key)
         {
             // Режим без фабрики — работаем как обычный словарь
-            if (!_hasFactory)
+            if (!this._hasFactory)
             {
-                if (TryGetValue(key, out var existing))
+                if (this.TryGetValue(key, out var existing))
+                {
                     return existing;
+                }
 
                 throw new KeyNotFoundException(
                     $"The given key '{key}' was not present in the cache.");
@@ -265,15 +269,15 @@ namespace RuntimeStuff
 
             while (true)
             {
-                var lazy = _cache.GetOrAdd(
+                var lazy = this._cache.GetOrAdd(
                     key,
                     k => new Lazy<Task<CacheEntry>>(
                         async () =>
                         {
-                            var value = await _asyncFactory(k).ConfigureAwait(false);
-                            OnItemAdded(k);
-                            EnforceSizeLimit();
-                            return new CacheEntry(key, value, Now());
+                            var value = await this._asyncFactory(k).ConfigureAwait(false);
+                            this.OnItemAdded(k);
+                            this.EnforceSizeLimit();
+                            return new CacheEntry(key, value, this.Now());
                         },
                         LazyThreadSafetyMode.ExecutionAndPublication));
 
@@ -285,21 +289,23 @@ namespace RuntimeStuff
                 }
                 catch
                 {
-                    _cache.TryRemove(key, out _);
-                    OnItemRemoved(key, RemovalReason.Manual);
+                    this._cache.TryRemove(key, out _);
+                    this.OnItemRemoved(key, RemovalReason.Manual);
                     throw;
                 }
 
                 // TTL проверка
-                if (_expiration != null && Now() - entry.Created >= _expiration)
+                if (this._expiration != null && this.Now() - entry.Created >= this._expiration)
                 {
-                    if (_cache.TryRemove(key, out _))
-                        OnItemRemoved(key, RemovalReason.Expired);
+                    if (this._cache.TryRemove(key, out _))
+                    {
+                        this.OnItemRemoved(key, RemovalReason.Expired);
+                    }
 
                     continue; // создаём заново
                 }
 
-                UpdateLastAccess(key, entry);
+                this.UpdateLastAccess(key, entry);
                 return entry.Value;
             }
         }
@@ -332,8 +338,10 @@ namespace RuntimeStuff
         /// </remarks>
         public async Task<TValue> GetOrDefaultAsync(TKey key, TValue defaultValue)
         {
-            if (!_cache.TryGetValue(key, out var lazy))
+            if (!this._cache.TryGetValue(key, out var lazy))
+            {
                 return defaultValue;
+            }
 
             CacheEntry entry;
 
@@ -346,15 +354,15 @@ namespace RuntimeStuff
                 return defaultValue;
             }
 
-            var elapsed = Now() - entry.Created;
-            if (_expiration != null && elapsed >= _expiration)
+            var elapsed = this.Now() - entry.Created;
+            if (this._expiration != null && elapsed >= this._expiration)
             {
-                _cache.TryRemove(key, out _);
-                OnItemRemoved(key, RemovalReason.Expired);
+                this._cache.TryRemove(key, out _);
+                this.OnItemRemoved(key, RemovalReason.Expired);
                 return defaultValue;
             }
 
-            UpdateLastAccess(key, entry);
+            this.UpdateLastAccess(key, entry);
             return entry.Value;
         }
 
@@ -387,7 +395,7 @@ namespace RuntimeStuff
         public void Set(TKey key, TValue value)
         {
             // Создаём Lazy с Task, фиксируя время создания сразу
-            var v = new CacheEntry(key, value, Now());
+            var v = new CacheEntry(key, value, this.Now());
             var lazy = new Lazy<Task<CacheEntry>>(
                 () => Task.FromResult(v),
                 LazyThreadSafetyMode.ExecutionAndPublication);
@@ -395,21 +403,21 @@ namespace RuntimeStuff
             // Принудительно создаем значение, чтобы IsValueCreated был true
             var _ = lazy.Value;
 
-            _cache.AddOrUpdate(
+            this._cache.AddOrUpdate(
                 key,
                 k =>
                 {
-                    OnItemAdded(k);
+                    this.OnItemAdded(k);
                     return lazy;
                 },
                 (k, old) =>
                 {
-                    OnItemRemoved(k, RemovalReason.Manual);
-                    OnItemAdded(k);
+                    this.OnItemRemoved(k, RemovalReason.Manual);
+                    this.OnItemAdded(k);
                     return lazy;
                 });
 
-            EnforceSizeLimit();
+            this.EnforceSizeLimit();
         }
 
         /// <summary>
@@ -446,10 +454,12 @@ namespace RuntimeStuff
         public async Task SetAsync(TKey key, Task<TValue> valueTask)
         {
             if (valueTask == null)
+            {
                 throw new ArgumentNullException(nameof(valueTask));
+            }
 
             var value = await valueTask.ConfigureAwait(false);
-            Set(key, value);
+            this.Set(key, value);
         }
 
         /// <summary>
@@ -459,22 +469,18 @@ namespace RuntimeStuff
         /// <returns>Перечислитель ключ-значение.</returns>
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
-            foreach (var entry in _cache.Values.OrderBy(x => x.Value.Result.Created))
+            foreach (var entry in this._cache.Values.OrderBy(x => x.Value.Result.Created))
             {
-                if (TryGetValue(entry.Value.Result.Key, out var value))
+                if (this.TryGetValue(entry.Value.Result.Key, out var value))
+                {
                     yield return new KeyValuePair<TKey, TValue>(entry.Value.Result.Key, value);
+                }
             }
         }
 
-        public IEnumerable<(TKey Key, TValue Value, DateTime Created, DateTime LastAccess)> GetEntries()
-        {
-            return _cache.Values.Select(x => (x.Value.Result.Key, x.Value.Result.Value, x.Value.Result.Created, x.Value.Result.LastAccess));
-        }
+        public IEnumerable<(TKey Key, TValue Value, DateTime Created, DateTime LastAccess)> GetEntries() => this._cache.Values.Select(x => (x.Value.Result.Key, x.Value.Result.Value, x.Value.Result.Created, x.Value.Result.LastAccess));
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
         /// <summary>
         /// Удаляет элемент из кэша.
@@ -485,9 +491,9 @@ namespace RuntimeStuff
         /// </returns>
         public bool Remove(TKey key)
         {
-            if (_cache.TryRemove(key, out _))
+            if (this._cache.TryRemove(key, out _))
             {
-                OnItemRemoved(key, RemovalReason.Manual);
+                this.OnItemRemoved(key, RemovalReason.Manual);
                 return true;
             }
 
@@ -507,8 +513,10 @@ namespace RuntimeStuff
         {
             value = default;
 
-            if (!_cache.TryGetValue(key, out var lazy))
+            if (!this._cache.TryGetValue(key, out var lazy))
+            {
                 return false;
+            }
 
             CacheEntry entry;
 
@@ -521,15 +529,17 @@ namespace RuntimeStuff
                 return false;
             }
 
-            if (_expiration != null && Now() - entry.Created >= _expiration)
+            if (this._expiration != null && this.Now() - entry.Created >= this._expiration)
             {
-                if (_cache.TryRemove(key, out _))
-                    OnItemRemoved(key, RemovalReason.Expired);
+                if (this._cache.TryRemove(key, out _))
+                {
+                    this.OnItemRemoved(key, RemovalReason.Expired);
+                }
 
                 return false;
             }
 
-            UpdateLastAccess(key, entry);
+            this.UpdateLastAccess(key, entry);
             value = entry.Value;
             return true;
         }
@@ -580,8 +590,10 @@ namespace RuntimeStuff
         /// </exception>
         public async Task<(bool Success, TValue Value)> TryGetValueAsync(TKey key, CancellationToken cancellationToken = default)
         {
-            if (!_cache.TryGetValue(key, out var lazy))
+            if (!this._cache.TryGetValue(key, out var lazy))
+            {
                 return (false, default);
+            }
 
             CacheEntry entry;
 
@@ -595,72 +607,60 @@ namespace RuntimeStuff
                 return (false, default);
             }
 
-            if (_expiration != null && Now() - entry.Created >= _expiration)
+            if (this._expiration != null && this.Now() - entry.Created >= this._expiration)
             {
-                if (_cache.TryRemove(key, out _))
-                    OnItemRemoved(key, RemovalReason.Expired);
+                if (this._cache.TryRemove(key, out _))
+                {
+                    this.OnItemRemoved(key, RemovalReason.Expired);
+                }
 
                 return (false, default);
             }
 
-            UpdateLastAccess(key, entry);
+            this.UpdateLastAccess(key, entry);
             return (true, entry.Value);
         }
-
 
         /// <summary>
         /// Вызывает событие добавления элемента.
         /// </summary>
         /// <param name="key">Ключ элемента.</param>
-        protected void OnItemAdded(TKey key) => ItemAdded?.Invoke(key);
+        protected void OnItemAdded(TKey key) => this.ItemAdded?.Invoke(key);
 
         /// <summary>
         /// Вызывает событие доступа к элементу.
         /// </summary>
         /// <param name="key">Ключ элемента.</param>
-        protected void OnItemAccessed(TKey key) => ItemAccessed?.Invoke(key);
+        protected void OnItemAccessed(TKey key) => this.ItemAccessed?.Invoke(key);
 
         /// <summary>
         /// Вызывает событие удаления элемента.
         /// </summary>
         /// <param name="key">Ключ элемента.</param>
         /// <param name="reason">Причина удаления.</param>
-        protected void OnItemRemoved(TKey key, RemovalReason reason) => ItemRemoved?.Invoke(key, reason);
+        protected void OnItemRemoved(TKey key, RemovalReason reason) => this.ItemRemoved?.Invoke(key, reason);
 
         private static Func<TKey, Task<TValue>> WrapSyncFactory(Func<TKey, TValue> syncFactory)
         {
             if (syncFactory == null)
+            {
                 throw new ArgumentNullException(nameof(syncFactory));
+            }
 
             return key => Task.FromResult(syncFactory(key));
         }
 
-        private sealed class CacheEntry
-        {
-            public TKey Key;
-            public TValue Value { get; }
-            public DateTime Created { get; }
-            public DateTime LastAccess;
-
-            public CacheEntry(TKey key, TValue value, DateTime created)
-            {
-                Key = key;
-                Value = value;
-                Created = created;
-                LastAccess = created;
-            }
-        }
-
         private void EnforceSizeLimit()
         {
-            if (_sizeLimit == null || _sizeLimit.Value == 0)
-                return;
-
-            //lock (_evictionLock)
+            if (this._sizeLimit == null || this._sizeLimit.Value == 0)
             {
-                while (_cache.Count > _sizeLimit.Value)
+                return;
+            }
+
+            {
+                while (this._cache.Count > this._sizeLimit.Value)
                 {
-                    var candidate = _cache
+                    var candidate = this._cache
                         .Where(p =>
                             p.Value.IsValueCreated &&
                             p.Value.Value.IsCompleted)
@@ -675,29 +675,49 @@ namespace RuntimeStuff
                             };
                         })
                         .OrderBy(p =>
-                            _evictionPolicy == EvictionPolicy.FIFO
+                            this._evictionPolicy == EvictionPolicy.FIFO
                                 ? p.Created
                                 : p.LastAccess)
                         .FirstOrDefault();
 
                     if (candidate == null)
+                    {
                         return;
+                    }
 
-                    if (_cache.TryRemove(candidate.Key, out _))
-                        OnItemRemoved(candidate.Key, RemovalReason.SizeLimit);
+                    if (this._cache.TryRemove(candidate.Key, out _))
+                    {
+                        this.OnItemRemoved(candidate.Key, RemovalReason.SizeLimit);
+                    }
                 }
             }
         }
 
         private void UpdateLastAccess(TKey key, CacheEntry entry)
         {
-            entry.LastAccess = Now();
-            OnItemAccessed(key);
+            entry.LastAccess = this.Now();
+            this.OnItemAccessed(key);
         }
 
-        private DateTime Now()
+        private DateTime Now() => DateTimeHelper.ExactNow(DateTime.UtcNow);
+
+        private sealed class CacheEntry
         {
-            return DateTimeHelper.ExactNow(DateTime.UtcNow);
+            public CacheEntry(TKey key, TValue value, DateTime created)
+            {
+                this.Key = key;
+                this.Value = value;
+                this.Created = created;
+                this.LastAccess = created;
+            }
+
+            public TKey Key { get; }
+
+            public TValue Value { get; }
+
+            public DateTime Created { get; }
+
+            public DateTime LastAccess { get; }
         }
     }
 }

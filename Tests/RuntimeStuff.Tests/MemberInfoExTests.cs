@@ -5,7 +5,6 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class TypeCacheTests
     {
-
         public class TestClass
         {
             [Column("Name")]

@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace RuntimeStuff.Extensions
+﻿namespace RuntimeStuff.Extensions
 {
+    using System;
+
     /// <summary>
     /// Предоставляет расширения для работы с перечислениями и компараторами строк в .NET.
     /// <para>
@@ -47,16 +47,22 @@ namespace RuntimeStuff.Extensions
             {
                 case StringComparison.CurrentCulture:
                     return _CurrentCulture;
+
                 case StringComparison.CurrentCultureIgnoreCase:
                     return _CurrentCultureIgnoreCase;
+
                 case StringComparison.InvariantCulture:
                     return _InvariantCulture;
+
                 case StringComparison.InvariantCultureIgnoreCase:
                     return _InvariantCultureIgnoreCase;
+
                 case StringComparison.Ordinal:
                     return _Ordinal;
+
                 case StringComparison.OrdinalIgnoreCase:
                     return _OrdinalIgnoreCase;
+
                 default:
                     throw new ArgumentException("Invalid StringComparison value", nameof(comparison));
             }
@@ -75,17 +81,34 @@ namespace RuntimeStuff.Extensions
         public static StringComparison ToStringComparison(this StringComparer comparer)
         {
             if (comparer == _Ordinal)
+            {
                 return StringComparison.Ordinal;
+            }
+
             if (comparer == _OrdinalIgnoreCase)
+            {
                 return StringComparison.OrdinalIgnoreCase;
+            }
+
             if (comparer == _CurrentCulture)
+            {
                 return StringComparison.CurrentCulture;
+            }
+
             if (comparer == _CurrentCultureIgnoreCase)
+            {
                 return StringComparison.CurrentCultureIgnoreCase;
+            }
+
             if (comparer == _InvariantCulture)
+            {
                 return StringComparison.InvariantCulture;
+            }
+
             if (comparer == _InvariantCultureIgnoreCase)
+            {
                 return StringComparison.InvariantCultureIgnoreCase;
+            }
 
             throw new ArgumentException("Неизвестный StringComparer", nameof(comparer));
         }

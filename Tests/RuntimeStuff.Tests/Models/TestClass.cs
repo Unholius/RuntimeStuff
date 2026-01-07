@@ -6,7 +6,6 @@ namespace RuntimeStuff.MSTests.Models;
 [Table("TestTable")]
 public class DtoTestClass
 {
-
     public DtoTestClass()
     {
     }
@@ -46,6 +45,7 @@ public class DtoTestClass
 
     // Числовые типы
     [Key] public int IdInt { get; set; } = -1;
+
     public long? ColBigInt { get; set; }
     public short? ColSmallInt { get; set; }
     public byte? ColTinyInt { get; set; }
@@ -60,6 +60,7 @@ public class DtoTestClass
 
     // Дата и время
     public DateTime? ColDate { get; set; }
+
     public TimeSpan? ColTime { get; set; }
     public DateTime? ColDateTime { get; set; }
     public DateTime? ColDateTime2 { get; set; }
@@ -68,6 +69,7 @@ public class DtoTestClass
 
     // Строки
     public string? ColChar { get; set; }
+
     public string? ColVarChar { get; set; }
     public string? ColVarCharMax { get; set; }
 
@@ -77,11 +79,13 @@ public class DtoTestClass
 
     // Бинарные
     public byte[]? ColBinary { get; set; }
+
     public byte[]? ColVarBinary { get; set; }
     public byte[]? ColVarBinaryMax { get; set; }
 
     // Специальные
     public Guid ColUniqueIdentifier { get; set; }
+
     public byte[] ColRowVersion { get; set; } = [];
 
     public string? ColXml { get; set; }

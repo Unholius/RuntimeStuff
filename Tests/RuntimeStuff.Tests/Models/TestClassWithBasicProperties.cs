@@ -4,11 +4,14 @@
         : System.ComponentModel.INotifyPropertyChanged
     {
         public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(propertyName));
         }
+
         private int _int32 = int32;
+
         public int Int32
         {
             get => _int32;
@@ -21,7 +24,9 @@
                 }
             }
         }
-        private string? _str = str ?? (int32 % 3 == 0 ? null :int32.ToString());
+
+        private string? _str = str ?? (int32 % 3 == 0 ? null : int32.ToString());
+
         public string? Str
         {
             get => _str;
@@ -34,7 +39,9 @@
                 }
             }
         }
+
         private bool _bool = b ?? int32 % 2 == 0;
+
         public bool Bool
         {
             get => _bool;
@@ -47,7 +54,9 @@
                 }
             }
         }
+
         private double _double = d ?? int32 + int32 / 15.0;
+
         public double Double
         {
             get => _double;
@@ -66,7 +75,6 @@
     {
         public TestClassWithBasicProperties()
         {
-
         }
 
         private readonly string _str = "secret";

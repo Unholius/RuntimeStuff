@@ -1,10 +1,10 @@
-﻿using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using RuntimeStuff.Extensions;
-
-namespace RuntimeStuff
+﻿namespace RuntimeStuff
 {
+    using System;
+    using System.ComponentModel;
+    using System.Runtime.CompilerServices;
+    using RuntimeStuff.Extensions;
+
     /// <summary>
     /// Базовый класс, предоставляющий реализацию интерфейсов <see cref="INotifyPropertyChanged"/>, <see cref="INotifyPropertyChanging"/> и
     /// вспомогательные методы для уведомления об изменении свойств, а также автоматического управления подписками на
@@ -50,14 +50,14 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <exception cref="ArgumentNullException">Если <paramref name="propertyName"/> равен <c>null</c>.</exception>
-        public virtual void OnPropertyChanging([CallerMemberName] string propertyName = null) => PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
+        public virtual void OnPropertyChanging([CallerMemberName] string propertyName = null) => this.PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
 
         /// <summary>
         /// Вызывает событие <see cref="PropertyChanged"/> для указанного свойства.
         /// </summary>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <exception cref="ArgumentNullException">Если <paramref name="propertyName"/> равен <c>null</c>.</exception>
-        public virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        public virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         /// <summary>
         /// Устанавливает значение backing field и вызывает уведомление об изменении свойства,
@@ -66,16 +66,20 @@ namespace RuntimeStuff
         /// <typeparam name="T">Тип свойства.</typeparam>
         /// <param name="field">Ссылка на backing field свойства.</param>
         /// <param name="value">Новое значение для поля.</param>
-        /// <param name="onChanged">Действие после изменения свойства</param>
+        /// <param name="onChanged">Действие после изменения свойства.</param>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
         public bool SetProperty<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
         {
-            if (Equals(field, value)) return false;
-            OnPropertyChanging(propertyName);
+            if (Equals(field, value))
+            {
+                return false;
+            }
+
+            this.OnPropertyChanging(propertyName);
             field = value;
             onChanged?.Invoke();
-            OnPropertyChanged(propertyName);
+            this.OnPropertyChanged(propertyName);
             return true;
         }
 
@@ -86,16 +90,20 @@ namespace RuntimeStuff
         /// <typeparam name="T">Тип свойства.</typeparam>
         /// <param name="field">Ссылка на backing field свойства.</param>
         /// <param name="value">Новое значение для поля.</param>
-        /// <param name="onChanged">Действие после изменения свойства</param>
+        /// <param name="onChanged">Действие после изменения свойства.</param>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
         public bool SetProperty<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
         {
-            if (Equals(field, value)) return false;
-            OnPropertyChanging(propertyName);
+            if (Equals(field, value))
+            {
+                return false;
+            }
+
+            this.OnPropertyChanging(propertyName);
             field = value;
             onChanged?.Invoke(value);
-            OnPropertyChanged(propertyName);
+            this.OnPropertyChanged(propertyName);
             return true;
         }
 
@@ -113,9 +121,11 @@ namespace RuntimeStuff
         /// <param name="propertyName">Имя свойства текущего объекта. Если не задано, используется имя вызывающего члена.</param>
         public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null) where T : class, INotifyPropertyChanged
         {
-            BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
-            if (SetProperty(ref oldValue, newValue, (Action)null, propertyName))
+            this.BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
+            if (this.SetProperty(ref oldValue, newValue, (Action)null, propertyName))
+            {
                 thisPropertyChangeHandler?.Invoke(propertyName);
+            }
         }
 
         /// <summary>
@@ -134,13 +144,13 @@ namespace RuntimeStuff
         /// </remarks>
         public void BindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler) where T : class, INotifyPropertyChanged
         {
-            lock (_syncRoot)
+            lock (this._syncRoot)
             {
                 // Отписываем старый объект, если он был
-                if (oldValue != null && _subscriptions.TryGetValue(oldValue, out var oldHandler))
+                if (oldValue != null && this._subscriptions.TryGetValue(oldValue, out var oldHandler))
                 {
                     oldValue.PropertyChanged -= oldHandler.Changed;
-                    _subscriptions.Remove(oldValue);
+                    this._subscriptions.Remove(oldValue);
                 }
 
                 if (newValue != null && childPropertyChangeHandler != null)
@@ -148,11 +158,13 @@ namespace RuntimeStuff
                     var newPropertyChangedEventHandler = (PropertyChangedEventHandler)((sender, args) =>
                     {
                         if (childPropertyName == null || args.PropertyName == childPropertyName)
+                        {
                             childPropertyChangeHandler();
+                        }
                     });
 
                     newValue.PropertyChanged += newPropertyChangedEventHandler;
-                    var s = _subscriptions.Get(newValue);
+                    var s = this._subscriptions.Get(newValue);
                     s.Changed = newPropertyChangedEventHandler;
 
                     if (typeof(T).IsImplements<INotifyPropertyChanging>())
@@ -160,7 +172,9 @@ namespace RuntimeStuff
                         var newPropertyChangingEventHandler = (PropertyChangingEventHandler)((sender, args) =>
                         {
                             if (childPropertyName == null || args.PropertyName == childPropertyName)
-                                OnPropertyChanging(childPropertyName);
+                            {
+                                this.OnPropertyChanging(childPropertyName);
+                            }
                         });
                         ((INotifyPropertyChanging)newValue).PropertyChanging += newPropertyChangingEventHandler;
                         s.Changing = newPropertyChangingEventHandler;
@@ -177,10 +191,7 @@ namespace RuntimeStuff
         /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
         /// <param name="newValue">Новое значение вложенного объекта, для которого нужно установить подписку.</param>
         /// <param name="handler">Действие, выполняемое при любом изменении во вложенном объекте.</param>
-        public void BindPropertyChange<T>(ref T oldValue, T newValue, Action handler) where T : class, INotifyPropertyChanged
-        {
-            BindPropertyChange(ref oldValue, newValue, null, handler);
-        }
+        public void BindPropertyChange<T>(ref T oldValue, T newValue, Action handler) where T : class, INotifyPropertyChanged => this.BindPropertyChange(ref oldValue, newValue, null, handler);
 
         /// <summary>
         /// Очистка управляемых ресурсов. Отписывает все внутренние подписки и очищает словарь подписок.
@@ -188,20 +199,27 @@ namespace RuntimeStuff
         /// <param name="disposing"><c>true</c> при вызове из <see cref="Dispose()"/>; <c>false</c> при вызове из финализатора.</param>
         public virtual void Dispose(bool disposing)
         {
-            if (!disposing) return;
-
-            lock (_syncRoot)
+            if (!disposing)
             {
-                foreach (var kvp in _subscriptions)
+                return;
+            }
+
+            lock (this._syncRoot)
+            {
+                foreach (var kvp in this._subscriptions)
                 {
                     if (kvp.Key is INotifyPropertyChanged npc1)
+                    {
                         npc1.PropertyChanged -= kvp.Value.Changed;
+                    }
 
                     if (kvp.Key is INotifyPropertyChanging npc2)
+                    {
                         npc2.PropertyChanging -= kvp.Value.Changing;
+                    }
                 }
 
-                _subscriptions.Clear();
+                this._subscriptions.Clear();
             }
         }
 
@@ -210,12 +228,12 @@ namespace RuntimeStuff
         /// </summary>
         public void Dispose()
         {
-            Dispose(true);
+            this.Dispose(true);
             GC.SuppressFinalize(this);
         }
     }
 
-    class EventHandlers
+    internal class EventHandlers
     {
         public PropertyChangedEventHandler Changed;
         public PropertyChangingEventHandler Changing;

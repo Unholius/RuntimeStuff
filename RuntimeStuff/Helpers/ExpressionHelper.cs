@@ -1,10 +1,10 @@
-﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-
-namespace RuntimeStuff.Helpers
+﻿namespace RuntimeStuff.Helpers
 {
+    using System;
+    using System.Linq;
+    using System.Linq.Expressions;
+    using System.Reflection;
+
     /// <summary>
     /// Предоставляет вспомогательные методы для анализа и извлечения информации из LINQ-выражений, таких как получение
     /// значения выражения, определение связанного свойства или члена, а также извлечение метаданных о членах типа.
@@ -32,10 +32,21 @@ namespace RuntimeStuff.Helpers
         {
             try
             {
-                if (member is BinaryExpression be) member = be.Right;
-                if (member is MethodCallExpression mce) member = mce.Arguments[1];
+                if (member is BinaryExpression be)
+                {
+                    member = be.Right;
+                }
 
-                if (member is UnaryExpression ue) return ue.NodeType == ExpressionType.Not ? false : (bool?)null;
+                if (member is MethodCallExpression mce)
+                {
+                    member = mce.Arguments[1];
+                }
+
+                if (member is UnaryExpression ue)
+                {
+                    return ue.NodeType == ExpressionType.Not ? false : (bool?)null;
+                }
+
                 try
                 {
                     var objectMember = Expression.Convert(member, typeof(object));
@@ -68,14 +79,11 @@ namespace RuntimeStuff.Helpers
         /// <returns>
         /// Объект <see cref="PropertyInfo"/>, если выражение представляет свойство; иначе <c>null</c>.
         /// </returns>
-        public static PropertyInfo GetPropertyInfo(Expression expr)
-        {
-            return GetMemberInfo(expr) as PropertyInfo;
-        }
+        public static PropertyInfo GetPropertyInfo(Expression expr) => GetMemberInfo(expr) as PropertyInfo;
 
         /// <summary>
         /// Извлекает <see cref="MemberInfo"/> из различных типов узлов выражения.
-        /// Поддерживаемые типы узлов: <see cref="LambdaExpression"/>, <see cref="BinaryExpression"/>,
+        /// Поддерживаемые типы узлов: <see cref="LambdaExpression"/>, <see cref="BinaryExpression"/>,.
 
         /// <see cref="MemberExpression"/>, <see cref="UnaryExpression"/>, <see cref="MethodCallExpression"/>,
 
@@ -88,7 +96,10 @@ namespace RuntimeStuff.Helpers
         public static MemberInfo GetMemberInfo(Expression expr)
         {
             if (expr == null)
+            {
                 return null;
+            }
+
             switch (expr)
             {
                 case LambdaExpression le: return GetMemberInfoFromLambda(le);

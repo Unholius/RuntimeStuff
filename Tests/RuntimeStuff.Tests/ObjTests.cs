@@ -2,15 +2,15 @@
 
 namespace RuntimeStuff.MSTests
 {
+    using Microsoft.VisualStudio.TestTools.UnitTesting;
     using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using Microsoft.VisualStudio.TestTools.UnitTesting;
 
     [TestClass]
-    public class TypeHelperTests
+    public class ObjTests
     {
         #region Test Models
 
@@ -518,7 +518,7 @@ namespace RuntimeStuff.MSTests
         //    Assert.AreEqual("John", person.Name);
         //}
 
-        #endregion GetMemberSetter Tests
+        #endregion GetMemberGetter Tests
 
         #region GetMemberValue Tests
 
@@ -865,6 +865,18 @@ namespace RuntimeStuff.MSTests
             // Assert
             Assert.IsNotNull(instance);
             Assert.IsInstanceOfType(instance, typeof(List<TestPerson>));
+        }
+
+        [TestMethod]
+        public void New_KeyValuePair_CreatesInstance()
+        {
+            // Act
+            var instance = Obj.New<KeyValuePair<string, object>>("1", "2");
+
+            // Assert
+            Assert.IsNotNull(instance);
+            Assert.AreEqual("1", instance.Key);
+            Assert.AreEqual("2", instance.Value);
         }
 
         #endregion New Tests

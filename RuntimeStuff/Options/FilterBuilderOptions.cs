@@ -15,10 +15,11 @@
         /// Инициализирует новый экземпляр класса
         /// <see cref="FilterBuilderOptions"/> со значениями по умолчанию.
         /// </summary>
-        public FilterBuilderOptions() { }
+        public FilterBuilderOptions()
+        { }
 
         /// <summary>
-        /// Получает или задаёт параметры форматирования значений,
+        /// Gets or sets получает или задаёт параметры форматирования значений,
         /// используемые при построении фильтров.
         /// </summary>
         /// <remarks>
