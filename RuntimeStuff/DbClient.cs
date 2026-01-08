@@ -2790,9 +2790,21 @@ namespace RuntimeStuff
         /// <returns>Количество строк, затронутых операцией обновления.</returns>
         public int Update<T>(
             T item,
-            IDbTransaction dbTransaction = null,
+            IDbTransaction dbTransaction,
             params Expression<Func<T, object>>[] updateColumns)
             where T : class => this.Update(item, null, dbTransaction, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public int Update<T>(T item, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.Update(item, null, null, updateColumns);
 
         /// <summary>
         /// Обновляет записи в базе данных на основе указанного условия.

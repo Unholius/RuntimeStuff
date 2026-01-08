@@ -477,7 +477,7 @@ namespace RuntimeStuff.Helpers
                     return Convert.ChangeType(s, toType, CultureInfo.InvariantCulture);
                 }
 
-                if (toType.IsClass)
+                if (toType.IsClass || toType.IsValueType)
                 {
                     return New(toType, s);
                 }

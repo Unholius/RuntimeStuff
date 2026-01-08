@@ -60,7 +60,8 @@ CREATE TABLE test_table (
             var sqlTable11 = $@"
 CREATE TABLE users (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    name    TEXT NOT NULL
+    name    TEXT NOT NULL,
+    guid    TEXT
 );
 
 CREATE TABLE user_profiles (
@@ -144,9 +145,13 @@ CREATE TABLE student_courses (
         public void DbClient_Test_02()
         {
             using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            var user = db.Insert<DTO.SQLite.User>(x => x.Name = "user_1");
+            db.EnableLogging = true;
+            var user = db.Insert<DTO.SQLite.User>(x => x.Name = "user_1", x => x.Guid = Guid.NewGuid());
             var profile = db.Insert<DTO.SQLite.UserProfile>(x => x.UserId = user.Id, x => x.AvatarUrl = new Uri("https://ya.ru"));
             var up = db.First<DTO.SQLite.UserProfile>(x => x.UserId == profile.UserId);
+            up.User = db.First<DTO.SQLite.User>(x => x.Id == profile.UserId);
+            up.Bio = "BIO!";
+            db.Update(up);
         }
 
         [TestMethod]

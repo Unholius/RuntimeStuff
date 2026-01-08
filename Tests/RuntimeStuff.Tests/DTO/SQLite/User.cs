@@ -11,5 +11,6 @@ namespace RuntimeStuff.MSTests.DTO.SQLite
 
         public string Name { get; set; }
         public UserProfile UserProfile { get; set; }
+        public Guid Guid { get; set; }
     }
 }

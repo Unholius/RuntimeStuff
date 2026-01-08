@@ -179,8 +179,19 @@ namespace RuntimeStuff.Extensions
         /// <param name="dbTransaction">Транзакция (опционально).</param>
         /// <param name="updateColumns">Колонки для обновления (опционально).</param>
         /// <returns>Количество обновленных записей.</returns>
-        public static int Update<T>(this IDbConnection connection, T item, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] updateColumns)
+        public static int Update<T>(this IDbConnection connection, T item, IDbTransaction dbTransaction, params Expression<Func<T, object>>[] updateColumns)
             where T : class => connection.AsDbClient().Update(item, dbTransaction, updateColumns);
+
+        /// <summary>
+        /// Обновляет указанную сущность в таблице.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="item">Сущность для обновления.</param>
+        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
+        /// <returns>Количество обновленных записей.</returns>
+        public static int Update<T>(this IDbConnection connection, T item, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => connection.AsDbClient().Update(item, null, updateColumns);
 
         /// <summary>
         /// Обновляет сущность в таблице с указанным условием WHERE.
