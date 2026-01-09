@@ -6,18 +6,18 @@
 // Last Modified By : RS
 // Last Modified On : 01-07-2026
 // ***********************************************************************
-// <copyright file="TaskHelper.cs" company="Rudnev Sergey">
-//     Copyright (c) . All rights reserved.
+// <copyright file="TaskHelper{T}.cs" company="Rudnev Sergey">
+// Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
 namespace RuntimeStuff.Helpers
 {
-    using RuntimeStuff;
     using System;
     using System.Collections.Concurrent;
     using System.Threading;
     using System.Threading.Tasks;
+    using RuntimeStuff;
 
     /// <summary>
     /// Статический класс для асинхронного ожидания событий по идентификатору

@@ -972,7 +972,7 @@ namespace RuntimeStuff
         /// Gets имя члена.
         /// </summary>
         /// <value>The name.</value>
-        public override sealed string Name { get; }
+        public sealed override string Name { get; }
 
         /// <summary>
         /// Gets родительский член (для вложенных членов).
@@ -1201,10 +1201,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="memberInfo">Имя свойства или поля.</param>
         /// <returns>MemberCache.</returns>
-        public MemberCache this[MemberInfo memberInfo]
-        {
-            get => this.Members[memberInfo];
-        }
+        public MemberCache this[MemberInfo memberInfo] => this.Members[memberInfo];
 
         /// <summary>
         /// Получить член по имени.
@@ -1221,6 +1218,190 @@ namespace RuntimeStuff
         /// <param name="memberFilter">Фильтр для отбора членов.</param>
         /// <returns>Найденный член или null, если не найден.</returns>
         public MemberCache this[string memberName, MemberNameType memberNameType = MemberNameType.Any, Func<MemberCache, bool> memberFilter = null] => this.GetMember(memberName, memberNameType, memberFilter);
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="ConstructorInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator ConstructorInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var constructorInfo = mc.AsConstructorInfo();
+            return constructorInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="EventInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator EventInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var eventInfo = mc.AsEventInfo();
+            return eventInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="FieldInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator FieldInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var fieldInfo = mc.AsFieldInfo();
+            return fieldInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="PropertyInfo" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(PropertyInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="FieldInfo" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(FieldInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MethodInfo" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(MethodInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="EventInfo" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(EventInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="ConstructorInfo" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(ConstructorInfo memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="Type" /> to <see cref="MemberCache" />.
+        /// </summary>
+        /// <param name="memberInfo">The member information.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
+        public static implicit operator MemberCache(Type memberInfo)
+        {
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="MethodInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator MethodInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var methodInfo = mc.AsMethodInfo();
+            return methodInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="PropertyInfo" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.</exception>
+        public static implicit operator PropertyInfo(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            var propertyInfo = mc.AsPropertyInfo();
+            return propertyInfo ?? throw new InvalidCastException(
+                $"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
+        }
+
+        /// <summary>
+        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="Type" />.
+        /// </summary>
+        /// <param name="mc">The mc.</param>
+        /// <returns>The result of the conversion.</returns>
+        /// <exception cref="System.ArgumentNullException">mc.</exception>
+        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.</exception>
+        public static implicit operator Type(MemberCache mc)
+        {
+            if (mc == null)
+            {
+                throw new ArgumentNullException(nameof(mc));
+            }
+
+            if (!mc.IsType)
+            {
+                throw new InvalidCastException(
+                    $"Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.");
+            }
+
+            return mc.Type;
+        }
 
         /// <summary>
         /// Создать расширенную информацию о члене класса (с кэшированием).
@@ -2158,190 +2339,6 @@ namespace RuntimeStuff
                 : MemberInfoCache.GetOrAdd(memberInfo, x => new MemberCache(x, x is Type, parent));
 
             return result;
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="ConstructorInfo" />.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator ConstructorInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var constructorInfo = mc.AsConstructorInfo();
-            return constructorInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="EventInfo" />.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator EventInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var eventInfo = mc.AsEventInfo();
-            return eventInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="FieldInfo" />.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator FieldInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var fieldInfo = mc.AsFieldInfo();
-            return fieldInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="PropertyInfo" /> to <see cref="MemberCache" />.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(PropertyInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="FieldInfo" /> to <see cref="MemberCache" />.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(FieldInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MethodInfo" /> to <see cref="MemberCache" />.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(MethodInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="EventInfo" /> to <see cref="MemberCache" />.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(EventInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="ConstructorInfo" /> to <see cref="MemberCache" />.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(ConstructorInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="Type" /> to <see cref="MemberCache" />.
-        /// </summary>
-        /// <param name="memberInfo">The member information.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">memberInfo.</exception>
-        public static implicit operator MemberCache(Type memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="MethodInfo" />.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator MethodInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var methodInfo = mc.AsMethodInfo();
-            return methodInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="PropertyInfo" />.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.</exception>
-        public static implicit operator PropertyInfo(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            var propertyInfo = mc.AsPropertyInfo();
-            return propertyInfo ?? throw new InvalidCastException(
-                $"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
-        }
-
-        /// <summary>
-        /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="Type" />.
-        /// </summary>
-        /// <param name="mc">The mc.</param>
-        /// <returns>The result of the conversion.</returns>
-        /// <exception cref="System.ArgumentNullException">mc.</exception>
-        /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.</exception>
-        public static implicit operator Type(MemberCache mc)
-        {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            if (!mc.IsType)
-            {
-                throw new InvalidCastException(
-                    $"Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.");
-            }
-
-            return mc.Type;
         }
     }
 }

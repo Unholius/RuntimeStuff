@@ -17,9 +17,17 @@ namespace RuntimeStuff.MSTests
         // Простой класс без атрибутов
         public class SimpleClass
         {
+            public SimpleClass() { }
+
+            public SimpleClass(string privateField, EventHandler eventHandler)
+            {
+                PrivateField = privateField;
+                TestEvent += eventHandler;
+                TestEvent?.Invoke(this, EventArgs.Empty);
+            }
             public int Id { get; set; }
             public string? Name { get; set; }
-            private string? PrivateField;
+            private readonly string? PrivateField;
             public string? PublicField;
 
             public event EventHandler? TestEvent;
@@ -65,7 +73,7 @@ namespace RuntimeStuff.MSTests
             public string PublicField;
             internal string InternalField;
             protected string ProtectedField;
-            private string PrivateField;
+            private readonly string PrivateField;
 
             // readonly fields
             public readonly string PublicReadonlyField;
@@ -805,7 +813,7 @@ namespace RuntimeStuff.MSTests
             PropInfo(mc);
         }
 
-        private void PropInfo(PropertyInfo propertyInfo)
+        private void PropInfo(PropertyInfo _)
         {
         }
 

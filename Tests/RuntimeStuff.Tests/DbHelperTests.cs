@@ -9,7 +9,7 @@ namespace RuntimeStuff.MSTests
         private static string? _connectionString;
 
         [ClassInitialize]
-        public static void ClassInitialize(TestContext context)
+        public static void ClassInitialize(TestContext _)
         {
             // Получаем строку подключения из конфигурации тестов
             _connectionString = "Data Source=.\\Databases\\sqlte_test.db";

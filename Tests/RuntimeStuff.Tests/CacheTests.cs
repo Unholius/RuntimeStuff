@@ -29,7 +29,7 @@
         public void Constructor_NullValueFactory_ThrowsArgumentNullException()
         {
             // Act
-            var cache = new Cache<string, int>((Func<string, int>?)null);
+            var _ = new Cache<string, int>((Func<string, int>?)null);
         }
 
         [TestMethod]
@@ -302,7 +302,7 @@
 
             // Assert
             Assert.IsFalse(success);
-            Assert.AreEqual(default(int), value);
+            Assert.AreEqual(0, value);
         }
 
         [TestMethod]
@@ -431,7 +431,7 @@
         public void Remove_TriggersItemRemovedEvent()
         {
             // Arrange
-            int factory(string key) => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
             cache.Get("test");
 
@@ -474,7 +474,7 @@
         public void Get_NewKey_TriggersItemAddedEvent()
         {
             // Arrange
-            int factory(string key) => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
 
             string? addedKey = null;
@@ -491,7 +491,7 @@
         public void Get_ExistingKey_DoesNotTriggerItemAddedEvent()
         {
             // Arrange
-            int factory(string key) => key.Length;
+            static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
 
             int eventCount = 0;
@@ -509,7 +509,7 @@
         public void GetAsync_NewKey_TriggersItemAddedEvent()
         {
             // Arrange
-            Task<int> factory(string key) => Task.FromResult(key.Length);
+            static Task<int> factory(string key) => Task.FromResult(key.Length);
             var cache = new Cache<string, int>(factory);
 
             string? addedKey = null;
@@ -649,7 +649,7 @@
         public void Get_ExceptionInFactory_PropagatesException()
         {
             // Arrange
-            int factory(string key) => throw new InvalidOperationException("Factory failed");
+            static int factory(string key) => throw new InvalidOperationException("Factory failed");
             var cache = new Cache<string, int>(factory);
 
             // Act & Assert
