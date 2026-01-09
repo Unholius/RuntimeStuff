@@ -2281,7 +2281,7 @@ namespace RuntimeStuff
             .Concat(this.GetFields())
             .Concat(this.GetEvents())
             .Concat(this.GetConstructors())
-            .Concat(this.GetMethods());
+            .Concat(this.GetMethods()).Distinct();
 
             return members.ToDictionary(key => key, val => Create(val, this));
         }
