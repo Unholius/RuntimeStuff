@@ -351,8 +351,8 @@ namespace RuntimeStuff
                 !this.IsEvent
                 ;
 
-            this.Attributes = this.GetAttributes().ToDictionary(x => x.GetType().Name);
-            this.Events = this.GetEvents().ToDictionary(x => x.Name);
+            this.Attributes = this.GetAttributes().ToDictionaryDistinct(x => x.GetType().Name);
+            this.Events = this.GetEvents().ToDictionaryDistinct(x => x.Name);
 
             // Обработка имени
             this.Name = this.typeCache?.Name ?? this.MemberInfo.Name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
