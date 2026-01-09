@@ -569,7 +569,7 @@ namespace RuntimeStuff.Helpers
         public static string GetElapsedTimeString(
             double elapsed,
             DateTimeInterval timeInterval,
-            string format = "[{Year} лет] [{Month} мес.] [{Day} дн.] [{Hour} час.] [{Minute} мин.] [{Second} с.]")
+            string format = "[{Year} лет] [{Month} мес.] [{Day} дн.] [{Hour} час.] [{Minute} мин.] [{Second} с.] [{Millisecond} мс.]")
         {
             var ts = GetElapsedTime(elapsed, timeInterval);
 
@@ -585,16 +585,18 @@ namespace RuntimeStuff.Helpers
 
             // заменяем токены, удаляя нулевые части вместе с квадратными скобками
             string result = format;
+            var maskPrefix = "\\[[^\\]]*?{";
+            var maskSuffix = "}[^\\]]*?\\]";
 
-            result = years > 0 ? result.Replace($"{nameof(DateTimeInterval.Year)}", $"{years}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Year) + "}.*?\\]", string.Empty);
-            result = months > 0 ? result.Replace($"{nameof(DateTimeInterval.Month)}", $"{months}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Month) + "}.*?\\]", string.Empty);
+            result = years > 0 ? result.Replace($"{nameof(DateTimeInterval.Year)}", $"{years}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Year) + maskSuffix, string.Empty);
+            result = months > 0 ? result.Replace($"{nameof(DateTimeInterval.Month)}", $"{months}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Month) + maskSuffix, string.Empty);
             int weeks = ((totalDays % 365) % 30) / 7;
-            result = weeks > 0 ? result.Replace($"{nameof(DateTimeInterval.Week)}", $"{weeks}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Week) + "}.*?\\]", string.Empty);
-            result = days > 0 ? result.Replace($"{nameof(DateTimeInterval.Day)}", $"{days}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Day) + "}.*?\\]", string.Empty);
-            result = hours > 0 ? result.Replace($"{nameof(DateTimeInterval.Hour)}", $"{hours}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Hour) + "}.*?\\]", string.Empty);
-            result = minutes > 0 ? result.Replace($"{nameof(DateTimeInterval.Minute)}", $"{minutes}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Minute) + "}.*?\\]", string.Empty);
-            result = seconds > 0 ? result.Replace($"{nameof(DateTimeInterval.Second)}", $"{seconds}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Second) + "}.*?\\]", string.Empty);
-            result = ms > 0 ? result.Replace($"{nameof(DateTimeInterval.Millisecond)}", $"{ms}") : Regex.Replace(result, "\\[.*?{" + nameof(DateTimeInterval.Millisecond) + "}.*?\\]", string.Empty);
+            result = weeks > 0 ? result.Replace($"{nameof(DateTimeInterval.Week)}", $"{weeks}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Week) + maskSuffix, string.Empty);
+            result = days > 0 ? result.Replace($"{nameof(DateTimeInterval.Day)}", $"{days}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Day) + maskSuffix, string.Empty);
+            result = hours > 0 ? result.Replace($"{nameof(DateTimeInterval.Hour)}", $"{hours}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Hour) + maskSuffix, string.Empty);
+            result = minutes > 0 ? result.Replace($"{nameof(DateTimeInterval.Minute)}", $"{minutes}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Minute) + maskSuffix, string.Empty);
+            result = seconds > 0 ? result.Replace($"{nameof(DateTimeInterval.Second)}", $"{seconds}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Second) + maskSuffix, string.Empty);
+            result = ms > 0 ? result.Replace($"{nameof(DateTimeInterval.Millisecond)}", $"{ms}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Millisecond) + maskSuffix, string.Empty);
 
             result = result.Replace("[", string.Empty).Replace("]", string.Empty).Replace("{", string.Empty).Replace("}", string.Empty);
 

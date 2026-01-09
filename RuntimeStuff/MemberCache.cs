@@ -20,6 +20,11 @@ namespace RuntimeStuff
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
+
+#if DEBUG
+    using System.IO;
+#endif
+
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -113,7 +118,7 @@ namespace RuntimeStuff
     /// </summary>
     public class MemberCache : MemberInfo
     {
-        // Кэш для расширенной информации о членах класса
+        private static readonly object Lock = new object();
 
         /// <summary>
         /// The member information cache.
@@ -250,6 +255,9 @@ namespace RuntimeStuff
         /// <param name="parent">The parent.</param>
         private MemberCache(MemberInfo memberInfo, bool getMembers = false, MemberCache parent = null)
         {
+#if DEBUG
+            var beginTime = DateTime.Now.ExactNow();
+#endif
             this.Parent = parent;
 
             this.typeCache = memberInfo as MemberCache;
@@ -584,6 +592,14 @@ namespace RuntimeStuff
             {
                 this.GroupName = this.typeCache.GroupName;
             }
+#if DEBUG
+            lock (Lock)
+            {
+                File.AppendAllText(
+                    "MemberCache.log",
+                    $@"{DateTime.Now:O} - Created MemberCache for {this.MemberInfo.MemberType} '{this.MemberInfo.DeclaringType?.FullName}.{this.MemberInfo.Name}' Elapsed ms: {(DateTime.Now.ExactNow() - beginTime).TotalMilliseconds}" + Environment.NewLine);
+            }
+#endif
         }
 
         /// <summary>
