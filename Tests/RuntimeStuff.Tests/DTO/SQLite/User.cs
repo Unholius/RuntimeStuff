@@ -9,8 +9,8 @@ namespace RuntimeStuff.MSTests.DTO.SQLite
         [Key]
         public long Id { get; set; }
 
-        public string Name { get; set; }
-        public UserProfile UserProfile { get; set; }
+        public string? Name { get; set; }
+        public UserProfile? UserProfile { get; set; }
         public Guid Guid { get; set; }
     }
 }

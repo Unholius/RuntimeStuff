@@ -1,12 +1,14 @@
-﻿using System.Net.Http;
-using RuntimeStuff.Extensions;
+﻿using RuntimeStuff.Extensions;
+using System.Net;
+using System.Net.Http;
+using System.Security.Authentication;
 
 namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class HttpClientExtensionsTests
     {
-        private HttpClient http;
+        private static HttpClient? http;
 
         [TestInitialize]
         public void TestInitialize()
@@ -18,17 +20,22 @@ namespace RuntimeStuff.MSTests
         public async Task HttpClientExtensionsTest_01()
         {
             var todos = await http.GetAsync("/todos", null);
-        }
 
-        [TestMethod]
-        public async Task HttpClientExtensionsTest_02()
-        {
-            var q = new Dictionary<string, object>()
-            {
-                { "postId", 1 },
-            };
+            //var q = new Dictionary<string, object>()
+            //{
+            //    { "postId", 1 },
+            //};
 
-            var comments = await http.SendAsync(HttpMethod.Get, "/comments", q);
+            //Task.Delay(1000).Wait();
+            //var comments = await http.SendAsync(HttpMethod.Get, "comments", q);
+
+            //Task.Delay(1000).Wait();
+            //var post = await http.PostAsync("/posts", new
+            //{
+            //    title = "foo",
+            //    body = "bar",
+            //    userId = 1
+            //});
         }
     }
 }

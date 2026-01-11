@@ -6,141 +6,143 @@ namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Globalization;
     using System.Reflection;
     using System.Text;
 
     /// <summary>
     /// Вспомогательный класс для сериализации объектов в JSON строку.
-    /// Поддерживает базовые типы, коллекции, словари и объекты с публичными свойствами.
     /// </summary>
-    /// <remarks>
-    /// Этот класс предоставляет простую сериализацию объектов в JSON без использования сторонних библиотек.
-    /// Не поддерживает все особенности стандарта JSON, но подходит для большинства базовых сценариев.
-    /// </remarks>
     public static class JsonSerializerHelper
     {
-        /// <summary>
-        /// Сериализует объект в JSON строку.
-        /// </summary>
-        /// <param name="obj">Объект для сериализации.</param>
-        /// <param name="dateFormat">Формат даты для сериализации объектов <see cref="DateTime"/>. По умолчанию "yyyy-MM-dd".</param>
-        /// <returns>JSON строка, представляющая объект.</returns>
-        /// <example>
-        /// <code>
-        /// // Сериализация простого объекта
-        /// var person = new { Name = "John", Age = 30 };
-        /// string json = JsonSerializerHelper.Serialize(person);
-        /// // Результат: {"Name":"John","Age":30}
-        /// // Сериализация с форматом даты
-        /// var data = new { Date = new DateTime(2023, 12, 25) };
-        /// string json = JsonSerializerHelper.Serialize(data, "dd.MM.yyyy");
-        /// // Результат: {"Date":"25.12.2023"}
-        /// </code>
-        /// </example>
-        public static string Serialize(object obj, string dateFormat = "yyyy-MM-dd")
+        private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertyCache = new ConcurrentDictionary<Type, PropertyInfo[]>();
+
+        public static string Serialize(
+            object obj,
+            string dateFormat = "yyyy-MM-dd",
+            bool enumAsStrings = false,
+            Dictionary<Type, string> additionalFormats = null)
         {
             if (obj == null)
             {
                 return "null";
             }
 
-            if (obj is string str)
-            {
-                return "\"" + EscapeString(str) + "\"";
-            }
+            return SerializeInternal(obj, dateFormat, enumAsStrings, additionalFormats);
+        }
 
-            if (obj is bool b)
+        private static string SerializeInternal(
+            object obj,
+            string dateFormat,
+            bool enumAsStrings,
+            Dictionary<Type, string> additionalFormats)
+        {
+            switch (obj)
             {
-                return b ? "true" : "false";
+                case string s:
+                    return Quote(EscapeString(s));
+
+                case bool b:
+                    return b ? "true" : "false";
+
+                case Enum e:
+                    return enumAsStrings
+                        ? Quote(e.ToString())
+                        : Convert.ToInt64(e, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+
+                case DateTime _:
+                case DateTimeOffset _:
+                    return SerializeFormattable(obj, dateFormat, additionalFormats, false);
+                case TimeSpan _:
+                    return SerializeFormattable(obj, null, additionalFormats, false);
+
+                case IDictionary dict:
+                    return SerializeDictionary(dict, dateFormat, enumAsStrings, additionalFormats);
+
+                case IEnumerable enumerable:
+                    return SerializeEnumerable(enumerable, dateFormat, enumAsStrings, additionalFormats);
             }
 
             if (IsNumeric(obj))
             {
-                return Convert.ToString(obj, System.Globalization.CultureInfo.InvariantCulture);
+                return SerializeFormattable(obj, null, additionalFormats, true);
             }
 
-            if (obj is DateTime dt)
-            {
-                var formatted = dateFormat != null ? dt.ToString(dateFormat) : dt.ToString("yyyy-MM-dd");
-                return "\"" + formatted + "\"";
-            }
-
-            if (obj is IDictionary dict)
-            {
-                return SerializeDictionary(dict);
-            }
-
-            if (obj is IEnumerable enumerable)
-            {
-                return SerializeEnumerable(enumerable);
-            }
-
-            // Для объектов с публичными свойствами
-            return SerializeObject(obj);
+            return SerializeObject(obj, dateFormat, enumAsStrings, additionalFormats);
         }
 
-        /// <summary>
-        /// Сериализует словарь в JSON объект.
-        /// </summary>
-        /// <param name="dict">Словарь для сериализации.</param>
-        /// <returns>JSON строка, представляющая словарь.</returns>
-        private static string SerializeDictionary(IDictionary dict)
+        private static string SerializeDictionary(
+            IDictionary dict,
+            string dateFormat,
+            bool enumAsStrings,
+            Dictionary<Type, string> additionalFormats)
         {
-            var sb = new StringBuilder();
-            sb.Append("{");
+            var sb = new StringBuilder(128);
+            sb.Append('{');
+
             var first = true;
-            foreach (DictionaryEntry kvp in dict)
+            foreach (DictionaryEntry entry in dict)
             {
                 if (!first)
                 {
-                    sb.Append(",");
+                    sb.Append(',');
                 }
 
-                sb.Append("\"").Append(kvp.Key).Append("\":").Append(Serialize(kvp.Value));
+                sb.Append(Quote(EscapeString(
+                        Convert.ToString(entry.Key, CultureInfo.InvariantCulture))))
+                  .Append(':')
+                  .Append(SerializeInternal(entry.Value, dateFormat, enumAsStrings, additionalFormats));
+
                 first = false;
             }
 
-            sb.Append("}");
+            sb.Append('}');
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Сериализует перечисление в JSON массив.
-        /// </summary>
-        /// <param name="enumerable">Перечисление для сериализации.</param>
-        /// <returns>JSON строка, представляющая массив.</returns>
-        private static string SerializeEnumerable(IEnumerable enumerable)
+        private static string SerializeEnumerable(
+            IEnumerable enumerable,
+            string dateFormat,
+            bool enumAsStrings,
+            Dictionary<Type, string> additionalFormats)
         {
-            var sb = new StringBuilder();
-            sb.Append("[");
+            var sb = new StringBuilder(128);
+            sb.Append('[');
+
             var first = true;
             foreach (var item in enumerable)
             {
                 if (!first)
                 {
-                    sb.Append(",");
+                    sb.Append(',');
                 }
 
-                sb.Append(Serialize(item));
+                sb.Append(SerializeInternal(item, dateFormat, enumAsStrings, additionalFormats));
                 first = false;
             }
 
-            sb.Append("]");
+            sb.Append(']');
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Сериализует объект в JSON, используя его публичные свойства.
-        /// </summary>
-        /// <param name="obj">Объект для сериализации.</param>
-        /// <returns>JSON строка, представляющая объект.</returns>
-        private static string SerializeObject(object obj)
+        private static string SerializeObject(
+            object obj,
+            string dateFormat,
+            bool enumAsStrings,
+            Dictionary<Type, string> additionalFormats)
         {
-            var sb = new StringBuilder();
-            sb.Append("{");
+            var type = obj.GetType();
+            var properties = PropertyCache.GetOrAdd(
+                type,
+                t => t.GetProperties(BindingFlags.Public | BindingFlags.Instance));
+
+            var sb = new StringBuilder(256);
+            sb.Append('{');
+
             var first = true;
-            var props = obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            foreach (var prop in props)
+            foreach (var prop in properties)
             {
                 if (!prop.CanRead)
                 {
@@ -148,58 +150,104 @@ namespace RuntimeStuff.Helpers
                 }
 
                 var value = prop.GetValue(obj);
-                if (!first)
+
+                if (value == null)
                 {
-                    sb.Append(",");
+                    continue;
                 }
 
-                sb.Append("\"").Append(prop.Name).Append("\":").Append(Serialize(value));
+                if (!first)
+                {
+                    sb.Append(',');
+                }
+
+                sb.Append(Quote(EscapeString(prop.Name)))
+                  .Append(':')
+                  .Append(SerializeInternal(value, dateFormat, enumAsStrings, additionalFormats));
+
                 first = false;
             }
 
-            sb.Append("}");
+            sb.Append('}');
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Проверяет, является ли объект числовым типом.
-        /// </summary>
-        /// <param name="obj">Объект для проверки.</param>
-        /// <returns>true, если объект является числовым типом; иначе false.</returns>
-        private static bool IsNumeric(object obj)
+        private static string SerializeFormattable(
+            object value,
+            string defaultFormat,
+            Dictionary<Type, string> additionalFormats,
+            bool isNumeric)
         {
-            return obj is byte || obj is sbyte ||
-                   obj is short || obj is ushort ||
-                   obj is int || obj is uint ||
-                   obj is long || obj is ulong ||
-                   obj is float || obj is double ||
-                   obj is decimal;
+            var type = value.GetType();
+            string format = null;
+
+            if (additionalFormats != null &&
+                additionalFormats.TryGetValue(type, out var customFormat))
+            {
+                format = customFormat;
+            }
+            else
+            {
+                format = defaultFormat;
+            }
+
+            var text = value is IFormattable formattable
+                ? formattable.ToString(format, CultureInfo.InvariantCulture)
+                : Convert.ToString(value, CultureInfo.InvariantCulture);
+
+            return isNumeric ? text : Quote(text);
         }
 
-        /// <summary>
-        /// Экранирует специальные символы в строке для JSON.
-        /// </summary>
-        /// <param name="str">Исходная строка.</param>
-        /// <returns>Экранированная строка.</returns>
-        /// <remarks>
-        /// Экранирует следующие символы:
-        /// - \ (обратная косая черта)
-        /// - " (двойная кавычка)
-        /// - \b (backspace)
-        /// - \f (form feed)
-        /// - \n (new line)
-        /// - \r (carriage return)
-        /// - \t (tab).
-        /// </remarks>
-        private static string EscapeString(string str)
+        private static bool IsNumeric(object obj)
         {
-            return str.Replace("\\", "\\\\")
-                      .Replace("\"", "\\\"")
-                      .Replace("\b", "\\b")
-                      .Replace("\f", "\\f")
-                      .Replace("\n", "\\n")
-                      .Replace("\r", "\\r")
-                      .Replace("\t", "\\t");
+            return obj != null && Obj.IsNumeric(obj.GetType(), true);
+        }
+
+        private static string Quote(string value)
+        {
+            return "\"" + value + "\"";
+        }
+
+        private static string EscapeString(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return value;
+            }
+
+            var sb = new StringBuilder(value.Length + 8);
+            foreach (var c in value)
+            {
+                switch (c)
+                {
+                    case '\\':
+                        sb.Append("\\\\");
+                        break;
+                    case '"':
+                        sb.Append("\\\"");
+                        break;
+                    case '\b':
+                        sb.Append("\\b");
+                        break;
+                    case '\f':
+                        sb.Append("\\f");
+                        break;
+                    case '\n':
+                        sb.Append("\\n");
+                        break;
+                    case '\r':
+                        sb.Append("\\r");
+                        break;
+                    case '\t':
+                        sb.Append("\\t");
+                        break;
+                    default:
+                        sb.Append(c);
+                        break;
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

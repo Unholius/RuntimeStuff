@@ -27,6 +27,13 @@ namespace RuntimeStuff.Extensions
     public static class StringExtensions
     {
         /// <summary>
+        /// Trimes the white chars.
+        /// </summary>
+        /// <param name="s">The s.</param>
+        /// <returns>System.String.</returns>
+        public static string TrimWhiteChars(this string s) => StringHelper.TrimWhiteChars(s);
+
+        /// <summary>
         /// Проверяет, содержит ли исходная строка указанную подстроку,
         /// используя заданный способ сравнения строк.
         /// </summary>

@@ -6,9 +6,11 @@ namespace RuntimeStuff.Extensions
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using System.Net.Http;
     using System.Net.Http.Headers;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using System.Web;
 
@@ -18,6 +20,18 @@ namespace RuntimeStuff.Extensions
     /// </summary>
     public static class HttpClientExtensions
     {
+        /// <summary>
+        /// Выполняет асинхронный HTTP DELETE запрос.
+        /// </summary>
+        /// <param name="client">Экземпляр <see cref="HttpClient"/>.</param>
+        /// <param name="requestUri">URI запроса.</param>
+        /// <param name="query">Параметры запроса (query string).</param>
+        /// <returns>Тело ответа в виде строки.</returns>
+        public static async Task<string> DeleteAsync(this HttpClient client, string requestUri, Dictionary<string, object> query = null)
+        {
+            return (await SendAsync(client, HttpMethod.Delete, requestUri, query)).Result;
+        }
+
         /// <summary>
         /// Выполняет асинхронный HTTP GET запрос.
         /// </summary>
@@ -35,11 +49,11 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         /// <param name="client">Экземпляр <see cref="HttpClient"/>.</param>
         /// <param name="requestUri">URI запроса.</param>
-        /// <param name="query">Параметры запроса (query string).</param>
         /// <param name="content">Тело запроса. Может быть строкой, словарем или объектом.</param>
+        /// <param name="query">Параметры запроса (query string).</param>
         /// <param name="dateFormat">Формат даты для сериализации JSON (если content является объектом).</param>
         /// <returns>Тело ответа в виде строки.</returns>
-        public static async Task<string> PostAsync(this HttpClient client, string requestUri, Dictionary<string, object> query = null, object content = null, string dateFormat = null)
+        public static async Task<string> PostAsync(this HttpClient client, string requestUri, object content = null, Dictionary<string, object> query = null, string dateFormat = null)
         {
             return (await SendAsync(client, HttpMethod.Post, requestUri, query, content, dateFormat)).Result;
         }
@@ -49,25 +63,13 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         /// <param name="client">Экземпляр <see cref="HttpClient"/>.</param>
         /// <param name="requestUri">URI запроса.</param>
-        /// <param name="query">Параметры запроса (query string).</param>
         /// <param name="content">Тело запроса. Может быть строкой, словарем или объектом.</param>
+        /// <param name="query">Параметры запроса (query string).</param>
         /// <param name="dateFormat">Формат даты для сериализации JSON (если content является объектом).</param>
         /// <returns>Тело ответа в виде строки.</returns>
-        public static async Task<string> PutAsync(this HttpClient client, string requestUri, Dictionary<string, object> query = null, object content = null, string dateFormat = null)
+        public static async Task<string> PutAsync(this HttpClient client, string requestUri, object content = null, Dictionary<string, object> query = null, string dateFormat = null)
         {
             return (await SendAsync(client, HttpMethod.Put, requestUri, query, content, dateFormat)).Result;
-        }
-
-        /// <summary>
-        /// Выполняет асинхронный HTTP DELETE запрос.
-        /// </summary>
-        /// <param name="client">Экземпляр <see cref="HttpClient"/>.</param>
-        /// <param name="requestUri">URI запроса.</param>
-        /// <param name="query">Параметры запроса (query string).</param>
-        /// <returns>Тело ответа в виде строки.</returns>
-        public static async Task<string> DeleteAsync(this HttpClient client, string requestUri, Dictionary<string, object> query = null)
-        {
-            return (await SendAsync(client, HttpMethod.Delete, requestUri, query)).Result;
         }
 
         /// <summary>
@@ -79,22 +81,63 @@ namespace RuntimeStuff.Extensions
         /// <param name="query">Параметры запроса (query string).</param>
         /// <param name="content">Тело запроса. Может быть строкой, словарем или объектом.</param>
         /// <param name="dateFormat">Формат даты для сериализации JSON (если content является объектом).</param>
+        /// <param name="enumAsStrings">Сериализовать enum как строки, иначе как числа.</param>
         /// <param name="ensureSuccessStatusCode">Выбрасывать исключение, если ответ не OK.</param>
+        /// <param name="token">Токен отмены.</param>
         /// <returns>Тело ответа в виде строки.</returns>
         /// <remarks>
-        /// Автоматически определяет тип содержимого:
-        /// - Строка: если начинается с '{' или '[', то 'application/json', иначе 'text/plain'
-        /// - Словарь: 'application/x-www-form-urlencoded'
-        /// - Объект: сериализуется в JSON с 'application/json'.
+        /// Автоматически определяет тип содержимого: - Строка: если начинается с '{' или '[', то 'application/json',
+        /// иначе 'text/plain' - Словарь: 'application/x-www-form-urlencoded' - Объект: сериализуется в JSON с
+        /// 'application/json'.
         /// </remarks>
-        public static async Task<HttpResponse> SendAsync(
+        public static Task<HttpResponse> SendAsync(
             this HttpClient client,
             HttpMethod method,
             string requestUri,
             Dictionary<string, object> query = null,
             object content = null,
             string dateFormat = null,
-            bool ensureSuccessStatusCode = false)
+            bool enumAsStrings = false,
+            bool ensureSuccessStatusCode = false,
+            CancellationToken token = default)
+        {
+            var typeFormats = new Dictionary<Type, string>();
+            if (dateFormat != null)
+            {
+                typeFormats[typeof(DateTime)] = dateFormat;
+            }
+
+            return SendAsync(client, method, requestUri, content, query, typeFormats, enumAsStrings, ensureSuccessStatusCode);
+        }
+
+        /// <summary>
+        /// Выполняет асинхронный HTTP запрос с указанным методом.
+        /// </summary>
+        /// <param name="client">Экземпляр <see cref="HttpClient"/>.</param>
+        /// <param name="method">HTTP метод (GET, POST, PUT, DELETE).</param>
+        /// <param name="requestUri">URI запроса.</param>
+        /// <param name="content">Тело запроса. Может быть строкой, словарем или объектом.</param>
+        /// <param name="query">Параметры запроса (query string).</param>
+        /// <param name="additionalFormats">Дополнительные Форматы типов для сериализации JSON (если content является объектом).</param>
+        /// <param name="enumAsStrings">Сериализовать enum как строки, иначе как числа.</param>
+        /// <param name="ensureSuccessStatusCode">Выбрасывать исключение, если ответ не OK.</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <returns>Тело ответа в виде строки.</returns>
+        /// <remarks>
+        /// Автоматически определяет тип содержимого: - Строка: если начинается с '{' или '[', то 'application/json',
+        /// иначе 'text/plain' - Словарь: 'application/x-www-form-urlencoded' - Объект: сериализуется в JSON с
+        /// 'application/json'.
+        /// </remarks>
+        public static async Task<HttpResponse> SendAsync(
+            this HttpClient client,
+            HttpMethod method,
+            string requestUri,
+            object content,
+            Dictionary<string, object> query,
+            Dictionary<Type, string> additionalFormats,
+            bool enumAsStrings,
+            bool ensureSuccessStatusCode,
+            CancellationToken token = default)
         {
             if (query != null && query.Count > 0)
             {
@@ -127,24 +170,28 @@ namespace RuntimeStuff.Extensions
                 }
                 else
                 {
-                    body = Helpers.JsonSerializerHelper.Serialize(content, dateFormat);
+                    body = Helpers.JsonSerializerHelper.Serialize(content, null, enumAsStrings, additionalFormats);
                     contentType = "application/json";
                 }
 
                 httpContent = new StringContent(body, Encoding.UTF8, contentType);
             }
 
-            var request = new HttpRequestMessage(method, requestUri) { Content = httpContent };
-            var response = await client.SendAsync(request);
-
-            if (ensureSuccessStatusCode)
+            using (var request = new HttpRequestMessage(method, requestUri) { Content = httpContent })
             {
-                response.EnsureSuccessStatusCode();
+                using (var response = await client.SendAsync(request, token).ConfigureAwait(false))
+                {
+                    if (ensureSuccessStatusCode)
+                    {
+                        response.EnsureSuccessStatusCode();
+                    }
+
+                    var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var httpResponse = new HttpResponse(response, text);
+
+                    return httpResponse;
+                }
             }
-
-            var httpResponse = new HttpResponse(response, await response.Content.ReadAsStringAsync());
-
-            return httpResponse;
         }
 
         /// <summary>
@@ -161,25 +208,6 @@ namespace RuntimeStuff.Extensions
             }
 
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            return client;
-        }
-
-        /// <summary>
-        /// Добавляет произвольный заголовок к клиенту.
-        /// Если заголовок уже существует, он будет заменен.
-        /// </summary>
-        /// <param name="client">Экземпляр <see cref="HttpClient"/>.</param>
-        /// <param name="name">Имя заголовка.</param>
-        /// <param name="value">Значение заголовка.</param>
-        /// <returns>Тот же экземпляр <see cref="HttpClient"/> для цепочки вызовов.</returns>
-        public static HttpClient WithHeader(this HttpClient client, string name, string value)
-        {
-            if (client.DefaultRequestHeaders.Contains(name))
-            {
-                client.DefaultRequestHeaders.Remove(name);
-            }
-
-            client.DefaultRequestHeaders.Add(name, value);
             return client;
         }
 
@@ -244,6 +272,25 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
+        /// Добавляет произвольный заголовок к клиенту.
+        /// Если заголовок уже существует, он будет заменен.
+        /// </summary>
+        /// <param name="client">Экземпляр <see cref="HttpClient"/>.</param>
+        /// <param name="name">Имя заголовка.</param>
+        /// <param name="value">Значение заголовка.</param>
+        /// <returns>Тот же экземпляр <see cref="HttpClient"/> для цепочки вызовов.</returns>
+        public static HttpClient WithHeader(this HttpClient client, string name, string value)
+        {
+            if (client.DefaultRequestHeaders.Contains(name))
+            {
+                client.DefaultRequestHeaders.Remove(name);
+            }
+
+            client.DefaultRequestHeaders.Add(name, value);
+            return client;
+        }
+
+        /// <summary>
         /// Строит строку запроса (query string) из словаря параметров.
         /// </summary>
         /// <param name="query">Словарь параметров запроса.</param>
@@ -266,33 +313,27 @@ namespace RuntimeStuff.Extensions
         /// Представляет HTTP-ответ, содержащий как исходное сообщение ответа, так и результат в виде строки.
         /// </summary>
         /// <remarks>
-        /// Этот класс полезен, когда требуется сохранить как исходные метаданные HTTP-ответа (статус код, заголовки и т.д.),
-        /// так и тело ответа в строковом формате.
+        /// Этот класс полезен, когда требуется сохранить как исходные метаданные HTTP-ответа (статус код, заголовки и
+        /// т.д.), так и тело ответа в строковом формате.
         /// </remarks>
         public class HttpResponse
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="HttpResponse"/> class.
-            /// Инициализирует новый экземпляр класса <see cref="HttpResponse"/> с указанным сообщением ответа и результатом.
+            /// Initializes a new instance of the <see cref="HttpResponse"/> class. Инициализирует новый экземпляр
+            /// класса <see cref="HttpResponse"/> с указанным сообщением ответа и результатом.
             /// </summary>
             /// <param name="responseMessage">Исходное сообщение HTTP-ответа, содержащее метаданные ответа.</param>
             /// <param name="result">Тело ответа в виде строки.</param>
             /// <exception cref="ArgumentNullException">
             /// Выбрасывается, когда <paramref name="responseMessage"/> равен null.
             /// </exception>
-            public HttpResponse(HttpResponseMessage responseMessage, string result)
+            internal HttpResponse(HttpResponseMessage responseMessage, string result)
             {
-                this.ResponseMessage = responseMessage;
+                this.StatusCode = responseMessage.StatusCode;
+                this.IsSuccessStatusCode = responseMessage.IsSuccessStatusCode;
                 this.Result = result;
+                this.RequestString = responseMessage.RequestMessage?.RequestUri?.ToString();
             }
-
-            /// <summary>
-            /// Gets получает исходное сообщение HTTP-ответа.
-            /// </summary>
-            /// <value>
-            /// Экземпляр <see cref="HttpResponseMessage"/>, содержащий статус код, заголовки и другие метаданные ответа.
-            /// </value>
-            public HttpResponseMessage ResponseMessage { get; }
 
             /// <summary>
             /// Gets получает тело HTTP-ответа в виде строки.
@@ -301,6 +342,24 @@ namespace RuntimeStuff.Extensions
             /// Строка, содержащая тело ответа. Может быть пустой строкой или null, если ответ не содержит тела.
             /// </value>
             public string Result { get; }
+
+            /// <summary>
+            /// Gets the status code.
+            /// </summary>
+            /// <value>The status code.</value>
+            public HttpStatusCode StatusCode { get; }
+
+            /// <summary>
+            /// Gets a value indicating whether this instance is success status code.
+            /// </summary>
+            /// <value><c>true</c> if this instance is success status code; otherwise, <c>false</c>.</value>
+            public bool IsSuccessStatusCode { get; }
+
+            /// <summary>
+            /// Gets the request string.
+            /// </summary>
+            /// <value>The request string.</value>
+            public string RequestString { get; }
         }
     }
 }

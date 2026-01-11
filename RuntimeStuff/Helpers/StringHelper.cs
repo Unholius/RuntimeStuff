@@ -28,6 +28,32 @@ namespace RuntimeStuff.Helpers
     public static class StringHelper
     {
         /// <summary>
+        /// Gets whitespace chars.
+        /// Набор пробельных символов, используемых при разборе строк.
+        /// Включает пробел, перевод строки, табуляция, пустой символ.
+        /// </summary>
+        public static char[] WhitespaceChars { get; } = new char[]
+        {
+            ' ',
+            '\t',
+            '\r',
+            '\n',
+            '\0',
+            '\v', // U+000B Vertical Tab
+            '\f', // U+000C Form Feed
+            '\u00A0', // NO-BREAK SPACE
+            '\u2007', // Figure Space
+            '\u202F', // Narrow No-Break Space
+            '\u2028', // Line Separator
+            '\u2029', // Paragraph Separator
+            '\u200B', // Zero Width Space
+            '\u200C', // Zero Width Non-Joiner
+            '\u200D', // Zero Width Joiner
+            '\u2060', // Word Joiner
+            '\uFEFF', // BOM (Zero Width No-Break Space)
+        };
+
+        /// <summary>
         /// Проверяет, содержит ли исходная строка указанную подстроку,
         /// используя заданный способ сравнения строк.
         /// </summary>
@@ -231,17 +257,21 @@ namespace RuntimeStuff.Helpers
         /// <param name="tokenMasks">Маски токенов (префикс, суффикс, функция сериализации).</param>
         /// <param name="notMatchedAsTokens">if set to <c>true</c> [not matched as tokens].</param>
         /// <param name="notMatchedTokenSetTag">The not matched token set tag.</param>
+        /// <param name="notMatchedContentTransformer">Обработчик содержимого токена.</param>
         /// <returns>List&lt;Token&gt;.</returns>
         /// <exception cref="System.InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a child of another token.</exception>
         /// <exception cref="System.InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a next of {prevToken} token.</exception>
-        public static List<Token> GetTokens(string input, IEnumerable<TokenMask> tokenMasks, bool notMatchedAsTokens = false, Func<Token, object> notMatchedTokenSetTag = null)
+        public static List<Token> GetTokens(string input, IEnumerable<TokenMask> tokenMasks, bool notMatchedAsTokens = false, Func<Token, object> notMatchedTokenSetTag = null, Func<Token, string> notMatchedContentTransformer = null)
         {
             Token.IdInternal = 1;
             var result = new List<Token>();
             var stack = new Stack<(Token Token, string Prefix, string Suffix, Func<Token, string> ContentTransformer)>();
 
             // Сортируем маски один раз по убыванию длины префикса
-            var masks = tokenMasks.OrderByDescending(m => m.Prefix.Length).ToArray();
+            var masks = tokenMasks.OrderByDescending(m => m.Prefix.Length)
+                .Concat(tokenMasks.SelectMany(x => x.AllowedChildrenMasks))
+                .Distinct()
+                .ToArray();
 
             var span = input.AsSpan();
             var i = 0;
@@ -249,11 +279,11 @@ namespace RuntimeStuff.Helpers
             while (i < span.Length)
             {
                 var matched = false;
-
+                var curChar = input[i];
                 // Проверка начала токена
                 foreach (var tm in masks)
                 {
-                    if (input[i] != tm.Prefix[0])
+                    if (curChar != tm.Prefix[0])
                     {
                         continue;
                     }
@@ -269,7 +299,9 @@ namespace RuntimeStuff.Helpers
                         // Обработка запрета на добавление дочерних токенов
                         if (stack.Count > 0)
                         {
-                            if (!tm.AllowChildrenTokens)
+                            var topToken = stack.Last().Token;
+
+                            if (!topToken.Mask.AllowChildrenTokens)
                             {
                                 if (tm.ThrowExceptionOnNotAllowedToken)
                                 {
@@ -281,7 +313,7 @@ namespace RuntimeStuff.Helpers
                                 }
                             }
 
-                            if (tm.AllowedChildrenMasks?.Any() == true && !tm.AllowedChildrenMasks.Contains(tm))
+                            if (topToken.Mask?.AllowedChildrenMasks?.Any() == true && !topToken.Mask.AllowedChildrenMasks.Contains(tm))
                             {
                                 if (tm.ThrowExceptionOnNotAllowedToken)
                                 {
@@ -455,7 +487,7 @@ namespace RuntimeStuff.Helpers
 
             if (notMatchedAsTokens)
             {
-                TokenizeNotMatched(result, notMatchedTokenSetTag);
+                TokenizeNotMatched(result, notMatchedTokenSetTag, notMatchedContentTransformer);
             }
 
             return result;
@@ -534,7 +566,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="tokens">The tokens.</param>
         /// <param name="setTag">The set tag.</param>
-        public static void TokenizeNotMatched(IEnumerable<Token> tokens, Func<Token, object> setTag)
+        public static void TokenizeNotMatched(IEnumerable<Token> tokens, Func<Token, object> setTag, Func<Token, string> transformer)
         {
             if (tokens == null)
             {
@@ -548,26 +580,26 @@ namespace RuntimeStuff.Helpers
                 {
                     if (t.Children.Any())
                     {
-                        TokenizeNotMatched(t.Children, setTag);
+                        TokenizeNotMatched(t.Children, setTag, transformer);
                     }
 
                     if (t.SourceStart > 0 && t.Previous == null)
                     {
-                        var plainToken = new Token(t.Source, 0, t.SourceStart - 1, setTag);
+                        var plainToken = new Token(t.Source, 0, t.SourceStart - 1, setTag, transformer);
                         t.InsertBefore(plainToken);
                         continue;
                     }
 
                     if (t.Previous != null && t.SourceStart - t.Previous.SourceEnd > 1)
                     {
-                        var plainToken = new Token(t.Source, t.Previous.SourceEnd + 1, t.SourceStart - 1, setTag);
+                        var plainToken = new Token(t.Source, t.Previous.SourceEnd + 1, t.SourceStart - 1, setTag, transformer);
                         t.InsertBefore(plainToken);
                         continue;
                     }
 
                     if (t.Next == null && t.SourceEnd < t.Source.Length - 1)
                     {
-                        var plainToken = new Token(t.Source, t.SourceEnd + 1, t.Source.Length - 1, setTag);
+                        var plainToken = new Token(t.Source, t.SourceEnd + 1, t.Source.Length - 1, setTag, transformer);
                         t.InsertAfter(plainToken);
                     }
                 }
@@ -575,24 +607,24 @@ namespace RuntimeStuff.Helpers
                 {
                     if (t.Children.Any())
                     {
-                        TokenizeNotMatched(t.Children, setTag);
+                        TokenizeNotMatched(t.Children, setTag, transformer);
                     }
 
                     if (t.SourceStart - t.Parent.ParentStart > 1 && t.Previous == null)
                     {
-                        var plainToken = new Token(t.Parent.Body, 0 + t.Parent.Prefix.Length, t.ParentStart - 1, setTag);
+                        var plainToken = new Token(t.Parent.Body, 0 + t.Parent.Prefix.Length, t.ParentStart - 1, setTag, transformer);
                         t.InsertBefore(plainToken);
                     }
 
                     if (t.Previous != null && !t.Previous.IsNotMatched && t.ParentStart - t.Previous.ParentEnd > 1)
                     {
-                        var plainToken = new Token(t.Parent.Body, t.Previous.ParentEnd + 1, t.ParentStart - 1, setTag);
+                        var plainToken = new Token(t.Parent.Body, t.Previous.ParentEnd + 1, t.ParentStart - 1, setTag, transformer);
                         t.InsertBefore(plainToken);
                     }
 
                     if (t.Next == null && t.Parent.ParentEnd - t.SourceEnd > 1)
                     {
-                        var plainToken = new Token(t.Parent.Body, t.ParentEnd + 1, t.Parent.Body.Length - t.Parent.Suffix.Length - 1, setTag);
+                        var plainToken = new Token(t.Parent.Body, t.ParentEnd + 1, t.Parent.Body.Length - t.Parent.Suffix.Length - 1, setTag, transformer);
                         t.InsertAfter(plainToken);
                     }
                 }
@@ -629,20 +661,39 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Представляет токен (выделенную часть строки с учетом префикса и суффикса).
-        /// Поддерживает вложенность.
+        /// Trims the white chars.
+        /// </summary>
+        /// <param name="s">The s.</param>
+        /// <returns>System.String.</returns>
+        public static string TrimWhiteChars(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return s;
+            }
+
+            return s.Trim(WhitespaceChars);
+        }
+
+        /// <summary>
+        /// Представляет токен (выделенную часть строки с учетом префикса и суффикса). Поддерживает вложенность.
         /// </summary>
         public class Token
         {
             /// <summary>
-            /// Initializes a new instance of the <see cref="Token" /> class.
+            /// Initializes a new instance of the <see cref="Token"/> class.
             /// </summary>
             /// <param name="source">The source.</param>
             /// <param name="start">The start.</param>
             /// <param name="end">The end.</param>
             /// <param name="setTag">The set tag.</param>
-            public Token(string source, int start, int end, Func<Token, object> setTag = null)
-                : this()
+            /// <param name="contentTransformer">Content transformer.</param>
+            public Token(
+                string source,
+                int start,
+                int end,
+                Func<Token, object> setTag = null,
+                Func<Token, string> contentTransformer = null) : this()
             {
                 var s = source.Substring(start, end - start + 1);
                 this.Body = s;
@@ -651,15 +702,18 @@ namespace RuntimeStuff.Helpers
                 this.SourceStart = start;
                 this.SourceEnd = end;
                 this.Tag = setTag?.Invoke(this);
+                if(contentTransformer != null)
+                {
+                    this.ContentTransformers.Add(contentTransformer);
+                }
             }
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="Token" /> class.
+            /// Initializes a new instance of the <see cref="Token"/> class.
             /// </summary>
             /// <param name="body">The body.</param>
             /// <param name="setTag">The set tag.</param>
-            public Token(string body, Func<Token, object> setTag = null)
-                : this()
+            public Token(string body, Func<Token, object> setTag = null) : this()
             {
                 this.Body = body;
                 this.Text = body;
@@ -667,7 +721,7 @@ namespace RuntimeStuff.Helpers
             }
 
             /// <summary>
-            /// Initializes a new instance of the <see cref="Token" /> class.
+            /// Initializes a new instance of the <see cref="Token"/> class.
             /// </summary>
             internal Token()
             {
@@ -688,7 +742,8 @@ namespace RuntimeStuff.Helpers
             public IEnumerable<Token> Children => this.ChildrenInternal;
 
             /// <summary>
-            /// Gets итоговое содержимое токена, формируется из Text с учетом вложенных токенов и применённых ContentTransformers.
+            /// Gets итоговое содержимое токена, формируется из Text с учетом вложенных токенов и применённых
+            /// ContentTransformers.
             /// </summary>
             /// <value>The content.</value>
             public string Content
@@ -698,21 +753,19 @@ namespace RuntimeStuff.Helpers
                     var result = this.Text ?? string.Empty;
                     var children = this.ChildrenInternal.Where(x => x.Mask != null).ToArray();
 
-                    if (children.Length > 0)
+                    if(children.Length > 0)
                     {
-                        foreach (var child in children.OrderByDescending(c => c.ParentStart))
+                        foreach(var child in children.OrderByDescending(c => c.ParentStart))
                         {
                             var start = child.ParentStart - this.Prefix.Length;
                             var length = child.ParentEnd - child.ParentStart + 1;
-                            result = result.Substring(0, start)
-                                     + child.Content
-                                     + result.Substring(start + length);
+                            result = result.Substring(0, start) + child.Content + result.Substring(start + length);
                         }
                     }
 
-                    if (this.ContentTransformers != null && this.ContentTransformers.Count > 0)
+                    if(this.ContentTransformers != null && this.ContentTransformers.Count > 0)
                     {
-                        foreach (var func in this.ContentTransformers)
+                        foreach(var func in this.ContentTransformers)
                         {
                             var oldText = this.Text;
                             try
@@ -720,8 +773,7 @@ namespace RuntimeStuff.Helpers
                                 this.Text = result;
                                 var r = func(this);
                                 result = r ?? string.Empty;
-                            }
-                            finally
+                            } finally
                             {
                                 this.Text = oldText;
                             }
@@ -733,8 +785,8 @@ namespace RuntimeStuff.Helpers
             }
 
             /// <summary>
-            /// Gets or sets пользовательские функции-трансформеры, применяемые к токену с учетом модели, если она указана. По умолчанию равно
-            /// значению <see cref="Text" />.
+            /// Gets or sets пользовательские функции-трансформеры, применяемые к токену с учетом модели, если она
+            /// указана. По умолчанию равно значению <see cref="Text"/>.
             /// </summary>
             /// <value>The content transformers.</value>
             public List<Func<Token, string>> ContentTransformers { get; set; } = new List<Func<Token, string>>();
@@ -748,7 +800,7 @@ namespace RuntimeStuff.Helpers
                 get
                 {
                     var t = this;
-                    while (t.Previous != null)
+                    while(t.Previous != null)
                     {
                         t = t.Previous;
                     }
@@ -773,7 +825,7 @@ namespace RuntimeStuff.Helpers
                 {
                     int i = 0;
                     var t = this;
-                    while (t.Previous != null)
+                    while(t.Previous != null)
                     {
                         t = t.Previous;
                         i++;
@@ -798,7 +850,7 @@ namespace RuntimeStuff.Helpers
                 get
                 {
                     var t = this;
-                    while (t.Next != null)
+                    while(t.Next != null)
                     {
                         t = t.Next;
                     }
@@ -832,15 +884,15 @@ namespace RuntimeStuff.Helpers
             public Token Parent { get; internal set; }
 
             /// <summary>
-            /// Gets индекс конца токена (последний символ суффикса <see cref="Suffix" />) относительно начала родительского <see cref="Body" />
-            /// родительского токена <see cref="Parent" />.
+            /// Gets индекс конца токена (последний символ суффикса <see cref="Suffix"/>) относительно начала
+            /// родительского <see cref="Body"/> родительского токена <see cref="Parent"/>.
             /// </summary>
             /// <value>The parent end.</value>
             public int ParentEnd { get; internal set; }
 
             /// <summary>
-            /// Gets индекс начала токена (первый символ префикса <see cref="Prefix" />) относительно начала родительского <see cref="Body" />
-            /// родительского токена <see cref="Parent" />.
+            /// Gets индекс начала токена (первый символ префикса <see cref="Prefix"/>) относительно начала
+            /// родительского <see cref="Body"/> родительского токена <see cref="Parent"/>.
             /// </summary>
             /// <value>The parent start.</value>
             public int ParentStart { get; internal set; }
@@ -870,13 +922,15 @@ namespace RuntimeStuff.Helpers
             public string Source { get; internal set; }
 
             /// <summary>
-            /// Gets индекс конца токена (последний символ суффикса <see cref="Suffix" />) в исходной строке <see cref="Source" />.
+            /// Gets индекс конца токена (последний символ суффикса <see cref="Suffix"/>) в исходной строке <see
+            /// cref="Source"/>.
             /// </summary>
             /// <value>The source end.</value>
             public int SourceEnd { get; internal set; }
 
             /// <summary>
-            /// Gets индекс начала токена (первый символ префикса <see cref="Prefix" />) в исходной строке <see cref="Source" />.
+            /// Gets индекс начала токена (первый символ префикса <see cref="Prefix"/>) в исходной строке <see
+            /// cref="Source"/>.
             /// </summary>
             /// <value>The source start.</value>
             public int SourceStart { get; internal set; }
@@ -909,14 +963,41 @@ namespace RuntimeStuff.Helpers
             /// </summary>
             internal List<Token> ChildrenInternal { get; } = new List<Token>();
 
+            public IEnumerable<Token> All(Action<Token> action = null)
+            {
+                if (action != null)
+                {
+                    action(this);
+                }
+
+                yield return this;
+                foreach (var child in this.ChildrenInternal)
+                {
+                    foreach (var desc in child.All(action))
+                    {
+                        if (action != null)
+                        {
+                            action(desc);
+                        }
+
+                        yield return desc;
+                    }
+                }
+            }
+
             /// <summary>
             /// Все токены после текущего (по цепочке Next).
             /// </summary>
             /// <returns>IEnumerable&lt;Token&gt;.</returns>
-            public IEnumerable<Token> AllAfter()
+            public IEnumerable<Token> AllAfter(Action<Token> action = null)
             {
                 for (var t = this.Next; t != null; t = t.Next)
                 {
+                    if (action != null)
+                    {
+                        action(t);
+                    }
+
                     yield return t;
                 }
             }
@@ -925,11 +1006,38 @@ namespace RuntimeStuff.Helpers
             /// Все токены перед текущим (по цепочке Previous).
             /// </summary>
             /// <returns>IEnumerable&lt;Token&gt;.</returns>
-            public IEnumerable<Token> AllBefore()
+            public IEnumerable<Token> AllBefore(Action<Token> action = null)
             {
                 for (var t = this.Previous; t != null; t = t.Previous)
                 {
+                    if (action != null)
+                    {
+                        action(t);
+                    }
+
                     yield return t;
+                }
+            }
+
+            public IEnumerable<Token> FirstAfter(Func<Token, bool> predicate)
+            {
+                for (var t = this.Next; t != null; t = t.Next)
+                {
+                    if (predicate(t))
+                    {
+                        yield return t;
+                    }
+                }
+            }
+
+            public IEnumerable<Token> FirstBefore(Func<Token, bool> predicate)
+            {
+                for (var t = this.Previous; t != null; t = t.Previous)
+                {
+                    if (predicate(t))
+                    {
+                        yield return t;
+                    }
                 }
             }
 
@@ -982,6 +1090,30 @@ namespace RuntimeStuff.Helpers
                     list.Insert(idx, newToken);
                     newToken.Parent = this.Parent;
                 }
+            }
+
+            public void Remove()
+            {
+                // корректируем Previous/Next
+                if (this.Previous != null)
+                {
+                    this.Previous.Next = this.Next;
+                }
+
+                if (this.Next != null)
+                {
+                    this.Next.Previous = this.Previous;
+                }
+
+                // удаляем из родительского списка детей
+                if (this.Parent != null)
+                {
+                    this.Parent.ChildrenInternal.Remove(this);
+                }
+
+                this.Parent = null;
+                this.Previous = null;
+                this.Next = null;
             }
 
             /// <summary>
@@ -1083,7 +1215,7 @@ namespace RuntimeStuff.Helpers
             /// Returns a <see cref="string" /> that represents this instance.
             /// </summary>
             /// <returns>A <see cref="string" /> that represents this instance.</returns>
-            public override string ToString() => $"[{this.Prefix}, {this.Suffix}]";
+            public override string ToString() => $"{this.Prefix}, {this.Suffix}";
         }
     }
 }

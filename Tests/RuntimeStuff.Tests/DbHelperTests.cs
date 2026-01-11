@@ -5,7 +5,7 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public partial class DbHelperIntegrationTests
     {
-        private static EntityMap map;
+        private static EntityMap? map;
         private static string? _connectionString;
 
         [ClassInitialize]
@@ -151,7 +151,7 @@ CREATE TABLE student_courses (
             var up = db.First<DTO.SQLite.UserProfile>(x => x.UserId == profile.UserId);
             up.User = db.First<DTO.SQLite.User>(x => x.Id == profile.UserId);
             up.Bio = "BIO!";
-            db.Update(up);
+            var result = db.Update(up);
         }
 
         [TestMethod]
