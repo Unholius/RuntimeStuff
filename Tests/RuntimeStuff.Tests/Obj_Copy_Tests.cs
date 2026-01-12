@@ -8,37 +8,37 @@ public class ObjCopyTests
     // Тестовые классы для проверки копирования свойств
     public class SourceClass
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public int Age { get; set; }
         public double Value { get; set; }
-        public string IgnoredProperty { get; set; }
+        public string? IgnoredProperty { get; set; }
     }
 
     public class DestClass
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public int Age { get; set; }
         public double Value { get; set; }
-        public string AdditionalProperty { get; set; }
+        public string? AdditionalProperty { get; set; }
     }
 
     public class Person
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
     }
 
     public class Employee
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
-        public string Position { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Position { get; set; }
     }
 
     // Тестовый класс для коллекций
     public class SimpleItem
     {
-        public string Text { get; set; }
+        public string? Text { get; set; }
         public int Number { get; set; }
     }
 
@@ -158,15 +158,15 @@ public class ObjCopyTests
         // Arrange
         var sourceList = new List<SimpleItem>
         {
-            new SimpleItem { Text = "Item1", Number = 1 },
-            new SimpleItem { Text = "Item2", Number = 2 },
-            new SimpleItem { Text = "Item3", Number = 3 }
+            new() { Text = "Item1", Number = 1 },
+            new() { Text = "Item2", Number = 2 },
+            new() { Text = "Item3", Number = 3 }
         };
 
         var destList = new List<SimpleItem>
         {
-            new SimpleItem { Text = "Old1", Number = 0 },
-            new SimpleItem { Text = "Old2", Number = 0 }
+            new() { Text = "Old1", Number = 0 },
+            new() { Text = "Old2", Number = 0 }
         };
 
         // Act
@@ -187,8 +187,8 @@ public class ObjCopyTests
         // Arrange
         var sourceList = new List<SimpleItem>
         {
-            new SimpleItem { Text = "Item1", Number = 1 },
-            new SimpleItem { Text = "Item2", Number = 2 }
+            new() { Text = "Item1", Number = 1 },
+            new() { Text = "Item2", Number = 2 }
         };
 
         var destList = new List<SimpleItem>();
@@ -211,8 +211,8 @@ public class ObjCopyTests
         // Arrange
         var sourceArray = new SimpleItem[]
         {
-            new SimpleItem { Text = "ArrayItem1", Number = 10 },
-            new SimpleItem { Text = "ArrayItem2", Number = 20 }
+            new() { Text = "ArrayItem1", Number = 10 },
+            new() { Text = "ArrayItem2", Number = 20 }
         };
 
         var destList = new List<SimpleItem>();
@@ -232,7 +232,7 @@ public class ObjCopyTests
         // Arrange
         var sourceList = new List<SimpleItem>
         {
-            new SimpleItem { Text = "Test", Number = 1 }
+            new() { Text = "Test", Number = 1 }
         };
 
         var destHashSet = new HashSet<SimpleItem>();

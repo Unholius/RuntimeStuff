@@ -325,7 +325,7 @@ namespace RuntimeStuff.MSTests
 
         private class SimpleObject
         {
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public int Age { get; set; }
             public bool IsActive { get; set; }
             public DateTime BirthDate { get; set; }
@@ -402,8 +402,8 @@ namespace RuntimeStuff.MSTests
 
         private class NestedObject
         {
-            public string Name { get; set; }
-            public MSTests.JsonSerializerHelperTests.SimpleObject Inner { get; set; }
+            public string? Name { get; set; }
+            public MSTests.JsonSerializerHelperTests.SimpleObject? Inner { get; set; }
         }
 
         [TestMethod]

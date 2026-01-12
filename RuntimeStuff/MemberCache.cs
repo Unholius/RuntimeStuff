@@ -118,13 +118,13 @@ namespace RuntimeStuff
     /// </summary>
     public class MemberCache : MemberInfo
     {
-        private static readonly object Lock = new object();
-
         /// <summary>
         /// The member information cache.
         /// </summary>
         protected static readonly ConcurrentDictionary<MemberInfo, MemberCache> MemberInfoCache =
             new ConcurrentDictionary<MemberInfo, MemberCache>();
+
+        private static readonly object Lock = new object();
 
         /// <summary>
         /// The constructors cache.

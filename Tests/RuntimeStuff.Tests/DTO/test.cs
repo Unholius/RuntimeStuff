@@ -5,8 +5,8 @@ using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnn
         public DateTime? Date { get; set; }        [Column("datetime")]
         public DateTime? Datetime { get; set; }        [Column("datetime2")]
         public DateTime? Datetime2 { get; set; }        [Column("image")]
-        public string Image { get; set; }        [Column("money")]
+        public string? Image { get; set; }        [Column("money")]
         public decimal? Money { get; set; }        [Column("name")]
-        public string Name { get; set; }        [Column("text")]
-        public string Text { get; set; }        [Column("xml")]
-        public string Xml { get; set; }    }}
+        public string? Name { get; set; }        [Column("text")]
+        public string? Text { get; set; }        [Column("xml")]
+        public string? Xml { get; set; }    }}

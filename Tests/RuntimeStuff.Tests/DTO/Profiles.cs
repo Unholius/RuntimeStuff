@@ -2,4 +2,4 @@ using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnn
     public class Profiles    {        [Key]        [Column("ProfileID")]
         public int ProfileID { get; set; }        [ForeignKey("Users")]        [Column("UserID")]
         public int? UserID { get; set; }        [Column("Bio")]
-        public string Bio { get; set; }    }}
+        public string? Bio { get; set; }    }}

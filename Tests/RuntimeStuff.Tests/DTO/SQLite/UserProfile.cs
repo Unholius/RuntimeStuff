@@ -12,11 +12,11 @@ namespace RuntimeStuff.MSTests.DTO.SQLite
         public long UserId { get; set; }
 
         [Column("bio")]
-        public string Bio { get; set; }
+        public string? Bio { get; set; }
 
         [Column("avatar_url")]
-        public Uri AvatarUrl { get; set; }
+        public Uri? AvatarUrl { get; set; }
 
-        public User User { get; set; }
+        public User? User { get; set; }
     }
 }

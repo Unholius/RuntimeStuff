@@ -16,6 +16,7 @@ namespace RuntimeStuff.Helpers
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Security.Cryptography;
 
     /// <summary>
     /// Предоставляет набор статических методов для работы со строками и токенами, включая удаление суффикса, замену и
@@ -280,7 +281,7 @@ namespace RuntimeStuff.Helpers
             {
                 var matched = false;
                 var curChar = input[i];
-                // Проверка начала токена
+
                 foreach (var tm in masks)
                 {
                     if (curChar != tm.Prefix[0])
@@ -566,6 +567,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="tokens">The tokens.</param>
         /// <param name="setTag">The set tag.</param>
+        /// <param name="transformer">Обработчик свойства Content.</param>
         public static void TokenizeNotMatched(IEnumerable<Token> tokens, Func<Token, object> setTag, Func<Token, string> transformer)
         {
             if (tokens == null)
@@ -693,7 +695,8 @@ namespace RuntimeStuff.Helpers
                 int start,
                 int end,
                 Func<Token, object> setTag = null,
-                Func<Token, string> contentTransformer = null) : this()
+                Func<Token, string> contentTransformer = null)
+                : this()
             {
                 var s = source.Substring(start, end - start + 1);
                 this.Body = s;
@@ -702,7 +705,7 @@ namespace RuntimeStuff.Helpers
                 this.SourceStart = start;
                 this.SourceEnd = end;
                 this.Tag = setTag?.Invoke(this);
-                if(contentTransformer != null)
+                if (contentTransformer != null)
                 {
                     this.ContentTransformers.Add(contentTransformer);
                 }
@@ -713,7 +716,8 @@ namespace RuntimeStuff.Helpers
             /// </summary>
             /// <param name="body">The body.</param>
             /// <param name="setTag">The set tag.</param>
-            public Token(string body, Func<Token, object> setTag = null) : this()
+            public Token(string body, Func<Token, object> setTag = null)
+                : this()
             {
                 this.Body = body;
                 this.Text = body;
@@ -753,9 +757,9 @@ namespace RuntimeStuff.Helpers
                     var result = this.Text ?? string.Empty;
                     var children = this.ChildrenInternal.Where(x => x.Mask != null).ToArray();
 
-                    if(children.Length > 0)
+                    if (children.Length > 0)
                     {
-                        foreach(var child in children.OrderByDescending(c => c.ParentStart))
+                        foreach (var child in children.OrderByDescending(c => c.ParentStart))
                         {
                             var start = child.ParentStart - this.Prefix.Length;
                             var length = child.ParentEnd - child.ParentStart + 1;
@@ -763,9 +767,9 @@ namespace RuntimeStuff.Helpers
                         }
                     }
 
-                    if(this.ContentTransformers != null && this.ContentTransformers.Count > 0)
+                    if (this.ContentTransformers != null && this.ContentTransformers.Count > 0)
                     {
-                        foreach(var func in this.ContentTransformers)
+                        foreach (var func in this.ContentTransformers)
                         {
                             var oldText = this.Text;
                             try
@@ -773,7 +777,8 @@ namespace RuntimeStuff.Helpers
                                 this.Text = result;
                                 var r = func(this);
                                 result = r ?? string.Empty;
-                            } finally
+                            }
+                            finally
                             {
                                 this.Text = oldText;
                             }
@@ -800,7 +805,7 @@ namespace RuntimeStuff.Helpers
                 get
                 {
                     var t = this;
-                    while(t.Previous != null)
+                    while (t.Previous != null)
                     {
                         t = t.Previous;
                     }
@@ -825,7 +830,7 @@ namespace RuntimeStuff.Helpers
                 {
                     int i = 0;
                     var t = this;
-                    while(t.Previous != null)
+                    while (t.Previous != null)
                     {
                         t = t.Previous;
                         i++;
@@ -850,7 +855,7 @@ namespace RuntimeStuff.Helpers
                 get
                 {
                     var t = this;
-                    while(t.Next != null)
+                    while (t.Next != null)
                     {
                         t = t.Next;
                     }
@@ -963,41 +968,38 @@ namespace RuntimeStuff.Helpers
             /// </summary>
             internal List<Token> ChildrenInternal { get; } = new List<Token>();
 
-            public IEnumerable<Token> All(Action<Token> action = null)
+            /// <summary>
+            /// Returns an enumerable collection containing this token and all of its descendant tokens in depth-first
+            /// order.
+            /// </summary>
+            /// <remarks>The returned sequence starts with the deepest descendants and ends with this
+            /// token. This method is useful for traversing the entire token hierarchy.</remarks>
+            /// <returns>An <see cref="IEnumerable{Token}"/> that includes this token followed by all descendant tokens. The
+            /// collection is empty only if there are no tokens.</returns>
+            public IEnumerable<Token> All()
             {
-                if (action != null)
-                {
-                    action(this);
-                }
-
-                yield return this;
+                var list = new List<Token>();
                 foreach (var child in this.ChildrenInternal)
                 {
-                    foreach (var desc in child.All(action))
+                    foreach (var desc in child.All())
                     {
-                        if (action != null)
-                        {
-                            action(desc);
-                        }
-
-                        yield return desc;
+                        list.Add(desc);
                     }
                 }
+
+                list.Add(this);
+
+                return list;
             }
 
             /// <summary>
             /// Все токены после текущего (по цепочке Next).
             /// </summary>
             /// <returns>IEnumerable&lt;Token&gt;.</returns>
-            public IEnumerable<Token> AllAfter(Action<Token> action = null)
+            public IEnumerable<Token> AllAfter()
             {
                 for (var t = this.Next; t != null; t = t.Next)
                 {
-                    if (action != null)
-                    {
-                        action(t);
-                    }
-
                     yield return t;
                 }
             }
@@ -1006,19 +1008,22 @@ namespace RuntimeStuff.Helpers
             /// Все токены перед текущим (по цепочке Previous).
             /// </summary>
             /// <returns>IEnumerable&lt;Token&gt;.</returns>
-            public IEnumerable<Token> AllBefore(Action<Token> action = null)
+            public IEnumerable<Token> AllBefore()
             {
                 for (var t = this.Previous; t != null; t = t.Previous)
                 {
-                    if (action != null)
-                    {
-                        action(t);
-                    }
-
                     yield return t;
                 }
             }
 
+            /// <summary>
+            /// Возвращает последовательность токенов, следующих за текущим, которые удовлетворяют указанному условию.
+            /// </summary>
+            /// <param name="predicate">Функция, определяющая условие фильтрации токенов. Должна возвращать <see langword="true"/>, если токен
+            /// соответствует критериям; иначе <see langword="false"/>.</param>
+            /// <returns>Последовательность токенов, следующих за текущим, для которых функция <paramref name="predicate"/>
+            /// возвращает <see langword="true"/>. Если ни один токен не соответствует условию, возвращается пустая
+            /// последовательность.</returns>
             public IEnumerable<Token> FirstAfter(Func<Token, bool> predicate)
             {
                 for (var t = this.Next; t != null; t = t.Next)

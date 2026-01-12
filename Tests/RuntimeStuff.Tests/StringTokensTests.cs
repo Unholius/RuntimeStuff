@@ -10,13 +10,15 @@ namespace RuntimeStuff.MSTests
         public void GetTokens_Test_01()
         {
             var s = "ахаха[In32] >= 99 AND [Str [SubProp] ] LIKE '%123%' OR [Str] == '345'[] бвахаха".RepeatString(1);
-            var masks = new List<StringHelper.TokenMask>();
-            masks.Add(new StringHelper.TokenMask("[", "]", _ => "property"));
-            masks.Add(new StringHelper.TokenMask(" >= ", null, _ => "ge"));
-            masks.Add(new StringHelper.TokenMask(" == ", null, _ => "eq"));
-            masks.Add(new StringHelper.TokenMask(" AND ", null, _ => "and"));
-            masks.Add(new StringHelper.TokenMask(" OR ", null, _ => "or"));
-            masks.Add(new StringHelper.TokenMask("'", "'", _ => "string_value"));
+            var masks = new List<StringHelper.TokenMask>
+            {
+                new("[", "]", _ => "property"),
+                new(" >= ", null, _ => "ge"),
+                new(" == ", null, _ => "eq"),
+                new(" AND ", null, _ => "and"),
+                new(" OR ", null, _ => "or"),
+                new("'", "'", _ => "string_value")
+            };
             var tokens = StringHelper.GetTokens(s, masks, true, t => int.TryParse(t.Body, out var intval) ? intval : t.Body).Flatten();
         }
 
@@ -24,13 +26,15 @@ namespace RuntimeStuff.MSTests
         public void GetTokens_Test_02()
         {
             var s = "([EventId] >= 2 || [EventId] < 100)";
-            var masks = new List<StringHelper.TokenMask>();
-            masks.Add(new StringHelper.TokenMask("[", "]", _ => "property"));
-            masks.Add(new StringHelper.TokenMask("(", ")", _ => "group"));
-            masks.Add(new StringHelper.TokenMask(" >= ", null, _ => "ge"));
-            masks.Add(new StringHelper.TokenMask(" < ", null, _ => "lt"));
-            masks.Add(new StringHelper.TokenMask(" || ", null, _ => "or"));
-            masks.Add(new StringHelper.TokenMask("'", "'", _ => "string_value") { AllowChildrenTokens = false });
+            var masks = new List<StringHelper.TokenMask>
+            {
+                new("[", "]", _ => "property"),
+                new("(", ")", _ => "group"),
+                new(" >= ", null, _ => "ge"),
+                new(" < ", null, _ => "lt"),
+                new(" || ", null, _ => "or"),
+                new("'", "'", _ => "string_value") { AllowChildrenTokens = false }
+            };
             var tokens = StringHelper.GetTokens(s, masks, true, t => int.TryParse(t.Body, out var intval) ? intval : t.Body).Flatten();
         }
 
@@ -38,8 +42,7 @@ namespace RuntimeStuff.MSTests
         public void GetTokens_Test_03()
         {
             var s = "(1(2()A()3)4(5()6)7)".RepeatString(1);
-            var masks = new List<StringHelper.TokenMask>();
-            masks.Add(new StringHelper.TokenMask("(", ")", _ => "group"));
+            var masks = new List<StringHelper.TokenMask> { new("(", ")", _ => "group") };
             var tokens = StringHelper.GetTokens(s, masks, false, t => int.TryParse(t.Body, out var intval) ? intval : t.Body);
             //StringHelper.TokenizeNotMatched(tokens[0].Children, null);
             var c = tokens[0].Content;
@@ -49,28 +52,25 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void ParseJson_Test_01()
         {
-            var trimChars = StringHelper.WhitespaceChars.Concat(new[] { ',', ':' }).ToArray();
+            var trimChars = StringHelper.WhitespaceChars.Concat([',', ':']).ToArray();
             var stringMask = new StringHelper.TokenMask("\"", "\"", _ => "string") { AllowChildrenTokens = false };
             var objectMask = new StringHelper.TokenMask("{", "}", _ => "object", (t) => t.Body.TrimWhiteChars())
             {
-                AllowedChildrenMasks = new List<StringHelper.TokenMask>(new[] { stringMask })
+                AllowedChildrenMasks = new List<StringHelper.TokenMask>([stringMask])
             };
             var arrayMask = new StringHelper.TokenMask("[", "]", _ => "array", (t) => t.Body.TrimWhiteChars())
             {
-                AllowedChildrenMasks = new List<StringHelper.TokenMask>(new[] { stringMask })
+                AllowedChildrenMasks = new List<StringHelper.TokenMask>([stringMask])
             };
             objectMask.AllowedChildrenMasks.Insert(0, arrayMask);
             arrayMask.AllowedChildrenMasks.Insert(0, objectMask);
-            var masks = new List<StringHelper.TokenMask>();
-            masks.Add(objectMask);
-            masks.Add(arrayMask);
-            var tokens = StringHelper.GetTokens(json, masks, true, _ => "value", t => t.Body.Trim(trimChars));
-                //.Flatten(x => x.Content != "");
-            tokens[0].All(t =>
-                {
-                    if(t.Content == "")
-                        t.Remove();
-                });
+            var masks = new List<StringHelper.TokenMask>
+            {
+                objectMask,
+                arrayMask
+            };
+            var tokens = StringHelper.GetTokens(json, masks, true, _ => "value", t => t.Body.Trim(trimChars)).Flatten();
+
             foreach (var token in tokens)
             {
                 if(token.Previous?.Tag?.ToString() == "string" && token.Tag.ToString().In("value", "string"))
@@ -81,7 +81,7 @@ namespace RuntimeStuff.MSTests
             }
         }
 
-        private static string json = @"
+        private static readonly string json = @"
 [
   1,
   ""2"",
