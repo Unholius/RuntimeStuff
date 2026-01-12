@@ -218,7 +218,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с первым днем месяца и временем 00:00:00.</returns>
-        public static DateTime BeginMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, 1);
+        public static DateTime BeginMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, dt.Kind);
 
         /// <summary>
         /// Возвращает начало месяца (первый день, 00:00:00) для nullable даты.

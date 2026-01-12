@@ -272,7 +272,10 @@ namespace RuntimeStuff.Helpers
         /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
         /// соответствует имени типа <typeparamref name="T" />.</remarks>
         public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName = null, params Expression<Func<T, object>>[] propertySelectors)
-            where T : class => ToDataTable(list, tableName, propertySelectors.Select(x => (x, (string)null)).ToArray());
+            where T : class
+        {
+            return ToDataTable(list, tableName, propertySelectors.Select(x => (x, (string)null)).ToArray());
+        }
 
         /// <summary>
         /// Проверяет добавлена ли строка в таблицу.
