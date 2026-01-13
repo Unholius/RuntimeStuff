@@ -11,9 +11,11 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff.Extensions
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Data;
     using System.Data.Common;
@@ -817,7 +819,7 @@ namespace RuntimeStuff.Extensions
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null)
-            where TList : ICollection<T>, new() => connection.AsDbClient().Query<TList, T>(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory);
+            where TList : ICollection<T>, IList, new() => connection.AsDbClient().Query<TList, T>(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory);
 
         /// <summary>
         /// Асинхронно выполняет запрос и возвращает типизированную коллекцию.
@@ -846,7 +848,7 @@ namespace RuntimeStuff.Extensions
             int offsetRows = -1,
             Func<object[], string[], T> itemFactory = null,
             CancellationToken ct = default)
-            where TList : ICollection<T>, new() => connection.AsDbClient().QueryAsync<TList, T>(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, ct);
+            where TList : ICollection<T>, IList, new() => connection.AsDbClient().QueryAsync<TList, T>(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, ct);
 
         /// <summary>
         /// Возвращает сумму значений для указанной колонки.

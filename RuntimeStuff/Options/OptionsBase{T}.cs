@@ -14,6 +14,7 @@
 namespace RuntimeStuff.Options
 {
     using System;
+    using System.Linq;
 
     /// <summary>
     /// Обобщённый базовый класс опций с поддержкой клонирования,
@@ -57,12 +58,12 @@ namespace RuntimeStuff.Options
         /// <returns>Текущий экземпляр после объединения.</returns>
         public T Merge(OptionsBase other)
         {
-            foreach (var prop in this.PropertyMap)
+            foreach (var property in this.PropertyMap.Select(p => p.Value))
             {
-                var value = prop.Value.GetValue(other);
+                var value = property.GetValue(other);
                 if (value != null)
                 {
-                    prop.Value.SetValue(this, value);
+                    property.SetValue(this, value);
                 }
             }
 

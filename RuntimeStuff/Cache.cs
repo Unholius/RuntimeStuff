@@ -178,7 +178,7 @@ namespace RuntimeStuff
             this.cache.Count(p =>
                 p.Value.IsValueCreated &&
                 p.Value.Value.IsCompleted &&
-                (this.expiration == null || this.Now() - p.Value.Value.Result.Created < this.expiration));
+                (this.expiration == null || Now() - p.Value.Value.Result.Created < this.expiration));
 
         /// <summary>
         /// Gets возвращает ключи актуальных элементов кэша.
@@ -189,7 +189,7 @@ namespace RuntimeStuff
             this.cache
                 .Where(p => p.Value.IsValueCreated &&
                             p.Value.Value.IsCompleted &&
-                            (this.expiration == null || this.Now() - p.Value.Value.Result.Created < this.expiration))
+                            (this.expiration == null || Now() - p.Value.Value.Result.Created < this.expiration))
                 .Select(p => p.Key);
 
         /// <summary>
@@ -201,7 +201,7 @@ namespace RuntimeStuff
             this.cache
                 .Where(p => p.Value.IsValueCreated &&
                             p.Value.Value.IsCompleted &&
-                            (this.expiration == null || this.Now() - p.Value.Value.Result.Created < this.expiration))
+                            (this.expiration == null || Now() - p.Value.Value.Result.Created < this.expiration))
                 .Select(p => p.Value.Value.Result.Value);
 
         /// <summary>
@@ -276,7 +276,7 @@ namespace RuntimeStuff
                             var value = await this.asyncFactory(k).ConfigureAwait(false);
                             this.OnItemAdded(k);
                             this.EnforceSizeLimit();
-                            return new CacheEntry(key, value, this.Now());
+                            return new CacheEntry(k, value, Now());
                         },
                         LazyThreadSafetyMode.ExecutionAndPublication));
 
@@ -294,7 +294,7 @@ namespace RuntimeStuff
                 }
 
                 // TTL проверка
-                if (this.expiration != null && this.Now() - entry.Created >= this.expiration)
+                if (this.expiration != null && Now() - entry.Created >= this.expiration)
                 {
                     if (this.cache.TryRemove(key, out _))
                     {
@@ -322,11 +322,14 @@ namespace RuntimeStuff
         /// <returns>Перечислитель ключ-значение.</returns>
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
-            foreach (var entry in this.cache.Values.OrderBy(x => x.Value.Result.Created))
+            foreach (var key in this.cache.Values
+                         .Select(x => x.Value.Result)
+                         .OrderBy(r => r.Created)
+                         .Select(r => r.Key))
             {
-                if (this.TryGetValue(entry.Value.Result.Key, out var value))
+                if (this.TryGetValue(key, out var value))
                 {
-                    yield return new KeyValuePair<TKey, TValue>(entry.Value.Result.Key, value);
+                    yield return new KeyValuePair<TKey, TValue>(key, value);
                 }
             }
         }
@@ -389,7 +392,7 @@ namespace RuntimeStuff
                 return defaultValue;
             }
 
-            var elapsed = this.Now() - entry.Created;
+            var elapsed = Now() - entry.Created;
             if (this.expiration != null && elapsed >= this.expiration)
             {
                 this.cache.TryRemove(key, out _);
@@ -434,13 +437,13 @@ namespace RuntimeStuff
         public void Set(TKey key, TValue value)
         {
             // Создаём Lazy с Task, фиксируя время создания сразу
-            var v = new CacheEntry(key, value, this.Now());
+            var v = new CacheEntry(key, value, Now());
             var lazy = new Lazy<Task<CacheEntry>>(
                 () => Task.FromResult(v),
                 LazyThreadSafetyMode.ExecutionAndPublication);
 
             // Принудительно создаем значение, чтобы IsValueCreated был true
-            var v1 = lazy.Value;
+            _ = lazy.Value;
 
             this.cache.AddOrUpdate(
                 key,
@@ -512,7 +515,7 @@ namespace RuntimeStuff
                 return false;
             }
 
-            if (this.expiration != null && this.Now() - entry.Created >= this.expiration)
+            if (this.expiration != null && Now() - entry.Created >= this.expiration)
             {
                 if (this.cache.TryRemove(key, out _))
                 {
@@ -565,7 +568,7 @@ namespace RuntimeStuff
                 return (false, default);
             }
 
-            if (this.expiration != null && this.Now() - entry.Created >= this.expiration)
+            if (this.expiration != null && Now() - entry.Created >= this.expiration)
             {
                 if (this.cache.TryRemove(key, out _))
                 {
@@ -597,6 +600,15 @@ namespace RuntimeStuff
         /// <param name="key">Ключ элемента.</param>
         /// <param name="reason">Причина удаления.</param>
         protected void OnItemRemoved(TKey key, RemovalReason reason) => this.ItemRemoved?.Invoke(key, reason);
+
+        /// <summary>
+        /// Nows this instance.
+        /// </summary>
+        /// <returns>DateTime.</returns>
+        private static DateTime Now()
+        {
+            return DateTimeHelper.ExactNow();
+        }
 
         /// <summary>
         /// Wraps the synchronize factory.
@@ -659,19 +671,13 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Nows this instance.
-        /// </summary>
-        /// <returns>DateTime.</returns>
-        private DateTime Now() => DateTimeHelper.ExactNow();
-
-        /// <summary>
         /// Updates the last access.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="entry">The entry.</param>
         private void UpdateLastAccess(TKey key, CacheEntry entry)
         {
-            entry.LastAccess = this.Now();
+            entry.LastAccess = Now();
             this.OnItemAccessed(key);
         }
 

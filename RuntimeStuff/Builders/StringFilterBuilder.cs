@@ -237,9 +237,16 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        ///     Добавляет логический оператор AND ("&&").
+        /// Добавляет логический оператор <c>AND</c> к текущему строковому фильтру.
         /// </summary>
-        /// <returns>Текущий экземпляр <see cref="StringFilterBuilder" />.</returns>
+        /// <returns>
+        /// Текущий экземпляр <see cref="StringFilterBuilder"/>, позволяющий продолжить построение фильтра.
+        /// </returns>
+        /// <remarks>
+        /// Устанавливает внутреннее состояние <see cref="needsOp"/> в <c>false</c>,
+        /// чтобы указать, что оператор был добавлен и следующий вызов метода добавления условия
+        /// не должен вставлять дополнительный оператор.
+        /// </remarks>
         public StringFilterBuilder And()
         {
             this.Append(" && ");

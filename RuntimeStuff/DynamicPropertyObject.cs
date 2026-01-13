@@ -315,11 +315,6 @@ namespace RuntimeStuff
             /// <returns>An instance of the requested editor type, or null if an editor cannot be found.</returns>
             public override object GetEditor(Type editorBaseType)
             {
-                if (this.owner.properties[this.Name].EditorType != null)
-                {
-                    return Activator.CreateInstance(this.owner.properties[this.Name].EditorType);
-                }
-
                 if (this.owner.Editors.TryGetValue(this.PropertyType, out var editorType))
                 {
                     return Activator.CreateInstance(editorType);
@@ -379,12 +374,6 @@ namespace RuntimeStuff
                 this.Type = type;
                 this.Value = value;
             }
-
-            /// <summary>
-            /// Gets or sets тип редактора свойства.
-            /// </summary>
-            /// <value>The type of the editor.</value>
-            public Type EditorType { get; set; }
 
             /// <summary>
             /// Gets or sets тип свойства.

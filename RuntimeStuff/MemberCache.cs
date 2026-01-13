@@ -29,6 +29,7 @@ namespace RuntimeStuff
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Text.RegularExpressions;
+    using System.Xml.Linq;
     using RuntimeStuff.Extensions;
     using RuntimeStuff.Helpers;
 
@@ -45,7 +46,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Любой тип имени (основное, отображаемое, JSON, XML и др.).
         /// </summary>
-        Any = 0,
+        None = 0,
 
         /// <summary>
         /// Основное имя члена (Name).
@@ -253,7 +254,7 @@ namespace RuntimeStuff
         /// <param name="memberInfo">Информация о члене класса.</param>
         /// <param name="getMembers">Получить информацию о дочерних членах: свойства, поля, методы и т.п.</param>
         /// <param name="parent">The parent.</param>
-        private MemberCache(MemberInfo memberInfo, bool getMembers = false, MemberCache parent = null)
+        private MemberCache(MemberInfo memberInfo, bool getMembers, MemberCache parent = null)
         {
 #if DEBUG
             var beginTime = DateTime.Now.ExactNow();
@@ -344,22 +345,8 @@ namespace RuntimeStuff
             this.IsConstructor = ci != null;
             this.CanWrite = pi != null ? pi.CanWrite : fi != null;
             this.CanRead = pi != null ? pi.CanRead : fi != null;
-            this.IsPublic = this.typeCache?.IsPublic ??
-                       this.IsProperty ? this.AsPropertyInfo()?.GetAccessors().Any(m => m.IsPublic) == true :
-                this.IsField ? this.AsFieldInfo().IsPublic :
-                this.IsMethod ? this.AsMethodInfo().IsPublic :
-                this.IsConstructor ? this.AsConstructorInfo().IsPublic :
-                this.IsEvent || this.Type.IsPublic;
-
-            this.IsPrivate = this.typeCache?.IsPrivate ?? this.IsProperty
-                ? this.AsPropertyInfo().GetAccessors().Any(m => m.IsPrivate)
-                : this.IsField ? this.AsFieldInfo().IsPrivate
-                    : this.IsMethod
-                        ? this.AsMethodInfo().IsPrivate
-                        : this.IsConstructor
-                            ? this.AsConstructorInfo().IsPrivate
-                            : this.IsType ? !this.Type.IsPublic : !this.IsEvent;
-
+            this.IsPublic = this.typeCache?.IsPublic ?? Obj.IsPublic(this.MemberInfo);
+            this.IsPrivate = this.typeCache?.IsPrivate ?? Obj.IsPrivate(this.MemberInfo);
             this.Attributes = this.GetAttributes().ToDictionaryDistinct(x => x.GetType().Name);
             this.Events = this.GetEvents().ToDictionaryDistinct(x => x.Name);
 
@@ -607,7 +594,9 @@ namespace RuntimeStuff
         /// Gets or sets флаги для поиска членов класса по умолчанию.
         /// </summary>
         /// <value>The default binding flags.</value>
+#pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
         public static BindingFlags DefaultBindingFlags { get; set; } = BindingFlags.Instance | BindingFlags.NonPublic |
+#pragma warning restore S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
                                                                        BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
@@ -1035,18 +1024,17 @@ namespace RuntimeStuff
 
         /// <summary>
         ///     Gets словарь публичных свойств-коллекций с элементом списка {T}, где T - простой тип <see cref="BaseTypes" /> (IsPublic
-        ///     && IsProperty && IsBasicCollection).
+        ///     and IsProperty and IsBasicCollection).
         /// </summary>
         public Dictionary<string, MemberCache> PublicBasicEnumerableProperties { get; }
 
         /// <summary>
-        ///     Gets словарь простых (<see cref="Obj.BasicTypes" />) публичных свойств типа (IsPublic && IsProperty && IsBasic).
+        ///     Gets словарь простых (<see cref="Obj.BasicTypes" />) публичных свойств типа (IsPublic и IsProperty и IsBasic).
         /// </summary>
         public Dictionary<string, MemberCache> PublicBasicProperties { get; }
 
         /// <summary>
-        ///     Gets словарь публичных свойств-коллекций с элементом списка {T}, где T : class (IsPublic && IsProperty && IsCollection &
-        ///     & !IsBasicCollection).
+        ///     Gets словарь публичных свойств-коллекций с элементом списка {T}, где T : class (IsPublic и IsProperty и IsCollection и !IsBasicCollection).
         /// </summary>
         public Dictionary<string, MemberCache> PublicEnumerableProperties { get; }
 
@@ -1057,7 +1045,7 @@ namespace RuntimeStuff
         public Dictionary<string, MemberCache> PublicFields { get; }
 
         /// <summary>
-        ///     Gets словарь публичных свойств типа (IsPublic && IsProperty).
+        ///     Gets словарь публичных свойств типа (IsPublic и IsProperty).
         /// </summary>
         public Dictionary<string, MemberCache> PublicProperties { get; }
 
@@ -1225,7 +1213,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="memberName">Имя члена для поиска.</param>
         /// <returns>Найденный член или null, если не найден.</returns>
-        public MemberCache this[string memberName] => this[memberName, MemberNameType.Any];
+        public MemberCache this[string memberName] => this[memberName, MemberNameType.None];
 
         /// <summary>
         /// Получить член по имени с фильтрацией.
@@ -1234,7 +1222,7 @@ namespace RuntimeStuff
         /// <param name="memberNameType">Тип имени члена для поиска.</param>
         /// <param name="memberFilter">Фильтр для отбора членов.</param>
         /// <returns>Найденный член или null, если не найден.</returns>
-        public MemberCache this[string memberName, MemberNameType memberNameType = MemberNameType.Any, Func<MemberCache, bool> memberFilter = null] => this.GetMember(memberName, memberNameType, memberFilter);
+        public MemberCache this[string memberName, MemberNameType memberNameType = MemberNameType.None, Func<MemberCache, bool> memberFilter = null] => this.GetMember(memberName, memberNameType, memberFilter);
 
         /// <summary>
         /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="ConstructorInfo" />.
@@ -1245,11 +1233,6 @@ namespace RuntimeStuff
         /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.</exception>
         public static implicit operator ConstructorInfo(MemberCache mc)
         {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
             var constructorInfo = mc.AsConstructorInfo();
             return constructorInfo ?? throw new InvalidCastException(
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to ConstructorInfo. Member is a {mc.MemberType}.");
@@ -1264,11 +1247,6 @@ namespace RuntimeStuff
         /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.</exception>
         public static implicit operator EventInfo(MemberCache mc)
         {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
             var eventInfo = mc.AsEventInfo();
             return eventInfo ?? throw new InvalidCastException(
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to EventInfo. Member is a {mc.MemberType}.");
@@ -1283,11 +1261,6 @@ namespace RuntimeStuff
         /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.</exception>
         public static implicit operator FieldInfo(MemberCache mc)
         {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
             var fieldInfo = mc.AsFieldInfo();
             return fieldInfo ?? throw new InvalidCastException(
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
@@ -1368,11 +1341,6 @@ namespace RuntimeStuff
         /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.</exception>
         public static implicit operator MethodInfo(MemberCache mc)
         {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
             var methodInfo = mc.AsMethodInfo();
             return methodInfo ?? throw new InvalidCastException(
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to MethodInfo. Member is a {mc.MemberType}.");
@@ -1387,11 +1355,6 @@ namespace RuntimeStuff
         /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.</exception>
         public static implicit operator PropertyInfo(MemberCache mc)
         {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
             var propertyInfo = mc.AsPropertyInfo();
             return propertyInfo ?? throw new InvalidCastException(
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to PropertyInfo. Member is a {mc.MemberType}.");
@@ -1406,17 +1369,6 @@ namespace RuntimeStuff
         /// <exception cref="System.InvalidCastException">Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.</exception>
         public static implicit operator Type(MemberCache mc)
         {
-            if (mc == null)
-            {
-                throw new ArgumentNullException(nameof(mc));
-            }
-
-            if (!mc.IsType)
-            {
-                throw new InvalidCastException(
-                    $"Cannot cast MemberCache of type '{mc.MemberType}' to Type. Member is a {mc.MemberType}.");
-            }
-
             return mc.Type;
         }
 
@@ -1898,7 +1850,7 @@ namespace RuntimeStuff
         /// <param name="membersFilter">Фильтр для отбора членов (опционально).</param>
         /// <param name="nameComparison">Сравнение имен.</param>
         /// <returns>Экземпляр <see cref="MemberCache" />, либо <c>null</c>, если член не найден.</returns>
-        public MemberCache GetMember(string name, MemberNameType memberNamesType = MemberNameType.Any, Func<MemberCache, bool> membersFilter = null, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
+        public MemberCache GetMember(string name, MemberNameType memberNamesType = MemberNameType.None, Func<MemberCache, bool> membersFilter = null, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -1910,7 +1862,7 @@ namespace RuntimeStuff
                 return mx;
             }
 
-            if (memberNamesType == MemberNameType.Any || memberNamesType.HasFlag(MemberNameType.Name))
+            if (memberNamesType == MemberNameType.None || memberNamesType.HasFlag(MemberNameType.Name))
             {
                 // Быстрый поиск свойства
                 var quickProp = Obj.GetLowestProperty(this.Type, name);
@@ -1975,7 +1927,7 @@ namespace RuntimeStuff
 
             foreach (var (f, flag) in searchNames)
             {
-                if (memberNamesType != MemberNameType.Any && (memberNamesType & flag) == 0)
+                if (memberNamesType != MemberNameType.None && (memberNamesType & flag) == 0)
                 {
                     continue;
                 }
@@ -2075,19 +2027,18 @@ namespace RuntimeStuff
             }
 
             var props = this.type.GetProperties(DefaultBindingFlags)
-                .Concat(this.BaseTypes.Where(x => !x.IsInterface)
-                    .SelectMany(x => x.GetProperties(DefaultBindingFlags)))
+                .Concat(
+                    this.BaseTypes
+                        .Where(x => !x.IsInterface)
+                        .SelectMany(x => x.GetProperties(DefaultBindingFlags)))
                 .ToList();
-            var l = new Dictionary<string, PropertyInfo>();
-            foreach (var p in props)
-            {
-                if (!l.ContainsKey(p.Name))
-                {
-                    l.Add(p.Name, p);
-                }
-            }
 
-            this.properties = l.Values.ToArray();
+            var seen = new HashSet<string>();
+
+            this.properties = props
+                .Where(p => seen.Add(p.Name))
+                .ToArray();
+
             return this.properties;
         }
 
@@ -2132,13 +2083,13 @@ namespace RuntimeStuff
         /// всех соответствующих членов. Если член не найден, возвращается null.</remarks>
         public virtual object GetValue(object source, string memberName)
         {
-            if (!this.getters.TryGetValue(memberName, out var getters))
+            if (!this.getters.TryGetValue(memberName, out var memberGetters))
             {
                 return null;
             }
 
             var values = new List<object>();
-            foreach (var g in getters)
+            foreach (var g in memberGetters)
             {
                 values.Add(g(source));
             }
@@ -2200,12 +2151,12 @@ namespace RuntimeStuff
         /// <param name="valueConverter">Конвертор значения в тип свойства, если не указан, то пытаемся установить как есть/&gt;.</param>
         public virtual void SetMemberValue(object source, string memberName, object value, Func<object, object> valueConverter = null)
         {
-            if (!this.setters.TryGetValue(memberName, out var setters))
+            if (!this.setters.TryGetValue(memberName, out var memberSetters))
             {
                 return;
             }
 
-            foreach (var s in setters)
+            foreach (var s in memberSetters)
             {
                 s(source, valueConverter != null ? valueConverter(value) : value);
             }
@@ -2261,7 +2212,7 @@ namespace RuntimeStuff
         /// Возвращает строковое представление члена в формате "Имя (Тип)".
         /// </summary>
         /// <returns>Строка с именем и типом члена.</returns>
-        public override string ToString() => $"[{(this.IsProperty ? "P" : this.IsField ? "F" : this.IsType ? "T" : this.IsMethod ? "M" : this.IsConstructor ? "C" : this.IsEvent ? "E" : "?")}] {(this.DeclaringType == null ? string.Empty : $"{this.DeclaringType.Name}.")}{this.Name} ({this.Type.Name})";
+        public override string ToString() => $"{this.DeclaringType?.Name}{this.Name}({this.Type.Name})";
 
         /// <summary>
         /// Получить все члены типа (свойства, поля, события).
@@ -2269,14 +2220,14 @@ namespace RuntimeStuff
         /// <returns>Массив информации о членах.</returns>
         internal Dictionary<MemberInfo, MemberCache> GetChildMembersInternal()
         {
-            var members =
+            var allMembers =
             this.GetProperties().Cast<MemberInfo>()
             .Concat(this.GetFields())
             .Concat(this.GetEvents())
             .Concat(this.GetConstructors())
             .Concat(this.GetMethods()).Distinct();
 
-            return members.ToDictionary(key => key, val => Create(val, this));
+            return allMembers.ToDictionary(key => key, val => Create(val, this));
         }
 
         /// <summary>

@@ -122,7 +122,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// The op codes.
         /// </summary>
-        private static readonly Dictionary<short, OpCode> OpCodes;
+        private static readonly Dictionary<short, OpCode> OpCodes = InitializeOpCodes();
 
         /// <summary>
         /// The ordinal ignore case comparer.
@@ -191,7 +191,7 @@ namespace RuntimeStuff.Helpers
 
             if (year != null && month != null && day != null)
             {
-                return new DateTime((int)year, (int)month, (int)day);
+                return new DateTime((int)year, (int)month, (int)day, 0, 0, 0, DateTimeKind.Unspecified);
             }
 
             if (dateTimeParts[0].Length == 8)
@@ -199,7 +199,11 @@ namespace RuntimeStuff.Helpers
                 return new DateTime(
                     (int)Convert.ChangeType(s.Substring(0, 4), typeof(int)),
                     (int)Convert.ChangeType(s.Substring(4, 2), typeof(int)),
-                    (int)Convert.ChangeType(s.Substring(6, 2), typeof(int)));
+                    (int)Convert.ChangeType(s.Substring(6, 2), typeof(int)),
+                    0,
+                    0,
+                    0,
+                    DateTimeKind.Unspecified);
             }
 
             return null;
@@ -211,77 +215,56 @@ namespace RuntimeStuff.Helpers
         private static readonly ConcurrentDictionary<string, Type> TypeCache = new ConcurrentDictionary<string, Type>(OrdinalIgnoreCaseComparer);
 
         /// <summary>
-        /// Initializes static members of the <see cref="Obj"/> class.
+        /// Gets типы, представляющие логические значения.
         /// </summary>
-        static Obj()
+        /// <value>The bool types.</value>
+        public static HashSet<Type> BoolTypes { get; } = new HashSet<Type>
         {
-            NullValues = new object[] { null, DBNull.Value, double.NaN, float.NaN };
+            typeof(bool),
+            typeof(bool?),
+        };
 
-            IntNumberTypes = new HashSet<Type>
-            {
-                typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(short), typeof(ushort), typeof(byte),
-                typeof(sbyte),
-                typeof(int?), typeof(uint?), typeof(long?), typeof(ulong?), typeof(short?), typeof(ushort?),
-                typeof(byte?),
-                typeof(sbyte?),
-            };
+        /// <summary>
+        /// Gets типы с плавающей запятой (float, double, decimal).
+        /// </summary>
+        /// <value>The float number types.</value>
+        public static HashSet<Type> FloatNumberTypes { get; } = new HashSet<Type>
+        {
+            typeof(float), typeof(double), typeof(decimal),
+            typeof(float?), typeof(double?), typeof(decimal?),
+        };
 
-            FloatNumberTypes = new HashSet<Type>
-            {
-                typeof(float), typeof(double), typeof(decimal),
-                typeof(float?), typeof(double?), typeof(decimal?),
-            };
+        /// <summary>
+        /// Gets целочисленные типы (byte, int, long и т.д. с nullable и без).
+        /// </summary>
+        /// <value>The int number types.</value>
+        public static HashSet<Type> IntNumberTypes { get; } = new HashSet<Type>
+        {
+            typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(short), typeof(ushort), typeof(byte),
+            typeof(sbyte),
+            typeof(int?), typeof(uint?), typeof(long?), typeof(ulong?), typeof(short?), typeof(ushort?),
+            typeof(byte?),
+            typeof(sbyte?),
+        };
 
-            BoolTypes = new HashSet<Type>
-            {
-                typeof(bool),
-                typeof(bool?),
-            };
-
-            DateTypes = new HashSet<Type>
-            {
-                typeof(DateTime), typeof(DateTime?),
-            };
-
-            NumberTypes = new HashSet<Type>(IntNumberTypes.Concat(FloatNumberTypes));
-
-            BasicTypes =
-                NumberTypes
-                    .Concat(BoolTypes)
-                    .Concat(new[]
-                    {
-                        typeof(char), typeof(char?), typeof(string),
-                        typeof(DateTime), typeof(DateTime?), typeof(TimeSpan),
-                        typeof(Guid), typeof(Guid?),
-                        typeof(Uri),
-                        typeof(Enum),
-                    })
-                    .ToArray();
-
-            OpCodes = new Dictionary<short, OpCode>();
-            var fields = typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static);
-
-            foreach (var field in fields)
-            {
-                if (field.FieldType == typeof(OpCode))
-                {
-                    var opCode = (OpCode)field.GetValue(null);
-                    OpCodes[opCode.Value] = opCode;
-                }
-            }
-        }
+        /// <summary>
+        /// Gets все числовые типы: целочисленные и с плавающей точкой.
+        /// </summary>
+        /// <value>The number types.</value>
+        public static HashSet<Type> NumberTypes { get; } = new HashSet<Type>(IntNumberTypes.Concat(FloatNumberTypes));
 
         /// <summary>
         /// Gets набор основных типов: числа, логические, строки, даты, Guid, Enum и др.
         /// </summary>
         /// <value>The basic types.</value>
-        public static Type[] BasicTypes { get; }
-
-        /// <summary>
-        /// Gets типы, представляющие логические значения.
-        /// </summary>
-        /// <value>The bool types.</value>
-        public static HashSet<Type> BoolTypes { get; }
+        public static Type[] BasicTypes { get; } = new Type[]
+        {
+            typeof(char), typeof(char?), typeof(string),
+            typeof(DateTime), typeof(DateTime?), typeof(TimeSpan),
+            typeof(Guid), typeof(Guid?),
+            typeof(Uri),
+            typeof(Enum),
+        }.Concat(NumberTypes).Concat(BoolTypes).ToArray();
 
         /// <summary>
         /// Gets хранилище пользовательских конвертеров типов. Ключ первого уровня — исходный тип, ключ второго уровня —
@@ -293,7 +276,10 @@ namespace RuntimeStuff.Helpers
         /// Gets типы, представляющие дату и время.
         /// </summary>
         /// <value>The date types.</value>
-        public static HashSet<Type> DateTypes { get; }
+        public static HashSet<Type> DateTypes { get; } = new HashSet<Type>
+        {
+            typeof(DateTime), typeof(DateTime?),
+        };
 
         /// <summary>
         /// Gets флаги для поиска членов класса по умолчанию.
@@ -317,18 +303,6 @@ namespace RuntimeStuff.Helpers
         public static Cache<FieldInfo, Action<object, object>> FieldSetterCache { get; } = new Cache<FieldInfo, Action<object, object>>(CreateDirectFieldSetter);
 
         /// <summary>
-        /// Gets типы с плавающей запятой (float, double, decimal).
-        /// </summary>
-        /// <value>The float number types.</value>
-        public static HashSet<Type> FloatNumberTypes { get; }
-
-        /// <summary>
-        /// Gets целочисленные типы (byte, int, long и т.д. с nullable и без).
-        /// </summary>
-        /// <value>The int number types.</value>
-        public static HashSet<Type> IntNumberTypes { get; }
-
-        /// <summary>
         /// Gets the member information cache.
         /// </summary>
         /// <value>The member information cache.</value>
@@ -338,13 +312,7 @@ namespace RuntimeStuff.Helpers
         /// Gets значения, трактуемые как null (null, DBNull, NaN).
         /// </summary>
         /// <value>The null values.</value>
-        public static object[] NullValues { get; }
-
-        /// <summary>
-        /// Gets все числовые типы: целочисленные и с плавающей точкой.
-        /// </summary>
-        /// <value>The number types.</value>
-        public static HashSet<Type> NumberTypes { get; }
+        public static object[] NullValues { get; } = new object[] { null, DBNull.Value, double.NaN, float.NaN };
 
         /// <summary>
         /// Gets the property getter cache.
@@ -382,6 +350,175 @@ namespace RuntimeStuff.Helpers
 
             typeConverters[typeof(TTo)] =
                 converter.ConvertFunc(arg => (TFrom)arg);
+        }
+
+        /// <summary>
+        /// Определяет, является ли указанный член типа публичным (<c>public</c>).
+        /// </summary>
+        /// <param name="memberInfo">
+        /// Метаданные члена типа, для которого требуется проверить уровень доступа.
+        /// Поддерживаются следующие типы:
+        /// <see cref="PropertyInfo"/>, <see cref="FieldInfo"/>, <see cref="MethodInfo"/>,
+        /// <see cref="EventInfo"/>, <see cref="Type"/>, <see cref="ConstructorInfo"/>.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если член типа является публичным;
+        /// <c>false</c> — если член не является публичным.
+        /// </returns>
+        /// <exception cref="NotSupportedException">
+        /// Выбрасывается, если тип <paramref name="memberInfo"/> не поддерживается
+        /// для проверки модификатора доступа.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// Логика определения публичности:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// <see cref="PropertyInfo"/> — проверяется наличие хотя бы одного публичного аксессора
+        /// (getter или setter).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="FieldInfo"/> — используется свойство <see cref="FieldInfo.IsPublic"/>.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="MethodInfo"/> — используется свойство MethodInfo.IsPublic.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="EventInfo"/> — проверяется публичность методов добавления или удаления обработчика
+        /// (<c>add</c>/<c>remove</c>).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="Type"/> — используется свойство <see cref="Type.IsPublic"/>.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="ConstructorInfo"/> — используется свойство ConstructorInfo.IsPublic.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </remarks>
+        public static bool IsPublic(MemberInfo memberInfo)
+        {
+            switch (memberInfo)
+            {
+                case PropertyInfo pi:
+                    return pi.GetAccessors().Any(m => m.IsPublic);
+
+                case FieldInfo fi:
+                    return fi.IsPublic;
+
+                case MethodInfo mi:
+                    return mi.IsPublic;
+
+                case EventInfo ei:
+                    return ei.AddMethod?.IsPublic == true || ei.RemoveMethod?.IsPublic == true;
+
+                case Type t:
+                    return t.IsPublic;
+
+                case ConstructorInfo ci:
+                    return ci.IsPublic;
+            }
+
+            throw new NotSupportedException($"Member type {memberInfo.GetType()} is not supported for IsPublic check.");
+        }
+
+        /// <summary>
+        /// Определяет, является ли указанный член типа приватным (<c>private</c>).
+        /// </summary>
+        /// <param name="memberInfo">
+        /// Метаданные члена типа, для которого требуется проверить уровень доступа.
+        /// Поддерживаются следующие типы:
+        /// <see cref="PropertyInfo"/>, <see cref="FieldInfo"/>, <see cref="MethodInfo"/>,
+        /// <see cref="EventInfo"/>, <see cref="Type"/>, <see cref="ConstructorInfo"/>.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если член типа имеет модификатор доступа <c>private</c>;
+        /// <c>false</c> — в противном случае.
+        /// </returns>
+        /// <exception cref="NotSupportedException">
+        /// Выбрасывается, если тип <paramref name="memberInfo"/> не поддерживается
+        /// для проверки модификатора доступа.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// Логика определения приватности:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// <see cref="PropertyInfo"/> — проверяется наличие хотя бы одного приватного аксессора
+        /// (getter или setter).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="FieldInfo"/> — используется свойство FieldInfo.IsPrivate.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="MethodInfo"/> — используется свойство MethodInfo.IsPrivate.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="EventInfo"/> — проверяется приватность методов добавления или удаления обработчика
+        /// (<c>add</c>/<c>remove</c>).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="Type"/> — считается приватным, если тип не является публичным
+        /// (<see cref="Type.IsPublic"/> равен <c>false</c>).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="ConstructorInfo"/> — используется свойство ConstructorInfo.IsPrivate.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// <para>
+        /// Обратите внимание, что для вложенных типов приватность также может определяться
+        /// через <see cref="Type.IsNestedPrivate"/>.
+        /// </para>
+        /// </remarks>
+        public static bool IsPrivate(MemberInfo memberInfo)
+        {
+            switch (memberInfo)
+            {
+                case PropertyInfo pi:
+                    return pi.GetAccessors().Any(m => m.IsPrivate);
+
+                case FieldInfo fi:
+                    return fi.IsPrivate;
+
+                case MethodInfo mi:
+                    return mi.IsPrivate;
+
+                case EventInfo ei:
+                    return ei.AddMethod?.IsPrivate == true || ei.RemoveMethod?.IsPrivate == true;
+
+                case Type t:
+                    return !t.IsPublic;
+
+                case ConstructorInfo ci:
+                    return ci.IsPrivate;
+            }
+
+            throw new NotSupportedException($"Member type {memberInfo.GetType()} is not supported for IsPublic check.");
         }
 
         /// <summary>
@@ -651,12 +788,7 @@ namespace RuntimeStuff.Helpers
                     throw new ArgumentNullException(nameof(fi));
                 }
 
-                var declaringType = fi.DeclaringType;
-                if (declaringType == null)
-                {
-                    throw new ArgumentException(@"Field has no declaring type", nameof(fi));
-                }
-
+                var declaringType = fi.DeclaringType ?? throw new ArgumentException(@"Field has no declaring type", nameof(fi));
                 var fieldType = fi.FieldType;
 
                 // Проверяем, является ли поле константой
@@ -1074,7 +1206,7 @@ namespace RuntimeStuff.Helpers
                         return false;
                     }
 
-                    for (int i = 0; i < ps.Length; i++)
+                    for (var i = 0; i < ps.Length; i++)
                     {
                         if (!ps[i].ParameterType.IsAssignableFrom(argTypes[i]))
                         {
@@ -1441,12 +1573,7 @@ namespace RuntimeStuff.Helpers
                 throw new ArgumentNullException(nameof(accessor));
             }
 
-            var declaringType = accessor.DeclaringType;
-            if (declaringType == null)
-            {
-                throw new ArgumentException(@"Method has no declaring type", nameof(accessor));
-            }
-
+            var declaringType = accessor.DeclaringType ?? throw new ArgumentException(@"Method has no declaring type", nameof(accessor));
             var propertyName = accessor.Name.Substring(4);
 
             // Вариант 1: Поиск автоматически сгенерированного поля для автосвойств
@@ -1709,8 +1836,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="type">Тип в котором искать свойство или поле.</param>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
         /// <param name="memberType">Тип свойства или поля.</param>
-        /// <returns>Делегат <see cref="Action{object, object}" />, который устанавливает значение указанного члена для объекта
-        /// типа <typeparamref name="{T}" />. Возвращает <see langword="null" />, если член с заданным именем не найден или
+        /// <returns>Делегат Action{object, object}, который устанавливает значение указанного члена для объекта.
+        /// Возвращает <see langword="null" />, если член с заданным именем не найден или
         /// не поддерживает установку значения.</returns>
         /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
         /// значение будет <see langword="null" />. Делегат использует отражение и может иметь меньшую производительность
@@ -1739,7 +1866,7 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="T">Type.</typeparam>
         /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
         /// <param name="memberType">Тип свойства или поля.</param>
-        /// <returns>Делегат <see cref="Action{object, object}" />, который устанавливает значение указанного члена для объекта
+        /// <returns>Делегат, который устанавливает значение указанного члена для объекта
         /// типа <typeparamref name="T" />. Возвращает <see langword="null" />, если член с заданным именем не найден или
         /// не поддерживает установку значения.</returns>
         /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
@@ -1896,7 +2023,7 @@ namespace RuntimeStuff.Helpers
         /// var cached = TypeHelper.GetTypeByName("System.String");
         /// Console.WriteLine(ReferenceEquals(type1, cached)); // True
         /// </code></example>
-        /// <remarks>Поиск выполняется без учёта регистра, сравниваются <see cref="Type.FullName" /> и <see cref="Type.Name" />.
+        /// <remarks>Поиск выполняется без учёта регистра, сравниваются <see cref="Type.FullName" /> и Type.Name.
         /// При первом вызове метод перебирает все загруженные сборки, затем кэширует результат.</remarks>
         public static Type GetTypeByName(string typeOrInterfaceName)
         {
@@ -1967,39 +2094,30 @@ namespace RuntimeStuff.Helpers
         /// Если коллекция большая — создаётся кэшированный <see cref="SortedDictionary{TKey, TValue}" />
         /// для быстрого поиска.
         /// </description></item></list></remarks>
-        public static TValue GetValueOrDefault<TKey, TValue>(this IEnumerable<KeyValuePair<TKey, TValue>> dic, TKey key, IComparer<TKey> comparer = null)
+        public static TValue GetValueOrDefault<TKey, TValue>(
+            this IEnumerable<KeyValuePair<TKey, TValue>> dic,
+            TKey key,
+            IComparer<TKey> comparer = null)
         {
             if (dic == null)
             {
                 throw new ArgumentNullException(nameof(dic));
             }
 
-            // 1️ Компаратор не задан — быстрый линейный поиск
+            // 1. Компаратор не задан — стандартное сравнение
             if (comparer == null)
             {
-                foreach (var kv in dic)
-                {
-                    if (EqualityComparer<TKey>.Default.Equals(kv.Key, key))
-                    {
-                        return kv.Value;
-                    }
-                }
-
-                return default;
+                return dic
+                    .Where(x => EqualityComparer<TKey>.Default.Equals(x.Key, key))
+                    .Select(x => x.Value)
+                    .FirstOrDefault();
             }
 
-            // 2️ Компаратор задан
-            // Считаем элементы, чтобы определить способ поиска
-            // Маленькая коллекция — линейный поиск
-            foreach (var kv in dic)
-            {
-                if (comparer.Compare(kv.Key, key) == 0)
-                {
-                    return kv.Value;
-                }
-            }
-
-            return default;
+            // 2. Компаратор задан
+            return dic
+                .Where(kv => comparer.Compare(kv.Key, key) == 0)
+                .Select(kv => kv.Value)
+                .FirstOrDefault();
         }
 
         /// <summary>
@@ -2182,13 +2300,9 @@ namespace RuntimeStuff.Helpers
                 type = GetDefaultImplementation(type);
             }
 
-            var ctor = FindConstructor(type, args);
-            if (ctor == null)
-            {
-                throw new InvalidOperationException($"No constructor found for type {type}");
-            }
-
+            var ctor = FindConstructor(type, args) ?? throw new InvalidOperationException($"No constructor found for type {type}");
             var factory = CtorCache.GetOrAdd(ctor, CreateFactory);
+
             return factory(args);
         }
 
@@ -2267,16 +2381,52 @@ namespace RuntimeStuff.Helpers
             if (subMemberInstance == null)
             {
                 var subMember = FindMember(instance.GetType(), path[0]);
-                var subMemberType =
-                    subMember is PropertyInfo pi ? pi.PropertyType :
-                    subMember is FieldInfo fi ? fi.FieldType :
-                    null;
-
+                var subMemberType = GetMemberReturnType(subMember);
                 subMemberInstance = New(subMemberType);
                 Set(instance, path[0], subMemberInstance);
             }
 
             return Set(subMemberInstance, path.Skip(1).ToArray(), value);
+        }
+
+        /// <summary>
+        /// Возвращает тип значения, который возвращает указанный член типа.
+        /// </summary>
+        /// <param name="memberInfo">
+        /// Метаданные члена типа (<see cref="PropertyInfo"/> или <see cref="FieldInfo"/>),
+        /// для которого требуется определить возвращаемый тип.
+        /// </param>
+        /// <returns>
+        /// Тип значения члена:
+        /// <list type="bullet">
+        /// <item>
+        /// <description><see cref="PropertyInfo.PropertyType"/> — если передан объект <see cref="PropertyInfo"/>.</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="FieldInfo.FieldType"/> — если передан объект <see cref="FieldInfo"/>.</description>
+        /// </item>
+        /// </list>
+        /// <para>
+        /// Возвращает <c>null</c>, если <paramref name="memberInfo"/> равен <c>null</c>
+        /// либо если тип члена не поддерживается.
+        /// </para>
+        /// </returns>
+        public static Type GetMemberReturnType(MemberInfo memberInfo)
+        {
+            if (memberInfo == null)
+            {
+                return null;
+            }
+
+            switch (memberInfo)
+            {
+                case PropertyInfo pi:
+                    return pi.PropertyType;
+                case FieldInfo fi:
+                    return fi.FieldType;
+                default:
+                    return null;
+            }
         }
 
         /// <summary>
@@ -2318,18 +2468,18 @@ namespace RuntimeStuff.Helpers
             }
 
             // создаём фабрику
-            Func<Type[], object> factory = genericArgs =>
+            object Factory(Type[] genericArgs)
             {
-                Type targetType = implementationType;
+                var targetType = implementationType;
                 if (implementationType.IsGenericTypeDefinition)
                 {
                     targetType = implementationType.MakeGenericType(genericArgs);
                 }
 
                 return Activator.CreateInstance(targetType);
-            };
+            }
 
-            DefaultInterfaceMappings[interfaceType] = factory;
+            DefaultInterfaceMappings[interfaceType] = Factory;
         }
 
         /// <summary>
@@ -2391,10 +2541,11 @@ namespace RuntimeStuff.Helpers
         /// <returns>FieldInfo.</returns>
         private static FieldInfo FindFieldByNamingPatterns(Type declaringType, string propertyName)
         {
-            // Получаем свойство для проверки типа
+#pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
             var property = declaringType.GetProperty(
                 propertyName,
                 BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+#pragma warning restore S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
 
             if (property == null)
             {
@@ -2465,7 +2616,8 @@ namespace RuntimeStuff.Helpers
                 }
 
                 // Анализируем IL-байты
-                for (int i = 0; i < ilBytes.Length; i++)
+                var i = 0;
+                while (i < ilBytes.Length)
                 {
                     short opCodeValue = ilBytes[i];
 
@@ -2482,7 +2634,7 @@ namespace RuntimeStuff.Helpers
                         if ((opCode == System.Reflection.Emit.OpCodes.Ldfld || opCode == System.Reflection.Emit.OpCodes.Ldsfld ||
                             opCode == System.Reflection.Emit.OpCodes.Ldflda || opCode == System.Reflection.Emit.OpCodes.Ldsflda) && i + 4 < ilBytes.Length)
                         {
-                            int token = BitConverter.ToInt32(ilBytes, i + 1);
+                            var token = BitConverter.ToInt32(ilBytes, i + 1);
 
                             try
                             {
@@ -2501,6 +2653,8 @@ namespace RuntimeStuff.Helpers
                         // Пропускаем байты операнда в зависимости от типа операнда
                         i += GetOperandSize(opCode.OperandType, ilBytes, i + 1);
                     }
+
+                    i++;
                 }
             }
             catch
@@ -2668,7 +2822,7 @@ namespace RuntimeStuff.Helpers
                 case OperandType.InlineSwitch:
                     if (position + 4 <= ilBytes.Length)
                     {
-                        int count = BitConverter.ToInt32(ilBytes, position);
+                        var count = BitConverter.ToInt32(ilBytes, position);
                         return 4 + (count * 4);
                     }
 
@@ -2788,6 +2942,22 @@ namespace RuntimeStuff.Helpers
             }
 
             return true;
+        }
+
+        private static Dictionary<short, OpCode> InitializeOpCodes()
+        {
+            var dict = new Dictionary<short, OpCode>();
+            var fields = typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static);
+            foreach (var field in fields)
+            {
+                if (field.FieldType == typeof(OpCode))
+                {
+                    var opCode = (OpCode)field.GetValue(null);
+                    dict[opCode.Value] = opCode;
+                }
+            }
+
+            return dict;
         }
     }
 }

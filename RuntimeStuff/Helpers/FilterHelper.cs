@@ -46,13 +46,20 @@ namespace RuntimeStuff.Helpers
         private static readonly Regex StringRegex = new Regex(@"^'(.*)'$", RegexOptions.Compiled);
 
         /// <summary>
+        /// Базовый класс для всех узлов синтаксического дерева.
+        /// </summary>
+        internal interface IExpr
+        {
+        }
+
+        /// <summary>
         ///     Фильтрует элементы последовательности на основе заданного строкового выражения.
         /// </summary>
         /// <typeparam name="T">Type.</typeparam>
         /// <param name="source">Исходная коллекция.</param>
         /// <param name="filterExpression">
         ///     Выражение, имена свойств задаются в квадратных скобках, строковые значения в одинарных
-        ///     кавычках. Пример: [EventId] >= 100 && [Name] like '%hello%'.
+        ///     кавычках.
         /// </param>
         /// <returns>Отфильтрованный список элементов.</returns>
         public static IEnumerable<T> Filter<T>(IEnumerable<T> source, string filterExpression)
@@ -175,7 +182,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="input">The input.</param>
         /// <returns>Expr.</returns>
-        private static Expr Parse(string input)
+        private static IExpr Parse(string input)
         {
             var tokens = Tokenize(input);
             var pos = 0;
@@ -188,7 +195,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="tokens">The tokens.</param>
         /// <param name="pos">The position.</param>
         /// <returns>Expr.</returns>
-        private static Expr ParseAddSub(List<string> tokens, ref int pos)
+        private static IExpr ParseAddSub(List<string> tokens, ref int pos)
         {
             var left = ParseMulDiv(tokens, ref pos);
             while (pos < tokens.Count && (string.Compare(tokens[pos], "+", StringComparison.Ordinal) == 0 ||
@@ -208,7 +215,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="tokens">The tokens.</param>
         /// <param name="pos">The position.</param>
         /// <returns>Expr.</returns>
-        private static Expr ParseAnd(List<string> tokens, ref int pos)
+        private static IExpr ParseAnd(List<string> tokens, ref int pos)
         {
             var left = ParseComparison(tokens, ref pos);
             while (pos < tokens.Count && tokens[pos].ToLower() == "&&")
@@ -228,7 +235,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="pos">The position.</param>
         /// <returns>Expr.</returns>
         /// <exception cref="System.Exception">Ожидалась {.</exception>
-        private static Expr ParseComparison(List<string> tokens, ref int pos)
+        private static IExpr ParseComparison(List<string> tokens, ref int pos)
         {
             var left = ParseAddSub(tokens, ref pos);
 
@@ -241,10 +248,10 @@ namespace RuntimeStuff.Helpers
                     pos++;
                     if (tokens[pos++] != "{")
                     {
-                        throw new Exception("Ожидалась {");
+                        throw new FormatException("Ожидалась {");
                     }
 
-                    var values = new List<Expr>();
+                    var values = new List<IExpr>();
                     while (tokens[pos] != "}")
                     {
                         values.Add(ParseValue(tokens[pos++]));
@@ -263,7 +270,7 @@ namespace RuntimeStuff.Helpers
                     var not = op == "NOT LIKE";
                     pos++;
                     var right = ParseTerm(tokens, ref pos);
-                    Expr expr = new BinaryExpr(left, "Like", right);
+                    IExpr expr = new BinaryExpr(left, "Like", right);
                     if (not)
                     {
                         expr = new UnaryExpr("!", expr);
@@ -356,7 +363,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="tokens">The tokens.</param>
         /// <param name="pos">The position.</param>
         /// <returns>Expr.</returns>
-        private static Expr ParseMulDiv(List<string> tokens, ref int pos)
+        private static IExpr ParseMulDiv(List<string> tokens, ref int pos)
         {
             var left = ParseTerm(tokens, ref pos);
             while (pos < tokens.Count && (tokens[pos] == "*" || tokens[pos] == "/"))
@@ -375,7 +382,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="tokens">The tokens.</param>
         /// <param name="pos">The position.</param>
         /// <returns>Expr.</returns>
-        private static Expr ParseOr(List<string> tokens, ref int pos)
+        private static IExpr ParseOr(List<string> tokens, ref int pos)
         {
             var left = ParseAnd(tokens, ref pos);
             while (pos < tokens.Count && tokens[pos].ToLower() == "||")
@@ -396,7 +403,7 @@ namespace RuntimeStuff.Helpers
         /// <returns>Expr.</returns>
         /// <exception cref="System.FormatException">Ошибка обработки фильтра.</exception>
         /// <exception cref="System.Exception">Ожидалась ).</exception>
-        private static Expr ParseTerm(List<string> tokens, ref int pos)
+        private static IExpr ParseTerm(List<string> tokens, ref int pos)
         {
             if (pos >= tokens.Count)
             {
@@ -416,7 +423,7 @@ namespace RuntimeStuff.Helpers
                 var expr = ParseOr(tokens, ref pos);
                 if (tokens[pos++] != ")")
                 {
-                    throw new Exception("Ожидалась )");
+                    throw new FormatException("Ожидалась )");
                 }
 
                 return expr;
@@ -431,7 +438,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="token">The token.</param>
         /// <returns>Expr.</returns>
         /// <exception cref="System.FormatException">Неизвестный токен {token}.</exception>
-        private static Expr ParseValue(string token)
+        private static IExpr ParseValue(string token)
         {
             // число decimal
             if (NumberRegex.IsMatch(token))
@@ -482,7 +489,7 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="System.FormatException">Оператор BETWEEN не подходит для строкового параметра {left}.</exception>
         /// <exception cref="System.NotSupportedException">IS EMPTY применим только к строкам или коллекциям.</exception>
         /// <exception cref="System.NotSupportedException">IS NOT EMPTY применим только к строкам или коллекциям.</exception>
-        private static Expression ToExpression(Expr expr, ParameterExpression param)
+        private static Expression ToExpression(IExpr expr, ParameterExpression param)
         {
             if (expr is ConstantExpr c)
             {
@@ -706,7 +713,7 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="T">Type.</typeparam>
         /// <param name="expr">The expr.</param>
         /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
-        private static Expression<Func<T, bool>> ToLambda<T>(Expr expr)
+        private static Expression<Func<T, bool>> ToLambda<T>(IExpr expr)
         {
             var param = Expression.Parameter(typeof(T), "x");
             var body = ToExpression(expr, param);
@@ -716,7 +723,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Оператор BETWEEN: [prop] BETWEEN a AND b.
         /// </summary>
-        internal class BetweenExpr : Expr
+        internal class BetweenExpr : IExpr
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="BetweenExpr" /> class.
@@ -725,7 +732,7 @@ namespace RuntimeStuff.Helpers
             /// <param name="lower">The lower.</param>
             /// <param name="upper">The upper.</param>
             /// <param name="not">if set to <c>true</c> [not].</param>
-            public BetweenExpr(Expr left, Expr lower, Expr upper, bool not = false)
+            public BetweenExpr(IExpr left, IExpr lower, IExpr upper, bool not = false)
             {
                 this.Left = left;
                 this.Lower = lower;
@@ -737,13 +744,13 @@ namespace RuntimeStuff.Helpers
             /// Gets the left.
             /// </summary>
             /// <value>The left.</value>
-            public Expr Left { get; }
+            public IExpr Left { get; }
 
             /// <summary>
             /// Gets the lower.
             /// </summary>
             /// <value>The lower.</value>
-            public Expr Lower { get; }
+            public IExpr Lower { get; }
 
             /// <summary>
             /// Gets a value indicating whether this <see cref="BetweenExpr"/> is not.
@@ -755,7 +762,7 @@ namespace RuntimeStuff.Helpers
             /// Gets the upper.
             /// </summary>
             /// <value>The upper.</value>
-            public Expr Upper { get; }
+            public IExpr Upper { get; }
 
             /// <summary>
             /// Returns a <see cref="string" /> that represents this instance.
@@ -767,7 +774,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Бинарное выражение: арифметика, сравнения, логика.
         /// </summary>
-        internal class BinaryExpr : Expr
+        internal class BinaryExpr : IExpr
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="BinaryExpr" /> class.
@@ -775,7 +782,7 @@ namespace RuntimeStuff.Helpers
             /// <param name="left">The left.</param>
             /// <param name="op">The op.</param>
             /// <param name="right">The right.</param>
-            public BinaryExpr(Expr left, string op, Expr right)
+            public BinaryExpr(IExpr left, string op, IExpr right)
             {
                 this.Left = left;
                 this.Op = op;
@@ -786,7 +793,7 @@ namespace RuntimeStuff.Helpers
             /// Gets the left.
             /// </summary>
             /// <value>The left.</value>
-            public Expr Left { get; }
+            public IExpr Left { get; }
 
             /// <summary>
             /// Gets the op.
@@ -798,7 +805,7 @@ namespace RuntimeStuff.Helpers
             /// Gets the right.
             /// </summary>
             /// <value>The right.</value>
-            public Expr Right { get; }
+            public IExpr Right { get; }
 
             /// <summary>
             /// Returns a <see cref="string" /> that represents this instance.
@@ -810,7 +817,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Константное значение (число, строка, дата).
         /// </summary>
-        internal class ConstantExpr : Expr
+        internal class ConstantExpr : IExpr
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="ConstantExpr" /> class.
@@ -835,16 +842,9 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Базовый класс для всех узлов синтаксического дерева.
-        /// </summary>
-        internal abstract class Expr
-        {
-        }
-
-        /// <summary>
         /// Оператор "IN": [prop] in {1,2,3}.
         /// </summary>
-        internal class InExpr : Expr
+        internal class InExpr : IExpr
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="InExpr" /> class.
@@ -852,7 +852,7 @@ namespace RuntimeStuff.Helpers
             /// <param name="left">The left.</param>
             /// <param name="values">The values.</param>
             /// <param name="not">if set to <c>true</c> [not].</param>
-            public InExpr(Expr left, List<Expr> values, bool not = false)
+            public InExpr(IExpr left, List<IExpr> values, bool not = false)
             {
                 this.Left = left;
                 this.Values = values;
@@ -863,7 +863,7 @@ namespace RuntimeStuff.Helpers
             /// Gets the left.
             /// </summary>
             /// <value>The left.</value>
-            public Expr Left { get; }
+            public IExpr Left { get; }
 
             /// <summary>
             /// Gets a value indicating whether this <see cref="InExpr"/> is not.
@@ -875,7 +875,7 @@ namespace RuntimeStuff.Helpers
             /// Gets the values.
             /// </summary>
             /// <value>The values.</value>
-            public List<Expr> Values { get; }
+            public List<IExpr> Values { get; }
 
             /// <summary>
             /// Returns a <see cref="string" /> that represents this instance.
@@ -887,7 +887,7 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Ссылка на свойство вида [Name].
         /// </summary>
-        internal class PropertyExpr : Expr
+        internal class PropertyExpr : IExpr
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="PropertyExpr" /> class.
@@ -914,14 +914,14 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Унарное выражение (!expr, -expr, +expr).
         /// </summary>
-        internal class UnaryExpr : Expr
+        internal class UnaryExpr : IExpr
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="UnaryExpr" /> class.
             /// </summary>
             /// <param name="op">The op.</param>
             /// <param name="operand">The operand.</param>
-            public UnaryExpr(string op, Expr operand)
+            public UnaryExpr(string op, IExpr operand)
             {
                 this.Op = op;
                 this.Operand = operand;
@@ -937,7 +937,7 @@ namespace RuntimeStuff.Helpers
             /// Gets the operand.
             /// </summary>
             /// <value>The operand.</value>
-            public Expr Operand { get; }
+            public IExpr Operand { get; }
 
             /// <summary>
             /// Returns a <see cref="string" /> that represents this instance.

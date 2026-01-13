@@ -69,11 +69,9 @@ namespace RuntimeStuff.Extensions
 
             var result = new T[totalLength];
 
-            int offset = 0;
-
             // copy source array
             Array.Copy(array, 0, result, 0, array.Length);
-            offset = array.Length;
+            var offset = array.Length;
 
             // copy remaining arrays
             for (int i = 0; i < arrays.Length; i++)
@@ -214,7 +212,7 @@ namespace RuntimeStuff.Extensions
         /// <see cref="ArgumentNullException" />
         /// . Метод перебирает все элементы последовательности до первого
         /// совпадения.</remarks>
-        public static bool Contains<T>(this IEnumerable<T> e, Func<T, bool> match) => e.FirstOrDefault(match) != null;
+        public static bool Contains<T>(this IEnumerable<T> e, Func<T, bool> match) => !object.Equals(e.FirstOrDefault(match), default(T));
 
         /// <summary>
         /// Возвращает уникальные элементы последовательности по заданному ключу.
@@ -227,7 +225,9 @@ namespace RuntimeStuff.Extensions
         /// <returns>IEnumerable&lt;TSource&gt;.</returns>
         /// <exception cref="System.ArgumentNullException">source.</exception>
         /// <exception cref="System.ArgumentNullException">keySelector.</exception>
-        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
+        public static IEnumerable<TSource> DistinctBy<TSource, TKey>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TKey> keySelector)
         {
             if (source == null)
             {
@@ -241,13 +241,7 @@ namespace RuntimeStuff.Extensions
 
             var seenKeys = new HashSet<TKey>();
 
-            foreach (var element in source)
-            {
-                if (seenKeys.Add(keySelector(element)))
-                {
-                    yield return element;
-                }
-            }
+            return source.Where(element => seenKeys.Add(keySelector(element)));
         }
 
         /// <summary>

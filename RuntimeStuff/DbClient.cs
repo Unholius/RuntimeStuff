@@ -54,14 +54,14 @@ namespace RuntimeStuff
         private readonly AsyncLocal<IDbTransaction> tr = new AsyncLocal<IDbTransaction>();
 
         /// <summary>
-        /// The query logs.
-        /// </summary>
-        private Cache<DateTime, string> queryLogs = new Cache<DateTime, string>(sizeLimit: 100);
-
-        /// <summary>
         /// The query log maximum size.
         /// </summary>
         private uint queryLogMaxSize = 100;
+
+        /// <summary>
+        /// The query logs.
+        /// </summary>
+        private Cache<DateTime, string> queryLogs = new Cache<DateTime, string>(sizeLimit: 100);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
@@ -214,13 +214,6 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Gets the query logs.
-        /// </summary>
-        /// <value>The query logs.</value>
-        public IEnumerable<string> QueryLogs =>
-            this.queryLogs.GetEntries().OrderBy(x => x.Created).Select(x => x.Value).ToArray();
-
-        /// <summary>
         /// Gets or sets функция преобразования значений, полученных из БД, в значения свойств объектов.
         /// </summary>
         /// <value>The value converter.</value>
@@ -236,7 +229,7 @@ namespace RuntimeStuff
         public static DbClient<T> Create<T>(string connectionString)
             where T : IDbConnection, new()
         {
-            DbClient<T> dbClient = DbClient<T>.Create(connectionString);
+            var dbClient = DbClient<T>.Create(connectionString);
             return dbClient;
         }
 
@@ -248,7 +241,7 @@ namespace RuntimeStuff
         /// <returns>Экземпляр <see cref="DbClient" />.</returns>
         public static DbClient Create(IDbConnection con)
         {
-            DbClient dbClient = new DbClient(con);
+            var dbClient = new DbClient(con);
             return dbClient;
         }
 
@@ -266,7 +259,7 @@ namespace RuntimeStuff
         /// <remarks>Этот метод устанавливает параметры для команды. Если параметр уже существует, его значение обновляется.</remarks>
         public static void SetParameterCollection(IDbCommand cmd, Dictionary<string, object> cmdParams)
         {
-            foreach (KeyValuePair<string, object> cp in cmdParams)
+            foreach (var cp in cmdParams)
             {
                 IDbDataParameter p;
                 if (cmd.Parameters.Contains(cp.Key))
@@ -316,18 +309,18 @@ namespace RuntimeStuff
             params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
             where TFrom : class
         {
-            string query = SqlQueryBuilder.GetAggSelectClause(this.Options, columnSelectors);
+            var query = SqlQueryBuilder.GetAggSelectClause(this.Options, columnSelectors);
 
             if (whereExpression != null)
             {
                 query += " " + SqlQueryBuilder.GetWhereClause(whereExpression, this.Options, false, out _);
             }
 
-            DataTable table = this.ToDataTable(query);
-            Dictionary<string, object> result = new Dictionary<string, object>(IgnoreCaseComparer);
+            var table = this.ToDataTable(query);
+            var result = new Dictionary<string, object>(IgnoreCaseComparer);
             foreach (DataColumn dc in table.Columns)
             {
-                object value = table.Rows[0][dc.ColumnName];
+                var value = table.Rows[0][dc.ColumnName];
                 result[dc.ColumnName] = value;
             }
 
@@ -369,18 +362,18 @@ namespace RuntimeStuff
             params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
             where TFrom : class
         {
-            string query = SqlQueryBuilder.GetAggSelectClause(this.Options, columnSelectors);
+            var query = SqlQueryBuilder.GetAggSelectClause(this.Options, columnSelectors);
 
             if (whereExpression != null)
             {
                 query += " " + SqlQueryBuilder.GetWhereClause(whereExpression, this.Options, false, out _);
             }
 
-            DataTable table = await this.ToDataTableAsync(query, token: token).ConfigureAwait(this.ConfigureAwait);
-            Dictionary<string, object> result = new Dictionary<string, object>(IgnoreCaseComparer);
+            var table = await this.ToDataTableAsync(query, token: token).ConfigureAwait(this.ConfigureAwait);
+            var result = new Dictionary<string, object>(IgnoreCaseComparer);
             foreach (DataColumn dc in table.Columns)
             {
-                object value = table.Rows[0][dc.ColumnName];
+                var value = table.Rows[0][dc.ColumnName];
                 result[dc.ColumnName] = value;
             }
 
@@ -399,7 +392,7 @@ namespace RuntimeStuff
         public T Avg<TFrom, T>(Expression<Func<TFrom, object>> columnSelector)
             where TFrom : class
         {
-            object total = this.Avg(columnSelector);
+            var total = this.Avg(columnSelector);
             return ChangeType<T>(total);
         }
 
@@ -483,15 +476,15 @@ namespace RuntimeStuff
         /// <typeparam name="TFrom">Тип данных, для которых будет подсчитано количество строк.</typeparam>
         /// <param name="whereExpression">The where expression.</param>
         /// <param name="columnSelector">Выражение для выбора колонки для подсчета.</param>
-        /// <returns>Общее количество строк в указанной колонке, приведенное к типу <typeparamref name="T" />.</returns>
+        /// <returns>Общее количество строк в указанной колонке, приведенное к типу.</returns>
         /// <remarks>Этот метод выполняет агрегацию данных с использованием SQL-функции COUNT для конкретной колонки в сущности и
-        /// преобразует результат в тип <typeparamref name="T" />.</remarks>
+        /// преобразует результат в тип.</remarks>
         public object Count<TFrom>(
             Expression<Func<TFrom, bool>> whereExpression = null,
             Expression<Func<TFrom, object>> columnSelector = null)
             where TFrom : class
         {
-            object total = this.Agg("count", whereExpression, columnSelector).Values.FirstOrDefault();
+            var total = this.Agg("count", whereExpression, columnSelector).Values.FirstOrDefault();
             return total;
         }
 
@@ -504,7 +497,7 @@ namespace RuntimeStuff
         public object Count<TFrom>(Expression<Func<TFrom, bool>> whereExpression)
             where TFrom : class
         {
-            object total = this.Agg("count", whereExpression).Values.FirstOrDefault();
+            var total = this.Agg("count", whereExpression).Values.FirstOrDefault();
             return total;
         }
 
@@ -523,7 +516,7 @@ namespace RuntimeStuff
             Expression<Func<TFrom, object>> columnSelector = null)
             where TFrom : class
         {
-            object total = this.Count(whereExpression, columnSelector);
+            var total = this.Count(whereExpression, columnSelector);
             return ChangeType<T>(total);
         }
 
@@ -588,7 +581,7 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where TFrom : class
         {
-            object total = await this.CountAsync(whereExpression, columnSelector, token)
+            var total = await this.CountAsync(whereExpression, columnSelector, token)
                 .ConfigureAwait(this.ConfigureAwait);
             return ChangeType<T>(total);
         }
@@ -610,19 +603,19 @@ namespace RuntimeStuff
             IDbTransaction dbTransaction = null,
             int? commandTimeOut = null)
         {
-            IDbCommand cmd = this.Connection.CreateCommand();
+            var cmd = this.Connection.CreateCommand();
             cmd.CommandText = query;
             cmd.CommandTimeout = commandTimeOut ?? this.DefaultCommandTimeout;
             cmd.CommandType = CommandType.Text;
             cmd.Transaction = dbTransaction;
 
-            IReadOnlyDictionary<string, object> parameters = this.GetParams(cmdParams);
+            var parameters = this.GetParams(cmdParams);
 
             if (cmdParams != null)
             {
-                foreach (KeyValuePair<string, object> cp in parameters)
+                foreach (var cp in parameters)
                 {
-                    IDbDataParameter p = cmd.CreateParameter();
+                    var p = cmd.CreateParameter();
                     p.ParameterName = cp.Key;
                     var valueType = cp.Value?.GetType();
                     if (valueType != null && valueType.IsClass)
@@ -657,11 +650,11 @@ namespace RuntimeStuff
         public int Delete<T>(Expression<Func<T, bool>> whereExpression)
             where T : class
         {
-            string query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
                     whereExpression,
                     this.Options,
                     true,
-                    out IReadOnlyDictionary<string, object> cmdParam))
+                    out var cmdParam))
                 .Trim();
             return this.ExecuteNonQuery(query, cmdParam);
         }
@@ -675,8 +668,8 @@ namespace RuntimeStuff
         public int Delete<T>(T item)
             where T : class
         {
-            string query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " +
-                            SqlQueryBuilder.GetWhereClause<T>(this.Options, out _)).Trim();
+            var query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " +
+                         SqlQueryBuilder.GetWhereClause<T>(this.Options, out _)).Trim();
             return this.ExecuteNonQuery(query, this.GetParams(item));
         }
 
@@ -691,8 +684,8 @@ namespace RuntimeStuff
         public Task<int> DeleteAsync<T>(T item, IDbTransaction dbTransaction = null, CancellationToken token = default)
             where T : class
         {
-            string query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " +
-                            SqlQueryBuilder.GetWhereClause<T>(this.Options, out _)).Trim();
+            var query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " +
+                         SqlQueryBuilder.GetWhereClause<T>(this.Options, out _)).Trim();
             return this.ExecuteNonQueryAsync(query, this.GetParams(item), dbTransaction, token);
         }
 
@@ -710,11 +703,11 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where T : class
         {
-            string query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
                     whereExpression,
                     this.Options,
                     true,
-                    out IReadOnlyDictionary<string, object> cmdParams))
+                    out var cmdParams))
                 .Trim();
             return this.ExecuteNonQueryAsync(query, cmdParams, dbTransaction, token);
         }
@@ -737,10 +730,10 @@ namespace RuntimeStuff
         {
             try
             {
-                int count = 0;
+                var count = 0;
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    foreach (T item in list)
+                    foreach (var item in list)
                     {
                         count += await this.DeleteAsync(item, dbTransaction, token).ConfigureAwait(this.ConfigureAwait);
                     }
@@ -802,11 +795,11 @@ namespace RuntimeStuff
         /// В случае ошибки будет выброшено исключение.</remarks>
         public int ExecuteNonQuery(string query, object queryParams = null, IDbTransaction dbTransaction = null)
         {
-            using (DbCommand cmd = this.CreateCommand(query, queryParams, dbTransaction))
+            using (var cmd = this.CreateCommand(query, queryParams, dbTransaction))
             {
-                this.BeginConnection(this.Connection);
+                BeginConnection(this.Connection);
 
-                int i = cmd.ExecuteNonQuery();
+                var i = cmd.ExecuteNonQuery();
                 this.CommandExecuted?.Invoke(cmd);
                 this.Log(cmd);
                 this.CloseConnection(this.Connection);
@@ -831,12 +824,12 @@ namespace RuntimeStuff
             IDbTransaction dbTransaction = null,
             CancellationToken token = default)
         {
-            using (DbCommand cmd = this.CreateCommand(query, cmdParams, dbTransaction))
+            using (var cmd = this.CreateCommand(query, cmdParams, dbTransaction))
             {
                 try
                 {
                     await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
-                    int i = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(this.ConfigureAwait);
+                    var i = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(this.ConfigureAwait);
                     this.CommandExecuted?.Invoke(cmd);
                     this.Log(cmd);
                     return i;
@@ -888,12 +881,12 @@ namespace RuntimeStuff
             Expression<Func<T, TProp>> propertySelector,
             Expression<Func<T, bool>> whereExpression)
         {
-            string query = (SqlQueryBuilder.GetSelectQuery(this.Options, propertySelector) + " " +
-                            SqlQueryBuilder.GetWhereClause(
-                                whereExpression,
-                                this.Options,
-                                true,
-                                out IReadOnlyDictionary<string, object> cmdParam)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(this.Options, propertySelector) + " " +
+                         SqlQueryBuilder.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam)).Trim();
             return this.ExecuteScalar<TProp>(query, cmdParam);
         }
 
@@ -909,7 +902,7 @@ namespace RuntimeStuff
         /// <remarks>Этот метод выполняет запрос синхронно и преобразует результат в указанный тип.</remarks>
         public T ExecuteScalar<T>(string query, object cmdParams = null, IDbTransaction dbTransaction = null)
         {
-            DbCommand cmd = this.CreateCommand(query, cmdParams, dbTransaction);
+            var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
             return this.ExecuteScalar<T>(cmd);
         }
 
@@ -928,7 +921,7 @@ namespace RuntimeStuff
                 try
                 {
                     this.BeginConnection();
-                    object v = cmd.ExecuteScalar();
+                    var v = cmd.ExecuteScalar();
                     this.CommandExecuted?.Invoke(cmd);
                     this.Log(cmd);
                     return (T)ChangeType(v, typeof(T));
@@ -987,12 +980,12 @@ namespace RuntimeStuff
             Expression<Func<T, bool>> whereExpression,
             CancellationToken token = default)
         {
-            string query = (SqlQueryBuilder.GetSelectQuery(this.Options, propertySelector) + " " +
-                            SqlQueryBuilder.GetWhereClause(
-                                whereExpression,
-                                this.Options,
-                                true,
-                                out IReadOnlyDictionary<string, object> cmdParam)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(this.Options, propertySelector) + " " +
+                         SqlQueryBuilder.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam)).Trim();
             return this.ExecuteScalarAsync<TProp>(query, cmdParam, token: token);
         }
 
@@ -1013,7 +1006,7 @@ namespace RuntimeStuff
             IDbTransaction dbTransaction = null,
             CancellationToken token = default)
         {
-            DbCommand cmd = this.CreateCommand(query, cmdParams, dbTransaction);
+            var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
             return this.ExecuteScalarAsync<T>(cmd, token);
         }
 
@@ -1033,7 +1026,7 @@ namespace RuntimeStuff
                 try
                 {
                     await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
-                    object v = await cmd.ExecuteScalarAsync(token).ConfigureAwait(this.ConfigureAwait);
+                    var v = await cmd.ExecuteScalarAsync(token).ConfigureAwait(this.ConfigureAwait);
                     this.CommandExecuted?.Invoke(cmd);
                     this.Log(cmd);
                     return (T)ChangeType(v, typeof(T));
@@ -1183,10 +1176,10 @@ namespace RuntimeStuff
             params Expression<Func<TFrom, object>>[] columnSelector)
             where TFrom : class
         {
-            string[] colNames = columnSelector.Select(x => x.GetMemberCache().ColumnName).ToArray();
-            List<(Expression<Func<TFrom, object>>, string)> queryExpression =
+            var colNames = columnSelector.Select(x => x.GetMemberCache().ColumnName).ToArray();
+            var queryExpression =
                 new List<(Expression<Func<TFrom, object>>, string)>();
-            foreach (Expression<Func<TFrom, object>> cs in columnSelector)
+            foreach (var cs in columnSelector)
             {
                 queryExpression.Add((cs, "COUNT"));
                 queryExpression.Add((cs, "MIN"));
@@ -1195,9 +1188,9 @@ namespace RuntimeStuff
                 queryExpression.Add((cs, "AVG"));
             }
 
-            Dictionary<string, object> result = this.Agg(whereExpression, queryExpression.ToArray());
+            var result = this.Agg(whereExpression, queryExpression.ToArray());
 
-            Dictionary<string, (long, long, long, long, decimal)> dic = colNames.Select((x, i) => (x,
+            var dic = colNames.Select((x, i) => (x,
                 (
                     ChangeType<long>(result[$"{x}COUNT"]),
                     ChangeType<long>(result[$"{x}MIN"]),
@@ -1226,10 +1219,10 @@ namespace RuntimeStuff
                 params Expression<Func<TFrom, object>>[] columnSelector)
             where TFrom : class
         {
-            string[] colNames = columnSelector.Select(x => x.GetMemberCache().ColumnName).ToArray();
-            List<(Expression<Func<TFrom, object>>, string)> queryExpression =
+            var colNames = columnSelector.Select(x => x.GetMemberCache().ColumnName).ToArray();
+            var queryExpression =
                 new List<(Expression<Func<TFrom, object>>, string)>();
-            foreach (Expression<Func<TFrom, object>> cs in columnSelector)
+            foreach (var cs in columnSelector)
             {
                 queryExpression.Add((cs, "COUNT"));
                 queryExpression.Add((cs, "MIN"));
@@ -1238,10 +1231,10 @@ namespace RuntimeStuff
                 queryExpression.Add((cs, "AVG"));
             }
 
-            Dictionary<string, object> result = await this.AggAsync(whereExpression, token, queryExpression.ToArray())
+            var result = await this.AggAsync(whereExpression, token, queryExpression.ToArray())
                 .ConfigureAwait(this.ConfigureAwait);
 
-            Dictionary<string, (long, long, long, long, decimal)> dic = colNames.Select((x, i) => (x,
+            var dic = colNames.Select((x, i) => (x,
                 (
                     ChangeType<long>(result[$"{x}COUNT"]),
                     ChangeType<long>(result[$"{x}MIN"]),
@@ -1268,15 +1261,15 @@ namespace RuntimeStuff
                 throw new ArgumentOutOfRangeException(nameof(pageSize));
             }
 
-            long total = this.Count<TFrom, long>();
-            int pagesCount = (int)Math.Ceiling(total / (double)pageSize);
+            var total = this.Count<TFrom, long>();
+            var pagesCount = (int)Math.Ceiling(total / (double)pageSize);
 
-            Dictionary<int, (int offset, int count)> pages = new Dictionary<int, (int offset, int count)>(pagesCount);
+            var pages = new Dictionary<int, (int offset, int count)>(pagesCount);
 
-            for (int page = 1; page <= pagesCount; page++)
+            for (var page = 1; page <= pagesCount; page++)
             {
-                int offset = (page - 1) * pageSize;
-                long count = Math.Min(pageSize, total - offset);
+                var offset = (page - 1) * pageSize;
+                var count = Math.Min(pageSize, total - offset);
 
                 pages[page] = (offset, (int)count);
             }
@@ -1304,15 +1297,15 @@ namespace RuntimeStuff
                 throw new ArgumentOutOfRangeException(nameof(pageSize));
             }
 
-            long total = await this.CountAsync<TFrom, long>(token: token).ConfigureAwait(this.ConfigureAwait);
-            int pagesCount = (int)Math.Ceiling(total / (double)pageSize);
+            var total = await this.CountAsync<TFrom, long>(token: token).ConfigureAwait(this.ConfigureAwait);
+            var pagesCount = (int)Math.Ceiling(total / (double)pageSize);
 
-            Dictionary<int, (int offset, int count)> pages = new Dictionary<int, (int offset, int count)>(pagesCount);
+            var pages = new Dictionary<int, (int offset, int count)>(pagesCount);
 
-            for (int page = 1; page <= pagesCount; page++)
+            for (var page = 1; page <= pagesCount; page++)
             {
-                int offset = (page - 1) * pageSize;
-                long count = Math.Min(pageSize, total - offset);
+                var offset = (page - 1) * pageSize;
+                var count = Math.Min(pageSize, total - offset);
 
                 pages[page] = (offset, (int)count);
             }
@@ -1331,9 +1324,9 @@ namespace RuntimeStuff
         public int GetPagesCount<TFrom>(int pageSize, Expression<Func<TFrom, bool>> whereExpression = null)
             where TFrom : class
         {
-            Dictionary<string, object> numbers = this.Agg(whereExpression, (null, "count"));
-            int rowsCount = Convert.ToInt32(numbers.Values.FirstOrDefault());
-            int pagesCount = (int)Math.Ceiling((double)rowsCount / pageSize);
+            var numbers = this.Agg(whereExpression, (null, "count"));
+            var rowsCount = Convert.ToInt32(numbers.Values.FirstOrDefault());
+            var pagesCount = (int)Math.Ceiling((double)rowsCount / pageSize);
             return pagesCount;
         }
 
@@ -1353,10 +1346,10 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where TFrom : class
         {
-            Dictionary<string, object> numbers = await this.AggAsync(whereExpression, token, (null, "count"))
+            var numbers = await this.AggAsync(whereExpression, token, (null, "count"))
                 .ConfigureAwait(this.ConfigureAwait);
-            int rowsCount = Convert.ToInt32(numbers.Values.FirstOrDefault());
-            int pagesCount = (int)Math.Ceiling((double)rowsCount / pageSize);
+            var rowsCount = Convert.ToInt32(numbers.Values.FirstOrDefault());
+            var pagesCount = (int)Math.Ceiling((double)rowsCount / pageSize);
             return pagesCount;
         }
 
@@ -1373,13 +1366,13 @@ namespace RuntimeStuff
         /// представляет собой кортеж, параметры будут извлечены из его элементов.</remarks>
         public IReadOnlyDictionary<string, object> GetParams(object cmdParams, params string[] propertyNames)
         {
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
+            var parameters = new Dictionary<string, object>();
             if (cmdParams == null)
             {
                 return this.emptyParams;
             }
 
-            MemberCache memberCache = MemberCache.Create(cmdParams.GetType());
+            var memberCache = MemberCache.Create(cmdParams.GetType());
             switch (cmdParams)
             {
                 case KeyValuePair<string, object> kvp:
@@ -1393,18 +1386,18 @@ namespace RuntimeStuff
 
                 case IEnumerable e:
                     {
-                        MemberCache elementCache = MemberCache.Create(memberCache.ElementType);
+                        var elementCache = MemberCache.Create(memberCache.ElementType);
 
-                        MemberCache key = elementCache.GetMember("Key", MemberNameType.Name) ??
-                            elementCache.GetMember("Item1", MemberNameType.Name);
-                        MemberCache val = elementCache.GetMember("Value", MemberNameType.Name) ??
-                            elementCache.GetMember("Item2", MemberNameType.Name);
+                        var key = elementCache.GetMember("Key", MemberNameType.Name) ??
+                                  elementCache.GetMember("Item1", MemberNameType.Name);
+                        var val = elementCache.GetMember("Value", MemberNameType.Name) ??
+                                  elementCache.GetMember("Item2", MemberNameType.Name);
                         if (key == null || val == null)
                         {
                             break;
                         }
 
-                        foreach (object i in e)
+                        foreach (var i in e)
                         {
                             parameters[key.GetValue<string>(i)] = val.GetValue(i);
                         }
@@ -1416,10 +1409,10 @@ namespace RuntimeStuff
                     {
                         if (memberCache.IsTuple)
                         {
-                            MemberCache key = memberCache.GetMember("Key", MemberNameType.Name) ??
-                                memberCache.GetMember("Item1", MemberNameType.Name);
-                            MemberCache val = memberCache.GetMember("Value", MemberNameType.Name) ??
-                                memberCache.GetMember("Item2", MemberNameType.Name);
+                            var key = memberCache.GetMember("Key", MemberNameType.Name) ??
+                                      memberCache.GetMember("Item1", MemberNameType.Name);
+                            var val = memberCache.GetMember("Value", MemberNameType.Name) ??
+                                      memberCache.GetMember("Item2", MemberNameType.Name);
 
                             parameters[key.GetValue<string>(cmdParams)] = val.GetValue(cmdParams);
                         }
@@ -1436,6 +1429,14 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Retrieves a collection of query log entries in chronological order.
+        /// </summary>
+        /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
+        /// oldest to newest entry. Returns an empty collection if no logs are available.</returns>
+        public IEnumerable<string> GetQueryLogs() =>
+            this.queryLogs.GetEntries().OrderBy(x => x.Created).Select(x => x.Value).ToArray();
+
+        /// <summary>
         /// Получает строку SQL-запроса с заменой всех параметров на их значения.
         /// </summary>
         /// <param name="command">Команда, содержащая SQL-запрос и параметры.</param>
@@ -1450,12 +1451,12 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(command));
             }
 
-            string sql = command.CommandText;
+            var sql = command.CommandText;
 
             foreach (IDbDataParameter parameter in command.Parameters)
             {
-                string paramToken = this.Options.ParamPrefix + parameter.ParameterName;
-                string literal = this.Options.ToSqlLiteral(parameter.Value);
+                var paramToken = this.Options.ParamPrefix + parameter.ParameterName;
+                var literal = this.Options.ToSqlLiteral(parameter.Value);
 
                 sql = ReplaceParameterToken(sql, paramToken, literal);
             }
@@ -1474,8 +1475,8 @@ namespace RuntimeStuff
         public T Insert<T>(IDbTransaction dbTransaction = null, params Action<T>[] columnSetters)
             where T : class
         {
-            T item = Obj.New<T>();
-            foreach (Action<T> a in columnSetters)
+            var item = Obj.New<T>();
+            foreach (var a in columnSetters)
             {
                 a(item);
             }
@@ -1522,7 +1523,7 @@ namespace RuntimeStuff
             where T : class
         {
             object id = null;
-            string query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
+            var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
             if (string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
             {
                 this.ExecuteNonQuery(query, this.GetParams(item), dbTransaction);
@@ -1531,10 +1532,10 @@ namespace RuntimeStuff
             {
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                 id = this.ExecuteScalar<object>(query, this.GetParams(item));
-                MemberCache<T> mi = MemberCache<T>.Create();
+                var mi = MemberCache<T>.Create();
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
                 {
-                    MemberCache pi = mi.PrimaryKeys.First().Value;
+                    var pi = mi.PrimaryKeys.First().Value;
                     pi.SetValue(item, id);
                 }
             }
@@ -1556,13 +1557,13 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where T : class
         {
-            T item = Obj.New<T>();
+            var item = Obj.New<T>();
             if (insertColumns == null)
             {
                 return this.InsertAsync(item, null, dbTransaction, token);
             }
 
-            foreach (Action<T> a in insertColumns)
+            foreach (var a in insertColumns)
             {
                 a(item);
             }
@@ -1588,7 +1589,7 @@ namespace RuntimeStuff
             where T : class
         {
             object id = null;
-            string query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
+            var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
             if (string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
             {
                 await this.ExecuteNonQueryAsync(query, this.GetParams(item), dbTransaction, token)
@@ -1599,7 +1600,7 @@ namespace RuntimeStuff
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                 id = await this.ExecuteScalarAsync<object>(query, this.GetParams(item), dbTransaction, token)
                     .ConfigureAwait(this.ConfigureAwait);
-                MemberCache<T> mi = MemberCache<T>.Create();
+                var mi = MemberCache<T>.Create();
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
                 {
                     mi.PrimaryKeys.First().Value.SetValue(
@@ -1627,25 +1628,25 @@ namespace RuntimeStuff
         {
             try
             {
-                int count = 0;
+                var count = 0;
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    string query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
+                    var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
                     if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
                     {
                         query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                     }
 
-                    MemberCache<T> typeCache = MemberCache<T>.Create();
-                    MemberCache pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
-                    Dictionary<string, object> queryParams = new Dictionary<string, object>();
-                    using (DbCommand cmd = this.CreateCommand(query, dbTransaction))
+                    var typeCache = MemberCache<T>.Create();
+                    var pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
+                    var queryParams = new Dictionary<string, object>();
+                    using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
-                        foreach (T item in list)
+                        foreach (var item in list)
                         {
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
-                            object id = cmd.ExecuteScalar();
+                            var id = cmd.ExecuteScalar();
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
                             if (pk != null && id != null)
@@ -1693,31 +1694,31 @@ namespace RuntimeStuff
         {
             try
             {
-                int count = 0;
+                var count = 0;
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    string query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
+                    var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
                     if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
                     {
                         query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                     }
 
-                    MemberCache<T> typeCache = MemberCache<T>.Create();
-                    MemberCache pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
-                    Dictionary<string, object> queryParams = new Dictionary<string, object>();
-                    using (DbCommand cmd = this.CreateCommand(query, dbTransaction))
+                    var typeCache = MemberCache<T>.Create();
+                    var pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
+                    var queryParams = new Dictionary<string, object>();
+                    using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
                         if (!(cmd is DbCommand dbCmd))
                         {
-                            throw new ArgumentNullException(nameof(dbCmd));
+                            throw new InvalidCastException($"Cannot cast argument '{nameof(cmd)}' to type '{typeof(DbCommand).FullName}'.");
                         }
 
-                        foreach (T item in list)
+                        foreach (var item in list)
                         {
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
 
-                            object id = await dbCmd.ExecuteScalarAsync(token).ConfigureAwait(this.ConfigureAwait);
+                            var id = await dbCmd.ExecuteScalarAsync(token).ConfigureAwait(this.ConfigureAwait);
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
                             if (pk != null && id != null)
@@ -1757,7 +1758,7 @@ namespace RuntimeStuff
         public T Max<TFrom, T>(Expression<Func<TFrom, object>> columnSelector)
             where TFrom : class
         {
-            object total = this.Max(columnSelector);
+            var total = this.Max(columnSelector);
             return ChangeType<T>(total);
         }
 
@@ -1792,7 +1793,7 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where TFrom : class
         {
-            object total = await this.MaxAsync(whereExpression, columnSelector, token)
+            var total = await this.MaxAsync(whereExpression, columnSelector, token)
                 .ConfigureAwait(this.ConfigureAwait);
             return ChangeType<T>(total);
         }
@@ -1825,7 +1826,7 @@ namespace RuntimeStuff
         public T Min<TFrom, T>(Expression<Func<TFrom, object>> columnSelector)
             where TFrom : class
         {
-            object total = this.Min(columnSelector);
+            var total = this.Min(columnSelector);
             return ChangeType<T>(total);
         }
 
@@ -1860,7 +1861,7 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where TFrom : class
         {
-            object total = await this.MinAsync(whereExpression, columnSelector, token)
+            var total = await this.MinAsync(whereExpression, columnSelector, token)
                 .ConfigureAwait(this.ConfigureAwait);
             return ChangeType<T>(total);
         }
@@ -1905,7 +1906,7 @@ namespace RuntimeStuff
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null)
-            where TList : ICollection<T>, new()
+            where TList : ICollection<T>, IList, new()
         {
             if (string.IsNullOrEmpty(query))
             {
@@ -1914,31 +1915,33 @@ namespace RuntimeStuff
 
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
 
-            MemberCache<T> cache = MemberCache<T>.Create();
+            var cache = MemberCache<T>.Create();
             if (itemFactory == null)
             {
-                itemFactory = this.BuildItemFactory(cache, columnToPropertyMap);
+                itemFactory = BuildItemFactory(cache, columnToPropertyMap);
             }
 
-            DbCommand cmd = this.CreateCommand(query, cmdParams);
+            var cmd = this.CreateCommand(query, cmdParams);
             try
             {
                 this.BeginConnection();
 
-                DbDataReader reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
                 try
                 {
                     this.CommandExecuted?.Invoke(cmd);
                     this.Log(cmd);
-                    return this.ReadCoreAsync<TList, T>(
+                    var list = new TList();
+                    this.ReadToListInternalAsync<T>(
+                        list,
                         reader,
                         columns,
                         columnToPropertyMap,
                         converter,
                         fetchRows,
                         itemFactory,
-                        false,
                         CancellationToken.None).GetAwaiter().GetResult();
+                    return list;
                 }
                 finally
                 {
@@ -1980,10 +1983,10 @@ namespace RuntimeStuff
             int offsetRows = 0,
             Func<object[], string[], object> itemFactory = null)
         {
-            MemberCache mc = MemberCache.Create(returnType);
+            var returnTypeCache = MemberCache.Create(returnType);
             if (string.IsNullOrEmpty(query))
             {
-                query = SqlQueryBuilder.GetSelectQuery(this.Options, mc.ElementType);
+                query = SqlQueryBuilder.GetSelectQuery(this.Options, returnTypeCache.ElementType);
             }
 
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
@@ -1991,32 +1994,33 @@ namespace RuntimeStuff
                 offsetRows,
                 query,
                 this.Options,
-                mc.ElementType);
+                returnTypeCache.ElementType);
             if (itemFactory == null)
             {
-                itemFactory = this.BuildItemFactory(mc.ElementType, columnToPropertyMap);
+                itemFactory = BuildItemFactory(returnTypeCache.ElementType, columnToPropertyMap);
             }
 
-            DbCommand cmd = this.CreateCommand(query, cmdParams);
+            var cmd = this.CreateCommand(query, cmdParams);
             try
             {
                 this.BeginConnection();
 
-                DbDataReader reader = cmd.ExecuteReader();
+                var reader = cmd.ExecuteReader();
                 try
                 {
                     this.CommandExecuted?.Invoke(cmd);
                     this.Log(cmd);
-                    return this.ReadCoreAsync(
-                        mc,
+                    var list = Obj.New(returnType) as IList;
+                    this.ReadToListInternalAsync(
+                        list,
                         reader,
                         columns,
                         columnToPropertyMap,
                         converter,
                         fetchRows,
                         itemFactory,
-                        false,
                         CancellationToken.None).GetAwaiter().GetResult();
+                    return list;
                 }
                 finally
                 {
@@ -2060,7 +2064,7 @@ namespace RuntimeStuff
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
             CancellationToken ct = default)
-            where TList : ICollection<T>, new()
+            where TList : ICollection<T>, IList, new()
         {
             if (string.IsNullOrEmpty(query))
             {
@@ -2069,31 +2073,33 @@ namespace RuntimeStuff
 
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
 
-            MemberCache<T> cache = MemberCache<T>.Create();
+            var cache = MemberCache<T>.Create();
             if (itemFactory == null)
             {
-                itemFactory = this.BuildItemFactory(cache, columnToPropertyMap);
+                itemFactory = BuildItemFactory(cache, columnToPropertyMap);
             }
 
-            DbCommand cmd = this.CreateCommand(query, cmdParams);
+            var cmd = this.CreateCommand(query, cmdParams);
             try
             {
                 await this.BeginConnectionAsync(ct).ConfigureAwait(this.ConfigureAwait);
 
-                DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(this.ConfigureAwait);
+                var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(this.ConfigureAwait);
                 try
                 {
                     this.CommandExecuted?.Invoke(cmd);
                     this.Log(cmd);
-                    return await this.ReadCoreAsync<TList, T>(
+                    var list = new TList();
+                    await this.ReadToListInternalAsync<T>(
+                        list,
                         reader,
                         columns,
                         columnToPropertyMap,
                         converter,
                         fetchRows,
                         itemFactory,
-                        true,
                         ct).ConfigureAwait(this.ConfigureAwait);
+                    return list;
                 }
                 finally
                 {
@@ -2123,7 +2129,7 @@ namespace RuntimeStuff
         public T Sum<TFrom, T>(Expression<Func<TFrom, object>> columnSelector)
             where TFrom : class
         {
-            object total = this.Sum(columnSelector);
+            var total = this.Sum(columnSelector);
             return ChangeType<T>(total);
         }
 
@@ -2157,7 +2163,7 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where TFrom : class
         {
-            object total = await this.SumAsync(whereExpression, columnSelector, token)
+            var total = await this.SumAsync(whereExpression, columnSelector, token)
                 .ConfigureAwait(this.ConfigureAwait);
             return ChangeType<T>(total);
         }
@@ -2196,12 +2202,12 @@ namespace RuntimeStuff
             int offsetRows = 0,
             params Expression<Func<TFrom, object>>[] columnSelectors)
         {
-            string query = (SqlQueryBuilder.GetSelectQuery(this.Options, columnSelectors) + " " +
-                            SqlQueryBuilder.GetWhereClause(
-                                whereExpression,
-                                this.Options,
-                                true,
-                                out IReadOnlyDictionary<string, object> cmdParam)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(this.Options, columnSelectors) + " " +
+                         SqlQueryBuilder.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam)).Trim();
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
@@ -2226,6 +2232,7 @@ namespace RuntimeStuff
         ///     Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде <see cref="DataTable" />, при этом
         ///     позволяет
         ///     отображать столбцы запроса в соответствии с их именами в объекте.
+        /// </remarks>
         public DataTable ToDataTable(string query, object cmdParams = null, params (string, string)[] columnMap) => this.ToDataTables(query, cmdParams, columnMap).FirstOrDefault();
 
         /// <summary>
@@ -2244,12 +2251,12 @@ namespace RuntimeStuff
             int offsetRows = 0,
             params Expression<Func<TFrom, object>>[] columnSelectors)
         {
-            string query = (SqlQueryBuilder.GetSelectQuery(this.Options, columnSelectors) + " " +
-                            SqlQueryBuilder.GetWhereClause(
-                                whereExpression,
-                                this.Options,
-                                true,
-                                out IReadOnlyDictionary<string, object> cmdParam)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(this.Options, columnSelectors) + " " +
+                         SqlQueryBuilder.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam)).Trim();
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
@@ -2275,6 +2282,7 @@ namespace RuntimeStuff
         ///     Этот метод выполняет SQL-запрос асинхронно и возвращает результат в виде <see cref="DataTable" />, при этом
         ///     позволяет
         ///     отображать столбцы запроса в соответствии с их именами в объекте.
+        /// </remarks>
         public async Task<DataTable> ToDataTableAsync(
             string query,
             object cmdParams = null,
@@ -2293,6 +2301,7 @@ namespace RuntimeStuff
         ///     Этот метод выполняет SQL-запрос синхронно и возвращает результаты в виде массива <see cref="DataTable" />. Если
         ///     запрос
         ///     возвращает несколько наборов данных, они будут разделены в разные таблицы.
+        /// </remarks>
         public DataTable[] ToDataTables(string query, object cmdParams = null, params (string, string)[] columnMap)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -2300,38 +2309,38 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(query));
             }
 
-            List<DataTable> result = new List<DataTable>();
+            var result = new List<DataTable>();
 
-            using (DbCommand cmd = this.CreateCommand(query, cmdParams))
+            using (var cmd = this.CreateCommand(query, cmdParams))
             {
                 try
                 {
                     this.BeginConnection();
 
-                    DataTable dataTable = new DataTable(query);
+                    var dataTable = new DataTable(query);
                     dataTable.BeginLoadData();
 
-                    using (DbDataReader r = cmd.ExecuteReader())
+                    using (var r = cmd.ExecuteReader())
                     {
                         do
                         {
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
-                            Dictionary<int, string> map = this.GetReaderFieldToPropertyMap(r, columnMap);
-                            foreach (KeyValuePair<int, string> kv in map)
+                            var map = GetReaderFieldToPropertyMap(r, columnMap);
+                            foreach (var kv in map)
                             {
-                                DataColumn col = new DataColumn(kv.Value, r.GetFieldType(kv.Key) ?? typeof(object));
+                                var col = new DataColumn(kv.Value, r.GetFieldType(kv.Key) ?? typeof(object));
                                 dataTable.Columns.Add(col);
                             }
 
                             while (r.Read())
                             {
-                                DataRow item = dataTable.NewRow();
+                                var item = dataTable.NewRow();
 
-                                foreach (KeyValuePair<int, string> kv in map)
+                                foreach (var kv in map)
                                 {
-                                    int colIndex = kv.Key;
-                                    object raw = r.GetValue(colIndex);
+                                    var colIndex = kv.Key;
+                                    var raw = r.GetValue(colIndex);
                                     if (raw == null || raw == DBNull.Value)
                                     {
                                         continue;
@@ -2375,6 +2384,7 @@ namespace RuntimeStuff
         ///     Этот метод выполняет SQL-запрос асинхронно и возвращает результаты в виде массива <see cref="DataTable" />. Если
         ///     запрос
         ///     возвращает несколько наборов данных, они будут разделены в разные таблицы.
+        /// </remarks>
         public async Task<DataTable[]> ToDataTablesAsync(
             string query,
             object cmdParams = null,
@@ -2386,38 +2396,38 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(query));
             }
 
-            List<DataTable> result = new List<DataTable>();
+            var result = new List<DataTable>();
 
-            using (DbCommand cmd = this.CreateCommand(query, cmdParams))
+            using (var cmd = this.CreateCommand(query, cmdParams))
             {
                 try
                 {
                     await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
 
-                    DataTable dataTable = new DataTable(query);
+                    var dataTable = new DataTable(query);
                     dataTable.BeginLoadData();
 
-                    using (DbDataReader r = await cmd.ExecuteReaderAsync(token).ConfigureAwait(this.ConfigureAwait))
+                    using (var r = await cmd.ExecuteReaderAsync(token).ConfigureAwait(this.ConfigureAwait))
                     {
                         do
                         {
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
-                            Dictionary<int, string> map = this.GetReaderFieldToPropertyMap(r, columnMap);
-                            foreach (KeyValuePair<int, string> kv in map)
+                            var map = GetReaderFieldToPropertyMap(r, columnMap);
+                            foreach (var kv in map)
                             {
-                                DataColumn col = new DataColumn(kv.Value, r.GetFieldType(kv.Key) ?? typeof(object));
+                                var col = new DataColumn(kv.Value, r.GetFieldType(kv.Key) ?? typeof(object));
                                 dataTable.Columns.Add(col);
                             }
 
                             while (await r.ReadAsync(token).ConfigureAwait(this.ConfigureAwait))
                             {
-                                DataRow item = dataTable.NewRow();
+                                var item = dataTable.NewRow();
 
-                                foreach (KeyValuePair<int, string> kv in map)
+                                foreach (var kv in map)
                                 {
-                                    int colIndex = kv.Key;
-                                    object raw = r.GetValue(colIndex);
+                                    var colIndex = kv.Key;
+                                    var raw = r.GetValue(colIndex);
                                     if (raw == null || raw == DBNull.Value)
                                     {
                                         continue;
@@ -2506,23 +2516,23 @@ namespace RuntimeStuff
             int offsetRows = 0,
             Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
-            string query = (SqlQueryBuilder.GetSelectQuery(
-                                this.Options,
-                                typeof(TFrom).GetMemberCache(),
-                                keySelector.GetMemberCache(),
-                                valueSelector.GetMemberCache()) + " " +
-                            SqlQueryBuilder.GetWhereClause(
-                                whereExpression,
-                                this.Options,
-                                true,
-                                out IReadOnlyDictionary<string, object> cmdParam)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(
+                             this.Options,
+                             typeof(TFrom).GetMemberCache(),
+                             keySelector.GetMemberCache(),
+                             valueSelector.GetMemberCache()) + " " +
+                         SqlQueryBuilder.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam)).Trim();
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
                 query,
                 this.Options,
                 typeof(TFrom));
-            List<KeyValuePair<TKey, TValue>> list = this.ToList(
+            var list = this.ToList(
                 query,
                 cmdParam,
                 null,
@@ -2531,7 +2541,7 @@ namespace RuntimeStuff
                 fetchRows,
                 offsetRows,
                 itemFactory);
-            Dictionary<TKey, TValue> dic = list.ToDictionary(x => x.Key, x => x.Value);
+            var dic = list.ToDictionary(x => x.Key, x => x.Value);
             return dic;
         }
 
@@ -2591,16 +2601,16 @@ namespace RuntimeStuff
             int offsetRows = 0,
             Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
-            string query = (SqlQueryBuilder.GetSelectQuery(
-                                this.Options,
-                                typeof(TFrom).GetMemberCache(),
-                                keySelector.GetMemberCache(),
-                                valueSelector.GetMemberCache()) + " " +
-                            SqlQueryBuilder.GetWhereClause(
-                                whereExpression,
-                                this.Options,
-                                true,
-                                out IReadOnlyDictionary<string, object> cmdParam)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery(
+                             this.Options,
+                             typeof(TFrom).GetMemberCache(),
+                             keySelector.GetMemberCache(),
+                             valueSelector.GetMemberCache()) + " " +
+                         SqlQueryBuilder.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam)).Trim();
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
@@ -2643,7 +2653,7 @@ namespace RuntimeStuff
             int offsetRows = 0,
             Func<object[], string[], TItem> itemFactory = null)
         {
-            List<TItem> list = this.Query<List<TItem>, TItem>(
+            var list = this.Query<List<TItem>, TItem>(
                 query,
                 cmdParams,
                 columns,
@@ -2679,12 +2689,12 @@ namespace RuntimeStuff
             Func<object[], string[], T> itemFactory = null,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            string query = (SqlQueryBuilder.GetSelectQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
-                                whereExpression,
-                                this.Options,
-                                true,
-                                out IReadOnlyDictionary<string, object> cmdParam) +
-                            " " + SqlQueryBuilder.GetOrderBy(this.Options, orderByExpression)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam) +
+                         " " + SqlQueryBuilder.GetOrderBy(this.Options, orderByExpression)).Trim();
 
             return this.ToList(
                 query,
@@ -2758,12 +2768,12 @@ namespace RuntimeStuff
             CancellationToken ct = default,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            string query = (SqlQueryBuilder.GetSelectQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
-                                whereExpression,
-                                this.Options,
-                                true,
-                                out IReadOnlyDictionary<string, object> cmdParam) +
-                            " " + SqlQueryBuilder.GetOrderBy(this.Options, orderByExpression)).Trim();
+            var query = (SqlQueryBuilder.GetSelectQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam) +
+                         " " + SqlQueryBuilder.GetOrderBy(this.Options, orderByExpression)).Trim();
 
             return this.ToListAsync(
                 query,
@@ -2826,8 +2836,8 @@ namespace RuntimeStuff
             params Expression<Func<T, object>>[] updateColumns)
             where T : class
         {
-            string query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
-            IReadOnlyDictionary<string, object> cmdParams = this.GetParams(item);
+            var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
+            var cmdParams = this.GetParams(item);
             query += " " + (whereExpression != null
                 ? SqlQueryBuilder.GetWhereClause(whereExpression, this.Options, true, out cmdParams)
                 : SqlQueryBuilder.GetWhereClause<T>(this.Options, out _));
@@ -2882,8 +2892,8 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where T : class
         {
-            IReadOnlyDictionary<string, object> cmdParams = this.GetParams(item);
-            string query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
+            var cmdParams = this.GetParams(item);
+            var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
             query += " " + (whereExpression != null
                 ? SqlQueryBuilder.GetWhereClause(whereExpression, this.Options, true, out cmdParams)
                 : SqlQueryBuilder.GetWhereClause<T>(this.Options, out _));
@@ -2912,15 +2922,15 @@ namespace RuntimeStuff
         {
             try
             {
-                int count = 0;
+                var count = 0;
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    string query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
-                    MemberCache<T> typeCache = MemberCache<T>.Create();
-                    Dictionary<string, object> queryParams = new Dictionary<string, object>();
-                    using (DbCommand cmd = this.CreateCommand(query, dbTransaction))
+                    var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
+                    var typeCache = MemberCache<T>.Create();
+                    var queryParams = new Dictionary<string, object>();
+                    using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
-                        foreach (T item in list)
+                        foreach (var item in list)
                         {
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
@@ -2969,20 +2979,20 @@ namespace RuntimeStuff
         {
             try
             {
-                int count = 0;
+                var count = 0;
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    string query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
-                    MemberCache<T> typeCache = MemberCache<T>.Create();
-                    Dictionary<string, object> queryParams = new Dictionary<string, object>();
-                    using (DbCommand cmd = this.CreateCommand(query, dbTransaction))
+                    var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
+                    var typeCache = MemberCache<T>.Create();
+                    var queryParams = new Dictionary<string, object>();
+                    using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
                         if (!(cmd is DbCommand dbCmd))
                         {
                             throw new InvalidCastException($"Cannot cast argument '{nameof(cmd)}' to type '{typeof(DbCommand).FullName}'.");
                         }
 
-                        foreach (T item in list)
+                        foreach (var item in list)
                         {
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
@@ -3023,46 +3033,12 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Changes the type.
-        /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="value">The value.</param>
-        /// <returns>T.</returns>
-        private static T ChangeType<T>(object value) => (T)ChangeType(value, typeof(T));
-
-        /// <summary>
-        /// Changes the type.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <param name="targetType">Type of the target.</param>
-        /// <returns>System.Object.</returns>
-        private static object ChangeType(object value, Type targetType) => Obj.ChangeType(value, targetType);
-
-        /// <summary>
-        /// Replaces the parameter token.
-        /// </summary>
-        /// <param name="sql">The SQL.</param>
-        /// <param name="token">The token.</param>
-        /// <param name="replacement">The replacement.</param>
-        /// <returns>System.String.</returns>
-        private static string ReplaceParameterToken(string sql, string token, string replacement) => Regex.Replace(
-                sql,
-                $@"(?<![\w@]){Regex.Escape(token)}(?!\w)",
-                replacement,
-                RegexOptions.CultureInvariant);
-
-        /// <summary>
-        /// Begins the connection.
-        /// </summary>
-        private void BeginConnection() => this.BeginConnection(this.Connection);
-
-        /// <summary>
         /// Begins the connection.
         /// </summary>
         /// <param name="connection">The connection.</param>
         /// <exception cref="System.ArgumentNullException">connection.</exception>
         /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
-        private void BeginConnection(IDbConnection connection)
+        private static void BeginConnection(IDbConnection connection)
         {
             if (connection == null)
             {
@@ -3086,6 +3062,195 @@ namespace RuntimeStuff
                 throw new InvalidOperationException("Не удалось открыть соединение с базой данных.", ex);
             }
         }
+
+        /// <summary>
+        /// Builds the item factory.
+        /// </summary>
+        /// <param name="itemTypeCache">The item type cache.</param>
+        /// <param name="columnToPropertyMap">The column to property map.</param>
+        /// <returns>Func&lt;System.Object[], System.String[], System.Object&gt;.</returns>
+        private static Func<object[], string[], object> BuildItemFactory(
+            MemberCache itemTypeCache,
+            IEnumerable<(string, string)> columnToPropertyMap)
+        {
+            var ctor = itemTypeCache.Constructors.FirstOrDefault(x => x.IsPublic) ??
+                       itemTypeCache.Constructors.FirstOrDefault();
+            var ctorParams = ctor?.GetParameters() ?? Array.Empty<ParameterInfo>();
+
+            if (ctorParams.Length == 0)
+            {
+                return (values, names) => itemTypeCache.DefaultConstructor();
+            }
+
+            return (values, names) =>
+            {
+                if (ctorParams.Length > values.Length)
+                {
+                    throw new InvalidOperationException(
+                        $"Недостаточно значений для вызова конструктора типа {itemTypeCache.Type.FullName}.");
+                }
+
+                if (values.Length == 0)
+                {
+                    return itemTypeCache.DefaultConstructor();
+                }
+
+                var args = new object[ctorParams.Length];
+
+                var indexes = ctorParams
+                    .Select(p =>
+                        names.IndexOf(n =>
+                            p.Name.Equals(
+                                columnToPropertyMap?.FirstOrDefault(m => m.Item1 == n).Item2 ?? n,
+                                StringComparison.OrdinalIgnoreCase)))
+                    .ToArray();
+
+                if (indexes.All(i => i >= 0))
+                {
+                    for (var i = 0; i < indexes.Length; i++)
+                    {
+                        args[i] = ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
+                    }
+                }
+                else
+                {
+                    for (var i = 0; i < ctorParams.Length; i++)
+                    {
+                        args[i] = ChangeType(values[i], ctorParams[i].ParameterType);
+                    }
+                }
+
+                return ctor?.Invoke(args);
+            };
+        }
+
+        /// <summary>
+        /// Builds the item factory.
+        /// </summary>
+        /// <param name="itemTypeCache">The item type cache.</param>
+        /// <param name="columnToPropertyMap">The column to property map.</param>
+        /// <returns>Func&lt;System.Object[], System.String[], T&gt;.</returns>
+        private static Func<object[], string[], T> BuildItemFactory<T>(
+            MemberCache<T> itemTypeCache,
+            IEnumerable<(string, string)> columnToPropertyMap)
+        {
+            var ctor = itemTypeCache.Constructors.FirstOrDefault(x => x.IsPublic) ??
+                       itemTypeCache.Constructors.FirstOrDefault();
+            var ctorParams = ctor?.GetParameters() ?? Array.Empty<ParameterInfo>();
+
+            if (ctorParams.Length == 0)
+            {
+                return (values, names) => itemTypeCache.DefaultConstructor();
+            }
+
+            return (values, names) =>
+            {
+                if (ctorParams.Length > values.Length)
+                {
+                    throw new InvalidOperationException(
+                        $"Недостаточно значений для вызова конструктора типа {typeof(T).FullName}.");
+                }
+
+                var args = new object[ctorParams.Length];
+
+                var indexes = ctorParams
+                    .Select(p =>
+                        names.IndexOf(n =>
+                            p.Name.Equals(
+                                columnToPropertyMap?.FirstOrDefault(m => m.Item1 == n).Item2 ?? n,
+                                StringComparison.OrdinalIgnoreCase)))
+                    .ToArray();
+
+                if (indexes.All(i => i >= 0))
+                {
+                    for (var i = 0; i < indexes.Length; i++)
+                    {
+                        args[i] = ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
+                    }
+                }
+                else
+                {
+                    for (var i = 0; i < ctorParams.Length; i++)
+                    {
+                        args[i] = ChangeType(values[i], ctorParams[i].ParameterType);
+                    }
+                }
+
+                return (T)ctor?.Invoke(args);
+            };
+        }
+
+        /// <summary>
+        /// Changes the type.
+        /// </summary>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="value">The value.</param>
+        /// <returns>T.</returns>
+        private static T ChangeType<T>(object value) => (T)ChangeType(value, typeof(T));
+
+        /// <summary>
+        /// Changes the type.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <param name="targetType">Type of the target.</param>
+        /// <returns>System.Object.</returns>
+        private static object ChangeType(object value, Type targetType) => Obj.ChangeType(value, targetType);
+
+        /// <summary>
+        /// Gets the reader field to property map.
+        /// </summary>
+        /// <param name="reader">The reader.</param>
+        /// <param name="customMap">The custom map.</param>
+        /// <param name="onlyFromCustomMap">if set to <c>true</c> [only from custom map].</param>
+        /// <returns>Dictionary&lt;System.Int32, System.String&gt;.</returns>
+        private static Dictionary<int, string> GetReaderFieldToPropertyMap(
+            IDataReader reader,
+            IEnumerable<(string, string)> customMap = null,
+            bool onlyFromCustomMap = true)
+        {
+            var customMapDic =
+                customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
+            var map = new Dictionary<int, string>();
+
+            var columnsCount = reader.FieldCount;
+
+            for (var i = 0; i < columnsCount; i++)
+            {
+                var colIndex = i;
+                var colName = reader.GetName(i);
+
+                if (customMapDic.Count > 0 && customMapDic.TryGetValue(colName, out var mappedColumn))
+                {
+                    map[colIndex] = mappedColumn;
+                    if (onlyFromCustomMap)
+                    {
+                        continue;
+                    }
+                }
+
+                map[colIndex] = colName;
+            }
+
+            return map;
+        }
+
+        /// <summary>
+        /// Replaces the parameter token.
+        /// </summary>
+        /// <param name="sql">The SQL.</param>
+        /// <param name="token">The token.</param>
+        /// <param name="replacement">The replacement.</param>
+        /// <returns>System.String.</returns>
+        private static string ReplaceParameterToken(string sql, string token, string replacement) => Regex.Replace(
+                sql,
+                $@"(?<![\w@]){Regex.Escape(token)}(?!\w)",
+                replacement,
+                RegexOptions.CultureInvariant);
+
+        /// <summary>
+        /// Begins the connection.
+        /// </summary>
+        private void BeginConnection() => BeginConnection(this.Connection);
 
         /// <summary>
         /// Begins the connection asynchronous.
@@ -3141,123 +3306,6 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Builds the item factory.
-        /// </summary>
-        /// <param name="itemTypeCache">The item type cache.</param>
-        /// <param name="columnToPropertyMap">The column to property map.</param>
-        /// <returns>Func&lt;System.Object[], System.String[], T&gt;.</returns>
-        private Func<object[], string[], T> BuildItemFactory<T>(
-            MemberCache<T> itemTypeCache,
-            IEnumerable<(string, string)> columnToPropertyMap)
-        {
-            ConstructorInfo ctor = itemTypeCache.Constructors.FirstOrDefault(x => x.IsPublic) ??
-                                   itemTypeCache.Constructors.FirstOrDefault();
-            ParameterInfo[] ctorParams = ctor?.GetParameters() ?? Array.Empty<ParameterInfo>();
-
-            if (ctorParams.Length == 0)
-            {
-                return (values, names) => itemTypeCache.DefaultConstructor();
-            }
-
-            return (values, names) =>
-            {
-                if (ctorParams.Length > values.Length)
-                {
-                    throw new InvalidOperationException(
-                        $"Недостаточно значений для вызова конструктора типа {typeof(T).FullName}.");
-                }
-
-                object[] args = new object[ctorParams.Length];
-
-                int[] indexes = ctorParams
-                    .Select(p =>
-                        names.IndexOf(n =>
-                            p.Name.Equals(
-                                columnToPropertyMap?.FirstOrDefault(m => m.Item1 == n).Item2 ?? n,
-                                StringComparison.OrdinalIgnoreCase)))
-                    .ToArray();
-
-                if (indexes.All(i => i >= 0))
-                {
-                    for (int i = 0; i < indexes.Length; i++)
-                    {
-                        args[i] = ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < ctorParams.Length; i++)
-                    {
-                        args[i] = ChangeType(values[i], ctorParams[i].ParameterType);
-                    }
-                }
-
-                return (T)ctor?.Invoke(args);
-            };
-        }
-
-        /// <summary>
-        /// Builds the item factory.
-        /// </summary>
-        /// <param name="itemTypeCache">The item type cache.</param>
-        /// <param name="columnToPropertyMap">The column to property map.</param>
-        /// <returns>Func&lt;System.Object[], System.String[], System.Object&gt;.</returns>
-        private Func<object[], string[], object> BuildItemFactory(
-            MemberCache itemTypeCache,
-            IEnumerable<(string, string)> columnToPropertyMap)
-        {
-            ConstructorInfo ctor = itemTypeCache.Constructors.FirstOrDefault(x => x.IsPublic) ??
-                                   itemTypeCache.Constructors.FirstOrDefault();
-            ParameterInfo[] ctorParams = ctor?.GetParameters() ?? Array.Empty<ParameterInfo>();
-
-            if (ctorParams.Length == 0)
-            {
-                return (values, names) => itemTypeCache.DefaultConstructor();
-            }
-
-            return (values, names) =>
-            {
-                if (ctorParams.Length > values.Length)
-                {
-                    throw new InvalidOperationException(
-                        $"Недостаточно значений для вызова конструктора типа {itemTypeCache.Type.FullName}.");
-                }
-
-                if (values.Length == 0)
-                {
-                    return itemTypeCache.DefaultConstructor();
-                }
-
-                object[] args = new object[ctorParams.Length];
-
-                int[] indexes = ctorParams
-                    .Select(p =>
-                        names.IndexOf(n =>
-                            p.Name.Equals(
-                                columnToPropertyMap?.FirstOrDefault(m => m.Item1 == n).Item2 ?? n,
-                                StringComparison.OrdinalIgnoreCase)))
-                    .ToArray();
-
-                if (indexes.All(i => i >= 0))
-                {
-                    for (int i = 0; i < indexes.Length; i++)
-                    {
-                        args[i] = ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < ctorParams.Length; i++)
-                    {
-                        args[i] = ChangeType(values[i], ctorParams[i].ParameterType);
-                    }
-                }
-
-                return ctor?.Invoke(args);
-            };
-        }
-
-        /// <summary>
         /// Closes the connection.
         /// </summary>
         private void CloseConnection() => this.CloseConnection(this.Connection);
@@ -3288,44 +3336,6 @@ namespace RuntimeStuff
         /// <summary>
         /// Gets the reader field to property map.
         /// </summary>
-        /// <param name="reader">The reader.</param>
-        /// <param name="customMap">The custom map.</param>
-        /// <param name="onlyFromCustomMap">if set to <c>true</c> [only from custom map].</param>
-        /// <returns>Dictionary&lt;System.Int32, System.String&gt;.</returns>
-        private Dictionary<int, string> GetReaderFieldToPropertyMap(
-            IDataReader reader,
-            IEnumerable<(string, string)> customMap = null,
-            bool onlyFromCustomMap = true)
-        {
-            Dictionary<string, string> customMapDic =
-                customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
-            Dictionary<int, string> map = new Dictionary<int, string>();
-
-            int columnsCount = reader.FieldCount;
-
-            for (int i = 0; i < columnsCount; i++)
-            {
-                int colIndex = i;
-                string colName = reader.GetName(i);
-
-                if (customMapDic.Count > 0 && customMapDic.TryGetValue(colName, out string mappedColumn))
-                {
-                    map[colIndex] = mappedColumn;
-                    if (onlyFromCustomMap)
-                    {
-                        continue;
-                    }
-                }
-
-                map[colIndex] = colName;
-            }
-
-            return map;
-        }
-
-        /// <summary>
-        /// Gets the reader field to property map.
-        /// </summary>
         /// <param name="itemType">Type of the item.</param>
         /// <param name="reader">The reader.</param>
         /// <param name="customMap">The custom map.</param>
@@ -3342,16 +3352,16 @@ namespace RuntimeStuff
                 customMap = this.Options.Map?.GetColumnToPropertyMap(itemType);
             }
 
-            Dictionary<string, string> customMapDic =
+            var customMapDic =
                 customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
-            Dictionary<int, MemberCache> map = new Dictionary<int, MemberCache>();
-            MemberCache typeInfoEx = MemberCache.Create(itemType);
-            int columnsCount = reader.FieldCount;
+            var map = new Dictionary<int, MemberCache>();
+            var typeInfoEx = MemberCache.Create(itemType);
+            var columnsCount = reader.FieldCount;
 
-            for (int i = 0; i < columnsCount; i++)
+            for (var i = 0; i < columnsCount; i++)
             {
-                int colIndex = i;
-                string colName = reader.GetName(i);
+                var colIndex = i;
+                var colName = reader.GetName(i);
                 MemberCache propInfoEx;
                 if (customMap != null)
                 {
@@ -3390,9 +3400,9 @@ namespace RuntimeStuff
                 return map;
             }
 
-            List<int> itemsToRemove =
+            var itemsToRemove =
                 map.Where(kv => !columns.Contains(kv.Value.ColumnName)).Select(kv => kv.Key).ToList();
-            foreach (int item in itemsToRemove)
+            foreach (var item in itemsToRemove)
             {
                 map.Remove(item);
             }
@@ -3412,9 +3422,9 @@ namespace RuntimeStuff
             IDbCommand cmd,
             [CallerMemberName] string methodName = "")
         {
-            string errorMessage = $"Ошибка в методе {methodName}. " +
-                                  $"Запрос: {cmd?.CommandText}. " +
-                                  $"Параметры: {string.Join(", ", cmd == null ? Array.Empty<string>() : cmd.Parameters.Cast<IDbDataParameter>().Select(p => $"{p.ParameterName}={p.Value}"))}";
+            var errorMessage = $"Ошибка в методе {methodName}. " +
+                               $"Запрос: {cmd?.CommandText}. " +
+                               $"Параметры: {string.Join(", ", cmd == null ? Array.Empty<string>() : cmd.Parameters.Cast<IDbDataParameter>().Select(p => $"{p.ParameterName}={p.Value}"))}";
 
             this.CommandFailed?.Invoke(cmd, ex);
             this.Log(errorMessage);
@@ -3446,7 +3456,7 @@ namespace RuntimeStuff
                 return;
             }
 
-            DateTime now = DateTimeHelper.ExactNow();
+            var now = DateTimeHelper.ExactNow();
             this.queryLogs.Set(now, string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", now) + ": " + message);
         }
 
@@ -3464,72 +3474,52 @@ namespace RuntimeStuff
             }
         }
 
-        /// <summary>
-        /// Read core as an asynchronous operation.
-        /// </summary>
-        /// <typeparam name="TList">The type of the t list.</typeparam>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="reader">The reader.</param>
-        /// <param name="columns">The columns.</param>
-        /// <param name="columnToPropertyMap">The column to property map.</param>
-        /// <param name="converter">The converter.</param>
-        /// <param name="fetchRows">The fetch rows.</param>
-        /// <param name="itemFactory">The item factory.</param>
-        /// <param name="isAsync">if set to <c>true</c> [is asynchronous].</param>
-        /// <param name="ct">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;TList&gt; representing the asynchronous operation.</returns>
-        /// <exception cref="System.InvalidOperationException">Не удалось получить значение поля '{fieldName}' типа '{dataType?.FullName}'.</exception>
-        private async Task<TList> ReadCoreAsync<TList, T>(
+        private async Task ReadToListInternalAsync<T>(
+            IList list,
             DbDataReader reader,
             IEnumerable<string> columns,
             IEnumerable<(string, string)> columnToPropertyMap,
             DbValueConverter<T> converter,
             int fetchRows,
             Func<object[], string[], T> itemFactory,
-            bool isAsync,
             CancellationToken ct)
-            where TList : ICollection<T>, new()
         {
-            TList list = new TList();
-
-            MemberCache<T> itemTypeCache = MemberCache<T>.Create();
-            object[] readerValues = new object[reader.FieldCount];
-            string[] readerColumns = Enumerable.Range(0, reader.FieldCount)
+            var itemTypeCache = MemberCache<T>.Create();
+            var readerValues = new object[reader.FieldCount];
+            var readerColumns = Enumerable.Range(0, reader.FieldCount)
                 .Select(reader.GetName)
                 .ToArray();
 
-            int rowCount = 0;
+            var rowCount = 0;
 
             if (itemTypeCache.IsBasic)
             {
-                int colIndex = columns?.Select(reader.GetOrdinal).FirstOrDefault() ?? 0;
+                var colIndex = columns?.Select(reader.GetOrdinal).FirstOrDefault() ?? 0;
 
-                while (isAsync ? await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait) : reader.Read())
+                while (await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait))
                 {
                     if (fetchRows > 0 && rowCount >= fetchRows)
                     {
                         break;
                     }
 
-                    T value = isAsync
-                        ? await reader.GetFieldValueAsync<T>(colIndex, ct).ConfigureAwait(this.ConfigureAwait)
-                        : reader.GetFieldValue<T>(colIndex);
+                    var value = await reader.GetFieldValueAsync<T>(colIndex, ct).ConfigureAwait(this.ConfigureAwait);
 
                     list.Add(converter(readerColumns[0], value, null, value));
                     rowCount++;
                 }
 
-                return list;
+                return;
             }
 
-            Dictionary<int, MemberCache> map = this.GetReaderFieldToPropertyMap(
+            var map = this.GetReaderFieldToPropertyMap(
                 typeof(T),
                 reader,
                 columnToPropertyMap,
                 columns);
-            DbValueConverter<T> valueConverter = converter ?? this.ValueConverter.ToTypedConverter<T>();
+            var valueConverter = converter ?? this.ValueConverter.ToTypedConverter<T>();
 
-            while (isAsync ? await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait) : reader.Read())
+            while (await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait))
             {
                 try
                 {
@@ -3537,7 +3527,7 @@ namespace RuntimeStuff
                 }
                 catch
                 {
-                    for (int i = 0; i < reader.FieldCount; i++)
+                    for (var i = 0; i < reader.FieldCount; i++)
                     {
                         try
                         {
@@ -3545,8 +3535,8 @@ namespace RuntimeStuff
                         }
                         catch (Exception ex)
                         {
-                            string fieldName = reader.GetName(i);
-                            Type dataType = reader.GetFieldType(i);
+                            var fieldName = reader.GetName(i);
+                            var dataType = reader.GetFieldType(i);
                             throw new InvalidOperationException(
                                 $"Не удалось получить значение поля '{fieldName}' типа '{dataType?.FullName}'.",
                                 ex);
@@ -3554,13 +3544,13 @@ namespace RuntimeStuff
                     }
                 }
 
-                T item = itemFactory(readerValues, readerColumns);
+                var item = itemFactory(readerValues, readerColumns);
 
                 if (!itemTypeCache.IsValueType)
                 {
-                    foreach (KeyValuePair<int, MemberCache> kv in map)
+                    foreach (var kv in map)
                     {
-                        object raw = readerValues[kv.Key];
+                        var raw = readerValues[kv.Key];
 
                         if (raw == null || raw == DBNull.Value)
                         {
@@ -3568,7 +3558,7 @@ namespace RuntimeStuff
                             continue;
                         }
 
-                        object value = valueConverter(reader.GetName(kv.Key), raw, kv.Value, item);
+                        var value = valueConverter(reader.GetName(kv.Key), raw, kv.Value, item);
                         kv.Value.Setter(item, value);
                     }
                 }
@@ -3576,123 +3566,6 @@ namespace RuntimeStuff
                 list.Add(item);
                 rowCount++;
             }
-
-            return list;
-        }
-
-        /// <summary>
-        /// Read core as an asynchronous operation.
-        /// </summary>
-        /// <param name="returnType">Type of the return.</param>
-        /// <param name="reader">The reader.</param>
-        /// <param name="columns">The columns.</param>
-        /// <param name="columnToPropertyMap">The column to property map.</param>
-        /// <param name="converter">The converter.</param>
-        /// <param name="fetchRows">The fetch rows.</param>
-        /// <param name="itemFactory">The item factory.</param>
-        /// <param name="isAsync">if set to <c>true</c> [is asynchronous].</param>
-        /// <param name="ct">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
-        /// <returns>A Task&lt;IEnumerable`1&gt; representing the asynchronous operation.</returns>
-        /// <exception cref="System.InvalidOperationException">Не удалось получить значение поля '{fieldName}' типа '{dataType?.FullName}'.</exception>
-        private async Task<IEnumerable<object>> ReadCoreAsync(
-            Type returnType,
-            DbDataReader reader,
-            IEnumerable<string> columns,
-            IEnumerable<(string, string)> columnToPropertyMap,
-            DbValueConverter<object> converter,
-            int fetchRows,
-            Func<object[], string[], object> itemFactory,
-            bool isAsync,
-            CancellationToken ct)
-        {
-            IList list = Obj.New(returnType) as IList;
-
-            MemberCache itemTypeCache = MemberCache.Create(returnType).ElementType;
-            object[] readerValues = new object[reader.FieldCount];
-            string[] readerColumns = Enumerable.Range(0, reader.FieldCount)
-                .Select(reader.GetName)
-                .ToArray();
-
-            int rowCount = 0;
-
-            if (itemTypeCache.IsBasic)
-            {
-                int colIndex = columns?.Select(reader.GetOrdinal).FirstOrDefault() ?? 0;
-
-                while (isAsync ? await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait) : reader.Read())
-                {
-                    if (fetchRows > 0 && rowCount >= fetchRows)
-                    {
-                        break;
-                    }
-
-                    object value = isAsync
-                        ? await reader.GetFieldValueAsync<object>(colIndex, ct).ConfigureAwait(this.ConfigureAwait)
-                        : reader.GetFieldValue<object>(colIndex);
-
-                    list.Add(converter(readerColumns[0], value, null, value));
-                    rowCount++;
-                }
-
-                return (IEnumerable<object>)list;
-            }
-
-            Dictionary<int, MemberCache> map = this.GetReaderFieldToPropertyMap(
-                itemTypeCache,
-                reader,
-                columnToPropertyMap,
-                columns);
-            DbValueConverter<object> valueConverter = converter ?? this.ValueConverter;
-
-            while (isAsync ? await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait) : reader.Read())
-            {
-                try
-                {
-                    reader.GetValues(readerValues);
-                }
-                catch
-                {
-                    for (int i = 0; i < reader.FieldCount; i++)
-                    {
-                        try
-                        {
-                            readerValues[i] = reader.GetValue(i);
-                        }
-                        catch (Exception ex)
-                        {
-                            string fieldName = reader.GetName(i);
-                            Type dataType = reader.GetFieldType(i);
-                            throw new InvalidOperationException(
-                                $"Не удалось получить значение поля '{fieldName}' типа '{dataType?.FullName}'.",
-                                ex);
-                        }
-                    }
-                }
-
-                object item = itemFactory(readerValues, readerColumns);
-
-                if (!itemTypeCache.IsValueType)
-                {
-                    foreach (KeyValuePair<int, MemberCache> kv in map)
-                    {
-                        object raw = readerValues[kv.Key];
-
-                        if (raw == null || raw == DBNull.Value)
-                        {
-                            kv.Value.Setter(item, null);
-                            continue;
-                        }
-
-                        object value = valueConverter(reader.GetName(kv.Key), raw, kv.Value, item);
-                        kv.Value.Setter(item, value);
-                    }
-                }
-
-                list.Add(item);
-                rowCount++;
-            }
-
-            return (IEnumerable<object>)list;
         }
 
         /// <summary>

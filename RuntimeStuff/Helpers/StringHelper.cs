@@ -1032,6 +1032,15 @@ namespace RuntimeStuff.Helpers
                 }
             }
 
+            /// <summary>
+            /// Возвращает последовательность токенов, предшествующих текущему, которые удовлетворяют заданному условию.
+            /// </summary>
+            /// <param name="predicate">Функция-предикат для фильтрации токенов. Токен включается в результат, если предикат возвращает <c>true</c>.</param>
+            /// <returns>Последовательность токенов до текущего, соответствующих условию <paramref name="predicate"/>.</returns>
+            /// <remarks>
+            /// Перебор начинается с токена <see cref="Previous"/> текущего токена и продолжается в обратном направлении,
+            /// пока не достигнут конец цепочки (<c>Previous == null</c>).
+            /// </remarks>
             public IEnumerable<Token> FirstBefore(Func<Token, bool> predicate)
             {
                 for (var t = this.Previous; t != null; t = t.Previous)
@@ -1094,6 +1103,18 @@ namespace RuntimeStuff.Helpers
                 }
             }
 
+            /// <summary>
+            /// Удаляет текущий элемент из двусвязного списка и из родительского списка дочерних элементов.
+            /// </summary>
+            /// <remarks>
+            /// <para>Метод выполняет следующие действия:</para>
+            /// <list type="bullet">
+            /// <item>Корректирует ссылки <c>Previous</c> и <c>Next</c> соседних элементов, чтобы сохранить целостность списка.</item>
+            /// <item>Удаляет элемент из внутреннего списка дочерних элементов родителя (<c>Parent.ChildrenInternal</c>).</item>
+            /// <item>Обнуляет ссылки <c>Parent</c>, <c>Previous</c> и <c>Next</c>, чтобы полностью отсоединить элемент.</item>
+            /// </list>
+            /// <para>После вызова <c>Remove</c> элемент считается полностью удалённым и не связан с другими элементами списка.</para>
+            /// </remarks>
             public void Remove()
             {
                 // корректируем Previous/Next
@@ -1108,10 +1129,7 @@ namespace RuntimeStuff.Helpers
                 }
 
                 // удаляем из родительского списка детей
-                if (this.Parent != null)
-                {
-                    this.Parent.ChildrenInternal.Remove(this);
-                }
+                this.Parent?.ChildrenInternal.Remove(this);
 
                 this.Parent = null;
                 this.Previous = null;

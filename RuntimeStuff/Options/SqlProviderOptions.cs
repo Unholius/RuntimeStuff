@@ -18,9 +18,7 @@ namespace RuntimeStuff.Options
 
     /// <summary>
     /// Class SqlProviderOptions. This class cannot be inherited.
-    /// Implements the <see cref="RuntimeStuff.Options.OptionsBase{RuntimeStuff.Options.SqlProviderOptions}" />.
     /// </summary>
-    /// <seealso cref="RuntimeStuff.Options.OptionsBase{RuntimeStuff.Options.SqlProviderOptions}" />
     public sealed class SqlProviderOptions : OptionsBase<SqlProviderOptions>
     {
         /// <summary>
@@ -183,10 +181,10 @@ namespace RuntimeStuff.Options
             switch (value)
             {
                 case string s:
-                    return $"{this.StringPrefix}{this.EscapeString(s)}{this.StringSuffix}";
+                    return $"{this.StringPrefix}{EscapeString(s)}{this.StringSuffix}";
 
                 case char c:
-                    return $"{this.StringPrefix}{this.EscapeString(c.ToString())}{this.StringSuffix}";
+                    return $"{this.StringPrefix}{EscapeString(c.ToString())}{this.StringSuffix}";
 
                 case bool b:
                     return b ? this.TrueValue : this.FalseValue;
@@ -210,7 +208,7 @@ namespace RuntimeStuff.Options
                     return formattable.ToString(null, CultureInfo.InvariantCulture);
 
                 default:
-                    return $"{this.StringPrefix}{this.EscapeString(value.ToString())}{this.StringSuffix}";
+                    return $"{this.StringPrefix}{EscapeString(value.ToString())}{this.StringSuffix}";
             }
         }
 
@@ -219,6 +217,6 @@ namespace RuntimeStuff.Options
         /// </summary>
         /// <param name="s">The s.</param>
         /// <returns>System.String.</returns>
-        private string EscapeString(string s) => s.Replace("'", "''");
+        private static string EscapeString(string s) => s.Replace("'", "''");
     }
 }

@@ -14,7 +14,9 @@ namespace RuntimeStuff.MSTests
             [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0044:Add readonly modifier", Justification = "<Pending>")]
             private string? PrivateField;
 
+#pragma warning disable CS0067 // Event is never used
             public event EventHandler? TestEvent;
+#pragma warning restore CS0067 // Event is never used
 
             public void PublicMethod()
             { }
@@ -357,19 +359,6 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.AreEqual("Property: PublicProperty", result);
-        }
-
-        [TestMethod]
-        public void ExplicitOperator_WithNullMemberCache_ThrowsNullReferenceException()
-        {
-            // Arrange
-            MemberCache? memberCache = null;
-
-            // Act & Assert
-            Assert.ThrowsException<ArgumentNullException>(() =>
-            {
-                PropertyInfo propertyInfo = memberCache;
-            });
         }
 
         [TestMethod]

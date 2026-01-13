@@ -43,10 +43,21 @@ namespace RuntimeStuff
         /// </summary>
         private readonly Cache<object, EventHandlers> subscriptions = new Cache<object, EventHandlers>(x => new EventHandlers());
 
-        /// <summary>
-        /// The synchronize root.
-        /// </summary>
         private readonly object syncRoot = new object();
+        private bool disposed;
+
+        /// <summary>
+        /// Finalizes an instance of the <see cref="PropertyChangeNotifier"/> class.
+        /// Освобождает ресурсы, используемые экземпляром класса PropertyChangeNotifier перед его удалением сборщиком
+        /// мусора.
+        /// </summary>
+        /// <remarks>Этот финализатор вызывается автоматически при удалении объекта сборщиком мусора, если
+        /// метод Dispose не был вызван явно. Обычно не требуется вызывать этот метод напрямую в пользовательском
+        /// коде.</remarks>
+        ~PropertyChangeNotifier()
+        {
+            this.Dispose(false);
+        }
 
         /// <summary>
         /// Событие <see cref="PropertyChanged" /> для внешних подписчиков.
@@ -59,90 +70,6 @@ namespace RuntimeStuff
         /// </summary>
         /// <returns></returns>
         public event PropertyChangingEventHandler PropertyChanging;
-
-        /// <summary>
-        /// Вызывает событие <see cref="PropertyChanging" /> для указанного свойства.
-        /// </summary>
-        /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="propertyName" /> равен <c>null</c>.</exception>
-        public virtual void OnPropertyChanging([CallerMemberName] string propertyName = null) => this.PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
-
-        /// <summary>
-        /// Вызывает событие <see cref="PropertyChanged" /> для указанного свойства.
-        /// </summary>
-        /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="propertyName" /> равен <c>null</c>.</exception>
-        public virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-
-        /// <summary>
-        /// Устанавливает значение backing field и вызывает уведомление об изменении свойства,
-        /// если значение фактически изменилось.
-        /// </summary>
-        /// <typeparam name="T">Тип свойства.</typeparam>
-        /// <param name="field">Ссылка на backing field свойства.</param>
-        /// <param name="value">Новое значение для поля.</param>
-        /// <param name="onChanged">Действие после изменения свойства.</param>
-        /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
-        /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
-        public bool SetProperty<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
-        {
-            if (Equals(field, value))
-            {
-                return false;
-            }
-
-            this.OnPropertyChanging(propertyName);
-            field = value;
-            onChanged?.Invoke();
-            this.OnPropertyChanged(propertyName);
-            return true;
-        }
-
-        /// <summary>
-        /// Устанавливает значение backing field и вызывает уведомление об изменении свойства,
-        /// если значение фактически изменилось.
-        /// </summary>
-        /// <typeparam name="T">Тип свойства.</typeparam>
-        /// <param name="field">Ссылка на backing field свойства.</param>
-        /// <param name="value">Новое значение для поля.</param>
-        /// <param name="onChanged">Действие после изменения свойства.</param>
-        /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
-        /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
-        public bool SetProperty<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
-        {
-            if (Equals(field, value))
-            {
-                return false;
-            }
-
-            this.OnPropertyChanging(propertyName);
-            field = value;
-            onChanged?.Invoke(value);
-            this.OnPropertyChanged(propertyName);
-            return true;
-        }
-
-        /// <summary>
-        /// Комбинированная операция: сначала выполняет привязку обработчика изменения свойства у вложенного объекта,
-        /// затем устанавливает новое значение для свойства текущего объекта. Если значение изменилось и
-        /// <paramref name="thisPropertyChangeHandler" /> не равен <c>null</c>, он будет вызван.
-        /// </summary>
-        /// <typeparam name="T">Тип вложенного объекта, реализующего <see cref="INotifyPropertyChanged" />.</typeparam>
-        /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
-        /// <param name="newValue">Новое значение, которое будет присвоено.</param>
-        /// <param name="childPropertyName">Имя свойства вложенного объекта, за изменением которого нужно следить.</param>
-        /// <param name="childPropertyChangeHandler">Действие, вызываемое при изменении <paramref name="childPropertyName" /> у вложенного объекта.</param>
-        /// <param name="thisPropertyChangeHandler">Действие, вызываемое после успешного изменения свойства текущего объекта.</param>
-        /// <param name="propertyName">Имя свойства текущего объекта. Если не задано, используется имя вызывающего члена.</param>
-        public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null)
-            where T : class, INotifyPropertyChanged
-        {
-            this.BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
-            if (this.SetProperty(ref oldValue, newValue, (Action)null, propertyName))
-            {
-                thisPropertyChangeHandler?.Invoke(propertyName);
-            }
-        }
 
         /// <summary>
         /// Выполняет подписку на изменение указанного свойства вложенного объекта и обеспечивает
@@ -210,43 +137,132 @@ namespace RuntimeStuff
             where T : class, INotifyPropertyChanged => this.BindPropertyChange(ref oldValue, newValue, null, handler);
 
         /// <summary>
-        /// Очистка управляемых ресурсов. Отписывает все внутренние подписки и очищает словарь подписок.
+        /// Освобождает ресурсы, вызывает Dispose(bool) и подавляет финализацию.
         /// </summary>
-        /// <param name="disposing"><c>true</c> при вызове из <see cref="Dispose()" />; <c>false</c> при вызове из финализатора.</param>
-        public virtual void Dispose(bool disposing)
+        public void Dispose()
         {
-            if (!disposing)
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Вызывает событие <see cref="PropertyChanged" /> для указанного свойства.
+        /// </summary>
+        /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
+        /// <exception cref="ArgumentNullException">Если <paramref name="propertyName" /> равен <c>null</c>.</exception>
+        public virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) => this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        /// <summary>
+        /// Вызывает событие <see cref="PropertyChanging" /> для указанного свойства.
+        /// </summary>
+        /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
+        /// <exception cref="ArgumentNullException">Если <paramref name="propertyName" /> равен <c>null</c>.</exception>
+        public virtual void OnPropertyChanging([CallerMemberName] string propertyName = null) => this.PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
+
+        /// <summary>
+        /// Комбинированная операция: сначала выполняет привязку обработчика изменения свойства у вложенного объекта,
+        /// затем устанавливает новое значение для свойства текущего объекта. Если значение изменилось и
+        /// <paramref name="thisPropertyChangeHandler" /> не равен <c>null</c>, он будет вызван.
+        /// </summary>
+        /// <typeparam name="T">Тип вложенного объекта, реализующего <see cref="INotifyPropertyChanged" />.</typeparam>
+        /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
+        /// <param name="newValue">Новое значение, которое будет присвоено.</param>
+        /// <param name="childPropertyName">Имя свойства вложенного объекта, за изменением которого нужно следить.</param>
+        /// <param name="childPropertyChangeHandler">Действие, вызываемое при изменении <paramref name="childPropertyName" /> у вложенного объекта.</param>
+        /// <param name="thisPropertyChangeHandler">Действие, вызываемое после успешного изменения свойства текущего объекта.</param>
+        /// <param name="propertyName">Имя свойства текущего объекта. Если не задано, используется имя вызывающего члена.</param>
+        public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null)
+            where T : class, INotifyPropertyChanged
+        {
+            this.BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
+            if (this.SetProperty(ref oldValue, newValue, (Action)null, propertyName))
             {
-                return;
-            }
-
-            lock (this.syncRoot)
-            {
-                foreach (var kvp in this.subscriptions)
-                {
-                    if (kvp.Key is INotifyPropertyChanged npc1)
-                    {
-                        npc1.PropertyChanged -= kvp.Value.Changed;
-                    }
-
-                    if (kvp.Key is INotifyPropertyChanging npc2)
-                    {
-                        npc2.PropertyChanging -= kvp.Value.Changing;
-                    }
-                }
-
-                this.subscriptions.Clear();
+                thisPropertyChangeHandler?.Invoke(propertyName);
             }
         }
 
         /// <summary>
-        /// Выполняет освобождение ресурсов, вызывает <see cref="Dispose(bool)" /> и подавляет финализацию.
+        /// Устанавливает значение backing field и вызывает уведомление об изменении свойства,
+        /// если значение фактически изменилось.
         /// </summary>
-        public void Dispose()
+        /// <typeparam name="T">Тип свойства.</typeparam>
+        /// <param name="field">Ссылка на backing field свойства.</param>
+        /// <param name="value">Новое значение для поля.</param>
+        /// <param name="onChanged">Действие после изменения свойства.</param>
+        /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
+        /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
+        public bool SetProperty<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
         {
-            this.subscriptions.Clear();
-            this.Dispose(true);
-            GC.SuppressFinalize(this);
+            if (Equals(field, value))
+            {
+                return false;
+            }
+
+            this.OnPropertyChanging(propertyName);
+            field = value;
+            onChanged?.Invoke();
+            this.OnPropertyChanged(propertyName);
+            return true;
+        }
+
+        /// <summary>
+        /// Устанавливает значение backing field и вызывает уведомление об изменении свойства,
+        /// если значение фактически изменилось.
+        /// </summary>
+        /// <typeparam name="T">Тип свойства.</typeparam>
+        /// <param name="field">Ссылка на backing field свойства.</param>
+        /// <param name="value">Новое значение для поля.</param>
+        /// <param name="onChanged">Действие после изменения свойства.</param>
+        /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
+        /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
+        public bool SetProperty<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
+        {
+            if (Equals(field, value))
+            {
+                return false;
+            }
+
+            this.OnPropertyChanging(propertyName);
+            field = value;
+            onChanged?.Invoke(value);
+            this.OnPropertyChanged(propertyName);
+            return true;
+        }
+
+        /// <summary>
+        /// Освобождает управляемые и неуправляемые ресурсы.
+        /// </summary>
+        /// <param name="disposing">True, если вызвано из Dispose(), false — если из финализатора.</param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (this.disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                // Очистка управляемых ресурсов
+                lock (this.syncRoot)
+                {
+                    foreach (var kvp in this.subscriptions)
+                    {
+                        if (kvp.Key is INotifyPropertyChanged npc1)
+                        {
+                            npc1.PropertyChanged -= kvp.Value.Changed;
+                        }
+
+                        if (kvp.Key is INotifyPropertyChanging npc2)
+                        {
+                            npc2.PropertyChanging -= kvp.Value.Changing;
+                        }
+                    }
+
+                    this.subscriptions.Clear();
+                }
+            }
+
+            this.disposed = true;
         }
     }
 }

@@ -30,81 +30,15 @@ namespace RuntimeStuff.Helpers
     /// использовать их без создания экземпляра класса.</remarks>
     public static class DateTimeHelper
     {
-        static DateTimeHelper()
-        {
-            LocalUtcOffset = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now);
-        }
-
-        public static TimeSpan LocalUtcOffset { get; private set; }
-
-        /// <summary>
-        /// Универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
-        /// Пытается распарсить дату из строки, используя набор фиксированных форматов. Если не получается, то пытается угадать
-        /// формат.
-        /// </summary>
-        private static readonly Converter<string, DateTime?> StringToDateTimeConverter = s =>
-        {
-            if (string.IsNullOrWhiteSpace(s))
-            {
-                return null;
-            }
-
-            if (DateTime.TryParse(s, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var d))
-            {
-                return d;
-            }
-
-            if (DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out d))
-            {
-                return d;
-            }
-
-            // Пробуем угадать формат:
-            var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
-            var dateParts = dateTimeParts[0]
-                .Split(new[] { '.', '\\', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
-            var yearIndex = IndexOf(dateParts, (x, _) => x.Length == 4);
-            var dayForSureIndex = IndexOf(dateParts, (x, _) =>
-                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 12 &&
-                (int)Convert.ChangeType(x, typeof(int)) <= 31);
-            var dayPossibleIndex = IndexOf(dateParts, (x, i) =>
-                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
-                (int)Convert.ChangeType(x, typeof(int)) <= 31 && i != dayForSureIndex);
-            var dayIndex = dayForSureIndex >= 0 ? dayForSureIndex : dayPossibleIndex;
-            var monthIndex = IndexOf(dateParts, (x, i) =>
-                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
-                (int)Convert.ChangeType(x, typeof(int)) <= 12 && i != dayIndex);
-
-            var year = yearIndex >= 0 && yearIndex < dateParts.Length
-                ? Convert.ChangeType(dateParts[yearIndex], typeof(int))
-                : null;
-            var month = monthIndex >= 0 && monthIndex < dateParts.Length
-                ? Convert.ChangeType(dateParts[monthIndex], typeof(int))
-                : null;
-            var day = dayIndex >= 0 && dayIndex < dateParts.Length
-                ? Convert.ChangeType(dateParts[dayIndex], typeof(int))
-                : null;
-
-            if (year != null && month != null && day != null)
-            {
-                return new DateTime((int)year, (int)month, (int)day);
-            }
-
-            if (dateTimeParts[0].Length == 8)
-            {
-                return new DateTime(
-                    (int)Convert.ChangeType(s.Substring(0, 4), typeof(int)),
-                    (int)Convert.ChangeType(s.Substring(4, 2), typeof(int)),
-                    (int)Convert.ChangeType(s.Substring(6, 2), typeof(int)));
-            }
-
-            return null;
-        };
-
         /// <summary>
         /// The last time stamp.
         /// </summary>
         private static long lastTimeStamp = DateTime.Now.Ticks;
+
+        static DateTimeHelper()
+        {
+            LocalUtcOffset = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now);
+        }
 
         /// <summary>
         /// Enum DateTimeInterval.
@@ -183,6 +117,76 @@ namespace RuntimeStuff.Helpers
             }
         }
 
+        private static TimeSpan LocalUtcOffset { get; set; }
+
+        /// <summary>
+        /// Gets универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
+        /// Пытается распарсить дату из строки, используя набор фиксированных форматов. Если не получается, то пытается угадать
+        /// формат.
+        /// </summary>
+        private static Converter<string, DateTime?> StringToDateTimeConverter { get; } = s =>
+        {
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                return null;
+            }
+
+            if (DateTime.TryParse(s, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var d))
+            {
+                return d;
+            }
+
+            if (DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out d))
+            {
+                return d;
+            }
+
+            // Пробуем угадать формат:
+            var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
+            var dateParts = dateTimeParts[0]
+                .Split(new[] { '.', '\\', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
+            var yearIndex = IndexOf(dateParts, (x, _) => x.Length == 4);
+            var dayForSureIndex = IndexOf(dateParts, (x, _) =>
+                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 12 &&
+                (int)Convert.ChangeType(x, typeof(int)) <= 31);
+            var dayPossibleIndex = IndexOf(dateParts, (x, i) =>
+                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
+                (int)Convert.ChangeType(x, typeof(int)) <= 31 && i != dayForSureIndex);
+            var dayIndex = dayForSureIndex >= 0 ? dayForSureIndex : dayPossibleIndex;
+            var monthIndex = IndexOf(dateParts, (x, i) =>
+                x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 0 &&
+                (int)Convert.ChangeType(x, typeof(int)) <= 12 && i != dayIndex);
+
+            var year = yearIndex >= 0 && yearIndex < dateParts.Length
+                ? Convert.ChangeType(dateParts[yearIndex], typeof(int))
+                : null;
+            var month = monthIndex >= 0 && monthIndex < dateParts.Length
+                ? Convert.ChangeType(dateParts[monthIndex], typeof(int))
+                : null;
+            var day = dayIndex >= 0 && dayIndex < dateParts.Length
+                ? Convert.ChangeType(dateParts[dayIndex], typeof(int))
+                : null;
+
+            if (year != null && month != null && day != null)
+            {
+                return new DateTime((int)year, (int)month, (int)day, 0, 0, 0, DateTimeKind.Unspecified);
+            }
+
+            if (dateTimeParts[0].Length == 8)
+            {
+                return new DateTime(
+                    (int)Convert.ChangeType(s.Substring(0, 4), typeof(int)),
+                    (int)Convert.ChangeType(s.Substring(4, 2), typeof(int)),
+                    (int)Convert.ChangeType(s.Substring(6, 2), typeof(int)),
+                    0,
+                    0,
+                    0,
+                    DateTimeKind.Unspecified);
+            }
+
+            return null;
+        };
+
         /// <summary>
         /// Добавляет к дате временной интервал, заданный строкой.
         /// </summary>
@@ -206,7 +210,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с временем 00:00:00.</returns>
-        public static DateTime BeginDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day);
+        public static DateTime BeginDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, dt.Kind);
 
         /// <summary>
         /// Возвращает начало дня (00:00:00) для nullable даты.
@@ -221,7 +225,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, dt.Day);
+            return new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, dt.Kind);
         }
 
         /// <summary>
@@ -244,7 +248,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, 1);
+            return new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, dt.Kind);
         }
 
         /// <summary>
@@ -252,7 +256,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с первым днем года и временем 00:00:00.</returns>
-        public static DateTime BeginYear(DateTime dt) => new DateTime(dt.Year, 1, 1);
+        public static DateTime BeginYear(DateTime dt) => new DateTime(dt.Year, 1, 1, 0, 0, 0, dt.Kind);
 
         /// <summary>
         /// Возвращает начало года (первый день, 00:00:00) для nullable даты.
@@ -267,7 +271,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, 1, 1);
+            return new DateTime(dt.Year, 1, 1, 0, 0, 0, dt.Kind);
         }
 
         /// <summary>
@@ -289,7 +293,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с временем 23:59:59.999.</returns>
-        public static DateTime EndDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999);
+        public static DateTime EndDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, dt.Kind);
 
         /// <summary>
         /// Возвращает конец дня (23:59:59.999) для nullable даты.
@@ -304,7 +308,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999);
+            return new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, dt.Kind);
         }
 
         /// <summary>
@@ -312,7 +316,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с последним днем месяца и временем 23:59:59.999.</returns>
-        public static DateTime EndMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999);
+        public static DateTime EndMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999, dt.Kind);
 
         /// <summary>
         /// Возвращает конец месяца (последний день, 23:59:59.999) для nullable даты.
@@ -327,7 +331,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999);
+            return new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999, dt.Kind);
         }
 
         /// <summary>
@@ -335,7 +339,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с последним днем года и временем 23:59:59.999.</returns>
-        public static DateTime EndYear(DateTime dt) => new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999);
+        public static DateTime EndYear(DateTime dt) => new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999, dt.Kind);
 
         /// <summary>
         /// Возвращает конец года (последний день, 23:59:59.999) для nullable даты.
@@ -350,14 +354,14 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999);
+            return new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999, dt.Kind);
         }
 
         /// <summary>
         /// Возвращает текущую дату и время с гарантией уникальности тиков.
         /// </summary>
         /// <returns>Текущая дата и время с уникальными тиками.</returns>
-        public static DateTime ExactNow() => new DateTime(NowTicks);
+        public static DateTime ExactNow() => new DateTime(NowTicks, DateTimeKind.Local);
 
         /// <summary>
         /// Возвращает уникальные тики для текущего момента времени.
@@ -427,17 +431,6 @@ namespace RuntimeStuff.Helpers
         /// только если она удовлетворяет обоим условиям.
         /// </para>
         /// </remarks>
-        /// <example>
-        /// <code>
-        /// // Только рабочие дни
-        /// var workdays = GetDates(
-        ///     start,
-        ///     end,
-        ///     includeDate: (date, _) =>
-        ///         date.DayOfWeek != DayOfWeek.Saturday &&
-        ///         date.DayOfWeek != DayOfWeek.Sunday);
-        /// </code>
-        /// </example>
         public static IEnumerable<DateTime> GetDates(
             DateTime startDate,
             DateTime endDate,
@@ -451,36 +444,13 @@ namespace RuntimeStuff.Helpers
                 throw new ArgumentOutOfRangeException(nameof(step), "Step cannot be zero.");
             }
 
-            bool forward = step > 0;
-
-            // проверка направления
-            if (forward && startDate > endDate)
-            {
-                yield break;
-            }
-
-            if (!forward && startDate < endDate)
-            {
-                yield break;
-            }
-
-            DateTime current = startDate;
-            int index = 0;
-
-            while (forward ? current <= endDate : current >= endDate)
-            {
-                bool include =
-                    (includeDate == null || includeDate(current, index)) &&
-                    (excludeDate == null || !excludeDate(current, index));
-
-                if (include)
-                {
-                    yield return current;
-                }
-
-                current = AddInterval(current, step, interval);
-                index++;
-            }
+            return GetDatesIterator(
+                startDate,
+                endDate,
+                step,
+                interval,
+                includeDate,
+                excludeDate);
         }
 
         /// <summary>
@@ -808,7 +778,6 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="date">Исходная nullable дата.</param>
         /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
-        /// <exception cref="System.NullReferenceException">DateTimeExtensions.Yesterday: Дата не должна быть. <null>!</exception>
         public static DateTime Yesterday(DateTime? date) => date != null
                 ? BeginDay(date?.AddDays(-1))
                 : throw new ArgumentNullException(nameof(date));
@@ -852,6 +821,46 @@ namespace RuntimeStuff.Helpers
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(interval), interval, null);
+            }
+        }
+
+        private static IEnumerable<DateTime> GetDatesIterator(
+            DateTime startDate,
+            DateTime endDate,
+            int step,
+            DateTimeInterval interval,
+            Func<DateTime, int, bool> includeDate,
+            Func<DateTime, int, bool> excludeDate)
+        {
+            bool forward = step > 0;
+
+            // проверка направления
+            if (forward && startDate > endDate)
+            {
+                yield break;
+            }
+
+            if (!forward && startDate < endDate)
+            {
+                yield break;
+            }
+
+            DateTime current = startDate;
+            int index = 0;
+
+            while (forward ? current <= endDate : current >= endDate)
+            {
+                bool include =
+                    (includeDate == null || includeDate(current, index)) &&
+                    (excludeDate == null || !excludeDate(current, index));
+
+                if (include)
+                {
+                    yield return current;
+                }
+
+                current = AddInterval(current, step, interval);
+                index++;
             }
         }
 

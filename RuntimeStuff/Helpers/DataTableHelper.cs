@@ -149,7 +149,7 @@ namespace RuntimeStuff.Helpers
                 throw new ArgumentNullException(nameof(table));
             }
 
-            if (item == null)
+            if (object.Equals(item, default(T)))
             {
                 throw new ArgumentNullException(nameof(item));
             }

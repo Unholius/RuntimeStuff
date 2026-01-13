@@ -24,8 +24,7 @@ namespace RuntimeStuff.Extensions
     public static class ActionExtensions
     {
         /// <summary>
-        /// Универсальное преобразование любого <see cref="Delegate" /> (например, Action, Action{T1,T2,...})
-        /// в <see cref="Action{object[]}" />, принимающий параметры как массив object[].
+        /// Универсальное преобразование любого <see cref="Delegate" /> (например, Action, Action{T1,T2,...}).
         /// </summary>
         /// <param name="del">The delete.</param>
         /// <returns>Action&lt;System.Object[]&gt;.</returns>
@@ -94,7 +93,7 @@ namespace RuntimeStuff.Extensions
         public static Action<object> ConvertAction<T1>(this Action<T1> action, Func<object, T1> converter = null) => t1 => action(converter == null ? (T1)t1 : converter(t1));
 
         /// <summary>
-        /// Преобразует <see cref="Action{T1,T2}" /> в <see cref="Action{object,object}" />,
+        /// Преобразует <see cref="Action{T1,T2}" /> в Action{object, object}
         /// выполняя приведение или пользовательское преобразование аргументов.
         /// </summary>
         /// <typeparam name="T1">The type of the t1.</typeparam>
@@ -111,7 +110,7 @@ namespace RuntimeStuff.Extensions
                                                                 converter2 == null ? (T2)t2 : converter2(t2));
 
         /// <summary>
-        /// Преобразует <see cref="Action{T1,T2,T3}" /> в <see cref="Action{object,object,object}" />,
+        /// Преобразует <see cref="Action{T1,T2,T3}" /> в Action{object,object,object},
         /// выполняя приведение или пользовательское преобразование аргументов.
         /// </summary>
         /// <typeparam name="T1">The type of the t1.</typeparam>
@@ -132,7 +131,7 @@ namespace RuntimeStuff.Extensions
                                                                 converter3 == null ? (T3)t3 : converter3(t3));
 
         /// <summary>
-        /// Преобразует <see cref="Action{T1,T2,T3,T4}" /> в <see cref="Action{object,object,object,object}" />,
+        /// Преобразует <see cref="Action{T1,T2,T3,T4}" /> в Action{object,object,object,object}",
         /// выполняя приведение или пользовательское преобразование аргументов.
         /// </summary>
         /// <typeparam name="T1">The type of the t1.</typeparam>

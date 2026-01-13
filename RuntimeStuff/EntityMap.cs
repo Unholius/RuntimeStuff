@@ -38,12 +38,12 @@ namespace RuntimeStuff
         {
             if (type == null)
             {
-                return null;
+                return Array.Empty<(string, string)>();
             }
 
             if (!this.EntityMapping.TryGetValue(type, out var typeMapping))
             {
-                return null;
+                return Array.Empty<(string, string)>();
             }
 
             return typeMapping.PropertyColumns.Select(x => (x.Value.ColumnName, x.Value.Property.Name)).ToArray();
@@ -58,12 +58,12 @@ namespace RuntimeStuff
         {
             if (type == null)
             {
-                return null;
+                return Array.Empty<(string, string)>();
             }
 
             if (!this.EntityMapping.TryGetValue(type, out var typeMapping))
             {
-                return null;
+                return Array.Empty<(string, string)>();
             }
 
             return typeMapping.PropertyColumns.Select(x => (x.Value.Property.Name, x.Value.ColumnName)).ToArray();
@@ -78,12 +78,17 @@ namespace RuntimeStuff
         /// <returns>System.String.</returns>
         public string ResolveColumnName(PropertyInfo property, string namePrefix, string nameSuffix)
         {
-            if (property == null)
+            if (property?.DeclaringType == null)
             {
                 return null;
             }
 
-            return this.EntityMapping.TryGetValue(property.DeclaringType, out var typeMapping) ? (typeMapping.PropertyColumns.TryGetValue(property, out var propertyMapping) ? $"{namePrefix}{propertyMapping.ColumnName}{nameSuffix}" : null) : null;
+            if (this.EntityMapping.TryGetValue(property.DeclaringType, out var typeMapping) && typeMapping.PropertyColumns.TryGetValue(property, out var propertyMapping))
+            {
+                return $"{namePrefix}{propertyMapping.ColumnName}{nameSuffix}";
+            }
+
+            return null;
         }
 
         /// <summary>

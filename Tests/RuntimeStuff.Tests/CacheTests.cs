@@ -923,7 +923,8 @@
             var cache = new Cache<string, string>();
 
             // Act
-            cache.Set("key1", null);
+            string? x = null;
+            cache.Set("key1", x);
             cache.Set("key2", "value");
 
             // Assert

@@ -19,6 +19,24 @@ namespace RuntimeStuff.Helpers
     {
         private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertyCache = new ConcurrentDictionary<Type, PropertyInfo[]>();
 
+        /// <summary>
+        /// Сериализует указанный объект в строковое представление.
+        /// </summary>
+        /// <param name="obj">Объект для сериализации. Если равен <c>null</c>, возвращается строка "null".</param>
+        /// <param name="dateFormat">
+        /// Формат даты для объектов типа <see cref="DateTime"/>.
+        /// По умолчанию используется "yyyy-MM-dd".
+        /// </param>
+        /// <param name="enumAsStrings">
+        /// Если <c>true</c>, значения перечислений (<see cref="Enum"/>) будут сериализованы как строки;
+        /// если <c>false</c>, как числовые значения.
+        /// По умолчанию <c>false</c>.
+        /// </param>
+        /// <param name="additionalFormats">
+        /// Дополнительные форматы для конкретных типов. Ключ — тип, значение — строковый формат.
+        /// Можно использовать для переопределения стандартной сериализации отдельных типов.
+        /// </param>
+        /// <returns>Строковое представление объекта.</returns>
         public static string Serialize(
             object obj,
             string dateFormat = "yyyy-MM-dd",
@@ -179,7 +197,7 @@ namespace RuntimeStuff.Helpers
             bool isNumeric)
         {
             var type = value.GetType();
-            string format = null;
+            string format;
 
             if (additionalFormats != null &&
                 additionalFormats.TryGetValue(type, out var customFormat))

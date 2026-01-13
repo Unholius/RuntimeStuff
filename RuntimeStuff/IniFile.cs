@@ -56,7 +56,7 @@ namespace RuntimeStuff
             @"(?<whitespace>[^\S\r\n]+)", RegexOptions.Compiled);
 
         private readonly bool allowEscapeChars;
-        private readonly StringComparison comparison = StringComparison.InvariantCultureIgnoreCase;
+        private readonly StringComparison comparison;
         private readonly string fileName;
         private readonly string lineBreaker;
         private bool cacheDirty = true;
@@ -307,7 +307,7 @@ namespace RuntimeStuff
                 keys.TryGetValue(key, out var values) &&
                 values.Count > 0)
             {
-                return values.Last(); // последний wins
+                return values[values.Count - 1]; // последний wins
             }
 
             return defaultValue;
@@ -383,7 +383,7 @@ namespace RuntimeStuff
                 positions.Count > 0)
             {
                 // заменяем последнее значение
-                var (index, length) = positions.Last();
+                var (index, length) = positions[positions.Count - 1];
 
                 var sb = new StringBuilder(this.Content);
                 sb.Remove(index, length);
@@ -493,11 +493,16 @@ namespace RuntimeStuff
 
                 if (r && n)
                 {
-                    break;
+                    return "\r\n";
                 }
             }
 
-            return n ? r ? "\r\n" : "\n" : r ? "\r" : Environment.NewLine;
+            if (!r && !n)
+            {
+                return Environment.NewLine;
+            }
+
+            return n ? "\n" : "\r";
         }
 
         /// <summary>

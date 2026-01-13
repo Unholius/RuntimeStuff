@@ -153,17 +153,17 @@ namespace RuntimeStuff.Extensions
         public static bool Between<T>(this T x, T from, T to)
             where T : IComparable<T>
         {
-            if (x == null)
+            if (object.Equals(x, default(T)))
             {
                 throw new ArgumentNullException(nameof(x));
             }
 
-            if (from == null)
+            if (object.Equals(from, default(T)))
             {
                 throw new ArgumentNullException(nameof(from));
             }
 
-            if (to == null)
+            if (object.Equals(to, default(T)))
             {
                 throw new ArgumentNullException(nameof(to));
             }
