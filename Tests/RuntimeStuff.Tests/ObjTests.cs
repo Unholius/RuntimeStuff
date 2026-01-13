@@ -6,6 +6,8 @@ namespace RuntimeStuff.MSTests
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Data;
+    using System.Data.SqlClient;
     using System.Linq;
     using System.Reflection;
 
@@ -1092,6 +1094,13 @@ namespace RuntimeStuff.MSTests
         public void GetStringCache()
         {
             var mc = MemberCache<string>.Create();
+            var p = new SqlParameter();
+            Obj.Set(p, "SqlDbType", SqlDbType.Structured);
+            var dt = new DataTable("dbo.StrList");
+            p.Value = dt;
+            Obj.Set(p, "SqlDbType", SqlDbType.Structured);
+            Obj.Set(p, "TypeName", ((DataTable)dt).TableName);
+            Obj.Set(p, "SqlValue", dt);
         }
     }
 }

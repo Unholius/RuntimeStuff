@@ -620,7 +620,23 @@ namespace RuntimeStuff
                     var valueType = cp.Value?.GetType();
                     if (valueType != null && valueType.IsClass)
                     {
-                        p.Value = cp.Value.ToString();
+                        if (valueType == typeof(DataTable))
+                        {
+                            try
+                            {
+                                Obj.Set(p, "SqlDbType", SqlDbType.Structured);
+                                Obj.Set(p, "TypeName", ((DataTable)cp.Value).TableName);
+                                Obj.Set(p, "SqlValue", cp.Value);
+                            }
+                            catch (Exception ex)
+                            {
+                                Debug.WriteLine(ex);
+                            }
+                        }
+                        else
+                        {
+                            p.Value = cp.Value.ToString();
+                        }
                     }
                     else
                     {
@@ -1418,6 +1434,12 @@ namespace RuntimeStuff
                         }
                         else
                         {
+                            if (memberCache.Properties.Count == 1 && memberCache.Properties.First().Value.Type == typeof(DataTable))
+                            {
+                                parameters[memberCache.Properties.First().Key] = memberCache.Properties.First().Value.GetValue(cmdParams);
+                                return parameters;
+                            }
+
                             parameters = memberCache.ToDictionary(cmdParams, propertyNames);
                         }
 
@@ -1895,6 +1917,7 @@ namespace RuntimeStuff
         /// <param name="fetchRows">Количество строк для выборки. По умолчанию —1 (выбираются все строки).</param>
         /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию — 0.</param>
         /// <param name="itemFactory">Фабрика для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="dbTransaction">Транзакция.</param>
         /// <returns>Коллекция объектов типа <typeparamref name="T" />, которая содержит результат выполнения запроса.</returns>
         /// <remarks>Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде коллекции объектов.</remarks>
         public TList Query<TList, T>(
@@ -1905,7 +1928,8 @@ namespace RuntimeStuff
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
-            Func<object[], string[], T> itemFactory = null)
+            Func<object[], string[], T> itemFactory = null,
+            IDbTransaction dbTransaction = null)
             where TList : ICollection<T>, IList, new()
         {
             if (string.IsNullOrEmpty(query))
@@ -1921,11 +1945,10 @@ namespace RuntimeStuff
                 itemFactory = BuildItemFactory(cache, columnToPropertyMap);
             }
 
-            var cmd = this.CreateCommand(query, cmdParams);
+            this.BeginConnection();
+            var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
             try
             {
-                this.BeginConnection();
-
                 var reader = cmd.ExecuteReader();
                 try
                 {
@@ -1981,7 +2004,8 @@ namespace RuntimeStuff
             DbValueConverter<object> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
-            Func<object[], string[], object> itemFactory = null)
+            Func<object[], string[], object> itemFactory = null,
+            IDbTransaction dbTransaction)
         {
             var returnTypeCache = MemberCache.Create(returnType);
             if (string.IsNullOrEmpty(query))
@@ -2001,10 +2025,9 @@ namespace RuntimeStuff
             }
 
             var cmd = this.CreateCommand(query, cmdParams);
+            this.BeginConnection();
             try
             {
-                this.BeginConnection();
-
                 var reader = cmd.ExecuteReader();
                 try
                 {
@@ -2063,6 +2086,7 @@ namespace RuntimeStuff
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
+            IDbTransaction transaction = null,
             CancellationToken ct = default)
             where TList : ICollection<T>, IList, new()
         {
@@ -3422,9 +3446,10 @@ namespace RuntimeStuff
             IDbCommand cmd,
             [CallerMemberName] string methodName = "")
         {
-            var errorMessage = $"Ошибка в методе {methodName}. " +
-                               $"Запрос: {cmd?.CommandText}. " +
-                               $"Параметры: {string.Join(", ", cmd == null ? Array.Empty<string>() : cmd.Parameters.Cast<IDbDataParameter>().Select(p => $"{p.ParameterName}={p.Value}"))}";
+            var errorMessage = $"Ошибка в методе {methodName}.\r\n" +
+                               $"Запрос: {cmd?.CommandText}.\r\n" +
+                               $"Параметры: {string.Join(", ", cmd == null ? Array.Empty<string>() : cmd.Parameters.Cast<IDbDataParameter>().Select(p => $"{p.ParameterName}={p.Value}"))}\r\n" +
+                               $"{ex}";
 
             this.CommandFailed?.Invoke(cmd, ex);
             this.Log(errorMessage);
@@ -3503,9 +3528,13 @@ namespace RuntimeStuff
                         break;
                     }
 
-                    var value = await reader.GetFieldValueAsync<T>(colIndex, ct).ConfigureAwait(this.ConfigureAwait);
+                    var value = reader.GetValue(colIndex);
+                    if (value == DBNull.Value)
+                    {
+                        value = null;
+                    }
 
-                    list.Add(converter(readerColumns[0], value, null, value));
+                    list.Add(converter == null ? value : converter(readerColumns[0], value, null, (T)value));
                     rowCount++;
                 }
 

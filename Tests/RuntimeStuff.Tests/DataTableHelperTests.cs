@@ -69,17 +69,6 @@ public class DataTableHelperTests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void AddCol_NullColumnType_ThrowsArgumentNullException()
-        {
-            // Arrange
-            var table = new DataTable();
-
-            // Act
-            DataTableHelper.AddCol(table, "Test", null);
-        }
-
-        [TestMethod]
         [ExpectedException(typeof(ArgumentException))]
         public void AddCol_EmptyColumnName_ThrowsArgumentException()
         {
@@ -257,17 +246,6 @@ public class DataTableHelperTests
 
             // Act
             DataTableHelper.AddRow(table, entity);
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentNullException))]
-        public void AddRowGeneric_NullItem_ThrowsArgumentNullException()
-        {
-            // Arrange
-            var table = new DataTable();
-
-            // Act
-            DataTableHelper.AddRow(table, (TestEntity?)null);
         }
 
         [TestMethod]

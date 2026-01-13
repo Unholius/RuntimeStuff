@@ -44,7 +44,7 @@ namespace RuntimeStuff.Extensions
         /// <remarks>Если колонка помечена как первичный ключ,
         /// она автоматически добавляется в массив
         /// <see cref="DataTable.PrimaryKey" />.</remarks>
-        public static DataColumn AddCol(this DataTable table, string columnName, Type columnType, bool isPrimaryKey = false) => DataTableHelper.AddCol(table, columnName, columnType, isPrimaryKey);
+        public static DataColumn AddCol(this DataTable table, string columnName, Type columnType = null, bool isPrimaryKey = false) => DataTableHelper.AddCol(table, columnName, columnType, isPrimaryKey);
 
         /// <summary>
         /// Добавляет строку в таблицу данных из массива значений.
@@ -58,7 +58,11 @@ namespace RuntimeStuff.Extensions
         /// не совпадает с количеством колонок таблицы.</exception>
         /// <remarks>Значения <see langword="null" /> автоматически преобразуются
         /// в <see cref="DBNull.Value" />.</remarks>
-        public static DataRow AddRow(this DataTable table, object[] rowData) => DataTableHelper.AddRow(table, rowData);
+        public static DataTable AddRow(this DataTable table, object[] rowData)
+        {
+            DataTableHelper.AddRow(table, rowData);
+            return table;
+        }
 
         /// <summary>
         /// Добавляет строку в таблицу данных на основе свойств объекта.
@@ -72,7 +76,11 @@ namespace RuntimeStuff.Extensions
         /// <paramref name="item" /> равны <see langword="null" />.</exception>
         /// <remarks>Значения берутся из свойств объекта по имени,
         /// совпадающему с именем колонки таблицы.</remarks>
-        public static DataRow AddRow<T>(this DataTable table, T item) => DataTableHelper.AddRow(table, item);
+        public static DataTable AddRow<T>(this DataTable table, T item)
+        {
+            DataTableHelper.AddRow(table, item);
+            return table;
+        }
 
         /// <summary>
         /// Преобразует значения указанной колонки таблицы

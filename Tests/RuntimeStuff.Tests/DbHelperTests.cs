@@ -1,4 +1,7 @@
 using Microsoft.Data.Sqlite;
+using System.Data.SqlClient;
+using RuntimeStuff.Extensions;
+using System.Data;
 
 namespace RuntimeStuff.MSTests
 {
@@ -175,7 +178,33 @@ CREATE TABLE student_courses (
                 var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
             }
 
-            var list = db.ToList<string>("select 'name' from 'users'");
+            var list = db.ToList<string>("select [name] from [users]");
+        }
+
+        private string ServerName = "NAS\\RSSQLSERVER";
+        private string UserName = "sa";
+        private string Password = "sa70788537!";
+        private string DatabaseName = "test";
+
+        [TestMethod]
+        public void DbClient_Test_05()
+        {
+            var cs = $@"Server={ServerName};Database={DatabaseName};Connect Timeout = 3;Integrated Security=true;";
+            var con = new SqlConnection(cs);
+
+            con.OpenConnection();
+            var list = new List<string>
+            {
+                "1",
+                "2",
+                "3"
+            };
+            var dt = new DataTable("dbo.StrList");
+            dt.AddCol("ID");
+            dt.AddRow("1")
+                .AddRow("2")
+                .AddRow("3");
+            var result = con.ToList<string>("select * from dbo.TestFunction(@list)", new { list = dt });
         }
     }
 }

@@ -38,7 +38,10 @@ namespace RuntimeStuff
         public MemberCache()
             : base(typeof(T))
         {
-            this.DefaultConstructor = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
+            if (typeof(T).IsValueType || typeof(T).GetConstructor(Type.EmptyTypes) != null)
+            {
+                this.DefaultConstructor = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
+            }
         }
 
         /// <summary>
@@ -48,7 +51,10 @@ namespace RuntimeStuff
         public MemberCache(MemberInfo memberInfo)
             : base(memberInfo)
         {
-            this.DefaultConstructor = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
+            if (typeof(T).IsValueType || typeof(T).GetConstructor(Type.EmptyTypes) != null)
+            {
+                this.DefaultConstructor = Expression.Lambda<Func<T>>(Expression.New(typeof(T))).Compile();
+            }
         }
 
         /// <summary>

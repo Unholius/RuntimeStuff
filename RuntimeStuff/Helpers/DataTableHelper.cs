@@ -48,7 +48,7 @@ namespace RuntimeStuff.Helpers
         public static DataColumn AddCol(
             DataTable table,
             string columnName,
-            Type columnType,
+            Type columnType = null,
             bool isPrimaryKey = false)
         {
             if (table == null)
@@ -63,7 +63,7 @@ namespace RuntimeStuff.Helpers
 
             if (columnType == null)
             {
-                throw new ArgumentNullException(nameof(columnType));
+                columnType = typeof(string);
             }
 
             if (table.Columns.Contains(columnName))
@@ -149,16 +149,19 @@ namespace RuntimeStuff.Helpers
                 throw new ArgumentNullException(nameof(table));
             }
 
-            if (object.Equals(item, default(T)))
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
-
             var row = table.NewRow();
 
-            foreach (DataColumn col in table.Columns)
+            var typeCache = MemberCache<T>.Create();
+            if (typeCache.IsBasic)
             {
-                row[col] = Obj.Get(item, col.ColumnName, col.DataType) ?? DBNull.Value;
+                row[0] = item;
+            }
+            else
+            {
+                foreach (DataColumn col in table.Columns)
+                {
+                    row[col] = Obj.Get(item, col.ColumnName, col.DataType) ?? DBNull.Value;
+                }
             }
 
             table.Rows.Add(row);
