@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "RuntimeStuff.MSTests": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

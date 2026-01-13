@@ -125,7 +125,9 @@ namespace RuntimeStuff
         protected static readonly ConcurrentDictionary<MemberInfo, MemberCache> MemberInfoCache =
             new ConcurrentDictionary<MemberInfo, MemberCache>();
 
+#if DEBUG
         private static readonly object Lock = new object();
+#endif
 
         /// <summary>
         /// The constructors cache.
@@ -365,7 +367,7 @@ namespace RuntimeStuff
             }
 
             // Дополнительная обработка для типов
-            if (this.IsType)
+            if (this.IsType && !this.IsBasic)
             {
                 this.DefaultConstructor = this.typeCache?.DefaultConstructor ?? CreateConstructorDelegate(t);
 

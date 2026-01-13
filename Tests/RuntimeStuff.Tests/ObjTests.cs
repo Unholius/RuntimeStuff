@@ -1087,5 +1087,11 @@ namespace RuntimeStuff.MSTests
         }
 
         #endregion Get-Set
+
+        [TestMethod]
+        public void GetStringCache()
+        {
+            var mc = MemberCache<string>.Create();
+        }
     }
 }

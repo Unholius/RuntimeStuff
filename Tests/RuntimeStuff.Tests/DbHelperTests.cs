@@ -165,5 +165,17 @@ CREATE TABLE student_courses (
 
             var d = db.ToDictionary<long, string, DTO.SQLite.User>(x => x.Id, x => x.Name);
         }
+
+        [TestMethod]
+        public void DbClient_Test_04()
+        {
+            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+            for (int i = 0; i < 10; i++)
+            {
+                var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
+            }
+
+            var list = db.ToList<string>("select 'name' from 'users'");
+        }
     }
 }
