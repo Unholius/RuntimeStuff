@@ -496,7 +496,7 @@ namespace RuntimeStuff.Helpers
             }
             catch (Exception ex)
             {
-                throw new Exception($"Ошибка преобразования значения '{value}' ({fromType.Name}) в ({toType.Name})!", ex);
+                throw new InvalidCastException($"Ошибка преобразования значения '{value}' ({fromType.Name}) в ({toType.Name})!", ex);
             }
         }
 
@@ -1300,13 +1300,20 @@ namespace RuntimeStuff.Helpers
                 return null;
             }
 
+            if (type.IsArray)
+            {
+                return type.GetElementType();
+            }
+
             var isDic = typeof(IDictionary).IsAssignableFrom(type);
             var ga = type.GetGenericArguments();
-            return type.IsArray
-                ? type.GetElementType()
-                : isDic && ga.Length > 1
-                    ? ga[1]
-                    : ga.FirstOrDefault();
+
+            if (isDic && ga.Length > 1)
+            {
+                return ga[1];
+            }
+
+            return ga.FirstOrDefault();
         }
 
         /// <summary>
@@ -2470,26 +2477,22 @@ namespace RuntimeStuff.Helpers
                     if (OpCodes.TryGetValue(opCodeValue, out var opCode))
                     {
                         // Проверяем инструкции загрузки поля
-                        if (opCode == System.Reflection.Emit.OpCodes.Ldfld || opCode == System.Reflection.Emit.OpCodes.Ldsfld ||
-                            opCode == System.Reflection.Emit.OpCodes.Ldflda || opCode == System.Reflection.Emit.OpCodes.Ldsflda)
+                        if ((opCode == System.Reflection.Emit.OpCodes.Ldfld || opCode == System.Reflection.Emit.OpCodes.Ldsfld ||
+                            opCode == System.Reflection.Emit.OpCodes.Ldflda || opCode == System.Reflection.Emit.OpCodes.Ldsflda) && i + 4 < ilBytes.Length)
                         {
-                            // Читаем токен поля (4 байта)
-                            if (i + 4 < ilBytes.Length)
-                            {
-                                int token = BitConverter.ToInt32(ilBytes, i + 1);
+                            int token = BitConverter.ToInt32(ilBytes, i + 1);
 
-                                try
+                            try
+                            {
+                                var field = getter.Module.ResolveField(token);
+                                if (field != null && IsValidBackingField(field, getter.DeclaringType))
                                 {
-                                    var field = getter.Module.ResolveField(token);
-                                    if (field != null && IsValidBackingField(field, getter.DeclaringType))
-                                    {
-                                        return field;
-                                    }
+                                    return field;
                                 }
-                                catch
-                                {
-                                    // Игнорируем ошибки разрешения токена
-                                }
+                            }
+                            catch
+                            {
+                                // Игнорируем ошибки разрешения токена
                             }
                         }
 

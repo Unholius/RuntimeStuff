@@ -800,7 +800,7 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="System.NullReferenceException">DateTimeExtensions.Yesterday: Дата не должна быть. <null>!</exception>
         public static DateTime Yesterday(DateTime? date) => date != null
                 ? BeginDay(date?.AddDays(-1))
-                : throw new NullReferenceException("DateTimeExtensions.Yesterday: Дата не должна быть <null>!");
+                : throw new ArgumentNullException(nameof(date));
 
         /// <summary>
         /// Возвращает дату и время, смещённые на заданный шаг по указанному интервалу.

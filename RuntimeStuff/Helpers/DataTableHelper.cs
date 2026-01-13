@@ -166,6 +166,89 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Проверяет добавлена ли строка в таблицу.
+        /// </summary>
+        /// <param name="dt">Таблица.</param>
+        /// <param name="row">Строка.</param>
+        /// <returns><c>true</c> if the specified dt contains row; otherwise, <c>false</c>.</returns>
+        public static bool ContainsRow(DataTable dt, object row)
+        {
+            var dr = row as DataRow ?? (row as DataRowView)?.Row;
+            return dr != null && dr.Table == dt && dr.RowState != DataRowState.Detached;
+        }
+
+        /// <summary>
+        /// Преобразует коллекцию объектов указанного типа в таблицу данных, где каждая строка соответствует одному элементу
+        /// коллекции, а столбцы — публичным свойствам типа.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
+        /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
+        /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса.</param>
+        /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
+        /// <returns>Экземпляр <see cref="DataTable" />, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
+        /// только с определёнными столбцами.</returns>
+        /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list" /> равен null.</exception>
+        /// <remarks>Каждое публичное свойство типа <typeparamref name="T" /> становится отдельным столбцом
+        /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
+        /// соответствует имени типа <typeparamref name="T" />.</remarks>
+        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName = null, params Expression<Func<T, object>>[] propertySelectors)
+            where T : class
+        {
+            return ToDataTable(list, tableName, propertySelectors.Select(x => (x, (string)null)).ToArray());
+        }
+
+        /// <summary>
+        /// Преобразует коллекцию объектов указанного типа в таблицу данных, где каждая строка соответствует одному элементу
+        /// коллекции, а столбцы — публичным свойствам типа.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
+        /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
+        /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса.</param>
+        /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
+        /// <returns>Экземпляр <see cref="DataTable" />, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
+        /// только с определёнными столбцами.</returns>
+        /// <exception cref="System.ArgumentNullException">list.</exception>
+        /// <remarks>Каждое публичное свойство типа <typeparamref name="T" /> становится отдельным столбцом
+        /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
+        /// соответствует имени типа <typeparamref name="T" />.</remarks>
+        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName, params (Expression<Func<T, object>> propSelector, string columnName)[] propertySelectors)
+            where T : class
+        {
+            if (list == null)
+            {
+                throw new ArgumentNullException(nameof(list));
+            }
+
+            var table = new DataTable(tableName ?? typeof(T).Name);
+            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.propSelector), x.columnName)).ToArray() : MemberCache.Create(typeof(T)).Properties.Select(x => (x.Value, x.Value.ColumnName)).ToArray();
+            var pks = new List<DataColumn>();
+            foreach (var prop in props)
+            {
+                var colType = Nullable.GetUnderlyingType(prop.Item1.PropertyType) ?? prop.Item1.PropertyType;
+                AddCol(table, prop.Item2 ?? prop.Item1.ColumnName, colType);
+                if (prop.Item1.IsPrimaryKey)
+                {
+                    pks.Add(table.Columns[prop.Item2 ?? prop.Item1.ColumnName]);
+                }
+            }
+
+            table.PrimaryKey = pks.ToArray();
+            foreach (var item in list)
+            {
+                var row = table.NewRow();
+                foreach (var prop in props)
+                {
+                    var value = prop.Item1.GetValue(item);
+                    row[prop.Item2 ?? prop.Item1.ColumnName] = value ?? DBNull.Value;
+                }
+
+                table.Rows.Add(row);
+            }
+
+            return table;
+        }
+
+        /// <summary>
         /// Преобразует значения указанной колонки таблицы
         /// в список заданного типа.
         /// </summary>
@@ -255,89 +338,6 @@ namespace RuntimeStuff.Helpers
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Преобразует коллекцию объектов указанного типа в таблицу данных, где каждая строка соответствует одному элементу
-        /// коллекции, а столбцы — публичным свойствам типа.
-        /// </summary>
-        /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
-        /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
-        /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса.</param>
-        /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
-        /// <returns>Экземпляр <see cref="DataTable" />, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
-        /// только с определёнными столбцами.</returns>
-        /// <exception cref="ArgumentNullException">Возникает, если параметр <paramref name="list" /> равен null.</exception>
-        /// <remarks>Каждое публичное свойство типа <typeparamref name="T" /> становится отдельным столбцом
-        /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
-        /// соответствует имени типа <typeparamref name="T" />.</remarks>
-        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName = null, params Expression<Func<T, object>>[] propertySelectors)
-            where T : class
-        {
-            return ToDataTable(list, tableName, propertySelectors.Select(x => (x, (string)null)).ToArray());
-        }
-
-        /// <summary>
-        /// Проверяет добавлена ли строка в таблицу.
-        /// </summary>
-        /// <param name="dt">Таблица.</param>
-        /// <param name="row">Строка.</param>
-        /// <returns><c>true</c> if the specified dt contains row; otherwise, <c>false</c>.</returns>
-        public static bool ContainsRow(DataTable dt, object row)
-        {
-            var dr = row as DataRow ?? (row as DataRowView)?.Row;
-            return dr != null && dr.Table == dt && dr.RowState != DataRowState.Detached;
-        }
-
-        /// <summary>
-        /// Преобразует коллекцию объектов указанного типа в таблицу данных, где каждая строка соответствует одному элементу
-        /// коллекции, а столбцы — публичным свойствам типа.
-        /// </summary>
-        /// <typeparam name="T">Тип объектов, элементы которых будут представлены в таблице. Должен быть ссылочным типом.</typeparam>
-        /// <param name="list">Коллекция объектов, которые необходимо преобразовать в таблицу данных. Не может быть равна null.</param>
-        /// <param name="tableName">Имя таблицы, если не указано, то берется имя класса.</param>
-        /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
-        /// <returns>Экземпляр <see cref="DataTable" />, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
-        /// только с определёнными столбцами.</returns>
-        /// <exception cref="System.ArgumentNullException">list.</exception>
-        /// <remarks>Каждое публичное свойство типа <typeparamref name="T" /> становится отдельным столбцом
-        /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
-        /// соответствует имени типа <typeparamref name="T" />.</remarks>
-        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName, params (Expression<Func<T, object>> propSelector, string columnName)[] propertySelectors)
-            where T : class
-        {
-            if (list == null)
-            {
-                throw new ArgumentNullException(nameof(list));
-            }
-
-            var table = new DataTable(tableName ?? typeof(T).Name);
-            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.propSelector), x.columnName)).ToArray() : MemberCache.Create(typeof(T)).Properties.Select(x => (x.Value, x.Value.ColumnName)).ToArray();
-            var pks = new List<DataColumn>();
-            foreach (var prop in props)
-            {
-                var colType = Nullable.GetUnderlyingType(prop.Item1.PropertyType) ?? prop.Item1.PropertyType;
-                AddCol(table, prop.Item2 ?? prop.Item1.ColumnName, colType);
-                if (prop.Item1.IsPrimaryKey)
-                {
-                    pks.Add(table.Columns[prop.Item2 ?? prop.Item1.ColumnName]);
-                }
-            }
-
-            table.PrimaryKey = pks.ToArray();
-            foreach (var item in list)
-            {
-                var row = table.NewRow();
-                foreach (var prop in props)
-                {
-                    var value = prop.Item1.GetValue(item);
-                    row[prop.Item2 ?? prop.Item1.ColumnName] = value ?? DBNull.Value;
-                }
-
-                table.Rows.Add(row);
-            }
-
-            return table;
         }
     }
 }

@@ -31,7 +31,7 @@ namespace RuntimeStuff
         /// <exception cref="System.NullReferenceException">eventId.</exception>
         public EventResult(object eventId, T status, object data = null)
         {
-            this.EventId = eventId ?? throw new NullReferenceException(nameof(eventId));
+            this.EventId = eventId ?? throw new ArgumentNullException(nameof(eventId));
             this.Status = status;
             this.Data = data;
         }

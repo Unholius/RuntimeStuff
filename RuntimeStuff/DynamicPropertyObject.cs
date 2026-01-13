@@ -366,7 +366,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Внутренние данные одного свойства.
         /// </summary>
-        private class PropertyData
+        private sealed class PropertyData
         {
             /// <summary>
             /// Initializes a new instance of the <see cref="PropertyData"/> class.

@@ -13,6 +13,8 @@
 // ***********************************************************************
 namespace RuntimeStuff
 {
+    using RuntimeStuff.Extensions;
+    using RuntimeStuff.Helpers;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -22,8 +24,6 @@ namespace RuntimeStuff
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
-    using RuntimeStuff.Extensions;
-    using RuntimeStuff.Helpers;
 
     /// <summary>
     /// Определяет тип индекса, используемый для представления исходных или отфильтрованных и отсортированных данных.
@@ -705,6 +705,12 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Returns an enumerator that iterates through the filtered and sorted collection.
+        /// </summary>
+        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
+        IEnumerator<T> IEnumerable<T>.GetEnumerator() => this.sourceFilteredAndSortedList.GetEnumerator();
+
+        /// <summary>
         /// Возвращает перечислитель для списка.
         /// </summary>
         /// <returns>Перечислитель элементов.</returns>
@@ -715,12 +721,6 @@ namespace RuntimeStuff
                 return this.sourceFilteredAndSortedList.GetEnumerator();
             }
         }
-
-        /// <summary>
-        /// Returns an enumerator that iterates through the filtered and sorted collection.
-        /// </summary>
-        /// <returns>An enumerator that can be used to iterate through the collection.</returns>
-        IEnumerator<T> IEnumerable<T>.GetEnumerator() => this.sourceFilteredAndSortedList.GetEnumerator();
 
         /// <summary>
         /// Returns an enumerator that iterates through the collection using the specified index type.
@@ -907,14 +907,11 @@ namespace RuntimeStuff
                 {
                     this.nodeMap.Remove(item);
                     var index = this.sourceFilteredAndSortedList.IndexOf(item);
-                    if (index >= 0)
+                    if (index >= 0 && !this.SuspendListChangedEvents)
                     {
-                        if (!this.SuspendListChangedEvents)
-                        {
-                            this.ApplyFilterAndSort();
-                            this.ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
-                            this.CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
-                        }
+                        this.ApplyFilterAndSort();
+                        this.ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
+                        this.CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
                     }
                 }
             }

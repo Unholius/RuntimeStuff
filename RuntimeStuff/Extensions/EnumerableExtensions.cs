@@ -149,12 +149,12 @@ namespace RuntimeStuff.Extensions
         {
             if (source == null)
             {
-                throw new NullReferenceException("source");
+                throw new ArgumentNullException(nameof(source));
             }
 
             if (predicate == null)
             {
-                throw new NullReferenceException("predicate");
+                throw new ArgumentNullException(nameof(predicate));
             }
 
             var i = 0;

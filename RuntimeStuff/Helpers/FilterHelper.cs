@@ -254,7 +254,7 @@ namespace RuntimeStuff.Helpers
                         }
                     }
 
-                    pos++; // }
+                    pos++;
                     return new InExpr(left, values, not);
                 }
 
@@ -315,23 +315,17 @@ namespace RuntimeStuff.Helpers
                 }
 
                 // = NULL  →  IS NULL
-                if (op == "=" || op == "==")
+                if ((op == "=" || op == "==") && pos + 1 < tokens.Count && tokens[pos].Equals("NULL", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (pos + 1 < tokens.Count && tokens[pos].Equals("NULL", StringComparison.OrdinalIgnoreCase))
-                    {
-                        pos++; // пропускаем NULL
-                        return new BinaryExpr(left, "IS NULL", new ConstantExpr(null));
-                    }
+                    pos++; // пропускаем NULL
+                    return new BinaryExpr(left, "IS NULL", new ConstantExpr(null));
                 }
 
                 // != NULL  →  IS NOT NULL
-                if (op == "!=")
+                if (op == "!=" && pos + 1 < tokens.Count && tokens[pos].Equals("NULL", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (pos + 1 < tokens.Count && tokens[pos].Equals("NULL", StringComparison.OrdinalIgnoreCase))
-                    {
-                        pos++;
-                        return new BinaryExpr(left, "IS NOT NULL", new ConstantExpr(null));
-                    }
+                    pos++;
+                    return new BinaryExpr(left, "IS NOT NULL", new ConstantExpr(null));
                 }
 
                 // IS EMPTY / IS NOT EMPTY
@@ -606,7 +600,7 @@ namespace RuntimeStuff.Helpers
                         var regexConst = Expression.Constant(new Regex(pattern, RegexOptions.IgnoreCase));
                         if (left?.Type != null && left.Type != typeof(string))
                         {
-                            left = Expression.Call(left, left.Type.GetMethod("ToString", Type.EmptyTypes) ?? throw new NullReferenceException());
+                            left = Expression.Call(left, left.Type.GetMethod("ToString", Type.EmptyTypes) ?? throw new MissingMemberException(left.Type.FullName, "ToString"));
                         }
 
                         return Expression.Call(regexConst, "IsMatch", null, left);

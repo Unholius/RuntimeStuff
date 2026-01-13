@@ -48,7 +48,7 @@ namespace RuntimeStuff.Helpers
         {
             if (eventId == null)
             {
-                throw new NullReferenceException(nameof(eventId));
+                throw new ArgumentNullException(nameof(eventId));
             }
 
             var tcs = new TaskCompletionSource<EventResult<T>>(
@@ -68,6 +68,7 @@ namespace RuntimeStuff.Helpers
                     removed.TrySetCanceled();
                 }
             });
+            cts.Dispose();
             return tcs.Task;
         }
 
@@ -85,7 +86,7 @@ namespace RuntimeStuff.Helpers
         {
             if (eventId == null)
             {
-                throw new NullReferenceException(nameof(eventId));
+                throw new ArgumentNullException(nameof(eventId));
             }
 
             var tcs = new TaskCompletionSource<EventResult<T>>(
@@ -105,7 +106,7 @@ namespace RuntimeStuff.Helpers
                     removed.TrySetResult(new EventResult<T>(eventId, timeoutStatus));
                 }
             });
-
+            cts.Dispose();
             return tcs.Task;
         }
 
@@ -122,7 +123,7 @@ namespace RuntimeStuff.Helpers
         {
             if (eventId == null)
             {
-                throw new NullReferenceException(nameof(eventId));
+                throw new ArgumentNullException(nameof(eventId));
             }
 
             var eventInfo = new EventResult<T>(eventId, status, eventData);
@@ -147,7 +148,7 @@ namespace RuntimeStuff.Helpers
         {
             if (eventId == null)
             {
-                throw new NullReferenceException(nameof(eventId));
+                throw new ArgumentNullException(nameof(eventId));
             }
 
             return Waiters.TryRemove(eventId, out var tsc) && tsc.TrySetCanceled();

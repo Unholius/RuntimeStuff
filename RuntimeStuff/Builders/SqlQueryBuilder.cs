@@ -327,7 +327,7 @@ namespace RuntimeStuff.Builders
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
             if (members.Length == 0)
             {
-                members = mi.ColumnProperties.Values.ToArray().Concat(mi.PrimaryKeys.Values).ToArray();
+                members = mi.ColumnProperties.Values.Concat(mi.PrimaryKeys.Values).ToArray();
             }
 
             if (members.Length == 0)

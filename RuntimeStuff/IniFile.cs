@@ -45,25 +45,26 @@ namespace RuntimeStuff
     /// </remarks>
     public sealed class IniFile
     {
+        private static readonly char[] InvalidPathChars = Path.GetInvalidPathChars();
+
         private static readonly Regex Regex = new Regex(
-            @"(?=\S)(?<text>(?<comment>(?<open>[#;]+)(?:[^\S\r\n]*)(?<value>.+))|" +
+                    @"(?=\S)(?<text>(?<comment>(?<open>[#;]+)(?:[^\S\r\n]*)(?<value>.+))|" +
             @"(?<section>(?<open>\[)(?:\s*)(?<value>[^\]]*\S+)(?:[^\S\r\n]*)(?<close>\]))|" +
             @"(?<entry>(?<key>[^=\r\n\[\]]*\S)(?:[^\S\r\n]*)(?<delimiter>:|=)(?:[^\S\r\n]*)(?<value>[^#;\r\n]*))|" +
             @"(?<undefined>.+))(?<=\S)|" +
             @"(?<linebreaker>\r\n|\n)|" +
             @"(?<whitespace>[^\S\r\n]+)", RegexOptions.Compiled);
 
-        private static readonly char[] InvalidPathChars = Path.GetInvalidPathChars();
         private readonly bool allowEscapeChars;
         private readonly StringComparison comparison = StringComparison.InvariantCultureIgnoreCase;
-        private readonly string lineBreaker;
         private readonly string fileName;
-        private string content;
-        private Dictionary<string, Dictionary<string, List<string>>> valueCache;
-        private Dictionary<string, HashSet<string>> keyCache;
-        private Dictionary<string, Dictionary<string, List<(int index, int length)>>> writeIndex;
-        private HashSet<string> sectionCache;
+        private readonly string lineBreaker;
         private bool cacheDirty = true;
+        private string content;
+        private Dictionary<string, HashSet<string>> keyCache;
+        private HashSet<string> sectionCache;
+        private Dictionary<string, Dictionary<string, List<string>>> valueCache;
+        private Dictionary<string, Dictionary<string, List<(int index, int length)>>> writeIndex;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IniFile"/> class.
@@ -245,6 +246,119 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Возвращает перечисление ключей в указанной секции.
+        /// </summary>
+        /// <param name="section">Имя секции. Если null, возвращаются ключи глобальной секции.</param>
+        /// <returns>Перечисление имен ключей.</returns>
+        public IEnumerable<string> GetKeys(string section)
+        {
+            this.EnsureCache();
+
+            if (section == null)
+            {
+                section = string.Empty;
+            }
+
+            return this.keyCache.TryGetValue(section, out var keys) ? keys : Enumerable.Empty<string>();
+        }
+
+        /// <summary>
+        /// Возвращает перечисление всех секций в файле.
+        /// </summary>
+        /// <returns>Перечисление имен секций.</returns>
+        public IEnumerable<string> GetSections()
+        {
+            this.EnsureCache();
+
+            foreach (var section in this.sectionCache)
+            {
+                // пропускаем пустую секцию, если в ней нет ключей
+                if (section.Length == 0 && (!this.keyCache.TryGetValue(section, out var keys) || keys.Count == 0))
+                {
+                    continue;
+                }
+
+                yield return section;
+            }
+        }
+
+        /// <summary>
+        /// Получает строковое значение ключа.
+        /// </summary>
+        /// <param name="section">Имя секции. Может быть null для глобальных ключей.</param>
+        /// <param name="key">Имя ключа.</param>
+        /// <param name="defaultValue">Значение по умолчанию.</param>
+        /// <returns>Значение ключа или defaultValue.</returns>
+        public string GetValue(string section, string key, string defaultValue = null)
+        {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            this.EnsureCache();
+
+            if (section == null)
+            {
+                section = string.Empty;
+            }
+
+            if (this.valueCache.TryGetValue(section, out var keys) &&
+                keys.TryGetValue(key, out var values) &&
+                values.Count > 0)
+            {
+                return values.Last(); // последний wins
+            }
+
+            return defaultValue;
+        }
+
+        /// <summary>
+        /// Сохраняет содержимое INI-файла в файл на диске.
+        /// </summary>
+        /// <param name="encoding">Кодировка для записи. Если null, используется UTF-8.</param>
+        /// <exception cref="ArgumentException">Если fileName некорректен.</exception>
+        public void Save(Encoding encoding = null)
+        {
+            var fullPath = GetFullPath(this.fileName);
+            File.WriteAllText(fullPath, this.Content, encoding ?? Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// Сохраняет содержимое INI-файла в TextWriter.
+        /// </summary>
+        /// <param name="writer">TextWriter для записи.</param>
+        public void SaveAs(TextWriter writer)
+        {
+            writer.Write(this.Content);
+        }
+
+        /// <summary>
+        /// Сохраняет содержимое INI-файла в поток (Stream).
+        /// </summary>
+        /// <param name="stream">Поток для записи.</param>
+        /// <param name="encoding">Кодировка для записи. Если null, используется UTF-8.</param>
+        public void SaveAs(Stream stream, Encoding encoding = null)
+        {
+            using (var writer = new StreamWriter(stream, encoding ?? Encoding.UTF8))
+            {
+                writer.Write(this.Content);
+            }
+        }
+
+        /// <summary>
+        /// Сохраняет содержимое INI-файла в файл на диске.
+        /// </summary>
+        /// <param name="newFileName">Путь к файлу.</param>
+        /// <param name="encoding">Кодировка для записи. Если null, используется UTF-8.</param>
+        /// <exception cref="ArgumentException">Если fileName некорректен.</exception>
+        public void SaveAs(string newFileName, Encoding encoding = null)
+        {
+            var fullPath = GetFullPath(newFileName);
+            File.WriteAllText(fullPath, this.Content, encoding ?? Encoding.UTF8);
+        }
+
+        /// <summary>
         /// Устанавливает строковое значение ключа.
         /// </summary>
         /// <param name="section">Имя секции. Может быть null для глобальных ключей.</param>
@@ -284,128 +398,12 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает строковое значение ключа.
-        /// </summary>
-        /// <param name="section">Имя секции. Может быть null для глобальных ключей.</param>
-        /// <param name="key">Имя ключа.</param>
-        /// <param name="defaultValue">Значение по умолчанию.</param>
-        /// <returns>Значение ключа или defaultValue.</returns>
-        public string GetValue(string section, string key, string defaultValue = null)
-        {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-
-            this.EnsureCache();
-
-            if (section == null)
-            {
-                section = string.Empty;
-            }
-
-            if (this.valueCache.TryGetValue(section, out var keys) &&
-                keys.TryGetValue(key, out var values) &&
-                values.Count > 0)
-            {
-                return values.Last(); // последний wins
-            }
-
-            return defaultValue;
-        }
-
-        /// <summary>
-        /// Сохраняет содержимое INI-файла в TextWriter.
-        /// </summary>
-        /// <param name="writer">TextWriter для записи.</param>
-        public void SaveAs(TextWriter writer)
-        {
-            writer.Write(this.Content);
-        }
-
-        /// <summary>
-        /// Сохраняет содержимое INI-файла в поток (Stream).
-        /// </summary>
-        /// <param name="stream">Поток для записи.</param>
-        /// <param name="encoding">Кодировка для записи. Если null, используется UTF-8.</param>
-        public void SaveAs(Stream stream, Encoding encoding = null)
-        {
-            using (var writer = new StreamWriter(stream, encoding ?? Encoding.UTF8))
-            {
-                writer.Write(this.Content);
-            }
-        }
-
-        /// <summary>
-        /// Сохраняет содержимое INI-файла в файл на диске.
-        /// </summary>
-        /// <param name="encoding">Кодировка для записи. Если null, используется UTF-8.</param>
-        /// <exception cref="ArgumentException">Если fileName некорректен.</exception>
-        public void Save(Encoding encoding = null)
-        {
-            var fullPath = GetFullPath(this.fileName);
-            File.WriteAllText(fullPath, this.Content, encoding ?? Encoding.UTF8);
-        }
-
-        /// <summary>
-        /// Сохраняет содержимое INI-файла в файл на диске.
-        /// </summary>
-        /// <param name="newFileName">Путь к файлу.</param>
-        /// <param name="encoding">Кодировка для записи. Если null, используется UTF-8.</param>
-        /// <exception cref="ArgumentException">Если fileName некорректен.</exception>
-        public void SaveAs(string newFileName, Encoding encoding = null)
-        {
-            var fullPath = GetFullPath(newFileName);
-            File.WriteAllText(fullPath, this.Content, encoding ?? Encoding.UTF8);
-        }
-
-        /// <summary>
         /// Возвращает содержимое INI-файла в виде строки.
         /// </summary>
         /// <returns>Строковое представление содержимого INI-файла.</returns>
         public override string ToString()
         {
             return this.Content;
-        }
-
-        /// <summary>
-        /// Возвращает перечисление ключей в указанной секции.
-        /// </summary>
-        /// <param name="section">Имя секции. Если null, возвращаются ключи глобальной секции.</param>
-        /// <returns>Перечисление имен ключей.</returns>
-        public IEnumerable<string> GetKeys(string section)
-        {
-            this.EnsureCache();
-
-            if (section == null)
-            {
-                section = string.Empty;
-            }
-
-            return this.keyCache.TryGetValue(section, out var keys) ? keys : Enumerable.Empty<string>();
-        }
-
-        /// <summary>
-        /// Возвращает перечисление всех секций в файле.
-        /// </summary>
-        /// <returns>Перечисление имен секций.</returns>
-        public IEnumerable<string> GetSections()
-        {
-            this.EnsureCache();
-
-            foreach (var section in this.sectionCache)
-            {
-                // пропускаем пустую секцию, если в ней нет ключей
-                if (section.Length == 0)
-                {
-                    if (!this.keyCache.TryGetValue(section, out var keys) || keys.Count == 0)
-                    {
-                        continue;
-                    }
-                }
-
-                yield return section;
-            }
         }
 
         /// <summary>
@@ -885,86 +883,6 @@ namespace RuntimeStuff
             return null;
         }
 
-        /// <summary>
-        /// Устанавливает значение ключа. Если ключ существует, обновляет его значение. Если нет — добавляет новый ключ.
-        /// </summary>
-        /// <param name="section">Имя секции. Может быть null для глобальных ключей.</param>
-        /// <param name="key">Имя ключа.</param>
-        /// <param name="value">Значение для установки. Если null или пустая строка, ключ будет удален.</param>
-        private void SetValueSlow(string section, string key, string value)
-        {
-            var emptySection = string.IsNullOrEmpty(section);
-            var expectedValue = !string.IsNullOrEmpty(value);
-            var inSection = emptySection;
-            Match lastMatch = null;
-            var sb = new StringBuilder(this.content);
-
-            if (this.allowEscapeChars && expectedValue)
-            {
-                value = ToEscape(value);
-            }
-
-            for (var match = IniFile.Regex.Match(this.Content); match.Success; match = match.NextMatch())
-            {
-                if (match.Groups["section"].Success)
-                {
-                    inSection = match.Groups["value"].Value.Equals(section, this.comparison);
-                    if (emptySection)
-                    {
-                        break;
-                    }
-
-                    continue;
-                }
-
-                if (inSection && match.Groups["entry"].Success)
-                {
-                    lastMatch = match;
-
-                    if (!match.Groups["key"].Value.Equals(key, this.comparison))
-                    {
-                        continue;
-                    }
-
-                    var group = match.Groups["value"];
-
-                    var index = group.Index;
-                    var length = group.Length;
-
-                    sb.Remove(index, length);
-
-                    if (expectedValue)
-                    {
-                        sb.Insert(index, value);
-                    }
-
-                    expectedValue = false;
-                    break;
-                }
-            }
-
-            if (expectedValue)
-            {
-                var index = 0;
-
-                if (lastMatch != null)
-                {
-                    index = lastMatch.Index + lastMatch.Length;
-                }
-                else if (!emptySection)
-                {
-                    sb.Append(this.lineBreaker);
-                    sb.Append($"[{section}]{this.lineBreaker}");
-                    index = sb.Length;
-                }
-
-                var line = $"{key}={value}";
-                InsertLine(sb, ref index, this.lineBreaker, line);
-            }
-
-            this.Content = sb.ToString();
-        }
-
         private void EnsureCache()
         {
             if (!this.cacheDirty && this.valueCache != null)
@@ -1049,6 +967,86 @@ namespace RuntimeStuff
             }
 
             this.cacheDirty = false;
+        }
+
+        /// <summary>
+        /// Устанавливает значение ключа. Если ключ существует, обновляет его значение. Если нет — добавляет новый ключ.
+        /// </summary>
+        /// <param name="section">Имя секции. Может быть null для глобальных ключей.</param>
+        /// <param name="key">Имя ключа.</param>
+        /// <param name="value">Значение для установки. Если null или пустая строка, ключ будет удален.</param>
+        private void SetValueSlow(string section, string key, string value)
+        {
+            var emptySection = string.IsNullOrEmpty(section);
+            var expectedValue = !string.IsNullOrEmpty(value);
+            var inSection = emptySection;
+            Match lastMatch = null;
+            var sb = new StringBuilder(this.content);
+
+            if (this.allowEscapeChars && expectedValue)
+            {
+                value = ToEscape(value);
+            }
+
+            for (var match = IniFile.Regex.Match(this.Content); match.Success; match = match.NextMatch())
+            {
+                if (match.Groups["section"].Success)
+                {
+                    inSection = match.Groups["value"].Value.Equals(section, this.comparison);
+                    if (emptySection)
+                    {
+                        break;
+                    }
+
+                    continue;
+                }
+
+                if (inSection && match.Groups["entry"].Success)
+                {
+                    lastMatch = match;
+
+                    if (!match.Groups["key"].Value.Equals(key, this.comparison))
+                    {
+                        continue;
+                    }
+
+                    var group = match.Groups["value"];
+
+                    var index = group.Index;
+                    var length = group.Length;
+
+                    sb.Remove(index, length);
+
+                    if (expectedValue)
+                    {
+                        sb.Insert(index, value);
+                    }
+
+                    expectedValue = false;
+                    break;
+                }
+            }
+
+            if (expectedValue)
+            {
+                var index = 0;
+
+                if (lastMatch != null)
+                {
+                    index = lastMatch.Index + lastMatch.Length;
+                }
+                else if (!emptySection)
+                {
+                    sb.Append(this.lineBreaker);
+                    sb.Append($"[{section}]{this.lineBreaker}");
+                    index = sb.Length;
+                }
+
+                var line = $"{key}={value}";
+                InsertLine(sb, ref index, this.lineBreaker, line);
+            }
+
+            this.Content = sb.ToString();
         }
     }
 }

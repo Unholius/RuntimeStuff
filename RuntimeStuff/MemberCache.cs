@@ -1491,7 +1491,12 @@ namespace RuntimeStuff
                 ctorArgs = Array.Empty<object>();
             }
 
-            var typeInfo = Create(type) ?? throw new NullReferenceException(nameof(Create) + ": type is null!");
+            if (type == null)
+            {
+                throw new ArgumentNullException(nameof(type));
+            }
+
+            var typeInfo = Create(type);
             if (typeInfo.DefaultConstructor != null && ctorArgs.Length == 0)
             {
                 return typeInfo.DefaultConstructor();
@@ -2185,35 +2190,6 @@ namespace RuntimeStuff
         public override bool IsDefined(Type attributeType, bool inherit) => this.MemberInfo.IsDefined(attributeType, inherit);
 
         /// <summary>
-        /// Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
-        /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <returns>Созданный экземпляр указанного типа.</returns>
-        public T New<T>()
-            where T : class => this.DefaultConstructor() as T;
-
-        /// <summary>
-        /// Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
-        /// </summary>
-        /// <returns>Созданный экземпляр указанного типа.</returns>
-        public object New() => this.IsBasic ? Obj.Default(this.Type) : this.DefaultConstructor();
-
-        /// <summary>
-        /// Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
-        /// </summary>
-        /// <param name="ctorArgs">Аргументы конструктора.</param>
-        /// <returns>Созданный экземпляр указанного типа.</returns>
-        public object New(params object[] ctorArgs) => New(typeof(Type), ctorArgs);
-
-        /// <summary>
-        /// Создаёт экземпляр указанного типа с возможностью передачи аргументов конструктора.
-        /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="ctorArgs">Аргументы конструктора.</param>
-        /// <returns>Созданный экземпляр указанного типа.</returns>
-        public T New<T>(params object[] ctorArgs) => Obj.ChangeType<T>(New(this.Type, ctorArgs));
-
-        /// <summary>
         /// Устанавливает значение свойства или поля для указанного объекта по имени. Для прямого доступа используйте
         /// <see cref="Setter" />.
         /// </summary>
@@ -2315,12 +2291,12 @@ namespace RuntimeStuff
         {
             if (source == null)
             {
-                throw new NullReferenceException("source");
+                throw new ArgumentNullException(nameof(source));
             }
 
             if (predicate == null)
             {
-                throw new NullReferenceException("predicate");
+                throw new ArgumentNullException(nameof(predicate));
             }
 
             var i = 0;

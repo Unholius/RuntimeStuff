@@ -1709,7 +1709,7 @@ namespace RuntimeStuff
                     {
                         if (!(cmd is DbCommand dbCmd))
                         {
-                            throw new NullReferenceException(nameof(dbCmd));
+                            throw new ArgumentNullException(nameof(dbCmd));
                         }
 
                         foreach (T item in list)
@@ -2297,7 +2297,7 @@ namespace RuntimeStuff
         {
             if (string.IsNullOrWhiteSpace(query))
             {
-                throw new NullReferenceException(nameof(query));
+                throw new ArgumentNullException(nameof(query));
             }
 
             List<DataTable> result = new List<DataTable>();
@@ -2383,7 +2383,7 @@ namespace RuntimeStuff
         {
             if (string.IsNullOrWhiteSpace(query))
             {
-                throw new NullReferenceException(nameof(query));
+                throw new ArgumentNullException(nameof(query));
             }
 
             List<DataTable> result = new List<DataTable>();
@@ -2979,7 +2979,7 @@ namespace RuntimeStuff
                     {
                         if (!(cmd is DbCommand dbCmd))
                         {
-                            throw new NullReferenceException(nameof(dbCmd));
+                            throw new InvalidCastException($"Cannot cast argument '{nameof(cmd)}' to type '{typeof(DbCommand).FullName}'.");
                         }
 
                         foreach (T item in list)
@@ -3276,7 +3276,7 @@ namespace RuntimeStuff
 
             if (con == null)
             {
-                throw new NullReferenceException(nameof(con));
+                throw new ArgumentNullException(nameof(con));
             }
 
             if (con.State != ConnectionState.Closed)

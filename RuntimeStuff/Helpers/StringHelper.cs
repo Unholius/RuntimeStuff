@@ -328,18 +328,15 @@ namespace RuntimeStuff.Helpers
                         }
 
                         var prevToken = result.LastOrDefault();
-                        if (prevToken?.Mask?.AllowedNextMasks?.Any() == true)
+                        if (prevToken?.Mask?.AllowedNextMasks?.Any() == true && !prevToken.Mask.AllowedNextMasks.Contains(tm))
                         {
-                            if (!prevToken.Mask.AllowedNextMasks.Contains(tm))
+                            if (tm.ThrowExceptionOnNotAllowedToken)
                             {
-                                if (tm.ThrowExceptionOnNotAllowedToken)
-                                {
-                                    throw new InvalidOperationException($"Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a next of {prevToken} token.");
-                                }
-                                else
-                                {
-                                    break;
-                                }
+                                throw new InvalidOperationException($"Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a next of {prevToken} token.");
+                            }
+                            else
+                            {
+                                break;
                             }
                         }
 

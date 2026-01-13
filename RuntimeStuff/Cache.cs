@@ -88,6 +88,11 @@ namespace RuntimeStuff
         private readonly ConcurrentDictionary<TKey, Lazy<Task<CacheEntry>>> cache;
 
         /// <summary>
+        /// The eviction policy.
+        /// </summary>
+        private readonly EvictionPolicy evictionPolicy;
+
+        /// <summary>
         /// The expiration.
         /// </summary>
         private readonly TimeSpan? expiration;
@@ -101,11 +106,6 @@ namespace RuntimeStuff
         /// The size limit.
         /// </summary>
         private readonly uint? sizeLimit;
-
-        /// <summary>
-        /// The eviction policy.
-        /// </summary>
-        private readonly EvictionPolicy evictionPolicy;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Cache{TKey, TValue}" /> class.
@@ -155,6 +155,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Событие вызываемое при успешном доступе к элементу
+        /// </summary>
+        public event Action<TKey> ItemAccessed;
+
+        /// <summary>
         /// Событие, вызываемое при добавлении элемента в кэш.
         /// </summary>
         public event Action<TKey> ItemAdded;
@@ -163,11 +168,6 @@ namespace RuntimeStuff
         /// Событие, вызываемое при удалении элемента из кэша.
         /// </summary>
         public event Action<TKey, RemovalReason> ItemRemoved;
-
-        /// <summary>
-        /// Событие вызываемое при успешном доступе к элементу
-        /// </summary>
-        public event Action<TKey> ItemAccessed;
 
         /// <summary>
         /// Gets количество актуальных элементов кэша.
@@ -247,28 +247,6 @@ namespace RuntimeStuff
                 .GetResult();
 
         /// <summary>
-        /// Получает значение из кэша по указанному ключу
-        /// либо возвращает заданное значение по умолчанию.
-        /// </summary>
-        /// <param name="key">Ключ элемента кэша.</param>
-        /// <param name="defaultValue">Значение, которое будет возвращено, если элемент отсутствует в кэше
-        /// или не может быть получен.</param>
-        /// <returns>Значение из кэша, если оно найдено;
-        /// в противном случае — <paramref name="defaultValue" />.</returns>
-        /// <remarks>Метод является удобной обёрткой над
-        /// <see cref="TryGetValue(TKey, out TValue)" />
-        /// и не генерирует исключений при отсутствии элемента.</remarks>
-        public TValue GetOrDefault(TKey key, TValue defaultValue)
-        {
-            if (this.TryGetValue(key, out var value))
-            {
-                return value;
-            }
-
-            return defaultValue;
-        }
-
-        /// <summary>
         /// Асинхронно получает значение из кэша или создаёт его.
         /// </summary>
         /// <param name="key">Ключ.</param>
@@ -332,6 +310,56 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Gets the entries.
+        /// </summary>
+        /// <returns>IEnumerable&lt;System.ValueTuple&lt;TKey, TValue, DateTime, DateTime&gt;&gt;.</returns>
+        public IEnumerable<(TKey Key, TValue Value, DateTime Created, DateTime LastAccess)> GetEntries() => this.cache.Values.Select(x => (x.Value.Result.Key, x.Value.Result.Value, x.Value.Result.Created, x.Value.Result.LastAccess));
+
+        /// <summary>
+        /// Возвращает перечислитель по актуальным элементам кэша.
+        /// Только успешно созданные и неистёкшие элементы.
+        /// </summary>
+        /// <returns>Перечислитель ключ-значение.</returns>
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            foreach (var entry in this.cache.Values.OrderBy(x => x.Value.Result.Created))
+            {
+                if (this.TryGetValue(entry.Value.Result.Key, out var value))
+                {
+                    yield return new KeyValuePair<TKey, TValue>(entry.Value.Result.Key, value);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns>An <see cref="T:System.Collections.IEnumerator"></see> object that can be used to iterate through the collection.</returns>
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
+
+        /// <summary>
+        /// Получает значение из кэша по указанному ключу
+        /// либо возвращает заданное значение по умолчанию.
+        /// </summary>
+        /// <param name="key">Ключ элемента кэша.</param>
+        /// <param name="defaultValue">Значение, которое будет возвращено, если элемент отсутствует в кэше
+        /// или не может быть получен.</param>
+        /// <returns>Значение из кэша, если оно найдено;
+        /// в противном случае — <paramref name="defaultValue" />.</returns>
+        /// <remarks>Метод является удобной обёрткой над
+        /// <see cref="TryGetValue(TKey, out TValue)" />
+        /// и не генерирует исключений при отсутствии элемента.</remarks>
+        public TValue GetOrDefault(TKey key, TValue defaultValue)
+        {
+            if (this.TryGetValue(key, out var value))
+            {
+                return value;
+            }
+
+            return defaultValue;
+        }
+
+        /// <summary>
         /// Асинхронно получает значение из кэша по указанному ключу
         /// либо возвращает заданное значение по умолчанию.
         /// </summary>
@@ -371,6 +399,22 @@ namespace RuntimeStuff
 
             this.UpdateLastAccess(key, entry);
             return entry.Value;
+        }
+
+        /// <summary>
+        /// Удаляет элемент из кэша.
+        /// </summary>
+        /// <param name="key">Ключ элемента.</param>
+        /// <returns><c>true</c>, если элемент существовал и был удалён; иначе <c>false</c>.</returns>
+        public bool Remove(TKey key)
+        {
+            if (this.cache.TryRemove(key, out _))
+            {
+                this.OnItemRemoved(key, RemovalReason.Manual);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -439,50 +483,6 @@ namespace RuntimeStuff
 
             var value = await valueTask.ConfigureAwait(false);
             this.Set(key, value);
-        }
-
-        /// <summary>
-        /// Возвращает перечислитель по актуальным элементам кэша.
-        /// Только успешно созданные и неистёкшие элементы.
-        /// </summary>
-        /// <returns>Перечислитель ключ-значение.</returns>
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
-        {
-            foreach (var entry in this.cache.Values.OrderBy(x => x.Value.Result.Created))
-            {
-                if (this.TryGetValue(entry.Value.Result.Key, out var value))
-                {
-                    yield return new KeyValuePair<TKey, TValue>(entry.Value.Result.Key, value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets the entries.
-        /// </summary>
-        /// <returns>IEnumerable&lt;System.ValueTuple&lt;TKey, TValue, DateTime, DateTime&gt;&gt;.</returns>
-        public IEnumerable<(TKey Key, TValue Value, DateTime Created, DateTime LastAccess)> GetEntries() => this.cache.Values.Select(x => (x.Value.Result.Key, x.Value.Result.Value, x.Value.Result.Created, x.Value.Result.LastAccess));
-
-        /// <summary>
-        /// Returns an enumerator that iterates through a collection.
-        /// </summary>
-        /// <returns>An <see cref="T:System.Collections.IEnumerator"></see> object that can be used to iterate through the collection.</returns>
-        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
-
-        /// <summary>
-        /// Удаляет элемент из кэша.
-        /// </summary>
-        /// <param name="key">Ключ элемента.</param>
-        /// <returns><c>true</c>, если элемент существовал и был удалён; иначе <c>false</c>.</returns>
-        public bool Remove(TKey key)
-        {
-            if (this.cache.TryRemove(key, out _))
-            {
-                this.OnItemRemoved(key, RemovalReason.Manual);
-                return true;
-            }
-
-            return false;
         }
 
         /// <summary>
@@ -580,16 +580,16 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Вызывает событие добавления элемента.
-        /// </summary>
-        /// <param name="key">Ключ элемента.</param>
-        protected void OnItemAdded(TKey key) => this.ItemAdded?.Invoke(key);
-
-        /// <summary>
         /// Вызывает событие доступа к элементу.
         /// </summary>
         /// <param name="key">Ключ элемента.</param>
         protected void OnItemAccessed(TKey key) => this.ItemAccessed?.Invoke(key);
+
+        /// <summary>
+        /// Вызывает событие добавления элемента.
+        /// </summary>
+        /// <param name="key">Ключ элемента.</param>
+        protected void OnItemAdded(TKey key) => this.ItemAdded?.Invoke(key);
 
         /// <summary>
         /// Вызывает событие удаления элемента.
@@ -624,41 +624,45 @@ namespace RuntimeStuff
                 return;
             }
 
+            while (this.cache.Count > this.sizeLimit.Value)
             {
-                while (this.cache.Count > this.sizeLimit.Value)
-                {
-                    var candidate = this.cache
-                        .Where(p =>
-                            p.Value.IsValueCreated &&
-                            p.Value.Value.IsCompleted)
-                        .Select(p =>
+                var candidate = this.cache
+                    .Where(p =>
+                        p.Value.IsValueCreated &&
+                        p.Value.Value.IsCompleted)
+                    .Select(p =>
+                    {
+                        var entry = p.Value.Value.Result;
+                        return new
                         {
-                            var entry = p.Value.Value.Result;
-                            return new
-                            {
-                                p.Key,
-                                entry.Created,
-                                entry.LastAccess,
-                            };
-                        })
-                        .OrderBy(p =>
-                            this.evictionPolicy == EvictionPolicy.FIFO
-                                ? p.Created
-                                : p.LastAccess)
-                        .FirstOrDefault();
+                            p.Key,
+                            entry.Created,
+                            entry.LastAccess,
+                        };
+                    })
+                    .OrderBy(p =>
+                        this.evictionPolicy == EvictionPolicy.FIFO
+                            ? p.Created
+                            : p.LastAccess)
+                    .FirstOrDefault();
 
-                    if (candidate == null)
-                    {
-                        return;
-                    }
+                if (candidate == null)
+                {
+                    return;
+                }
 
-                    if (this.cache.TryRemove(candidate.Key, out _))
-                    {
-                        this.OnItemRemoved(candidate.Key, RemovalReason.SizeLimit);
-                    }
+                if (this.cache.TryRemove(candidate.Key, out _))
+                {
+                    this.OnItemRemoved(candidate.Key, RemovalReason.SizeLimit);
                 }
             }
         }
+
+        /// <summary>
+        /// Nows this instance.
+        /// </summary>
+        /// <returns>DateTime.</returns>
+        private DateTime Now() => DateTimeHelper.ExactNow();
 
         /// <summary>
         /// Updates the last access.
@@ -670,12 +674,6 @@ namespace RuntimeStuff
             entry.LastAccess = this.Now();
             this.OnItemAccessed(key);
         }
-
-        /// <summary>
-        /// Nows this instance.
-        /// </summary>
-        /// <returns>DateTime.</returns>
-        private DateTime Now() => DateTimeHelper.ExactNow();
 
         /// <summary>
         /// Class CacheEntry. This class cannot be inherited.
@@ -697,28 +695,28 @@ namespace RuntimeStuff
             }
 
             /// <summary>
-            /// Gets the key.
-            /// </summary>
-            /// <value>The key.</value>
-            public TKey Key { get; }
-
-            /// <summary>
-            /// Gets the value.
-            /// </summary>
-            /// <value>The value.</value>
-            public TValue Value { get; }
-
-            /// <summary>
             /// Gets the created.
             /// </summary>
             /// <value>The created.</value>
             public DateTime Created { get; }
 
             /// <summary>
+            /// Gets the key.
+            /// </summary>
+            /// <value>The key.</value>
+            public TKey Key { get; }
+
+            /// <summary>
             /// Gets or sets the last access.
             /// </summary>
             /// <value>The last access.</value>
             public DateTime LastAccess { get; internal set; }
+
+            /// <summary>
+            /// Gets the value.
+            /// </summary>
+            /// <value>The value.</value>
+            public TValue Value { get; }
         }
     }
 }
