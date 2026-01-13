@@ -350,14 +350,15 @@ namespace RuntimeStuff
                 this.IsMethod ? this.AsMethodInfo().IsPublic :
                 this.IsConstructor ? this.AsConstructorInfo().IsPublic :
                 this.IsEvent || this.Type.IsPublic;
-            this.IsPrivate = this.typeCache?.IsPrivate ??
-                        this.IsProperty ? this.AsPropertyInfo().GetAccessors().Any(m => m.IsPrivate) :
-                this.IsField ? this.AsFieldInfo().IsPrivate :
-                this.IsMethod ? this.AsMethodInfo().IsPrivate :
-                this.IsConstructor ? this.AsConstructorInfo().IsPrivate :
-                this.IsType ? !this.Type.IsPublic :
-                !this.IsEvent
-                ;
+
+            this.IsPrivate = this.typeCache?.IsPrivate ?? this.IsProperty
+                ? this.AsPropertyInfo().GetAccessors().Any(m => m.IsPrivate)
+                : this.IsField ? this.AsFieldInfo().IsPrivate
+                    : this.IsMethod
+                        ? this.AsMethodInfo().IsPrivate
+                        : this.IsConstructor
+                            ? this.AsConstructorInfo().IsPrivate
+                            : this.IsType ? !this.Type.IsPublic : !this.IsEvent;
 
             this.Attributes = this.GetAttributes().ToDictionaryDistinct(x => x.GetType().Name);
             this.Events = this.GetEvents().ToDictionaryDistinct(x => x.Name);

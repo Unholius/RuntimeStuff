@@ -30,6 +30,13 @@ namespace RuntimeStuff.Helpers
     /// использовать их без создания экземпляра класса.</remarks>
     public static class DateTimeHelper
     {
+        static DateTimeHelper()
+        {
+            LocalUtcOffset = TimeZoneInfo.Local.GetUtcOffset(DateTime.Now);
+        }
+
+        public static TimeSpan LocalUtcOffset { get; private set; }
+
         /// <summary>
         /// Универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
         /// Пытается распарсить дату из строки, используя набор фиксированных форматов. Если не получается, то пытается угадать
@@ -162,11 +169,15 @@ namespace RuntimeStuff.Helpers
                 long original, newValue;
                 do
                 {
-                    original = lastTimeStamp;
-                    var now = DateTime.Now.Ticks;
-                    newValue = Math.Max(now, original + 1);
+                    original = Volatile.Read(ref lastTimeStamp);
+
+                    var now = DateTime.UtcNow.Ticks + LocalUtcOffset.Ticks;
+                    var next = original + 1;
+
+                    newValue = now > next ? now : next;
                 }
-                while (Interlocked.CompareExchange(ref lastTimeStamp, newValue, original) != original);
+                while (Interlocked.CompareExchange(
+                           ref lastTimeStamp, newValue, original) != original);
 
                 return newValue;
             }

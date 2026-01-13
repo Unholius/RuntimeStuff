@@ -907,14 +907,11 @@ namespace RuntimeStuff
                 {
                     this.nodeMap.Remove(item);
                     var index = this.sourceFilteredAndSortedList.IndexOf(item);
-                    if (index >= 0)
+                    if (index >= 0 && !this.SuspendListChangedEvents)
                     {
-                        if (!this.SuspendListChangedEvents)
-                        {
-                            this.ApplyFilterAndSort();
-                            this.ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
-                            this.CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
-                        }
+                        this.ApplyFilterAndSort();
+                        this.ListChanged?.Invoke(this, new ListChangedEventArgs(ListChangedType.ItemDeleted, index));
+                        this.CollectionChanged?.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, item, index));
                     }
                 }
             }
