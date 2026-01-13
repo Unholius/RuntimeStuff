@@ -299,7 +299,9 @@ namespace RuntimeStuff.Helpers
         /// Gets флаги для поиска членов класса по умолчанию.
         /// </summary>
         /// <value>The default binding flags.</value>
+#pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
         public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
+#pragma warning restore S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
                                                                   BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
@@ -1449,7 +1451,7 @@ namespace RuntimeStuff.Helpers
 
             // Вариант 1: Поиск автоматически сгенерированного поля для автосвойств
             var autoBackingFieldName = $"<{propertyName}>k__BackingField";
-            var field = declaringType.GetField(autoBackingFieldName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+            var field = declaringType.GetField(autoBackingFieldName, DefaultBindingFlags);
 
             if (field != null)
             {
@@ -1460,7 +1462,7 @@ namespace RuntimeStuff.Helpers
             var baseType = declaringType.BaseType;
             while (baseType != null && baseType != typeof(object))
             {
-                field = baseType.GetField(autoBackingFieldName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+                field = baseType.GetField(autoBackingFieldName, DefaultBindingFlags);
 
                 if (field != null)
                 {
@@ -2413,7 +2415,7 @@ namespace RuntimeStuff.Helpers
             // Поиск в текущем типе
             foreach (var fieldName in possibleFieldNames)
             {
-                var field = declaringType.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+                var field = declaringType.GetField(fieldName, DefaultBindingFlags);
 
                 if (field != null && field.FieldType == property.PropertyType)
                 {
@@ -2427,7 +2429,7 @@ namespace RuntimeStuff.Helpers
             {
                 foreach (var fieldName in possibleFieldNames)
                 {
-                    var field = baseType.GetField(fieldName, BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+                    var field = baseType.GetField(fieldName, DefaultBindingFlags);
 
                     if (field != null && field.FieldType == property.PropertyType)
                     {

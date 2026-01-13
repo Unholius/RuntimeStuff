@@ -110,7 +110,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="includeDate">Функция-фильтр для включения дат.</param>
         /// <param name="excludeDate">Функция-фильтр для исключения дат.</param>
         /// <returns>Последовательность дат.</returns>
-        public static IEnumerable<DateTime> GetDatesTo(
+        public static IEnumerable<DateTime> GetDates(
             this DateTime startDate,
             DateTime endDate,
             int step = 1,
@@ -124,7 +124,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="startDate">Начальная дата.</param>
         /// <param name="endDate">Конечная дата.</param>
         /// <returns>Последовательность дней.</returns>
-        public static IEnumerable<DateTime> EachDayTo(this DateTime startDate, DateTime endDate) => DateTimeHelper.EachDay(startDate, endDate);
+        public static IEnumerable<DateTime> EachDay(this DateTime startDate, DateTime endDate) => DateTimeHelper.EachDay(startDate, endDate);
 
         /// <summary>
         /// Возвращает максимальную дату из текущей и переданных дат.
@@ -132,7 +132,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="date">Первая дата для сравнения.</param>
         /// <param name="dates">Дополнительные даты для сравнения.</param>
         /// <returns>Максимальная дата.</returns>
-        public static DateTime MaxWith(this DateTime date, params DateTime[] dates)
+        public static DateTime Max(this DateTime date, params DateTime[] dates)
         {
             var allDates = new List<DateTime> { date };
             if (dates != null)
@@ -149,7 +149,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="date">Первая дата для сравнения.</param>
         /// <param name="dates">Дополнительные даты для сравнения.</param>
         /// <returns>Минимальная дата.</returns>
-        public static DateTime MinWith(this DateTime date, params DateTime[] dates)
+        public static DateTime Min(this DateTime date, params DateTime[] dates)
         {
             var allDates = new List<DateTime> { date };
             if (dates != null)
@@ -158,89 +158,6 @@ namespace RuntimeStuff.Extensions
             }
 
             return DateTimeHelper.Min(allDates.ToArray());
-        }
-
-        /// <summary>
-        /// Возвращает временной интервал между текущей и указанной датой.
-        /// </summary>
-        /// <param name="startDate">Начальная дата.</param>
-        /// <param name="endDate">Конечная дата.</param>
-        /// <returns>Интервал времени между датами.</returns>
-        public static TimeSpan ElapsedTo(this DateTime startDate, DateTime endDate) => endDate - startDate;
-
-        /// <summary>
-        /// Возвращает временной интервал между текущей датой и текущим моментом.
-        /// </summary>
-        /// <param name="date">Начальная дата.</param>
-        /// <returns>Интервал времени от указанной даты до текущего момента.</returns>
-        public static TimeSpan ElapsedFromNow(this DateTime date) => DateTime.Now - date;
-
-        /// <summary>
-        /// Проверяет, находится ли дата в указанном диапазоне (включительно).
-        /// </summary>
-        /// <param name="date">Проверяемая дата.</param>
-        /// <param name="startDate">Начало диапазона.</param>
-        /// <param name="endDate">Конец диапазона.</param>
-        /// <returns>true, если дата находится в диапазоне; в противном случае — false.</returns>
-        public static bool IsBetween(this DateTime date, DateTime startDate, DateTime endDate) => date >= startDate && date <= endDate;
-
-        /// <summary>
-        /// Проверяет, является ли дата сегодняшним днем (без учета времени).
-        /// </summary>
-        /// <param name="date">Проверяемая дата.</param>
-        /// <returns>true, если дата сегодняшняя; в противном случае — false.</returns>
-        public static bool IsToday(this DateTime date) => date.Date == DateTime.Today;
-
-        /// <summary>
-        /// Проверяет, является ли дата вчерашним днем (без учета времени).
-        /// </summary>
-        /// <param name="date">Проверяемая дата.</param>
-        /// <returns>true, если дата вчерашняя; в противном случае — false.</returns>
-        public static bool IsYesterday(this DateTime date) => date.Date == DateTime.Today.AddDays(-1);
-
-        /// <summary>
-        /// Проверяет, является ли дата завтрашним днем (без учета времени).
-        /// </summary>
-        /// <param name="date">Проверяемая дата.</param>
-        /// <returns>true, если дата завтрашняя; в противном случае — false.</returns>
-        public static bool IsTomorrow(this DateTime date) => date.Date == DateTime.Today.AddDays(1);
-
-        /// <summary>
-        /// Проверяет, является ли дата выходным днем.
-        /// </summary>
-        /// <param name="date">Проверяемая дата.</param>
-        /// <returns>true, если это суббота или воскресенье; в противном случае — false.</returns>
-        public static bool IsWeekend(this DateTime date) => date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday;
-
-        /// <summary>
-        /// Проверяет, является ли дата рабочим днем.
-        /// </summary>
-        /// <param name="date">Проверяемая дата.</param>
-        /// <returns>true, если это понедельник-пятница; в противном случае — false.</returns>
-        public static bool IsWeekday(this DateTime date) => !date.IsWeekend();
-
-        /// <summary>
-        /// Возвращает первый день недели для указанной даты.
-        /// </summary>
-        /// <param name="date">Исходная дата.</param>
-        /// <param name="startOfWeek">День, считающийся началом недели (по умолчанию понедельник).</param>
-        /// <returns>Первый день недели.</returns>
-        public static DateTime StartOfWeek(this DateTime date, DayOfWeek startOfWeek = DayOfWeek.Monday)
-        {
-            int diff = (7 + (date.DayOfWeek - startOfWeek)) % 7;
-            return date.AddDays(-1 * diff).Date;
-        }
-
-        /// <summary>
-        /// Возвращает последний день недели для указанной даты.
-        /// </summary>
-        /// <param name="date">Исходная дата.</param>
-        /// <param name="startOfWeek">День, считающийся началом недели (по умолчанию понедельник).</param>
-        /// <returns>Последний день недели.</returns>
-        public static DateTime EndOfWeek(this DateTime date, DayOfWeek startOfWeek = DayOfWeek.Monday)
-        {
-            var start = date.StartOfWeek(startOfWeek);
-            return start.AddDays(6).EndDay();
         }
     }
 }
