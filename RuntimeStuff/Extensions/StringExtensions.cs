@@ -16,6 +16,8 @@ namespace RuntimeStuff.Extensions
 {
     using System;
     using System.Globalization;
+    using System.IO;
+    using System.IO.Compression;
     using RuntimeStuff.Helpers;
 
     /// <summary>
@@ -28,6 +30,72 @@ namespace RuntimeStuff.Extensions
     /// строку, а возвращают новую строку с применёнными изменениями.</remarks>
     public static class StringExtensions
     {
+        /// <summary>
+        /// Сжимает строку с помощью GZip и возвращает результат в виде строки в формате Base64.
+        /// </summary>
+        /// <param name="s">Исходная строка для сжатия.</param>
+        /// <returns>
+        /// Сжатая строка в формате Base64, или исходная строка, если она пустая или <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Метод кодирует строку в UTF-8, затем сжимает её с помощью <see cref="GZipStream"/>.
+        /// </remarks>
+        public static string Zip(this string s) => StringHelper.Zip(s);
+
+        /// <summary>
+        /// Распаковывает строку, сжатую с помощью <see cref="Zip"/>, из формата Base64 обратно в исходный текст.
+        /// </summary>
+        /// <param name="s">Сжатая строка в формате Base64.</param>
+        /// <returns>Исходная строка, или <c>null</c>/пустая строка, если входная строка пустая.</returns>
+        /// <remarks>
+        /// Метод декодирует строку из Base64, затем распаковывает данные с помощью <see cref="GZipStream"/>
+        /// и интерпретирует их как UTF-8.
+        /// </remarks>
+        public static string UnZip(this string s) => StringHelper.UnZip(s);
+
+        /// <summary>
+        /// Заменяет недопустимые символы в имени файла на указанный заменяющий текст.
+        /// </summary>
+        /// <param name="filename">Исходное имя файла для обработки.</param>
+        /// <param name="replaceString">
+        /// Строка, на которую будут заменены все недопустимые символы.
+        /// По умолчанию используется символ подчёркивания ("_").
+        /// </param>
+        /// <returns>Имя файла с заменёнными недопустимыми символами.</returns>
+        /// <remarks>
+        /// Метод использует <see cref="Path.GetInvalidFileNameChars"/> для определения символов,
+        /// которые не могут присутствовать в имени файла, и заменяет их на <paramref name="replaceString"/>.
+        /// </remarks>
+        public static string ReplaceFileNameInvalidChars(this string filename, string replaceString = "_")
+        {
+            if (string.IsNullOrEmpty(filename))
+            {
+                return filename;
+            }
+
+            return string.Join(replaceString, filename.Split(Path.GetInvalidFileNameChars()));
+        }
+
+        /// <summary>
+        /// Удаляет повторяющиеся пробелы, табуляции и/или переносы строк из строки,
+        /// оставляя только один символ подряд для каждого типа.
+        /// </summary>
+        /// <param name="s">Исходная строка для обработки.</param>
+        /// <param name="includeNewLines">
+        /// Если <c>true</c>, последовательности символов переноса строки (<c>\r</c>, <c>\n</c>) будут сокращены до одного.
+        /// Если <c>false</c>, переносы строк сохраняются без изменений.
+        /// </param>
+        /// <param name="includeTabs">
+        /// Если <c>true</c>, последовательности табуляций (<c>\t</c>) будут сокращены до одного.
+        /// Если <c>false</c>, табуляции сохраняются без изменений.
+        /// </param>
+        /// <returns>Строка с сокращёнными последовательностями пробелов, табуляций и переносов строк.</returns>
+        /// <remarks>
+        /// Метод полезен для нормализации текста, когда необходимо удалить лишние пробелы или пустые строки,
+        /// сохраняя при этом читаемость и структуру текста.
+        /// </remarks>
+        public static string RemoveLongSpaces(string s, bool includeNewLines = true, bool includeTabs = true) => StringHelper.RemoveLongSpaces(s, includeNewLines, includeTabs);
+
         /// <summary>
         /// Trimes the white chars.
         /// </summary>

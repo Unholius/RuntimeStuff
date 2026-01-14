@@ -16,6 +16,8 @@ namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
+    using System.IO.Compression;
     using System.Linq;
     using System.Security.Cryptography;
     using System.Text;
@@ -56,10 +58,92 @@ namespace RuntimeStuff.Helpers
             '\uFEFF', // BOM (Zero Width No-Break Space)
         };
 
-        public static string RemoveLongSpaces(this string s, bool includeNewLines = true, bool includeTabs = true)
+        /// <summary>
+        /// Сжимает строку с помощью GZip и возвращает результат в виде строки в формате Base64.
+        /// </summary>
+        /// <param name="s">Исходная строка для сжатия.</param>
+        /// <returns>
+        /// Сжатая строка в формате Base64, или исходная строка, если она пустая или <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Метод кодирует строку в UTF-8, затем сжимает её с помощью <see cref="GZipStream"/>.
+        /// </remarks>
+        public static string Zip(string s)
         {
             if (string.IsNullOrEmpty(s))
+            {
                 return s;
+            }
+
+            var bytes = Encoding.UTF8.GetBytes(s);
+
+            using (var output = new MemoryStream())
+            {
+                using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
+                {
+                    gzip.Write(bytes, 0, bytes.Length);
+                }
+
+                return Convert.ToBase64String(output.ToArray());
+            }
+        }
+
+        /// <summary>
+        /// Распаковывает строку, сжатую с помощью <see cref="Zip"/>, из формата Base64 обратно в исходный текст.
+        /// </summary>
+        /// <param name="s">Сжатая строка в формате Base64.</param>
+        /// <returns>Исходная строка, или <c>null</c>/пустая строка, если входная строка пустая.</returns>
+        /// <remarks>
+        /// Метод декодирует строку из Base64, затем распаковывает данные с помощью <see cref="GZipStream"/>
+        /// и интерпретирует их как UTF-8.
+        /// </remarks>
+        public static string UnZip(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return s;
+            }
+
+            var bytes = Convert.FromBase64String(s);
+
+            using (var input = new MemoryStream(bytes))
+            {
+                using (var gzip = new GZipStream(input, CompressionMode.Decompress))
+                {
+                    using (var output = new MemoryStream())
+                    {
+                        gzip.CopyTo(output);
+
+                        return Encoding.UTF8.GetString(output.ToArray());
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Удаляет повторяющиеся пробелы, табуляции и/или переносы строк из строки,
+        /// оставляя только один символ подряд для каждого типа.
+        /// </summary>
+        /// <param name="s">Исходная строка для обработки.</param>
+        /// <param name="includeNewLines">
+        /// Если <c>true</c>, последовательности символов переноса строки (<c>\r</c>, <c>\n</c>) будут сокращены до одного.
+        /// Если <c>false</c>, переносы строк сохраняются без изменений.
+        /// </param>
+        /// <param name="includeTabs">
+        /// Если <c>true</c>, последовательности табуляций (<c>\t</c>) будут сокращены до одного.
+        /// Если <c>false</c>, табуляции сохраняются без изменений.
+        /// </param>
+        /// <returns>Строка с сокращёнными последовательностями пробелов, табуляций и переносов строк.</returns>
+        /// <remarks>
+        /// Метод полезен для нормализации текста, когда необходимо удалить лишние пробелы или пустые строки,
+        /// сохраняя при этом читаемость и структуру текста.
+        /// </remarks>
+        public static string RemoveLongSpaces(string s, bool includeNewLines = true, bool includeTabs = true)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return s;
+            }
 
             var sb = new StringBuilder(s.Length);
             char? lastChar = null;
@@ -70,19 +154,25 @@ namespace RuntimeStuff.Helpers
                 {
                     case ' ':
                         if (lastChar != ' ')
+                        {
                             sb.Append(c);
+                        }
+
                         break;
 
                     case '\t':
                         if (includeTabs)
                         {
                             if (lastChar != '\t')
+                            {
                                 sb.Append(c);
+                            }
                         }
                         else
                         {
                             sb.Append(c);
                         }
+
                         break;
 
                     case '\r':
@@ -90,12 +180,15 @@ namespace RuntimeStuff.Helpers
                         if (includeNewLines)
                         {
                             if (lastChar != '\r' && lastChar != '\n')
+                            {
                                 sb.Append(c);
+                            }
                         }
                         else
                         {
                             sb.Append(c);
                         }
+
                         break;
 
                     default:
@@ -108,7 +201,6 @@ namespace RuntimeStuff.Helpers
 
             return sb.ToString();
         }
-
 
         /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
