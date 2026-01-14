@@ -1189,6 +1189,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <value>The getter.</value>
         private Func<object, object> Getter { get; }
+        public bool IsClass { get; internal set; }
 
         /// <summary>
         /// Установить или получить значение свойства или поля по имени.

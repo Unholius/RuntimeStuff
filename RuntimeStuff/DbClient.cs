@@ -617,14 +617,15 @@ namespace RuntimeStuff
                 {
                     var p = cmd.CreateParameter();
                     p.ParameterName = cp.Key;
-                    var valueType = cp.Value?.GetType();
+                    var valueType = cp.Value?.GetType().GetMemberCache();
                     if (valueType != null && valueType.IsClass)
                     {
                         if (valueType == typeof(DataTable))
                         {
                             try
                             {
-                                Obj.Set(p, "SqlDbType", SqlDbType.Structured);
+                                //Obj.Set(p, "SqlDbType", SqlDbType.Structured);
+                                valueType.Properties["SqlDbType"].SetValue(p, SqlDbType.Structured, (x) => x);
                                 Obj.Set(p, "TypeName", ((DataTable)cp.Value).TableName);
                                 Obj.Set(p, "SqlValue", cp.Value);
                             }
