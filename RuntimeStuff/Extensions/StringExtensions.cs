@@ -31,6 +31,23 @@ namespace RuntimeStuff.Extensions
     public static class StringExtensions
     {
         /// <summary>
+        /// Разбивает строку на подстроки по одному или нескольким указанным разделителям.
+        /// </summary>
+        /// <param name="s">Исходная строка для разбиения.</param>
+        /// <param name="options">Настройки.</param>
+        /// <param name="splitBy">Массив строк-разделителей. Порядок важен, выбирается ближайший к текущей позиции.</param>
+        /// <returns>
+        /// Массив подстрок, полученных после разбиения. Если строка <c>null</c> или пустая, возвращается пустой массив.
+        /// Если <paramref name="splitBy"/> пустой или <c>null</c>, возвращается массив, содержащий исходную строку.
+        /// </returns>
+        /// <remarks>
+        /// <para>Метод выполняет последовательный поиск ближайшего разделителя и делит строку по нему.</para>
+        /// <para>Подстроки между разделителями включаются в результат, разделители сами не включаются.</para>
+        /// <para>Поддерживается несколько разделителей произвольной длины.</para>
+        /// </remarks>
+        public static string[] SplitBy(this string s, StringSplitOptions options, params string[] splitBy) => StringHelper.SplitBy(s, options, splitBy);
+
+        /// <summary>
         /// Сжимает строку с помощью GZip и возвращает результат в виде строки в формате Base64.
         /// </summary>
         /// <param name="s">Исходная строка для сжатия.</param>

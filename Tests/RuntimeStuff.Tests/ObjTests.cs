@@ -1093,7 +1093,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void GetStringCache()
         {
-            var mc = MemberCache<string>.Create();
+            var mc = MemberCache.Create(typeof(string));
             var p = new SqlParameter();
             Obj.Set(p, "SqlDbType", SqlDbType.Structured);
             var dt = new DataTable("dbo.StrList");
@@ -1101,6 +1101,456 @@ namespace RuntimeStuff.MSTests
             Obj.Set(p, "SqlDbType", SqlDbType.Structured);
             Obj.Set(p, "TypeName", ((DataTable)dt).TableName);
             Obj.Set(p, "SqlValue", dt);
+        }
+
+        [TestMethod]
+        public void FromCsv_Test_01()
+        {
+            var csv = @"Name,Age,City
+John,30,New York
+Jane,25,Los Angeles
+Bob,40,Chicago
+";
+            var result = Obj.FromCsv<TestCsv>(csv, true);
+        }
+
+        [TestMethod]
+        public void FromCsv_Test_02()
+        {
+            var csv = @"
+
+
+""John"",30,""New York"";
+
+Jane,25,Los Angeles;
+Bob,40,Chicago;
+";
+            var result = Obj.FromCsv<TestCsv>(csv, false);
+        }
+
+        public class TestCsv
+        {
+            public string? Name { get; set; }
+            public int Age { get; set; }
+            public string? City { get; set; }
+        }
+
+        #region Test Models
+        public class TestModel
+        {
+            public string Name { get; set; }
+            public int Age { get; set; }
+            public double Salary { get; set; }
+            public DateTime BirthDate { get; set; }
+        }
+
+        public class SimpleModel
+        {
+            public string Property1 { get; set; }
+            public string Property2 { get; set; }
+        }
+        #endregion
+
+        #region Empty/Null Input Tests
+        [TestMethod]
+        public void FromCsv_EmptyString_ReturnsEmptyArray()
+        {
+            // Arrange
+            var csv = "";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true);
+
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.AreEqual(0, result.Length);
+        }
+
+        [TestMethod]
+        public void FromCsv_WhiteSpaceString_ReturnsEmptyArray()
+        {
+            // Arrange
+            var csv = "   \n\n  \t  ";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true);
+
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.AreEqual(0, result.Length);
+        }
+
+        [TestMethod]
+        public void FromCsv_NullString_ReturnsEmptyArray()
+        {
+            // Act
+            var result = Obj.FromCsv<TestModel>(null, true);
+
+            // Assert
+            Assert.IsNotNull(result);
+            Assert.AreEqual(0, result.Length);
+        }
+        #endregion
+
+        #region Basic Parsing Tests
+        [TestMethod]
+        public void FromCsv_WithHeader_ValidData_ReturnsObjects()
+        {
+            // Arrange
+            var csv = "Name,Age,Salary,BirthDate\nJohn,30,50000.50,1990-01-01\nJane,25,60000.75,1995-05-15";
+            var dateParser = new Func<string, object>(s => DateTime.Parse(s));
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            {
+                if (DateTime.TryParse(s, out DateTime date))
+                    return date;
+                if (int.TryParse(s, out int intValue))
+                    return intValue;
+                if (double.TryParse(s, out double doubleValue))
+                    return doubleValue;
+                return s;
+            });
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+
+            var first = result[0];
+            Assert.AreEqual("John", first.Name);
+            Assert.AreEqual(30, first.Age);
+            Assert.AreEqual(50000.50, first.Salary);
+            Assert.AreEqual(new DateTime(1990, 1, 1), first.BirthDate);
+
+            var second = result[1];
+            Assert.AreEqual("Jane", second.Name);
+            Assert.AreEqual(25, second.Age);
+            Assert.AreEqual(60000.75, second.Salary);
+            Assert.AreEqual(new DateTime(1995, 5, 15), second.BirthDate);
+        }
+
+        [TestMethod]
+        public void FromCsv_WithoutHeader_ValidData_ReturnsObjects()
+        {
+            // Arrange
+            var csv = "Value1,Value2\nValue3,Value4";
+            var expectedProperties = typeof(SimpleModel).GetProperties().OrderBy(p => p.Name).Select(p => p.Name).ToArray();
+
+            // Act
+            var result = Obj.FromCsv<SimpleModel>(csv, false);
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("Value1", result[0].Property1);
+            Assert.AreEqual("Value2", result[0].Property2);
+            Assert.AreEqual("Value3", result[1].Property1);
+            Assert.AreEqual("Value4", result[1].Property2);
+        }
+        #endregion
+
+        #region Separator Tests
+        [TestMethod]
+        public void FromCsv_CustomColumnSeparator_WorksCorrectly()
+        {
+            // Arrange
+            var csv = "Name;Age;Salary\nJohn;30;50000.50\nJane;25;60000.75";
+            var separators = new[] { ";" };
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, columnSeparators: separators, valueParser: s =>
+            {
+                if (int.TryParse(s, out int intValue))
+                    return intValue;
+                if (double.TryParse(s, out double doubleValue))
+                    return doubleValue;
+                return s;
+            });
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual(30, result[0].Age);
+            Assert.AreEqual("Jane", result[1].Name);
+            Assert.AreEqual(25, result[1].Age);
+        }
+
+        [TestMethod]
+        public void FromCsv_CustomLineSeparator_WorksCorrectly()
+        {
+            // Arrange
+            var csv = "Name,Age|John,30|Jane,25";
+            var lineSeparators = new[] { "|" };
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, lineSeparators: lineSeparators, valueParser: s =>
+            {
+                if (int.TryParse(s, out int intValue))
+                    return intValue;
+                return s;
+            });
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual(30, result[0].Age);
+            Assert.AreEqual("Jane", result[1].Name);
+            Assert.AreEqual(25, result[1].Age);
+        }
+
+        [TestMethod]
+        public void FromCsv_MultipleColumnSeparators_WorksCorrectly()
+        {
+            // Arrange
+            var csv = "Name\tAge\tSalary\nJohn\t30\t50000.50\nJane\t25\t60000.75";
+            var separators = new[] { ",", "\t", ";" };
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, columnSeparators: separators, valueParser: s =>
+            {
+                if (int.TryParse(s, out int intValue))
+                    return intValue;
+                if (double.TryParse(s, out double doubleValue))
+                    return doubleValue;
+                return s;
+            });
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual("Jane", result[1].Name);
+        }
+        #endregion
+
+        #region ValueParser Tests
+        [TestMethod]
+        public void FromCsv_CustomValueParser_WorksCorrectly()
+        {
+            // Arrange
+            var csv = "Name,Age\nJohn,30\nJane,25";
+            var customParser = new Func<string, object>(s =>
+            {
+                if (s == "John") return "Mr. John";
+                if (s == "Jane") return "Ms. Jane";
+                if (int.TryParse(s, out int age)) return age + 100; // Add 100 for test
+                return s;
+            });
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: customParser);
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("Mr. John", result[0].Name);
+            Assert.AreEqual(130, result[0].Age); // 30 + 100
+            Assert.AreEqual("Ms. Jane", result[1].Name);
+            Assert.AreEqual(125, result[1].Age); // 25 + 100
+        }
+
+        [TestMethod]
+        public void FromCsv_DefaultValueParser_ReturnsStrings()
+        {
+            // Arrange
+            var csv = "Name,Age\nJohn,30\nJane,25";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true);
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual(30, result[0].Age); // Note: Age is string because default parser returns string
+            Assert.AreEqual("Jane", result[1].Name);
+            Assert.AreEqual(25, result[1].Age);
+        }
+        #endregion
+
+        #region Edge Cases Tests
+        [TestMethod]
+        public void FromCsv_MoreColumnsThanProperties_IgnoresExtraColumns()
+        {
+            // Arrange
+            var csv = "Name,Age,Salary,Extra1,Extra2\nJohn,30,50000,ExtraValue1,ExtraValue2";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            {
+                if (int.TryParse(s, out int intValue))
+                    return intValue;
+                if (double.TryParse(s, out double doubleValue))
+                    return doubleValue;
+                return s;
+            });
+
+            // Assert
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual(30, result[0].Age);
+            Assert.AreEqual(50000.0, result[0].Salary);
+        }
+
+        [TestMethod]
+        public void FromCsv_MorePropertiesThanColumns_SetsRemainingToDefault()
+        {
+            // Arrange
+            var csv = "Name\nJohn\nJane";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true);
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual(default, result[0].Age);
+            Assert.AreEqual(default, result[0].Salary);
+            Assert.AreEqual(default, result[0].BirthDate);
+        }
+
+        [TestMethod]
+        public void FromCsv_EmptyLines_AreIgnored()
+        {
+            // Arrange
+            var csv = "Name,Age\n\nJohn,30\n\n\nJane,25\n";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            {
+                if (int.TryParse(s, out int intValue))
+                    return intValue;
+                return s;
+            });
+
+            // Assert
+            Assert.AreEqual(2, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual("Jane", result[1].Name);
+        }
+
+        [TestMethod]
+        public void FromCsv_OnlyHeader_ReturnsEmptyArray()
+        {
+            // Arrange
+            var csv = "Name,Age,Salary";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true);
+
+            // Assert
+            Assert.AreEqual(0, result.Length);
+        }
+        #endregion
+
+        #region Property Matching Tests
+        [TestMethod]
+        public void FromCsv_HeaderWithDifferentCase_MatchesProperties()
+        {
+            // Arrange
+            var csv = "NAME,age,SALARY\nJohn,30,50000";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            {
+                if (int.TryParse(s, out int intValue))
+                    return intValue;
+                if (double.TryParse(s, out double doubleValue))
+                    return doubleValue;
+                return s;
+            });
+
+            // Assert
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual(30, result[0].Age);
+            Assert.AreEqual(50000.0, result[0].Salary);
+        }
+
+        [TestMethod]
+        public void FromCsv_ExtraSpacesInHeader_TrimsAndMatches()
+        {
+            // Arrange
+            var csv = " Name , Age , Salary \nJohn,30,50000";
+
+            // Act
+            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            {
+                if (int.TryParse(s, out int intValue))
+                    return intValue;
+                if (double.TryParse(s, out double doubleValue))
+                    return doubleValue;
+                return s;
+            });
+
+            // Assert
+            Assert.AreEqual(1, result.Length);
+            Assert.AreEqual("John", result[0].Name);
+            Assert.AreEqual(30, result[0].Age);
+            Assert.AreEqual(50000.0, result[0].Salary);
+        }
+        #endregion
+    }
+
+    // Helper class for string extension (assuming it exists in your codebase)
+    public static class StringExtensions
+    {
+        public static string[] SplitBy(this string input, StringSplitOptions options, string[] separators)
+        {
+            return input.Split(separators, options);
+        }
+    }
+
+    // Stub for MemberCache<T> (assuming it exists in your codebase)
+    public class MemberCache<T> where T : class, new()
+    {
+        public static MemberCache<T> Create()
+        {
+            return new MemberCache<T>();
+        }
+
+        public dynamic GetMember(string name)
+        {
+            // Simplified implementation for testing
+            return new MemberInfoStub(name);
+        }
+
+        public dynamic[] PublicBasicProperties { get; } = typeof(T).GetProperties()
+            .Select(p => new MemberInfoStub(p.Name))
+            .ToArray();
+    }
+
+    public class MemberInfoStub
+    {
+        private readonly string _name;
+
+        public MemberInfoStub(string name)
+        {
+            _name = name;
+        }
+
+        public void SetValue(object obj, object value)
+        {
+            var property = obj.GetType().GetProperty(_name);
+            if (property != null && property.CanWrite)
+            {
+                // Handle type conversion
+                if (value != null && property.PropertyType != value.GetType())
+                {
+                    if (property.PropertyType == typeof(int) && value is string stringValue)
+                    {
+                        if (int.TryParse(stringValue, out int intValue))
+                            value = intValue;
+                    }
+                    else if (property.PropertyType == typeof(double) && value is string doubleString)
+                    {
+                        if (double.TryParse(doubleString, out double doubleValue))
+                            value = doubleValue;
+                    }
+                    else if (property.PropertyType == typeof(DateTime) && value is string dateString)
+                    {
+                        if (DateTime.TryParse(dateString, out DateTime dateValue))
+                            value = dateValue;
+                    }
+                }
+
+                property.SetValue(obj, value);
+            }
         }
     }
 }

@@ -332,6 +332,89 @@ namespace RuntimeStuff.Helpers
         private static ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache { get; } = new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
 
         /// <summary>
+        /// Преобразует CSV-строку в массив объектов указанного класса с возможностью настройки разделителей и парсера значений.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов для создания. Должен быть классом с публичным конструктором без параметров.</typeparam>
+        /// <param name="csv">CSV-строка для обработки.</param>
+        /// <param name="hasColumnsHeader">
+        /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
+        /// </param>
+        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { "," }.</param>
+        /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
+        /// <param name="valueParser">
+        /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
+        /// </param>
+        /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
+        /// <remarks>
+        /// <para>Метод выполняет следующие шаги:</para>
+        /// <list type="bullet">
+        /// <item>Разбивает CSV по строкам с учётом <paramref name="lineSeparators"/> и игнорирует пустые строки.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>true</c>, первая строка используется для сопоставления колонок с членами класса <typeparamref name="T"/> через <see cref="MemberCache{T}"/>.</item>
+        /// <item>Каждая последующая строка создаёт новый объект <typeparamref name="T"/>. Значения колонок преобразуются с помощью <paramref name="valueParser"/> и присваиваются соответствующим свойствам или полям.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>false</c>, используются все публичные базовые свойства класса.</item>
+        /// </list>
+        /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
+        /// </remarks>
+        public static T[] FromCsv<T>(string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
+    where T : class, new()
+        {
+            if (string.IsNullOrWhiteSpace(csv))
+            {
+                return Array.Empty<T>();
+            }
+
+            if (columnSeparators == null)
+            {
+                columnSeparators = new string[] { "," };
+            }
+
+            if (lineSeparators == null)
+            {
+                lineSeparators = new string[] { "\r", "\n", Environment.NewLine };
+            }
+
+            if (valueParser == null)
+            {
+                valueParser = s => s;
+            }
+
+            var lines = csv.SplitBy(StringSplitOptions.RemoveEmptyEntries, lineSeparators);
+            if (lines.Length == 0)
+            {
+                return Array.Empty<T>();
+            }
+
+            var typeCache = MemberCache<T>.Create();
+
+            if (hasColumnsHeader == null)
+            {
+                hasColumnsHeader = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Any(x => typeCache.GetMember(x) != null);
+            }
+
+            var columnNames = hasColumnsHeader.Value ? lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache.GetMember(x)).ToArray() : typeCache.PublicBasicProperties.Values.ToArray();
+            var result = new List<T>();
+
+            for (int i = hasColumnsHeader.Value ? 1 : 0; i < lines.Length; i++)
+            {
+                var values = lines[i].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => valueParser(x)).ToArray();
+                var obj = new T();
+                for (int j = 0; j < columnNames.Length && j < values.Length; j++)
+                {
+                    if (j >= values.Length || columnNames[j] == null)
+                    {
+                        continue;
+                    }
+
+                    columnNames[j].SetValue(obj, values[j]);
+                }
+
+                result.Add(obj);
+            }
+
+            return result.ToArray();
+        }
+
+        /// <summary>
         /// Регистрирует пользовательский конвертер между двумя типами.
         /// </summary>
         /// <typeparam name="TFrom">Исходный тип.</typeparam>

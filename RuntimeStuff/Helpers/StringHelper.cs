@@ -20,6 +20,7 @@ namespace RuntimeStuff.Helpers
     using System.IO.Compression;
     using System.Linq;
     using System.Text;
+    using RuntimeStuff.Extensions;
 
     /// <summary>
     /// Предоставляет набор статических методов для работы со строками и токенами, включая удаление суффикса, замену и
@@ -56,6 +57,83 @@ namespace RuntimeStuff.Helpers
             '\u2060', // Word Joiner
             '\uFEFF', // BOM (Zero Width No-Break Space)
         };
+
+        /// <summary>
+        /// Разбивает строку на подстроки по одному или нескольким указанным разделителям.
+        /// </summary>
+        /// <param name="s">Исходная строка для разбиения.</param>
+        /// <param name="options">Настройки.</param>
+        /// <param name="splitBy">Массив строк-разделителей. Порядок важен, выбирается ближайший к текущей позиции.</param>
+        /// <returns>
+        /// Массив подстрок, полученных после разбиения. Если строка <c>null</c> или пустая, возвращается пустой массив.
+        /// Если <paramref name="splitBy"/> пустой или <c>null</c>, возвращается массив, содержащий исходную строку.
+        /// </returns>
+        /// <remarks>
+        /// <para>Метод выполняет последовательный поиск ближайшего разделителя и делит строку по нему.</para>
+        /// <para>Подстроки между разделителями включаются в результат, разделители сами не включаются.</para>
+        /// <para>Поддерживается несколько разделителей произвольной длины.</para>
+        /// </remarks>
+        public static string[] SplitBy(string s, StringSplitOptions options, params string[] splitBy)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return Array.Empty<string>();
+            }
+
+            if (splitBy == null || splitBy.Length == 0)
+            {
+                return new string[] { s };
+            }
+
+            var result = new List<string>();
+            int startIndex = 0;
+
+            while (startIndex < s.Length)
+            {
+                int nextIndex = -1;
+                string foundDelimiter = null;
+
+                // ищем ближайший разделитель
+                foreach (var delimiter in splitBy)
+                {
+                    if (string.IsNullOrEmpty(delimiter))
+                    {
+                        continue;
+                    }
+
+                    int index = s.IndexOf(delimiter, startIndex, StringComparison.Ordinal);
+                    if (index >= 0 && (nextIndex == -1 || index < nextIndex))
+                    {
+                        nextIndex = index;
+                        foundDelimiter = delimiter;
+                    }
+                }
+
+                if (nextIndex == -1)
+                {
+                    // разделители не найдены — добавляем остаток строки
+                    var part = s.Substring(startIndex);
+                    if (options != StringSplitOptions.RemoveEmptyEntries || part.Length > 0)
+                    {
+                        result.Add(part);
+                    }
+
+                    break;
+                }
+
+                // добавляем часть строки перед разделителем
+                var segment = s.Substring(startIndex, nextIndex - startIndex);
+                if (options != StringSplitOptions.RemoveEmptyEntries || segment.Length > 0)
+                {
+                    result.Add(segment);
+                }
+
+                // пропускаем разделитель
+                startIndex = nextIndex + foundDelimiter.Length;
+            }
+
+            return result.ToArray();
+        }
 
         /// <summary>
         /// Сжимает строку с помощью GZip и возвращает результат в виде строки в формате Base64.
