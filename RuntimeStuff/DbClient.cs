@@ -616,6 +616,7 @@ namespace RuntimeStuff
                 foreach (var cp in parameters)
                 {
                     var p = cmd.CreateParameter();
+                    var paramTypeCache = p.GetType().GetMemberCache();
                     p.ParameterName = cp.Key;
                     var valueType = cp.Value?.GetType().GetMemberCache();
                     if (valueType != null && valueType.IsClass)
@@ -624,10 +625,9 @@ namespace RuntimeStuff
                         {
                             try
                             {
-                                //Obj.Set(p, "SqlDbType", SqlDbType.Structured);
-                                valueType.Properties["SqlDbType"].SetValue(p, SqlDbType.Structured, (x) => x);
-                                Obj.Set(p, "TypeName", ((DataTable)cp.Value).TableName);
-                                Obj.Set(p, "SqlValue", cp.Value);
+                                p.Value = cp.Value;
+                                paramTypeCache.Properties["SqlDbType"].SetValue(p, SqlDbType.Structured, (x) => x);
+                                paramTypeCache.Properties["TypeName"].SetValue(p, ((DataTable)cp.Value).TableName.Coalesce(p.ParameterName), (x) => x);
                             }
                             catch (Exception ex)
                             {
@@ -1984,18 +1984,87 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Queries the specified return type.
+        /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов указанного типа.
         /// </summary>
-        /// <param name="returnType">Type of the return.</param>
-        /// <param name="query">The query.</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <param name="columns">The columns.</param>
-        /// <param name="columnToPropertyMap">The column to property map.</param>
-        /// <param name="converter">The converter.</param>
-        /// <param name="fetchRows">The fetch rows.</param>
-        /// <param name="offsetRows">The offset rows.</param>
-        /// <param name="itemFactory">The item factory.</param>
-        /// <returns>System.Object.</returns>
+        /// <param name="returnType">
+        /// Тип результата запроса. Обычно это тип коллекции
+        /// (например, <see cref="List{T}"/> или массив), элементы которой соответствуют строкам результата.
+        /// </param>
+        /// <param name="query">
+        /// SQL-запрос для выполнения.
+        /// Если не указан или равен <c>null</c>, запрос будет сгенерирован автоматически
+        /// на основе типа элементов результата.
+        /// </param>
+        /// <param name="cmdParams">
+        /// Параметры команды базы данных.
+        /// Может быть анонимным объектом или словарём параметров.
+        /// </param>
+        /// <param name="columns">
+        /// Список имён колонок, которые требуется считать из результата запроса.
+        /// Если <c>null</c>, используются все колонки.
+        /// </param>
+        /// <param name="columnToPropertyMap">
+        /// Сопоставление имён колонок базы данных с именами свойств объекта результата
+        /// в виде пар <c>(ColumnName, PropertyName)</c>.
+        /// </param>
+        /// <param name="converter">
+        /// Пользовательский конвертер значений из базы данных в значения свойств объекта.
+        /// </param>
+        /// <param name="fetchRows">
+        /// Максимальное количество строк для выборки.
+        /// Значение меньше нуля означает отсутствие ограничения.
+        /// </param>
+        /// <param name="offsetRows">
+        /// Количество строк, которые необходимо пропустить перед началом выборки.
+        /// </param>
+        /// <param name="itemFactory">
+        /// Фабрика создания экземпляров элементов результата.
+        /// Получает массив значений колонок и массив их имён.
+        /// Если не указана, используется фабрика по умолчанию,
+        /// построенная на основе отражения.
+        /// </param>
+        /// <param name="dbTransaction">
+        /// Транзакция базы данных, в контексте которой должен быть выполнен запрос.
+        /// </param>
+        /// <returns>
+        /// Коллекция объектов типа, заданного параметром <paramref name="returnType"/>,
+        /// заполненная результатами выполнения запроса.
+        /// </returns>
+        /// <exception cref="Exception">
+        /// Любое исключение, возникшее при выполнении запроса,
+        /// будет обработано и преобразовано методом <c>HandleDbException</c>.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// Метод выполняет следующие шаги:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// Создаёт или генерирует SQL-запрос (если он не был передан явно).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Добавляет в запрос ограничения <c>LIMIT</c>/<c>OFFSET</c> с учётом настроек провайдера.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Создаёт и выполняет команду базы данных.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Считывает данные из <see cref="IDataReader"/> и наполняет результирующую коллекцию.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// <para>
+        /// Несмотря на использование асинхронной логики чтения,
+        /// метод является синхронным и блокирует текущий поток до завершения операции.
+        /// </para>
+        /// </remarks>
         public object Query(
             Type returnType,
             string query = null,
@@ -2006,7 +2075,7 @@ namespace RuntimeStuff
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], object> itemFactory = null,
-            IDbTransaction dbTransaction)
+            IDbTransaction dbTransaction = null)
         {
             var returnTypeCache = MemberCache.Create(returnType);
             if (string.IsNullOrEmpty(query))
@@ -2025,7 +2094,7 @@ namespace RuntimeStuff
                 itemFactory = BuildItemFactory(returnTypeCache.ElementType, columnToPropertyMap);
             }
 
-            var cmd = this.CreateCommand(query, cmdParams);
+            var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
             this.BeginConnection();
             try
             {
@@ -2087,7 +2156,6 @@ namespace RuntimeStuff
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
-            IDbTransaction transaction = null,
             CancellationToken ct = default)
             where TList : ICollection<T>, IList, new()
         {

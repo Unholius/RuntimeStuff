@@ -22,12 +22,126 @@ namespace RuntimeStuff.Extensions
     using System.Linq.Expressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using RuntimeStuff.Options;
 
     /// <summary>
     /// Расширения для работы с подключениями к базе данных.
     /// </summary>
     public static class DbConnectionExtensions
     {
+        /// <summary>
+        /// Добавляет параметр сервера базы данных в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="serverName">Имя или адрес сервера базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Server(this IDbConnection con, string serverName)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).ServerParameterName, serverName);
+        }
+
+        /// <summary>
+        /// Добавляет параметр имени базы данных в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Database(this IDbConnection con, string database)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).DatabaseParameterName, database);
+        }
+
+        /// <summary>
+        /// Добавляет параметр имени пользователя в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="userName">Имя пользователя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection User(this IDbConnection con, string userName)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).UserParameterName, userName);
+        }
+
+        /// <summary>
+        /// Добавляет параметр пароля пользователя в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="password">Пароль пользователя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Password(this IDbConnection con, string password)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).PasswordParameterName, password);
+        }
+
+        /// <summary>
+        /// Добавляет параметр доверия сертификату сервера в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="value">
+        /// Значение параметра доверия сертификату сервера
+        /// (обычно <c>true</c> или <c>false</c>).
+        /// </param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection TrustCertificate(this IDbConnection con, string value)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).TrustServerCertificateParameterName, value);
+        }
+
+        /// <summary>
+        /// Добавляет параметр интегрированной безопасности (Windows-аутентификация)
+        /// в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="value">
+        /// Значение параметра интегрированной безопасности
+        /// (обычно <c>true</c> или <c>false</c>).
+        /// </param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection IntegratedSecurity(this IDbConnection con, bool value)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).IntegratedSecurityParameterName, value);
+        }
+
+        /// <summary>
+        /// Добавляет параметр тайм-аута подключения в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="timeoutSeconds">Тайм-аут подключения в секундах.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Timeout(this IDbConnection con, int timeoutSeconds)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).ConnectTimeoutParameterName, timeoutSeconds);
+        }
+
+        /// <summary>
+        /// Добавляет параметр имени приложения в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="appName">Имя приложения, устанавливающего соединение.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection ApplicationName(this IDbConnection con, string appName)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).ApplicationNameParameterName, appName);
+        }
+
+        /// <summary>
+        /// Добавляет параметр в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="paramName">Имя параметра.</param>
+        /// <param name="paramValue">Значение параметра.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Param(this IDbConnection con, string paramName, object paramValue)
+        {
+            if (string.IsNullOrEmpty(paramName) || paramValue == null)
+            {
+                return con;
+            }
+
+            con.ConnectionString += $"{paramName}={paramValue};";
+            return con;
+        }
+
         /// <summary>
         /// Выполняет указанную агрегирующую функцию для колонок.
         /// </summary>
@@ -767,7 +881,38 @@ namespace RuntimeStuff.Extensions
         /// <returns>IDbConnection.</returns>
         /// <exception cref="System.ArgumentNullException">connection.</exception>
         /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
-        public static IDbConnection OpenConnection(this IDbConnection connection)
+        public static bool TryOpen(this IDbConnection connection) => connection.TryOpen(out _);
+
+        /// <summary>
+        /// Открыть соединение.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <param name="exception">Исключение при попытке установить соединение.</param>
+        /// <returns>IDbConnection.</returns>
+        /// <exception cref="System.ArgumentNullException">connection.</exception>
+        /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
+        public static bool TryOpen(this IDbConnection connection, out Exception exception)
+        {
+            exception = null;
+            try
+            {
+                return Open(connection) == ConnectionState.Open;
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Открыть соединение.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <returns>IDbConnection.</returns>
+        /// <exception cref="System.ArgumentNullException">connection.</exception>
+        /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
+        public static ConnectionState Open(this IDbConnection connection)
         {
             if (connection == null)
             {
@@ -791,7 +936,7 @@ namespace RuntimeStuff.Extensions
                 throw new InvalidOperationException("Не удалось открыть соединение с базой данных.", ex);
             }
 
-            return connection;
+            return connection.State;
         }
 
         /// <summary>

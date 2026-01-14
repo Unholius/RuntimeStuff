@@ -14,6 +14,7 @@
 namespace RuntimeStuff.Options
 {
     using System;
+    using System.Data;
     using System.Globalization;
 
     /// <summary>
@@ -49,7 +50,14 @@ namespace RuntimeStuff.Options
             x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
             x => x.TrueValue = "TRUE",
             x => x.FalseValue = "FALSE",
-            x => x.ParamPrefix = ":");
+            x => x.ParamPrefix = ":",
+            x => x.DatabaseParameterName = "Data Source",
+            x => x.ServerParameterName = null,
+            x => x.UserParameterName = null,
+            x => x.PasswordParameterName = "Password",
+            x => x.IntegratedSecurityParameterName = null,
+            x => x.ApplicationNameParameterName = null,
+            x => x.ConnectTimeoutParameterName = null);
 
         /// <summary>
         /// Gets the SQL server options.
@@ -145,6 +153,57 @@ namespace RuntimeStuff.Options
         /// </summary>
         /// <value>The true value.</value>
         public string TrueValue { get; set; } = "1";
+
+        /// <summary>
+        /// Gets or sets имя параметра строки подключения, используемого для указания имени базы данных.
+        /// </summary>
+        public string DatabaseParameterName { get; set; } = "Database";
+
+        /// <summary>
+        /// Gets or sets имя параметра строки подключения, используемого для указания адреса или имени сервера базы данных.
+        /// </summary>
+        public string ServerParameterName { get; set; } = "Server";
+
+        /// <summary>
+        /// Gets or sets имя параметра строки подключения, используемого для указания имени пользователя базы данных.
+        /// </summary>
+        public string UserParameterName { get; set; } = "User";
+
+        /// <summary>
+        /// Gets or sets имя параметра строки подключения, используемого для указания пароля пользователя базы данных.
+        /// </summary>
+        public string PasswordParameterName { get; set; } = "Password";
+
+        /// <summary>
+        /// Gets or sets имя параметра строки подключения, используемого для указания режима интегрированной безопасности
+        /// (аутентификация Windows).
+        /// </summary>
+        public string IntegratedSecurityParameterName { get; set; } = "Integrated Security";
+
+        /// <summary>
+        /// Gets or sets имя параметра строки подключения, используемого для указания имени приложения,
+        /// от имени которого устанавливается соединение с базой данных.
+        /// </summary>
+        public string ApplicationNameParameterName { get; set; } = "Application Name";
+
+        /// <summary>
+        /// Gets or sets имя параметра строки подключения, используемого для указания необходимости доверять сертификату сервера
+        /// без проверки цепочки доверия.
+        /// </summary>
+        public string TrustServerCertificateParameterName { get; set; } = "TrustServerCertificate";
+
+        /// <summary>
+        /// Gets or sets имя параметра строки подключения, используемого для указания тайм-аута подключения
+        /// к серверу базы данных (в секундах).
+        /// </summary>
+        public string ConnectTimeoutParameterName { get; set; } = "Connect Timeout";
+
+        /// <summary>
+        /// Gets the instance.
+        /// </summary>
+        /// <param name="dbConnection">SQL connection type.</param>
+        /// <returns>SqlProviderOptions.</returns>
+        public static SqlProviderOptions GetInstance(IDbConnection dbConnection) => GetInstance(dbConnection.GetType().Name);
 
         /// <summary>
         /// Gets the instance.

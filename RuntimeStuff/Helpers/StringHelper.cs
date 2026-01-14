@@ -55,6 +55,34 @@ namespace RuntimeStuff.Helpers
         };
 
         /// <summary>
+        /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
+        /// </summary>
+        /// <param name="str">
+        /// Исходная строка, проверяемая в первую очередь.
+        /// </param>
+        /// <param name="strings">
+        /// Дополнительные строки для проверки, используемые в случае,
+        /// если <paramref name="str"/> равна <c>null</c>, пуста или содержит только пробельные символы.
+        /// </param>
+        /// <returns>
+        /// Первую строку, которая не равна <c>null</c>, не пуста и не состоит только из пробельных символов;
+        /// либо <c>null</c>, если все переданные строки не удовлетворяют этому условию.
+        /// </returns>
+        /// <remarks>
+        /// Метод является строковым аналогом оператора <c>COALESCE</c>
+        /// и удобен для выбора значения по умолчанию из набора строк.
+        /// </remarks>
+        public static string Coalesce(string str, params string[] strings)
+        {
+            if (!string.IsNullOrWhiteSpace(str))
+            {
+                return str;
+            }
+
+            return strings.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
+        }
+
+        /// <summary>
         /// Проверяет, содержит ли исходная строка указанную подстроку,
         /// используя заданный способ сравнения строк.
         /// </summary>

@@ -736,6 +736,11 @@ namespace RuntimeStuff
         public string GroupName { get; }
 
         /// <summary>
+        /// Gets a value indicating whether type.IsClass.
+        /// </summary>
+        public bool IsClass => this.Type.IsClass;
+
+        /// <summary>
         /// Gets a value indicating whether является ли тип простым (примитивным или строкой).
         /// </summary>
         /// <value><c>true</c> if this instance is basic; otherwise, <c>false</c>.</value>
@@ -1189,7 +1194,6 @@ namespace RuntimeStuff
         /// </summary>
         /// <value>The getter.</value>
         private Func<object, object> Getter { get; }
-        public bool IsClass { get; internal set; }
 
         /// <summary>
         /// Установить или получить значение свойства или поля по имени.

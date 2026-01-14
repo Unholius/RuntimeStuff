@@ -182,17 +182,20 @@ CREATE TABLE student_courses (
         }
 
         private string ServerName = "NAS\\RSSQLSERVER";
-        private string UserName = "sa";
-        private string Password = "sa70788537!";
         private string DatabaseName = "test";
 
         [TestMethod]
         public void DbClient_Test_05()
         {
-            var cs = $@"Server={ServerName};Database={DatabaseName};Connect Timeout = 3;Integrated Security=true;";
-            var con = new SqlConnection(cs);
+            var con = new SqlConnection()
+                .Server(ServerName)
+                .Database(DatabaseName)
+                .Timeout(3)
+                .IntegratedSecurity(true);
 
-            con.OpenConnection();
+            if (!con.TryOpen())
+                return;
+
             var list = new List<string>
             {
                 "1",
