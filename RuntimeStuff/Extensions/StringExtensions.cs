@@ -94,7 +94,7 @@ namespace RuntimeStuff.Extensions
         /// Метод полезен для нормализации текста, когда необходимо удалить лишние пробелы или пустые строки,
         /// сохраняя при этом читаемость и структуру текста.
         /// </remarks>
-        public static string RemoveLongSpaces(string s, bool includeNewLines = true, bool includeTabs = true) => StringHelper.RemoveLongSpaces(s, includeNewLines, includeTabs);
+        public static string RemoveLongSpaces(this string s, bool includeNewLines = true, bool includeTabs = true) => StringHelper.RemoveLongSpaces(s, includeNewLines, includeTabs);
 
         /// <summary>
         /// Trimes the white chars.
