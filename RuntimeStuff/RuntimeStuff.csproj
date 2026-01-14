@@ -16,6 +16,10 @@
 		<Version>2026.01.14.1</Version>
 		<Authors>Rudnev Sergey</Authors>
 		<PackageProjectUrl>https://github.com/Unholius/RuntimeStuff</PackageProjectUrl>
+		<PackageDescription>Набор утилит и вспомогательных хелперов общего назначения для .NET проектов: расширения строк, работы с файлами, сериализации, Simple ORM, LINQ-утилиты и др.</PackageDescription>
+		<PackageTags>Utilities;Helpers;Extensions;Common;Tools;String;File;Serialization;LINQ</PackageTags>
+		<RepositoryUrl>https://github.com/Unholius/RuntimeStuff</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
 
 		<!-- Сделать все warnings errors -->
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
