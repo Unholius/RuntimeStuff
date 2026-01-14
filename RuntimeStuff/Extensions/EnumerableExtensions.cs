@@ -18,8 +18,10 @@ namespace RuntimeStuff.Extensions
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Data;
+    using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
+    using System.Reflection;
     using System.Text;
     using RuntimeStuff.Helpers;
 
@@ -627,6 +629,148 @@ namespace RuntimeStuff.Extensions
         /// сериализации или отображения.</remarks>
         public static DataTable ToDataTable<T>(this IEnumerable<T> source, string tableName, params (Expression<Func<T, object>> propertySelector, string columnName)[] columnSelectors)
             where T : class => DataTableHelper.ToDataTable(source, tableName, columnSelectors);
+
+        /// <summary>
+        /// Преобразует коллекцию объектов в строку в формате CSV,
+        /// позволяя указать набор колонок с помощью лямбда-выражений.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции.
+        /// </typeparam>
+        /// <param name="data">
+        /// Коллекция объектов, данные которых будут сериализованы в CSV.
+        /// </param>
+        /// <param name="writeColumnHeaders">
+        /// Признак необходимости записи строки заголовков.
+        /// Если значение равно <see langword="true"/>, в первую строку CSV
+        /// будут записаны имена выбранных свойств.
+        /// </param>
+        /// <param name="columnSeparator">
+        /// Разделитель колонок (по умолчанию <c>","</c>).
+        /// </param>
+        /// <param name="lineSeparator">
+        /// Разделитель строк (по умолчанию <c>";\r\n"</c>).
+        /// </param>
+        /// <param name="valueSerializer">
+        /// Пользовательская функция сериализации значения свойства в строку.
+        /// Принимает описание свойства и его значение.
+        /// Если не задана, используется стандартная сериализация.
+        /// </param>
+        /// <param name="columnSelectors">
+        /// Выражения, указывающие свойства типа <typeparamref name="T"/>,
+        /// которые необходимо включить в CSV (например: <c>x =&gt; x.Name</c>).
+        /// Если массив не задан или пуст, используются все публичные простые свойства типа.
+        /// </param>
+        /// <returns>
+        /// Строка, содержащая данные в формате CSV.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если параметр <paramref name="data"/> равен <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если выражение не указывает на свойство типа <typeparamref name="T"/>.
+        /// </exception>
+        public static string ToCsv<T>(this IEnumerable<T> data, bool writeColumnHeaders, string columnSeparator, string lineSeparator, Func<PropertyInfo, object, string> valueSerializer, params Expression<Func<T, object>>[] columnSelectors)
+            where T : class
+        {
+            return CsvHelper.ToCsv(data, writeColumnHeaders, columnSeparator, lineSeparator, valueSerializer, columnSelectors.Select(x => (PropertyInfo)x.GetMemberCache()).ToArray());
+        }
+
+        /// <summary>
+        /// Преобразует коллекцию объектов в строку в формате CSV,
+        /// позволяя указать набор колонок по их именам.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции.
+        /// </typeparam>
+        /// <param name="data">
+        /// Коллекция объектов, данные которых будут сериализованы в CSV.
+        /// </param>
+        /// <param name="writeColumnHeaders">
+        /// Признак необходимости записи строки заголовков.
+        /// Если значение равно <see langword="true"/>, в первую строку CSV
+        /// будут записаны имена выбранных свойств.
+        /// </param>
+        /// <param name="columnSeparator">
+        /// Разделитель колонок (по умолчанию <c>","</c>).
+        /// </param>
+        /// <param name="lineSeparator">
+        /// Разделитель строк (по умолчанию <c>";\r\n"</c>).
+        /// </param>
+        /// <param name="valueSerializer">
+        /// Пользовательская функция сериализации значения свойства в строку.
+        /// Принимает описание свойства и его значение.
+        /// Если не задана, используется стандартная сериализация.
+        /// </param>
+        /// <param name="columns">
+        /// Имена свойств типа <typeparamref name="T"/>, которые необходимо включить в CSV.
+        /// Если массив не задан или пуст, используются все публичные простые свойства типа.
+        /// Имена свойств, не найденные в типе, игнорируются.
+        /// </param>
+        /// <returns>
+        /// Строка, содержащая данные в формате CSV.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если параметр <paramref name="data"/> равен <see langword="null"/>.
+        /// </exception>
+        public static string ToCsv<T>(this IEnumerable<T> data, bool writeColumnHeaders, string columnSeparator, string lineSeparator, Func<PropertyInfo, object, string> valueSerializer, params string[] columns)
+            where T : class
+        {
+            return CsvHelper.ToCsv(
+                data,
+                writeColumnHeaders,
+                columnSeparator,
+                lineSeparator,
+                valueSerializer,
+                columns);
+        }
+
+        /// <summary>
+        /// Преобразует коллекцию объектов в строку в формате CSV.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции.
+        /// </typeparam>
+        /// <param name="data">
+        /// Коллекция объектов, данные которых будут сериализованы в CSV.
+        /// </param>
+        /// <param name="writeColumnHeaders">
+        /// Признак необходимости записи строки заголовков.
+        /// Если значение равно <see langword="true"/>, в первую строку CSV
+        /// будут записаны имена свойств.
+        /// </param>
+        /// <param name="columnSeparator">
+        /// Разделитель колонок (по умолчанию <c>","</c>).
+        /// </param>
+        /// <param name="lineSeparator">
+        /// Разделитель строк (по умолчанию <c>";\r\n"</c>).
+        /// </param>
+        /// <param name="valueSerializer">
+        /// Пользовательская функция сериализации значения свойства в строку.
+        /// Принимает описание свойства и его значение.
+        /// Если не задана, используется стандартное преобразование через
+        /// <see cref="CultureInfo.InvariantCulture"/>.
+        /// </param>
+        /// <param name="columns">
+        /// Набор свойств, которые необходимо включить в CSV.
+        /// Если параметры не заданы, используются все публичные простые свойства типа <typeparamref name="T"/>.
+        /// </param>
+        /// <returns>
+        /// Строка, содержащая данные в формате CSV.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если параметр <paramref name="data"/> равен <see langword="null"/>.
+        /// </exception>
+        public static string ToCsv<T>(this IEnumerable<T> data, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null, params PropertyInfo[] columns)
+        {
+            return CsvHelper.ToCsv(
+                data,
+                writeColumnHeaders,
+                columnSeparator,
+                lineSeparator,
+                valueSerializer,
+                columns);
+        }
 
         /// <summary>
         /// Вычисляет количество элементов в последовательности, удовлетворяющих заданному условию, определяемому

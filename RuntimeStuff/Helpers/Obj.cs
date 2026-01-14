@@ -358,60 +358,7 @@ namespace RuntimeStuff.Helpers
         public static T[] FromCsv<T>(string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
     where T : class, new()
         {
-            if (string.IsNullOrWhiteSpace(csv))
-            {
-                return Array.Empty<T>();
-            }
-
-            if (columnSeparators == null)
-            {
-                columnSeparators = new string[] { "," };
-            }
-
-            if (lineSeparators == null)
-            {
-                lineSeparators = new string[] { "\r", "\n", Environment.NewLine };
-            }
-
-            if (valueParser == null)
-            {
-                valueParser = s => s;
-            }
-
-            var lines = csv.SplitBy(StringSplitOptions.RemoveEmptyEntries, lineSeparators);
-            if (lines.Length == 0)
-            {
-                return Array.Empty<T>();
-            }
-
-            var typeCache = MemberCache<T>.Create();
-
-            if (hasColumnsHeader == null)
-            {
-                hasColumnsHeader = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Any(x => typeCache.GetMember(x) != null);
-            }
-
-            var columnNames = hasColumnsHeader.Value ? lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache.GetMember(x)).ToArray() : typeCache.PublicBasicProperties.Values.ToArray();
-            var result = new List<T>();
-
-            for (int i = hasColumnsHeader.Value ? 1 : 0; i < lines.Length; i++)
-            {
-                var values = lines[i].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => valueParser(x)).ToArray();
-                var obj = new T();
-                for (int j = 0; j < columnNames.Length && j < values.Length; j++)
-                {
-                    if (j >= values.Length || columnNames[j] == null)
-                    {
-                        continue;
-                    }
-
-                    columnNames[j].SetValue(obj, values[j]);
-                }
-
-                result.Add(obj);
-            }
-
-            return result.ToArray();
+            return CsvHelper.FromCsv<T>(csv, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
         }
 
         /// <summary>

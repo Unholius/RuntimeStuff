@@ -296,6 +296,9 @@ public class EnumerableExtensionsTests
 
         // Assert
         Assert.AreEqual(1, result);
+
+        var csv = items.ToCsv(true, ",", ";");
+        Assert.AreEqual("Id,Name;1,Alice;2,Bob;3,Charlie;", csv);
     }
 
     [TestMethod]
