@@ -1,7 +1,5 @@
 ﻿using RuntimeStuff.Extensions;
-using System.Net;
 using System.Net.Http;
-using System.Security.Authentication;
 
 namespace RuntimeStuff.MSTests
 {
