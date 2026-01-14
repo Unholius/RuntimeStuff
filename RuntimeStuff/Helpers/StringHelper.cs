@@ -11,12 +11,14 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Security.Cryptography;
+    using System.Text;
 
     /// <summary>
     /// Предоставляет набор статических методов для работы со строками и токенами, включая удаление суффикса, замену и
@@ -53,6 +55,60 @@ namespace RuntimeStuff.Helpers
             '\u2060', // Word Joiner
             '\uFEFF', // BOM (Zero Width No-Break Space)
         };
+
+        public static string RemoveLongSpaces(this string s, bool includeNewLines = true, bool includeTabs = true)
+        {
+            if (string.IsNullOrEmpty(s))
+                return s;
+
+            var sb = new StringBuilder(s.Length);
+            char? lastChar = null;
+
+            foreach (var c in s)
+            {
+                switch (c)
+                {
+                    case ' ':
+                        if (lastChar != ' ')
+                            sb.Append(c);
+                        break;
+
+                    case '\t':
+                        if (includeTabs)
+                        {
+                            if (lastChar != '\t')
+                                sb.Append(c);
+                        }
+                        else
+                        {
+                            sb.Append(c);
+                        }
+                        break;
+
+                    case '\r':
+                    case '\n':
+                        if (includeNewLines)
+                        {
+                            if (lastChar != '\r' && lastChar != '\n')
+                                sb.Append(c);
+                        }
+                        else
+                        {
+                            sb.Append(c);
+                        }
+                        break;
+
+                    default:
+                        sb.Append(c);
+                        break;
+                }
+
+                lastChar = c;
+            }
+
+            return sb.ToString();
+        }
+
 
         /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.

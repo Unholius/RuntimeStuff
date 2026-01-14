@@ -11,9 +11,11 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff.Extensions
 {
     using System;
+    using System.Globalization;
     using RuntimeStuff.Helpers;
 
     /// <summary>
@@ -32,6 +34,41 @@ namespace RuntimeStuff.Extensions
         /// <param name="s">The s.</param>
         /// <returns>System.String.</returns>
         public static string TrimWhiteChars(this string s) => StringHelper.TrimWhiteChars(s);
+
+        /// <summary>
+        /// Расширение для string.IsNullOrWhiteSpace(s).
+        /// </summary>
+        /// <param name="s">Строка.</param>
+        /// <returns>Возвращает значение string.IsNullOrWhiteSpace(s).</returns>
+        public static bool IsEmpty(this string s) => string.IsNullOrWhiteSpace(s);
+
+        /// <summary>
+        /// Проверяет, является ли строка числовым значением и преобразует её в <see cref="decimal"/>.
+        /// </summary>
+        /// <param name="s">Строка для проверки.</param>
+        /// <param name="d">Выходной параметр, содержащий значение <see cref="decimal"/>, если строка является числом.</param>
+        /// <returns><c>true</c>, если строка успешно распознана как число; иначе <c>false</c>.</returns>
+        /// <remarks>
+        /// Используется <see cref="NumberStyles.Any"/> и <see cref="NumberFormatInfo.InvariantInfo"/>
+        /// для корректного парсинга чисел в стандартном формате.
+        /// </remarks>
+        public static bool IsNumber(this string s, out decimal d)
+        {
+            return decimal.TryParse(s, NumberStyles.Any, NumberFormatInfo.InvariantInfo, out d);
+        }
+
+        /// <summary>
+        /// Проверяет, является ли строка числовым значением.
+        /// </summary>
+        /// <param name="s">Строка для проверки.</param>
+        /// <returns><c>true</c>, если строка является числом; иначе <c>false</c>.</returns>
+        /// <remarks>
+        /// Метод является перегрузкой для удобства и игнорирует само значение числа.
+        /// </remarks>
+        public static bool IsNumber(this string s)
+        {
+            return s.IsNumber(out _);
+        }
 
         /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
