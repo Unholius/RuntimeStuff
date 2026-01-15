@@ -666,21 +666,21 @@ namespace RuntimeStuff.MSTests
         public void IsCollection_List_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsCollection(typeof(List<string>)));
+            Assert.IsTrue(Obj.IsGenericCollection(typeof(List<string>)));
         }
 
         [TestMethod]
         public void IsCollection_Array_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsCollection(typeof(string[])));
+            Assert.IsTrue(Obj.IsGenericCollection(typeof(string[])));
         }
 
         [TestMethod]
         public void IsCollection_String_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(Obj.IsCollection(typeof(string)));
+            Assert.IsFalse(Obj.IsGenericCollection(typeof(string)));
         }
 
         [TestMethod]

@@ -331,6 +331,7 @@ namespace RuntimeStuff
             this.IsNumeric = this.typeCache?.IsNumeric ?? Obj.IsNumeric(this.type);
             this.IsBoolean = this.typeCache?.IsBoolean ?? Obj.IsBoolean(this.type);
             this.IsCollection = this.typeCache?.IsCollection ?? Obj.IsCollection(this.type);
+            this.IsGenericCollection = this.typeCache?.IsGenericCollection ?? Obj.IsGenericCollection(this.type);
             this.ElementType = this.IsCollection ? this.typeCache?.ElementType ?? Obj.GetCollectionItemType(this.Type) : null;
             this.IsBasic = this.typeCache?.IsBasic ?? Obj.IsBasic(this.type);
             this.IsEnum = this.typeCache?.IsEnum ?? this.type.IsEnum;
@@ -762,6 +763,12 @@ namespace RuntimeStuff
         /// </summary>
         /// <value><c>true</c> if this instance is collection; otherwise, <c>false</c>.</value>
         public bool IsCollection { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether является ли тип типизированной коллекцией.
+        /// </summary>
+        /// <value><c>true</c> if this instance is collection; otherwise, <c>false</c>.</value>
+        public bool IsGenericCollection { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is constant.
@@ -2205,8 +2212,8 @@ namespace RuntimeStuff
             where T : class
         {
             var props = propertyNames.Any()
-                ? this.PublicBasicProperties.Where(x => propertyNames.Contains(x.Key)).Select(x => x.Value).ToArray()
-                : this.PublicBasicProperties.Select(x => x.Value).ToArray();
+                ? this.Properties.Where(x => propertyNames.Contains(x.Key)).Select(x => x.Value).ToArray()
+                : this.PublicProperties.Select(x => x.Value).ToArray();
 
             foreach (var mi in props)
             {

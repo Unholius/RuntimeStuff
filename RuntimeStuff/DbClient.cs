@@ -613,12 +613,19 @@ namespace RuntimeStuff
 
             if (cmdParams != null)
             {
+                var p = cmd.CreateParameter();
+                var paramTypeCache = p.GetType().GetMemberCache();
+
                 foreach (var cp in parameters)
                 {
-                    var p = cmd.CreateParameter();
-                    var paramTypeCache = p.GetType().GetMemberCache();
-                    p.ParameterName = cp.Key;
                     var valueType = cp.Value?.GetType().GetMemberCache();
+                    if (valueType.IsGenericCollection)
+                    {
+
+                    }
+
+                    p = cmd.CreateParameter();
+                    p.ParameterName = cp.Key;
                     if (valueType != null && valueType.IsClass)
                     {
                         if (valueType == typeof(DataTable))

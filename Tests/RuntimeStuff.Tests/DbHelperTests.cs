@@ -167,6 +167,7 @@ CREATE TABLE student_courses (
             }
 
             var d = db.ToDictionary<long, string, DTO.SQLite.User>(x => x.Id, x => x.Name);
+            var r = db.Query(typeof(List<long>), "select [id] from [users] where id in (@ids)", new { ids = new[] { 1, 2, 3, 4 } });
         }
 
         [TestMethod]
