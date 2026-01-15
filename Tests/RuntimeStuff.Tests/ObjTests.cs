@@ -673,7 +673,7 @@ namespace RuntimeStuff.MSTests
         public void IsCollection_Array_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsGenericCollection(typeof(string[])));
+            Assert.IsTrue(Obj.IsCollection(typeof(string[])));
         }
 
         [TestMethod]

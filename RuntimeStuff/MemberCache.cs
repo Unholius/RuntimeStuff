@@ -257,9 +257,9 @@ namespace RuntimeStuff
         /// <param name="parent">The parent.</param>
         private MemberCache(MemberInfo memberInfo, bool getMembers, MemberCache parent = null)
         {
-#if DEBUG
-            var beginTime = DateTime.Now.ExactNow();
-#endif
+//#if DEBUG
+//            var beginTime = DateTime.Now.ExactNow();
+//#endif
             this.Parent = parent;
 
             this.typeCache = memberInfo as MemberCache;
@@ -582,14 +582,14 @@ namespace RuntimeStuff
             {
                 this.GroupName = this.typeCache.GroupName;
             }
-#if DEBUG
-            lock (Lock)
-            {
-                File.AppendAllText(
-                    "MemberCache.log",
-                    $@"{DateTime.Now:O} - Created MemberCache for {this.MemberInfo.MemberType} '{this.MemberInfo.DeclaringType?.FullName}.{this.MemberInfo.Name}' Elapsed ms: {(DateTime.Now.ExactNow() - beginTime).TotalMilliseconds}" + Environment.NewLine);
-            }
-#endif
+//#if DEBUG
+//            lock (Lock)
+//            {
+//                File.AppendAllText(
+//                    "MemberCache.log",
+//                    $@"{DateTime.Now:O} - Created MemberCache for {this.MemberInfo.MemberType} '{this.MemberInfo.DeclaringType?.FullName}.{this.MemberInfo.Name}' Elapsed ms: {(DateTime.Now.ExactNow() - beginTime).TotalMilliseconds}" + Environment.NewLine);
+//            }
+//#endif
         }
 
         /// <summary>
@@ -747,12 +747,6 @@ namespace RuntimeStuff
         public bool IsBasic { get; }
 
         /// <summary>
-        /// Gets a value indicating whether является ли коллекция коллекцией простых типов.
-        /// </summary>
-        /// <value><c>true</c> if this instance is basic collection; otherwise, <c>false</c>.</value>
-        public bool IsBasicCollection { get; }
-
-        /// <summary>
         /// Gets a value indicating whether является ли тип булевым.
         /// </summary>
         /// <value><c>true</c> if this instance is boolean; otherwise, <c>false</c>.</value>
@@ -769,6 +763,18 @@ namespace RuntimeStuff
         /// </summary>
         /// <value><c>true</c> if this instance is collection; otherwise, <c>false</c>.</value>
         public bool IsGenericCollection { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether является ли тип коллекцией из простых типов.
+        /// </summary>
+        /// <value><c>true</c> if this instance is basic collection; otherwise, <c>false</c>.</value>
+        public bool IsBasicCollection { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether является ли тип типизированной коллекцией из простых типов.
+        /// </summary>
+        /// <value><c>true</c> if this instance is basic collection; otherwise, <c>false</c>.</value>
+        public bool IsBasicGenericCollection { get; }
 
         /// <summary>
         /// Gets a value indicating whether this instance is constant.

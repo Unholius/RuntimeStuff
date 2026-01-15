@@ -618,15 +618,22 @@ namespace RuntimeStuff
 
                 foreach (var cp in parameters)
                 {
-                    var valueType = cp.Value?.GetType().GetMemberCache();
-                    if (valueType.IsGenericCollection)
+                    p = cmd.CreateParameter();
+                    p.ParameterName = cp.Key;
+                    cmd.Parameters.Add(p);
+                    if (cp.Value == null)
+                    {
+                        p.Value = DBNull.Value;
+                        continue;
+                    }
+
+                    var valueType = cp.Value.GetType().GetMemberCache();
+                    if (valueType.IsCollection || valueType.IsBasicCollection)
                     {
 
                     }
 
-                    p = cmd.CreateParameter();
-                    p.ParameterName = cp.Key;
-                    if (valueType != null && valueType.IsClass)
+                    if (valueType.IsClass)
                     {
                         if (valueType == typeof(DataTable))
                         {
@@ -650,8 +657,6 @@ namespace RuntimeStuff
                     {
                         p.Value = cp.Value ?? DBNull.Value;
                     }
-
-                    cmd.Parameters.Add(p);
                 }
             }
 
