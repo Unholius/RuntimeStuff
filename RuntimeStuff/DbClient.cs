@@ -626,7 +626,7 @@ namespace RuntimeStuff
                             try
                             {
                                 p.Value = cp.Value;
-                                paramTypeCache.Properties["SqlDbType"].SetValue(p, SqlDbType.Structured, (x) => x);
+                                paramTypeCache["SqlDbType", MemberTypes.Property].SetValue(p, SqlDbType.Structured, (x) => x);
                                 paramTypeCache.Properties["TypeName"].SetValue(p, ((DataTable)cp.Value).TableName.Coalesce(p.ParameterName), (x) => x);
                             }
                             catch (Exception ex)
@@ -1435,9 +1435,9 @@ namespace RuntimeStuff
                         }
                         else
                         {
-                            if (memberCache.Properties.Count == 1 && memberCache.Properties.First().Value.Type == typeof(DataTable))
+                            if (memberCache.Properties.Length == 1 && memberCache.Properties[0].Type == typeof(DataTable))
                             {
-                                parameters[memberCache.Properties.First().Key] = memberCache.Properties.First().Value.GetValue(cmdParams);
+                                parameters[memberCache.Properties[0].Name] = memberCache.Properties[0].GetValue(cmdParams);
                                 return parameters;
                             }
 

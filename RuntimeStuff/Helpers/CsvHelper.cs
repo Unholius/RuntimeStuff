@@ -109,7 +109,7 @@ namespace RuntimeStuff.Helpers
             where T : class, new()
         {
             var typeCache = MemberCache<T>.Create();
-            var properties = objectProperties != null ? typeCache.Properties.Values.Where(x => objectProperties.Contains(x.Name)).Select(x => (PropertyInfo)x).ToArray() : Array.Empty<PropertyInfo>();
+            var properties = objectProperties != null ? objectProperties.Select(x => typeCache.GetMember(x).AsPropertyInfo()).ToArray() : Array.Empty<PropertyInfo>();
             return FromCsv<T>(csv, properties, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
         }
 

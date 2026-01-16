@@ -1112,7 +1112,7 @@ John,30,New York
 Jane,25,Los Angeles
 Bob,40,Chicago
 ";
-            var result = Obj.FromCsv<TestCsv>(csv, true);
+            var result = CsvHelper.FromCsv<TestCsv>(csv, true);
         }
 
         [TestMethod]
@@ -1126,7 +1126,7 @@ Bob,40,Chicago
 Jane,25,Los Angeles;
 Bob,40,Chicago;
 ";
-            var result = Obj.FromCsv<TestCsv>(csv, false);
+            var result = CsvHelper.FromCsv<TestCsv>(csv, ["Name", "Age", "City"], false);
         }
 
         [TestMethod]
@@ -1134,7 +1134,7 @@ Bob,40,Chicago;
         {
             var csv = @"R2093-AN595SM;144
 ";
-            var result = Obj.FromCsv<ImportFileData>(csv, false, new [] {";"});
+            var result = CsvHelper.FromCsv<ImportFileData>(csv, new[] {"Key", "Value"}, false, new [] {";"});
         }
 
         public class ImportFileData : INotifyPropertyChanged
@@ -1220,7 +1220,7 @@ Bob,40,Chicago;
             var csv = "";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true);
+            var result = CsvHelper.FromCsv<TestModel>(csv, true);
 
             // Assert
             Assert.IsNotNull(result);
@@ -1234,7 +1234,7 @@ Bob,40,Chicago;
             var csv = "   \n\n  \t  ";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true);
+            var result = CsvHelper.FromCsv<TestModel>(csv, true);
 
             // Assert
             Assert.IsNotNull(result);
@@ -1245,7 +1245,7 @@ Bob,40,Chicago;
         public void FromCsv_NullString_ReturnsEmptyArray()
         {
             // Act
-            var result = Obj.FromCsv<TestModel>(null, true);
+            var result = CsvHelper.FromCsv<TestModel>(null, true);
 
             // Assert
             Assert.IsNotNull(result);
@@ -1262,7 +1262,7 @@ Bob,40,Chicago;
             var dateParser = new Func<string, object>(s => DateTime.Parse(s));
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
                 if (DateTime.TryParse(s, out DateTime date))
                     return date;
@@ -1297,7 +1297,7 @@ Bob,40,Chicago;
             var expectedProperties = typeof(SimpleModel).GetProperties().OrderBy(p => p.Name).Select(p => p.Name).ToArray();
 
             // Act
-            var result = Obj.FromCsv<SimpleModel>(csv, false);
+            var result = CsvHelper.FromCsv<SimpleModel>(csv, false);
 
             // Assert
             Assert.AreEqual(2, result.Length);
@@ -1317,7 +1317,7 @@ Bob,40,Chicago;
             var separators = new[] { ";" };
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, columnSeparators: separators, valueParser: s =>
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, columnSeparators: separators, valueParser: s =>
             {
                 if (int.TryParse(s, out int intValue))
                     return intValue;
@@ -1342,7 +1342,7 @@ Bob,40,Chicago;
             var lineSeparators = new[] { "|" };
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, lineSeparators: lineSeparators, valueParser: s =>
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, lineSeparators: lineSeparators, valueParser: s =>
             {
                 if (int.TryParse(s, out int intValue))
                     return intValue;
@@ -1365,7 +1365,7 @@ Bob,40,Chicago;
             var separators = new[] { ",", "\t", ";" };
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, columnSeparators: separators, valueParser: s =>
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, columnSeparators: separators, valueParser: s =>
             {
                 if (int.TryParse(s, out int intValue))
                     return intValue;
@@ -1396,7 +1396,7 @@ Bob,40,Chicago;
             });
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: customParser);
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: customParser);
 
             // Assert
             Assert.AreEqual(2, result.Length);
@@ -1413,7 +1413,7 @@ Bob,40,Chicago;
             var csv = "Name,Age\nJohn,30\nJane,25";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true);
+            var result = CsvHelper.FromCsv<TestModel>(csv, true);
 
             // Assert
             Assert.AreEqual(2, result.Length);
@@ -1432,7 +1432,7 @@ Bob,40,Chicago;
             var csv = "Name,Age,Salary,Extra1,Extra2\nJohn,30,50000,ExtraValue1,ExtraValue2";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
                 if (int.TryParse(s, out int intValue))
                     return intValue;
@@ -1455,7 +1455,7 @@ Bob,40,Chicago;
             var csv = "Name\nJohn\nJane";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true);
+            var result = CsvHelper.FromCsv<TestModel>(csv, true);
 
             // Assert
             Assert.AreEqual(2, result.Length);
@@ -1472,7 +1472,7 @@ Bob,40,Chicago;
             var csv = "Name,Age\n\nJohn,30\n\n\nJane,25\n";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
                 if (int.TryParse(s, out int intValue))
                     return intValue;
@@ -1492,7 +1492,7 @@ Bob,40,Chicago;
             var csv = "Name,Age,Salary";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true);
+            var result = CsvHelper.FromCsv<TestModel>(csv, true);
 
             // Assert
             Assert.AreEqual(0, result.Length);
@@ -1507,7 +1507,7 @@ Bob,40,Chicago;
             var csv = "NAME,age,SALARY\nJohn,30,50000";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
                 if (int.TryParse(s, out int intValue))
                     return intValue;
@@ -1530,7 +1530,7 @@ Bob,40,Chicago;
             var csv = " Name , Age , Salary \nJohn,30,50000";
 
             // Act
-            var result = Obj.FromCsv<TestModel>(csv, true, valueParser: s =>
+            var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
                 if (int.TryParse(s, out int intValue))
                     return intValue;

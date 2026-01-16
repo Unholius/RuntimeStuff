@@ -222,7 +222,12 @@ namespace RuntimeStuff
         /// <summary>
         /// The properties.
         /// </summary>
-        private PropertyInfo[] properties;
+        private MemberCache[] properties;
+
+        /// <summary>
+        /// The properties.
+        /// </summary>
+        private PropertyInfo[] propertyInfoes;
 
         /// <summary>
         /// The tables.
@@ -391,8 +396,6 @@ namespace RuntimeStuff
                     this.SchemaName = this.typeCache.SchemaName;
                 }
 
-                this.Properties = this.typeCache?.Properties ??
-                             this.Members.Where(x => x.Value.IsProperty).ToDictionaryDistinct(x => x.Value.Name, y => y.Value);
                 this.PublicProperties = this.typeCache?.PublicProperties ??
                                    this.Properties.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
                 this.PrivateProperties = this.typeCache?.PrivateProperties ??
@@ -1014,7 +1017,19 @@ namespace RuntimeStuff
         /// Gets словарь всех свойств типа (IsProperty).
         /// </summary>
         /// <value>The properties.</value>
-        public Dictionary<string, MemberCache> Properties { get; }
+        public MemberCache[] Properties
+        {
+            get
+            {
+                if (this.properties != null)
+                {
+                    return this.properties;
+                }
+
+                this.properties = this.GetProperties().Select(p => Create(p, this)).ToArray();
+                return this.properties;
+            }
+        }
 
         /// <summary>
         /// Gets поле, хранящее значение свойства (для автоматически реализуемых свойств).
@@ -1218,8 +1233,9 @@ namespace RuntimeStuff
         /// Получить член по имени.
         /// </summary>
         /// <param name="memberName">Имя члена для поиска.</param>
+        /// <param name="memberType">Тип члена для поиска.</param>
         /// <returns>Найденный член или null, если не найден.</returns>
-        public MemberCache this[string memberName] => this[memberName, MemberNameType.None];
+        public MemberCache this[string memberName, MemberTypes memberType = MemberTypes.Property] => this[memberName, MemberNameType.None];
 
         /// <summary>
         /// Получить член по имени с фильтрацией.
@@ -1852,11 +1868,11 @@ namespace RuntimeStuff
         /// Получает член по имени с возможностью фильтрации.
         /// </summary>
         /// <param name="name">Имя члена.</param>
-        /// <param name="memberNamesType">Тип имен по которым вести поиск.</param>
+        /// <param name="memberType">Тип члена.</param>
         /// <param name="membersFilter">Фильтр для отбора членов (опционально).</param>
         /// <param name="nameComparison">Сравнение имен.</param>
         /// <returns>Экземпляр <see cref="MemberCache" />, либо <c>null</c>, если член не найден.</returns>
-        public MemberCache GetMember(string name, MemberNameType memberNamesType = MemberNameType.None, Func<MemberCache, bool> membersFilter = null, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
+        public MemberCache GetMember(string name, MemberTypes memberType, Func<MemberCache, bool> membersFilter = null, StringComparison nameComparison = StringComparison.OrdinalIgnoreCase)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
@@ -1868,55 +1884,71 @@ namespace RuntimeStuff
                 return mx;
             }
 
-            if (memberNamesType == MemberNameType.None || memberNamesType.HasFlag(MemberNameType.Name))
+            switch (memberType)
             {
-                // Быстрый поиск свойства
-                var quickProp = Obj.GetLowestProperty(this.Type, name);
-                if (quickProp != null)
-                {
+                case MemberTypes.Property:
+                    var quickProp = Obj.GetLowestProperty(this.Type, name);
                     mx = new MemberCache(quickProp);
                     this.memberCache[name] = mx;
                     if (membersFilter == null || membersFilter(mx))
                     {
                         return mx;
                     }
-                }
 
-                // Быстрый поиск поля
-                var quickField = Obj.GetLowestField(this.Type, name);
-                if (quickField != null)
-                {
+                    break;
+
+                case MemberTypes.Field:
+                    var quickField = Obj.GetLowestField(this.Type, name);
                     mx = new MemberCache(quickField);
                     this.memberCache[name] = mx;
                     if (membersFilter == null || membersFilter(mx))
                     {
                         return mx;
                     }
-                }
+
+                    break;
+
+                case MemberTypes.Method:
+                    var quickMethod = Obj.GetLowestMethod(this.Type, name);
+                    if (quickMethod != null)
+                    {
+                        mx = new MemberCache(quickMethod);
+                        this.memberCache[name] = mx;
+                        if (membersFilter == null || membersFilter(mx))
+                        {
+                            return mx;
+                        }
+                    }
+
+                    break;
+
+                case MemberTypes.Event:
+                    var quickEvent = Obj.GetLowestEvent(this.Type, name);
+                    if (quickEvent != null)
+                    {
+                        mx = new MemberCache(quickEvent);
+                        this.memberCache[name] = mx;
+                        if (membersFilter == null || membersFilter(mx))
+                        {
+                            return mx;
+                        }
+                    }
+
+                    break;
+
+                default:
+                    throw new NotSupportedException(memberType.ToString());
+            }
+
+            if (memberNamesType == MemberNameType.None || memberNamesType.HasFlag(MemberNameType.Name))
+            {
+                // Быстрый поиск свойства
+
+                // Быстрый поиск поля
 
                 // Быстрый поиск метода
-                var quickMethod = Obj.GetLowestMethod(this.Type, name);
-                if (quickMethod != null)
-                {
-                    mx = new MemberCache(quickMethod);
-                    this.memberCache[name] = mx;
-                    if (membersFilter == null || membersFilter(mx))
-                    {
-                        return mx;
-                    }
-                }
 
                 // Быстрый поиск события
-                var quickEvent = Obj.GetLowestEvent(this.Type, name);
-                if (quickEvent != null)
-                {
-                    mx = new MemberCache(quickEvent);
-                    this.memberCache[name] = mx;
-                    if (membersFilter == null || membersFilter(mx))
-                    {
-                        return mx;
-                    }
-                }
             }
 
             // Поиск по различным именам (основное имя, отображаемое имя, JSON имя и т.д.)
@@ -2027,9 +2059,9 @@ namespace RuntimeStuff
         /// <returns>Массив информации о свойствах.</returns>
         public PropertyInfo[] GetProperties()
         {
-            if (this.properties != null)
+            if (this.propertyInfoes != null)
             {
-                return this.properties;
+                return this.propertyInfoes;
             }
 
             var props = this.type.GetProperties(DefaultBindingFlags)
@@ -2041,11 +2073,11 @@ namespace RuntimeStuff
 
             var seen = new HashSet<string>();
 
-            this.properties = props
+            this.propertyInfoes = props
                 .Where(p => seen.Add(p.Name))
                 .ToArray();
 
-            return this.properties;
+            return this.propertyInfoes;
         }
 
         /// <summary>
