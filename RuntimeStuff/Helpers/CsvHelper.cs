@@ -109,7 +109,7 @@ namespace RuntimeStuff.Helpers
             where T : class, new()
         {
             var typeCache = MemberCache<T>.Create();
-            var properties = objectProperties != null ? objectProperties.Select(x => typeCache.GetMember(x).AsPropertyInfo()).ToArray() : Array.Empty<PropertyInfo>();
+            var properties = objectProperties != null ? objectProperties.Select(x => typeCache[x].AsPropertyInfo()).ToArray() : Array.Empty<PropertyInfo>();
             return FromCsv<T>(csv, properties, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
         }
 
@@ -171,13 +171,13 @@ namespace RuntimeStuff.Helpers
 
             if (hasColumnsHeader == null)
             {
-                hasColumnsHeader = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Any(x => typeCache.GetMember(x) != null);
+                hasColumnsHeader = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Any(x => typeCache[x] != null);
             }
 
             MemberCache[] columnNames;
             if (hasColumnsHeader.Value)
             {
-                columnNames = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache.GetMember(x)).ToArray();
+                columnNames = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache[x]).ToArray();
             }
             else
             {
@@ -337,7 +337,7 @@ namespace RuntimeStuff.Helpers
             }
             else
             {
-                props = columns.Select(c => typeCache.GetMember(c)).Where(m => m != null).ToArray();
+                props = columns.Select(c => typeCache[c]).Where(m => m != null).ToArray();
             }
 
             return ToCsv(

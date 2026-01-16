@@ -627,7 +627,7 @@ namespace RuntimeStuff
                             {
                                 p.Value = cp.Value;
                                 paramTypeCache["SqlDbType", MemberTypes.Property].SetValue(p, SqlDbType.Structured, (x) => x);
-                                paramTypeCache.Properties["TypeName"].SetValue(p, ((DataTable)cp.Value).TableName.Coalesce(p.ParameterName), (x) => x);
+                                paramTypeCache["TypeName"].SetValue(p, ((DataTable)cp.Value).TableName.Coalesce(p.ParameterName), (x) => x);
                             }
                             catch (Exception ex)
                             {
@@ -1405,10 +1405,10 @@ namespace RuntimeStuff
                     {
                         var elementCache = MemberCache.Create(memberCache.ElementType);
 
-                        var key = elementCache.GetMember("Key", MemberNameType.Name) ??
-                                  elementCache.GetMember("Item1", MemberNameType.Name);
-                        var val = elementCache.GetMember("Value", MemberNameType.Name) ??
-                                  elementCache.GetMember("Item2", MemberNameType.Name);
+                        var key = elementCache["Key"] ??
+                                  elementCache["Item1"];
+                        var val = elementCache["Value"] ??
+                                  elementCache["Item2"];
                         if (key == null || val == null)
                         {
                             break;
@@ -1426,10 +1426,10 @@ namespace RuntimeStuff
                     {
                         if (memberCache.IsTuple)
                         {
-                            var key = memberCache.GetMember("Key", MemberNameType.Name) ??
-                                      memberCache.GetMember("Item1", MemberNameType.Name);
-                            var val = memberCache.GetMember("Value", MemberNameType.Name) ??
-                                      memberCache.GetMember("Item2", MemberNameType.Name);
+                            var key = memberCache["Key"] ??
+                                      memberCache["Item1"];
+                            var val = memberCache["Value"] ??
+                                      memberCache["Item2"];
 
                             parameters[key.GetValue<string>(cmdParams)] = val.GetValue(cmdParams);
                         }

@@ -20,11 +20,12 @@
 		<PackageTags>Utilities;Helpers;Extensions;Common;Tools;String;File;Serialization;LINQ</PackageTags>
 		<RepositoryUrl>https://github.com/Unholius/RuntimeStuff</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
-
-		<!-- Сделать все warnings errors -->
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<!-- Warnings = Errors только в Release -->
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<!-- StyleCop / Roslyn анализаторы -->

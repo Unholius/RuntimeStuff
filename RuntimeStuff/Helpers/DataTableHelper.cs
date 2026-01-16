@@ -223,7 +223,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var table = new DataTable(tableName ?? typeof(T).Name);
-            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.propSelector), x.columnName)).ToArray() : MemberCache.Create(typeof(T)).Properties.Select(x => (x.Value, x.Value.ColumnName)).ToArray();
+            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.propSelector), x.columnName)).ToArray() : MemberCache.Create(typeof(T)).Properties.Select(x => (x, x.ColumnName)).ToArray();
             var pks = new List<DataColumn>();
             foreach (var prop in props)
             {
@@ -315,7 +315,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var result = new List<T>(table.Rows.Count);
-            var props = MemberCache.Create(typeof(T)).Properties;
+            var memberCache = MemberCache.Create(typeof(T));
 
             foreach (DataRow row in table.Rows)
             {
@@ -323,7 +323,8 @@ namespace RuntimeStuff.Helpers
 
                 foreach (DataColumn col in table.Columns)
                 {
-                    if (!props.TryGetValue(col.ColumnName, out var prop))
+                    var prop = memberCache[col.ColumnName];
+                    if (prop == null)
                     {
                         continue;
                     }

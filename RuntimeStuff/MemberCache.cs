@@ -262,6 +262,10 @@ namespace RuntimeStuff
         /// <param name="parent">The parent.</param>
         private MemberCache(MemberInfo memberInfo, bool getMembers, MemberCache parent = null)
         {
+            if (memberInfo == null)
+            {
+                throw new ArgumentNullException(nameof(memberInfo));
+            }
 #if DEBUG
             var beginTime = DateTime.Now.ExactNow();
 #endif
@@ -397,9 +401,9 @@ namespace RuntimeStuff
                 }
 
                 this.PublicProperties = this.typeCache?.PublicProperties ??
-                                   this.Properties.Values.Where(x => x.IsPublic).ToDictionary(x => x.Name);
+                                   this.Properties.Where(x => x.IsPublic).ToDictionary(x => x.Name);
                 this.PrivateProperties = this.typeCache?.PrivateProperties ??
-                                    this.Properties.Values.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
+                                    this.Properties.Where(x => x.IsPrivate).ToDictionary(x => x.Name);
                 this.PublicBasicProperties = this.typeCache?.PublicBasicProperties ??
                                         this.PublicProperties.Values.Where(x => x.IsBasic).ToDictionary(x => x.Name);
                 this.PublicBasicEnumerableProperties = this.typeCache?.PublicBasicEnumerableProperties ??
@@ -1235,16 +1239,7 @@ namespace RuntimeStuff
         /// <param name="memberName">Имя члена для поиска.</param>
         /// <param name="memberType">Тип члена для поиска.</param>
         /// <returns>Найденный член или null, если не найден.</returns>
-        public MemberCache this[string memberName, MemberTypes memberType = MemberTypes.Property] => this[memberName, MemberNameType.None];
-
-        /// <summary>
-        /// Получить член по имени с фильтрацией.
-        /// </summary>
-        /// <param name="memberName">Имя члена для поиска.</param>
-        /// <param name="memberNameType">Тип имени члена для поиска.</param>
-        /// <param name="memberFilter">Фильтр для отбора членов.</param>
-        /// <returns>Найденный член или null, если не найден.</returns>
-        public MemberCache this[string memberName, MemberNameType memberNameType = MemberNameType.None, Func<MemberCache, bool> memberFilter = null] => this.GetMember(memberName, memberNameType, memberFilter);
+        public MemberCache this[string memberName, MemberTypes memberType = MemberTypes.Property] => this.GetMember(memberName, memberType);
 
         /// <summary>
         /// Performs an implicit conversion from <see cref="MemberCache" /> to <see cref="ConstructorInfo" />.
@@ -1652,13 +1647,6 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает конструктор по имени.
-        /// </summary>
-        /// <param name="methodName">Имя конструктора.</param>
-        /// <returns>Экземпляр <see cref="ConstructorInfo" />, либо <c>null</c>.</returns>
-        public ConstructorInfo GetConstructor(string methodName) => this.GetMember(methodName, MemberNameType.Name)?.AsConstructorInfo();
-
-        /// <summary>
         /// Получает конструктор, подходящий для указанных аргументов.
         /// </summary>
         /// <param name="ctorArgs">Аргументы конструктора. Может быть изменён для добавления значений по умолчанию.</param>
@@ -1740,7 +1728,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="eventName">Имя события.</param>
         /// <returns>Экземпляр <see cref="EventInfo" />, либо <c>null</c>.</returns>
-        public EventInfo GetEvent(string eventName) => this.GetMember(eventName)?.AsEventInfo();
+        public EventInfo GetEvent(string eventName) => this[eventName, MemberTypes.Event]?.AsEventInfo();
 
         /// <summary>
         /// Получить события типа и его базовых типов.
@@ -1766,7 +1754,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="fieldName">Имя поля.</param>
         /// <returns>Экземпляр <see cref="FieldInfo" />, либо <c>null</c>.</returns>
-        public FieldInfo GetField(string fieldName) => this.GetMember(fieldName)?.AsFieldInfo();
+        public FieldInfo GetField(string fieldName) => this[fieldName, MemberTypes.Field]?.AsFieldInfo();
 
         /// <summary>
         /// Получить поля типа и его базовых типов.
@@ -1888,12 +1876,17 @@ namespace RuntimeStuff
             {
                 case MemberTypes.Property:
                     var quickProp = Obj.GetLowestProperty(this.Type, name);
-                    mx = new MemberCache(quickProp);
-                    this.memberCache[name] = mx;
-                    if (membersFilter == null || membersFilter(mx))
+                    if (quickProp != null)
                     {
-                        return mx;
+                        mx = new MemberCache(quickProp);
+                        this.memberCache[name] = mx;
+                        if (membersFilter == null || membersFilter(mx))
+                        {
+                            return mx;
+                        }
                     }
+
+                    this.memberCache[name] = null;
 
                     break;
 
@@ -1940,17 +1933,6 @@ namespace RuntimeStuff
                     throw new NotSupportedException(memberType.ToString());
             }
 
-            if (memberNamesType == MemberNameType.None || memberNamesType.HasFlag(MemberNameType.Name))
-            {
-                // Быстрый поиск свойства
-
-                // Быстрый поиск поля
-
-                // Быстрый поиск метода
-
-                // Быстрый поиск события
-            }
-
             // Поиск по различным именам (основное имя, отображаемое имя, JSON имя и т.д.)
             var searchNames = new (Func<MemberCache, string> getter, MemberNameType flag)[]
             {
@@ -1963,13 +1945,8 @@ namespace RuntimeStuff
                 (x => x.SchemaName, MemberNameType.SchemaName),
             };
 
-            foreach (var (f, flag) in searchNames)
+            foreach (var (f, _) in searchNames)
             {
-                if (memberNamesType != MemberNameType.None && (memberNamesType & flag) == 0)
-                {
-                    continue;
-                }
-
                 // Ищем по совпадению имени
                 if (mx == null)
                 {
@@ -2011,7 +1988,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="methodName">Имя метода.</param>
         /// <returns>Экземпляр <see cref="MethodInfo" />, либо <c>null</c>.</returns>
-        public MethodInfo GetMethod(string methodName) => this.GetMember(methodName)?.AsMethodInfo();
+        public MethodInfo GetMethod(string methodName) => this[methodName]?.AsMethodInfo();
 
         /// <summary>
         /// Получить методы типа и его базовых типов.
@@ -2085,7 +2062,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="propertyName">Имя свойства.</param>
         /// <returns>Экземпляр <see cref="PropertyInfo" />, либо <c>null</c>.</returns>
-        public PropertyInfo GetProperty(string propertyName) => this.GetMember(propertyName, MemberNameType.Name)?.AsPropertyInfo();
+        public PropertyInfo GetProperty(string propertyName) => this[propertyName]?.AsPropertyInfo();
 
         /// <summary>
         /// Получает коллекцию свойств, представляющих таблицы (коллекции сложных типов без атрибута NotMapped).
