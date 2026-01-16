@@ -210,5 +210,26 @@ CREATE TABLE student_courses (
                 .AddRow("3");
             var result = con.ToList<string>("select * from dbo.TestFunction(@list)", new { list = dt });
         }
+
+        [TestMethod]
+        public void DbClient_Tamuz_Test_01()
+        {
+            var con = new SqlConnection()
+                    .Server("serv24")
+                    .Database("Tamuz")
+                    .Timeout(3)
+                    .IntegratedSecurity(true);
+
+            var result = con.ExecuteScalar<bool>(
+                "SELECT\r\n" +
+                "    CASE WHEN EXISTS \r\n" +
+                "    (\r\n" +
+                "        SELECT p.[ID] FROM [Tamuz].[dbo].[Products] p WHERE LTRIM(RTRIM(p.[ProductCode])) = @productCode AND p.[CompanyID] = @companyId\r\n" +
+                "    )\r\n" +
+                "    THEN 1\r\n" +
+                "    ELSE 0\r\n" +
+                "END", new {productCode = "R2093-AN595SM", companyId = 1 });
+
+        }
     }
 }

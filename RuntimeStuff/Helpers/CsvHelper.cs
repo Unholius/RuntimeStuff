@@ -43,6 +43,102 @@ namespace RuntimeStuff.Helpers
         /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
         /// </remarks>
         public static T[] FromCsv<T>(string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
+            where T : class, new()
+        {
+            return FromCsv<T>(csv, Array.Empty<PropertyInfo>(), hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
+        }
+
+        /// <summary>
+        /// Преобразует CSV-строку в массив объектов указанного класса с возможностью настройки разделителей и парсера значений.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов для создания. Должен быть классом с публичным конструктором без параметров.</typeparam>
+        /// <param name="csv">CSV-строка для обработки.</param>
+        /// <param name="objectProperties">Маппер колонок из csv на свойства объекта в порядке следования колонок в csv.</param>
+        /// <param name="hasColumnsHeader">
+        /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
+        /// </param>
+        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { "," }.</param>
+        /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
+        /// <param name="valueParser">
+        /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
+        /// </param>
+        /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
+        /// <remarks>
+        /// <para>Метод выполняет следующие шаги:</para>
+        /// <list type="bullet">
+        /// <item>Разбивает CSV по строкам с учётом <paramref name="lineSeparators"/> и игнорирует пустые строки.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>true</c>, первая строка используется для сопоставления колонок с членами класса <typeparamref name="T"/> через <see cref="MemberCache{T}"/>.</item>
+        /// <item>Каждая последующая строка создаёт новый объект <typeparamref name="T"/>. Значения колонок преобразуются с помощью <paramref name="valueParser"/> и присваиваются соответствующим свойствам или полям.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>false</c>, используются все публичные базовые свойства класса.</item>
+        /// </list>
+        /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
+        /// </remarks>
+        public static T[] FromCsv<T>(string csv, Expression<Func<T, object>>[] objectProperties, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
+            where T : class, new()
+        {
+            var properties = objectProperties != null ? objectProperties.Select(x => x.GetPropertyInfo()).ToArray() : Array.Empty<PropertyInfo>();
+            return FromCsv<T>(csv, properties, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
+        }
+
+        /// <summary>
+        /// Преобразует CSV-строку в массив объектов указанного класса с возможностью настройки разделителей и парсера значений.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов для создания. Должен быть классом с публичным конструктором без параметров.</typeparam>
+        /// <param name="csv">CSV-строка для обработки.</param>
+        /// <param name="objectProperties">Маппер колонок из csv на свойства объекта в порядке следования колонок в csv.</param>
+        /// <param name="hasColumnsHeader">
+        /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
+        /// </param>
+        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { "," }.</param>
+        /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
+        /// <param name="valueParser">
+        /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
+        /// </param>
+        /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
+        /// <remarks>
+        /// <para>Метод выполняет следующие шаги:</para>
+        /// <list type="bullet">
+        /// <item>Разбивает CSV по строкам с учётом <paramref name="lineSeparators"/> и игнорирует пустые строки.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>true</c>, первая строка используется для сопоставления колонок с членами класса <typeparamref name="T"/> через <see cref="MemberCache{T}"/>.</item>
+        /// <item>Каждая последующая строка создаёт новый объект <typeparamref name="T"/>. Значения колонок преобразуются с помощью <paramref name="valueParser"/> и присваиваются соответствующим свойствам или полям.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>false</c>, используются все публичные базовые свойства класса.</item>
+        /// </list>
+        /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
+        /// </remarks>
+        public static T[] FromCsv<T>(string csv, string[] objectProperties, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
+            where T : class, new()
+        {
+            var typeCache = MemberCache<T>.Create();
+            var properties = objectProperties != null ? typeCache.Properties.Values.Where(x => objectProperties.Contains(x.Name)).Select(x => (PropertyInfo)x).ToArray() : Array.Empty<PropertyInfo>();
+            return FromCsv<T>(csv, properties, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
+        }
+
+        /// <summary>
+        /// Преобразует CSV-строку в массив объектов указанного класса с возможностью настройки разделителей и парсера значений.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов для создания. Должен быть классом с публичным конструктором без параметров.</typeparam>
+        /// <param name="csv">CSV-строка для обработки.</param>
+        /// <param name="objectProperties">Маппер колонок из csv на свойства объекта в порядке следования колонок в csv.</param>
+        /// <param name="hasColumnsHeader">
+        /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
+        /// </param>
+        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { "," }.</param>
+        /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
+        /// <param name="valueParser">
+        /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
+        /// </param>
+        /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
+        /// <remarks>
+        /// <para>Метод выполняет следующие шаги:</para>
+        /// <list type="bullet">
+        /// <item>Разбивает CSV по строкам с учётом <paramref name="lineSeparators"/> и игнорирует пустые строки.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>true</c>, первая строка используется для сопоставления колонок с членами класса <typeparamref name="T"/> через <see cref="MemberCache{T}"/>.</item>
+        /// <item>Каждая последующая строка создаёт новый объект <typeparamref name="T"/>. Значения колонок преобразуются с помощью <paramref name="valueParser"/> и присваиваются соответствующим свойствам или полям.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>false</c>, используются все публичные базовые свойства класса.</item>
+        /// </list>
+        /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
+        /// </remarks>
+        public static T[] FromCsv<T>(string csv, PropertyInfo[] objectProperties, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
     where T : class, new()
         {
             if (string.IsNullOrWhiteSpace(csv))
@@ -78,9 +174,17 @@ namespace RuntimeStuff.Helpers
                 hasColumnsHeader = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Any(x => typeCache.GetMember(x) != null);
             }
 
-            var columnNames = hasColumnsHeader.Value ? lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache.GetMember(x)).ToArray() : typeCache.PublicBasicProperties.Values.ToArray();
-            var result = new List<T>();
+            MemberCache[] columnNames;
+            if (hasColumnsHeader.Value)
+            {
+                columnNames = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache.GetMember(x)).ToArray();
+            }
+            else
+            {
+                columnNames = objectProperties?.Any() == true ? objectProperties.Select(x => (MemberCache)x).ToArray() : typeCache.PublicBasicProperties.Values.ToArray();
+            }
 
+            var result = new List<T>();
             for (int i = hasColumnsHeader.Value ? 1 : 0; i < lines.Length; i++)
             {
                 var values = lines[i].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => valueParser(x)).ToArray();
@@ -127,11 +231,6 @@ namespace RuntimeStuff.Helpers
         /// Принимает описание свойства и его значение.
         /// Если не задана, используется стандартная сериализация.
         /// </param>
-        /// <param name="columnSelectors">
-        /// Выражения, указывающие свойства типа <typeparamref name="T"/>,
-        /// которые необходимо включить в CSV (например: <c>x =&gt; x.Name</c>).
-        /// Если массив не задан или пуст, используются все публичные простые свойства типа.
-        /// </param>
         /// <returns>
         /// Строка, содержащая данные в формате CSV.
         /// </returns>
@@ -141,20 +240,25 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="ArgumentException">
         /// Выбрасывается, если выражение не указывает на свойство типа <typeparamref name="T"/>.
         /// </exception>
-        public static string ToCsv<T>(IEnumerable<T> data, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null, params Expression<Func<T, object>>[] columnSelectors)
+        public static string ToCsv<T>(IEnumerable<T> data, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null)
         {
-            return ToCsv(data, writeColumnHeaders, columnSeparator, lineSeparator, valueSerializer, columnSelectors.Select(x => (PropertyInfo)x.GetMemberCache()).ToArray());
+            return ToCsv<T>(data, Array.Empty<PropertyInfo>(), writeColumnHeaders, columnSeparator, lineSeparator, valueSerializer);
         }
 
         /// <summary>
         /// Преобразует коллекцию объектов в строку в формате CSV,
-        /// позволяя указать набор колонок по их именам.
+        /// позволяя указать набор колонок с помощью лямбда-выражений.
         /// </summary>
         /// <typeparam name="T">
         /// Тип элементов коллекции.
         /// </typeparam>
         /// <param name="data">
         /// Коллекция объектов, данные которых будут сериализованы в CSV.
+        /// </param>
+        /// <param name="columnSelectors">
+        /// Выражения, указывающие свойства типа <typeparamref name="T"/>,
+        /// которые необходимо включить в CSV (например: <c>x =&gt; x.Name</c>).
+        /// Если массив не задан или пуст, используются все публичные простые свойства типа.
         /// </param>
         /// <param name="writeColumnHeaders">
         /// Признак необходимости записи строки заголовков.
@@ -172,10 +276,50 @@ namespace RuntimeStuff.Helpers
         /// Принимает описание свойства и его значение.
         /// Если не задана, используется стандартная сериализация.
         /// </param>
+        /// <returns>
+        /// Строка, содержащая данные в формате CSV.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если параметр <paramref name="data"/> равен <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если выражение не указывает на свойство типа <typeparamref name="T"/>.
+        /// </exception>
+        public static string ToCsv<T>(IEnumerable<T> data, Expression<Func<T, object>>[] columnSelectors, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null)
+        {
+            return ToCsv(data, columnSelectors.Select(x => (PropertyInfo)x.GetMemberCache()).ToArray(), writeColumnHeaders, columnSeparator, lineSeparator, valueSerializer);
+        }
+
+        /// <summary>
+        /// Преобразует коллекцию объектов в строку в формате CSV,
+        /// позволяя указать набор колонок по их именам.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции.
+        /// </typeparam>
+        /// <param name="data">
+        /// Коллекция объектов, данные которых будут сериализованы в CSV.
+        /// </param>
         /// <param name="columns">
         /// Имена свойств типа <typeparamref name="T"/>, которые необходимо включить в CSV.
         /// Если массив не задан или пуст, используются все публичные простые свойства типа.
         /// Имена свойств, не найденные в типе, игнорируются.
+        /// </param>
+        /// <param name="writeColumnHeaders">
+        /// Признак необходимости записи строки заголовков.
+        /// Если значение равно <see langword="true"/>, в первую строку CSV
+        /// будут записаны имена выбранных свойств.
+        /// </param>
+        /// <param name="columnSeparator">
+        /// Разделитель колонок (по умолчанию <c>","</c>).
+        /// </param>
+        /// <param name="lineSeparator">
+        /// Разделитель строк (по умолчанию <c>";\r\n"</c>).
+        /// </param>
+        /// <param name="valueSerializer">
+        /// Пользовательская функция сериализации значения свойства в строку.
+        /// Принимает описание свойства и его значение.
+        /// Если не задана, используется стандартная сериализация.
         /// </param>
         /// <returns>
         /// Строка, содержащая данные в формате CSV.
@@ -183,7 +327,7 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="ArgumentNullException">
         /// Выбрасывается, если параметр <paramref name="data"/> равен <see langword="null"/>.
         /// </exception>
-        public static string ToCsv<T>(IEnumerable<T> data, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null, params string[] columns)
+        public static string ToCsv<T>(IEnumerable<T> data, string[] columns, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null)
         {
             var typeCache = MemberCache.Create(typeof(T));
             MemberCache[] props = null;
@@ -198,11 +342,11 @@ namespace RuntimeStuff.Helpers
 
             return ToCsv(
                 data,
+                props.Select(x => (PropertyInfo)x).ToArray(),
                 writeColumnHeaders,
                 columnSeparator,
                 lineSeparator,
-                valueSerializer,
-                props.Select(x => (PropertyInfo)x).ToArray());
+                valueSerializer);
         }
 
         /// <summary>
@@ -213,6 +357,10 @@ namespace RuntimeStuff.Helpers
         /// </typeparam>
         /// <param name="data">
         /// Коллекция объектов, данные которых будут сериализованы в CSV.
+        /// </param>
+        /// <param name="columns">
+        /// Набор свойств, которые необходимо включить в CSV.
+        /// Если параметры не заданы, используются все публичные простые свойства типа <typeparamref name="T"/>.
         /// </param>
         /// <param name="writeColumnHeaders">
         /// Признак необходимости записи строки заголовков.
@@ -231,17 +379,13 @@ namespace RuntimeStuff.Helpers
         /// Если не задана, используется стандартное преобразование через
         /// <see cref="CultureInfo.InvariantCulture"/>.
         /// </param>
-        /// <param name="columns">
-        /// Набор свойств, которые необходимо включить в CSV.
-        /// Если параметры не заданы, используются все публичные простые свойства типа <typeparamref name="T"/>.
-        /// </param>
         /// <returns>
         /// Строка, содержащая данные в формате CSV.
         /// </returns>
         /// <exception cref="ArgumentNullException">
         /// Выбрасывается, если параметр <paramref name="data"/> равен <see langword="null"/>.
         /// </exception>
-        public static string ToCsv<T>(IEnumerable<T> data, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null, params PropertyInfo[] columns)
+        public static string ToCsv<T>(IEnumerable<T> data, PropertyInfo[] columns, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null)
         {
             if (data == null)
             {

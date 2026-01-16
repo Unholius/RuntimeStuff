@@ -76,7 +76,7 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns><c>true</c> if the specified type is collection; otherwise, <c>false</c>.</returns>
-        public static bool IsCollection(this Type type) => Obj.IsGenericCollection(type);
+        public static bool IsCollection(this Type type) => Obj.IsCollection(type);
 
         /// <summary>
         /// Проверяет, является ли тип датой/временем.

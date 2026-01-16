@@ -613,27 +613,13 @@ namespace RuntimeStuff
 
             if (cmdParams != null)
             {
-                var p = cmd.CreateParameter();
-                var paramTypeCache = p.GetType().GetMemberCache();
-
                 foreach (var cp in parameters)
                 {
-                    p = cmd.CreateParameter();
+                    var p = cmd.CreateParameter();
+                    var paramTypeCache = p.GetType().GetMemberCache();
                     p.ParameterName = cp.Key;
-                    cmd.Parameters.Add(p);
-                    if (cp.Value == null)
-                    {
-                        p.Value = DBNull.Value;
-                        continue;
-                    }
-
-                    var valueType = cp.Value.GetType().GetMemberCache();
-                    if (valueType.IsCollection || valueType.IsBasicCollection)
-                    {
-
-                    }
-
-                    if (valueType.IsClass)
+                    var valueType = cp.Value?.GetType().GetMemberCache();
+                    if (valueType != null && valueType.IsClass)
                     {
                         if (valueType == typeof(DataTable))
                         {
@@ -657,6 +643,8 @@ namespace RuntimeStuff
                     {
                         p.Value = cp.Value ?? DBNull.Value;
                     }
+
+                    cmd.Parameters.Add(p);
                 }
             }
 

@@ -2196,17 +2196,6 @@ namespace RuntimeStuff.Helpers
         public static bool IsBoolean(Type t) => BoolTypes.Contains(t);
 
         /// <summary>
-        /// Проверяет, является ли тип типизированной коллекцией.
-        /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип является коллекцией, иначе False.</returns>
-        public static bool IsGenericCollection(Type t)
-        {
-            var hasGenericType = t.GenericTypeArguments.Length > 0;
-            return hasGenericType && IsCollection(t);
-        }
-
-        /// <summary>
         /// Проверяет, является ли тип коллекцией.
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
@@ -2223,7 +2212,9 @@ namespace RuntimeStuff.Helpers
                 return false;
             }
 
-            return typeof(IList).IsAssignableFrom(t) || typeof(ICollection).IsAssignableFrom(t) || typeof(IEnumerable).IsAssignableFrom(t);
+            var hasGenericType = t.GenericTypeArguments.Length > 0;
+            return (typeof(IList).IsAssignableFrom(t) || typeof(ICollection).IsAssignableFrom(t) ||
+                    typeof(IEnumerable).IsAssignableFrom(t)) && hasGenericType;
         }
 
         /// <summary>

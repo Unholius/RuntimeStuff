@@ -6,6 +6,7 @@ namespace RuntimeStuff.MSTests
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.ComponentModel;
     using System.Data;
     using System.Data.SqlClient;
     using System.Linq;
@@ -1128,11 +1129,71 @@ Bob,40,Chicago;
             var result = Obj.FromCsv<TestCsv>(csv, false);
         }
 
+        [TestMethod]
+        public void FromCsv_Test_03()
+        {
+            var csv = @"R2093-AN595SM;144
+";
+            var result = Obj.FromCsv<ImportFileData>(csv, false, new [] {";"});
+        }
+
+        public class ImportFileData : INotifyPropertyChanged
+        {
+            string key;
+            public string Key
+            {
+                get => key;
+                set
+                {
+                    if (key == value)
+                    {
+                        return;
+                    }
+
+                    key = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Key)));
+                }
+            }
+
+            object valueField;
+            public object Value
+            {
+                get => valueField;
+                set
+                {
+                    if (valueField == value)
+                    {
+                        return;
+                    }
+
+                    valueField = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
+                }
+            }
+            string error;
+            public string Error
+            {
+                get => error;
+                set
+                {
+                    if (error == value)
+                    {
+                        return;
+                    }
+
+                    error = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Error)));
+                }
+            }
+
+            public event PropertyChangedEventHandler PropertyChanged;
+        }
+
         public class TestCsv
         {
             public string? Name { get; set; }
-            public int Age { get; set; }
             public string? City { get; set; }
+            public int Age { get; set; }
         }
 
         #region Test Models
