@@ -259,6 +259,7 @@ namespace RuntimeStuff.Helpers
         /// <value>The basic types.</value>
         public static Type[] BasicTypes { get; } = new Type[]
         {
+            typeof(object),
             typeof(char), typeof(char?), typeof(string),
             typeof(DateTime), typeof(DateTime?), typeof(TimeSpan),
             typeof(Guid), typeof(Guid?),

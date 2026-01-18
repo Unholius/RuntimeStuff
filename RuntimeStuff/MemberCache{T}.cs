@@ -69,7 +69,7 @@ namespace RuntimeStuff
         /// <returns>MemberCache&lt;T&gt;.</returns>
         public static MemberCache<T> Create()
         {
-            var memberCache = MemberInfoCache.GetOrAdd(typeof(T), x => new MemberCache(typeof(T)));
+            var memberCache = TypeCache.GetOrAdd(typeof(T), x => new MemberCache(typeof(T)));
             var result = MemberInfoCacheT.GetOrAdd(typeof(T), x => new MemberCache<T>(memberCache));
 
             return result;

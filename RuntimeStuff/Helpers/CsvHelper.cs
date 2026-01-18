@@ -177,11 +177,11 @@ namespace RuntimeStuff.Helpers
             MemberCache[] columnNames;
             if (hasColumnsHeader.Value)
             {
-                columnNames = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache[x]).ToArray();
+                columnNames = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache[x.Trim()]).ToArray();
             }
             else
             {
-                columnNames = objectProperties?.Any() == true ? objectProperties.Select(x => (MemberCache)x).ToArray() : typeCache.PublicBasicProperties.Values.ToArray();
+                columnNames = objectProperties?.Any() == true ? objectProperties.Select(x => (MemberCache)x).ToArray() : typeCache.PublicBasicProperties.ToArray();
             }
 
             var result = new List<T>();
@@ -333,7 +333,7 @@ namespace RuntimeStuff.Helpers
             MemberCache[] props = null;
             if (columns?.Any() != true)
             {
-                props = typeCache.PublicBasicProperties.Values.ToArray();
+                props = typeCache.PublicBasicProperties.ToArray();
             }
             else
             {
@@ -397,7 +397,7 @@ namespace RuntimeStuff.Helpers
 
             if (columns == null || columns.Length == 0)
             {
-                columns = typeCache.PublicBasicProperties.Values.Select(x => (PropertyInfo)x)
+                columns = typeCache.PublicBasicProperties.Select(x => (PropertyInfo)x)
                     .ToArray();
             }
 

@@ -1556,9 +1556,9 @@ namespace RuntimeStuff
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                 id = this.ExecuteScalar<object>(query, this.GetParams(item));
                 var mi = MemberCache<T>.Create();
-                if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
+                if (id != null && id != DBNull.Value && mi.PrimaryKeys.Length == 1)
                 {
-                    var pi = mi.PrimaryKeys.First().Value;
+                    var pi = mi.PrimaryKeys[0];
                     pi.SetValue(item, id);
                 }
             }
@@ -1624,11 +1624,11 @@ namespace RuntimeStuff
                 id = await this.ExecuteScalarAsync<object>(query, this.GetParams(item), dbTransaction, token)
                     .ConfigureAwait(this.ConfigureAwait);
                 var mi = MemberCache<T>.Create();
-                if (id != null && id != DBNull.Value && mi.PrimaryKeys.Count == 1)
+                if (id != null && id != DBNull.Value && mi.PrimaryKeys.Length == 1)
                 {
-                    mi.PrimaryKeys.First().Value.SetValue(
+                    mi.PrimaryKeys[0].SetValue(
                         item,
-                        ChangeType(id, mi.PrimaryKeys.First().Value.PropertyType));
+                        ChangeType(id, mi.PrimaryKeys[0].PropertyType));
                 }
             }
 
@@ -1661,7 +1661,7 @@ namespace RuntimeStuff
                     }
 
                     var typeCache = MemberCache<T>.Create();
-                    var pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
+                    var pk = typeCache.PrimaryKeys.FirstOrDefault();
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
@@ -1727,7 +1727,7 @@ namespace RuntimeStuff
                     }
 
                     var typeCache = MemberCache<T>.Create();
-                    var pk = typeCache.PrimaryKeys.FirstOrDefault().Value;
+                    var pk = typeCache.PrimaryKeys.FirstOrDefault();
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
@@ -3458,9 +3458,8 @@ namespace RuntimeStuff
                 MemberCache propInfoEx;
                 if (customMap != null)
                 {
-                    propInfoEx = typeInfoEx.PublicBasicProperties.GetValueOrDefault(
-                        customMapDic.GetValueOrDefault(colName, IgnoreCaseComparer),
-                        IgnoreCaseComparer);
+                    propInfoEx = typeInfoEx.PublicBasicProperties.FirstOrDefault(x =>
+                        x.Name.Equals(customMapDic.GetValueOrDefault(colName), StringComparison.OrdinalIgnoreCase));
                     if (propInfoEx != null)
                     {
                         map[colIndex] = propInfoEx;
@@ -3469,7 +3468,7 @@ namespace RuntimeStuff
                 }
 
                 propInfoEx = typeInfoEx.ColumnProperties
-                    .FirstOrDefault(x => IgnoreCaseComparer.Equals(x.Value.ColumnName, colName)).Value;
+                    .FirstOrDefault(x => IgnoreCaseComparer.Equals(x.ColumnName, colName));
                 if (propInfoEx != null)
                 {
                     map[colIndex] = propInfoEx;
@@ -3477,7 +3476,7 @@ namespace RuntimeStuff
                 }
 
                 propInfoEx = typeInfoEx.PublicBasicProperties
-                    .FirstOrDefault(x => IgnoreCaseComparer.Equals(x.Value.ColumnName, colName)).Value;
+                    .FirstOrDefault(x => IgnoreCaseComparer.Equals(x.ColumnName, colName));
 
                 if (propInfoEx != null)
                 {

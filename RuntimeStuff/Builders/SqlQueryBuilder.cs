@@ -87,7 +87,7 @@ namespace RuntimeStuff.Builders
                 clause.Append(" ORDER BY ");
                 _ = clause.Append(string.Join(
                     ", ",
-                    mi.PrimaryKeys.Count > 0 ? mi.PrimaryKeys.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix)) : mi.ColumnProperties.Values.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))));
+                    mi.PrimaryKeys.Length > 0 ? mi.PrimaryKeys.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix)) : mi.ColumnProperties.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))));
                 clause.Append(" ");
             }
 
@@ -156,7 +156,7 @@ namespace RuntimeStuff.Builders
             var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
             if (insertCols.Length == 0)
             {
-                insertCols = mi.ColumnProperties.Values.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
+                insertCols = mi.ColumnProperties.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
             }
 
             for (var i = 0; i < insertCols.Length; i++)
@@ -233,7 +233,7 @@ namespace RuntimeStuff.Builders
             var fkInChildren = childrenCache.GetForeignKey(from);
             if (fkInChildren != null)
             {
-                parentColumn = parentCache.PrimaryKeys.FirstOrDefault().Value?.ColumnName;
+                parentColumn = parentCache.PrimaryKeys.FirstOrDefault()?.ColumnName;
                 childColumn = fkInChildren.ColumnName;
             }
             else
@@ -244,7 +244,7 @@ namespace RuntimeStuff.Builders
                 {
                     // FK в parent: столбцы меняем местами, чтобы parent остался FROM
                     parentColumn = fkInParent.ColumnName;
-                    childColumn = childrenCache.PrimaryKeys.FirstOrDefault().Value?.ColumnName;
+                    childColumn = childrenCache.PrimaryKeys.FirstOrDefault()?.ColumnName;
                 }
                 else
                 {
@@ -327,7 +327,7 @@ namespace RuntimeStuff.Builders
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
             if (members.Length == 0)
             {
-                members = mi.ColumnProperties.Values.Concat(mi.PrimaryKeys.Values).ToArray();
+                members = mi.ColumnProperties.Concat(mi.PrimaryKeys).ToArray();
             }
 
             if (members.Length == 0)
@@ -404,15 +404,15 @@ namespace RuntimeStuff.Builders
             if (props.Count == 0)
             {
                 props.AddRange(mi.ColumnProperties
-                    .Where(x => !x.Value.IsPrimaryKey && x.Value.IsSetterPublic)
-                    .Select(x => x.Value.ColumnName));
+                    .Where(x => !x.IsPrimaryKey && x.IsSetterPublic)
+                    .Select(x => x.Name));
             }
 
             if (props.Count == 0)
             {
                 props.AddRange(mi.PublicBasicProperties
-                    .Where(x => x.Key.ToLower() != "id" && x.Value.IsSetterPublic)
-                    .Select(x => x.Value.ColumnName));
+                    .Where(x => x.Name.ToLower() != "id" && x.IsSetterPublic)
+                    .Select(x => x.Name));
             }
             else
             {
@@ -465,10 +465,10 @@ namespace RuntimeStuff.Builders
         public static string GetWhereClause<T>(SqlProviderOptions options, out Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(typeof(T));
-            var keys = mi.PrimaryKeys.Values.ToArray();
+            var keys = mi.PrimaryKeys.ToArray();
             if (keys.Length == 0)
             {
-                keys = mi.PublicBasicProperties.Values.ToArray();
+                keys = mi.PublicBasicProperties.ToArray();
             }
 
             return GetWhereClause(keys, options, out cmdParams);

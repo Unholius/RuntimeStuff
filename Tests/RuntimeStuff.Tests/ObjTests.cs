@@ -1,4 +1,5 @@
-﻿using RuntimeStuff.Helpers;
+﻿using RuntimeStuff.Extensions;
+using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff.MSTests
 {
@@ -1080,6 +1081,17 @@ namespace RuntimeStuff.MSTests
             Obj.AddCustomTypeConverter<int, string>(x => x.ToString() + "_custom");
             Obj.Set(rc, "Name", 4);
             Assert.AreEqual("4_custom", rc.Name);
+        }
+
+        [TestMethod]
+        public void Test_Dic_01()
+        {
+            var d = new Dictionary<string, object>(StringComparison.OrdinalIgnoreCase.ToStringComparer());
+            d["NAME"] = 0;
+            d["name"] = 1;
+            d["Name"] = 2;
+
+            var v = d["name"];
         }
 
         [TestMethod]

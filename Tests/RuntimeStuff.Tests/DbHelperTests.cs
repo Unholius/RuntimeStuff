@@ -161,7 +161,7 @@ CREATE TABLE student_courses (
         public void DbClient_Test_03()
         {
             using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
             }
@@ -217,8 +217,10 @@ CREATE TABLE student_courses (
             var con = new SqlConnection()
                     .Server("serv24")
                     .Database("Tamuz")
-                    .Timeout(3)
+                    .Timeout(1)
                     .IntegratedSecurity(true);
+
+            if (!con.TryOpen()) return;
 
             var result = con.ExecuteScalar<bool>(
                 "SELECT\r\n" +
