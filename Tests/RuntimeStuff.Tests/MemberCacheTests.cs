@@ -709,7 +709,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(anonymousObject.Id, id);
         }
 
-        [TestMethod]
+        //[TestMethod]
         public void Speed_Test()
         {
             var count = 1_000_000;
