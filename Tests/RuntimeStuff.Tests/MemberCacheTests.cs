@@ -713,16 +713,13 @@ namespace RuntimeStuff.MSTests
         public void Speed_Test()
         {
             var count = 1_000_000;
-
             var x = new DtoTestClass();
             var mc = MemberCache.Create(typeof(DtoTestClass));
             var sw = new Stopwatch();
+            mc["ColNullableInt"].Setter(x, 1);
             sw.Restart();
-            var s = mc[nameof(DtoTestClass.ColNVarCharMax)].Setter;
             for (int i = 0; i < count; i++)
             {
-                //s.SetValue(x, i, (v) => v.ToString());
-                s(x, i.ToString());
                 mc["ColNullableInt"].Setter(x, i);
             }
             sw.Stop();
@@ -743,10 +740,11 @@ namespace RuntimeStuff.MSTests
             for (int i = 0; i < count; i++)
             {
                 ta[x, nameof(DtoTestClass.ColNVarCharMax)] = i.ToString();
-                //mc.SetMemberValue<int?>(x, "ColNullableInt", 123);
             }
             sw.Stop();
             var elapsed3 = sw.ElapsedMilliseconds;
+            Assert.IsTrue(elapsed2 <= elapsed1);
+            Assert.IsTrue(elapsed1 <= elapsed3);
         }
 
         [TestMethod]

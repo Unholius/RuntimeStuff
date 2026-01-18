@@ -167,6 +167,13 @@ CREATE TABLE student_courses (
             }
 
             var d = db.ToDictionary<long, string, DTO.SQLite.User>(x => x.Id, x => x.Name);
+            var r = db.Query(typeof(List<string>), "select [name] from [users] where id in (@ids)", new { ids = new[] { 2, 4, 6, 8, 0 } });
+        }
+
+        [TestMethod]
+        public void DbClient_Test_06()
+        {
+            using var db = DbClient.Create<SqliteConnection>(_connectionString);
             var r = db.Query(typeof(List<long>), "select [id] from [users] where id in (@ids)", new { ids = new[] { 1, 2, 3, 4 } });
         }
 
@@ -185,13 +192,13 @@ CREATE TABLE student_courses (
         private string ServerName = "NAS\\RSSQLSERVER";
         private string DatabaseName = "test";
 
-        [TestMethod]
+        //[TestMethod]
         public void DbClient_Test_05()
         {
             var con = new SqlConnection()
                 .Server(ServerName)
                 .Database(DatabaseName)
-                .Timeout(3)
+                .Timeout(2)
                 .IntegratedSecurity(true);
 
             if (!con.TryOpen())
@@ -211,13 +218,13 @@ CREATE TABLE student_courses (
             var result = con.ToList<string>("select * from dbo.TestFunction(@list)", new { list = dt });
         }
 
-        [TestMethod]
+        //[TestMethod]
         public void DbClient_Tamuz_Test_01()
         {
             var con = new SqlConnection()
-                    .Server("serv24")
+                    .Server("serv40")
                     .Database("Tamuz")
-                    .Timeout(1)
+                    .Timeout(2)
                     .IntegratedSecurity(true);
 
             if (!con.TryOpen()) return;

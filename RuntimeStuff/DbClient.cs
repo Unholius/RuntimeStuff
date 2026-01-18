@@ -613,6 +613,14 @@ namespace RuntimeStuff
 
             if (cmdParams != null)
             {
+                var cmdParamsCache = cmdParams.GetType().GetMemberCache();
+                foreach (var arrProp in cmdParamsCache.PublicBasicEnumerableProperties)
+                {
+                    var arr = (arrProp.Getter(cmdParams) as IEnumerable)?.Cast<object>();
+                    if (arr != null)
+                        cmd.CommandText = cmd.CommandText.Replace("@" + arrProp.Name, string.Join(", ", arr.Select((x, i) => $"@{arrProp.Name}_{i}")));
+                }
+
                 foreach (var cp in parameters)
                 {
                     var p = cmd.CreateParameter();
@@ -626,7 +634,7 @@ namespace RuntimeStuff
                             try
                             {
                                 p.Value = cp.Value;
-                                paramTypeCache["SqlDbType", MemberTypes.Property].SetValue(p, SqlDbType.Structured, (x) => x);
+                                paramTypeCache["SqlDbType"].SetValue(p, SqlDbType.Structured, (x) => x);
                                 paramTypeCache["TypeName"].SetValue(p, ((DataTable)cp.Value).TableName.Coalesce(p.ParameterName), (x) => x);
                             }
                             catch (Exception ex)
@@ -1441,7 +1449,23 @@ namespace RuntimeStuff
                                 return parameters;
                             }
 
-                            parameters = memberCache.ToDictionary(cmdParams, propertyNames);
+                            foreach (var arrProp in memberCache.PublicBasicEnumerableProperties)
+                            {
+                                if (arrProp.Getter(cmdParams) is IEnumerable arr)
+                                {
+                                    var idx = 0;
+                                    foreach (var i in arr)
+                                    {
+                                        parameters[$"{arrProp.Name}_{idx}"] = i;
+                                        idx++;
+                                    }
+                                }
+                            }
+
+                            foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyNames))
+                            {
+                                parameters[kvp.Key] = kvp.Value;
+                            }
                         }
 
                         break;

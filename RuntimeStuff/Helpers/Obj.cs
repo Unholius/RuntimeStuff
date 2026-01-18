@@ -11,6 +11,7 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff.Helpers
 {
     using System;
@@ -23,6 +24,7 @@ namespace RuntimeStuff.Helpers
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Reflection.Emit;
+    using System.Runtime.CompilerServices;
     using RuntimeStuff.Extensions;
 
     /// <summary>
@@ -2226,7 +2228,31 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
         /// <returns>True, если тип является числом с плавающей точкой, иначе False.</returns>
-        public static bool IsFloat(Type t) => FloatNumberTypes.Contains(t);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsFloat(Type t)
+        {
+            return t == typeof(float)
+                   || t == typeof(double)
+                   || t == typeof(decimal);
+        }
+
+        /// <summary>
+        /// Проверяет, является ли тип целым числом.
+        /// </summary>
+        /// <param name="t">Тип для проверки.</param>
+        /// <returns>True, если тип является целым числом, иначе False.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsNaturalNumeric(Type t)
+        {
+            return t == typeof(byte)
+                   || t == typeof(sbyte)
+                   || t == typeof(short)
+                   || t == typeof(ushort)
+                   || t == typeof(int)
+                   || t == typeof(uint)
+                   || t == typeof(long)
+                   || t == typeof(ulong);
+        }
 
         /// <summary>
         /// Проверяет, реализует ли тип заданный интерфейс.
@@ -2257,7 +2283,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="t">Тип для проверки.</param>
         /// <param name="includeFloatTypes">Включать ли типы с плавающей точкой.</param>
         /// <returns>True, если тип является числовым, иначе False.</returns>
-        public static bool IsNumeric(Type t, bool includeFloatTypes = true) => includeFloatTypes ? NumberTypes.Contains(t) : IntNumberTypes.Contains(t);
+        public static bool IsNumeric(Type t, bool includeFloatTypes = true) => includeFloatTypes ? IsFloat(t) || IsNaturalNumeric(t) : IsNaturalNumeric(t);
 
         /// <summary>
         /// Проверяет, является ли тип кортежем (ValueTuple/Tuple).
