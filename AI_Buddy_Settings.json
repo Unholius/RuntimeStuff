@@ -1,0 +1,12 @@
+{
+  "AIProvider": "DeepSeek",
+  "AIPromptURL": "http://192.168.0.13:1234",
+  "AIPromptKey": null,
+  "PromptLLMName": "deepseek/deepseek-r1-0528-qwen3-8b",
+  "IsPromptResponseStreaming": false,
+  "CodingLanguage": "C#",
+  "TestFramework": "MSTest",
+  "DateLastModified": "2025-07-09T17:16:32.6084868+03:00",
+  "LastPrompt": null,
+  "SettingsFilename": "AI_Buddy_Settings.json"
+}

@@ -1,95 +1,399 @@
-﻿using System;
-
+﻿// ***********************************************************************
+// Assembly         : RuntimeStuff
+// Author           : RS
+// Created          : 01-06-2026
+//
+// Last Modified By : RS
+// Last Modified On : 01-07-2026
+// ***********************************************************************
+// <copyright file="ActionExtensions.cs" company="Rudnev Sergey">
+// Copyright (c) Rudnev Sergey. All rights reserved.
+// </copyright>
+// <summary></summary>
+// ***********************************************************************
 namespace RuntimeStuff.Extensions
 {
+    using System;
+    using RuntimeStuff.Helpers;
+    using RuntimeStuff.Properties;
+
     /// <summary>
     /// Предоставляет методы расширения для преобразования между делегатами Action с разными сигнатурами.
     /// Основное назначение - конвертация между строго типизированными делегатами и делегатами, работающими с object.
     /// </summary>
     public static class ActionExtensions
     {
+        /// <summary>
+        /// Универсальное преобразование любого <see cref="Delegate" /> (например, Action, Action{T1,T2,...}).
+        /// </summary>
+        /// <param name="del">The delete.</param>
+        /// <returns>Action&lt;System.Object[]&gt;.</returns>
+        /// <exception cref="System.ArgumentNullException">del.</exception>
+        public static Action<object[]> ConvertAction(this Delegate del)
+        {
+            if (del == null)
+            {
+                throw new ArgumentNullException(nameof(del));
+            }
+
+            var method = del.Method;
+            var parameters = method.GetParameters();
+            var paramCount = parameters.Length;
+
+            return args =>
+            {
+                if (args == null && paramCount > 0)
+                {
+                    throw new ArgumentNullException(nameof(args));
+                }
+
+                if ((args?.Length ?? 0) < paramCount)
+                {
+                    throw new ArgumentException(string.Format(Resources.ActionExtensions_ConvertAction_Expected_at_least__0__arguments, paramCount), nameof(args));
+                }
+
+                // Создаём массив аргументов нужной длины и типов
+                var callArgs = new object[paramCount];
+                for (var i = 0; i < paramCount; i++)
+                {
+                    var targetType = parameters[i].ParameterType;
+                    var value = args?[i];
+
+                    if (value != null && !targetType.IsInstanceOfType(value))
+                    {
+                        try
+                        {
+                            callArgs[i] = Obj.ChangeType(value, targetType);
+                        }
+                        catch
+                        {
+                            throw new InvalidCastException(
+                                $"Cannot convert argument {i + 1} from {value.GetType()} to {targetType}");
+                        }
+                    }
+                    else
+                    {
+                        callArgs[i] = value;
+                    }
+                }
+
+                del.DynamicInvoke(callArgs);
+            };
+        }
+
         // Группа методов для преобразования строго типизированных делегатов в делегаты, работающие с object
 
         /// <summary>
-        /// Преобразует Action&lt;T1&gt; в Action&lt;object&gt;
+        /// Преобразует Action&lt;T1&gt; в Action&lt;object&gt;.
         /// </summary>
-        public static Action<object> ConvertAction<T1>(this Action<T1> action) => (object t1) => action((T1)t1);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="converter">The converter.</param>
+        /// <returns>Action&lt;System.Object&gt;.</returns>
+        public static Action<object> ConvertAction<T1>(this Action<T1> action, Func<object, T1> converter = null) => t1 => action(converter == null ? (T1)t1 : converter(t1));
 
         /// <summary>
-        /// Преобразует Action&lt;T1, T2&gt; в Action&lt;object, object&gt;
+        /// Преобразует <see cref="Action{T1,T2}" /> в Action{object, object}
+        /// выполняя приведение или пользовательское преобразование аргументов.
         /// </summary>
-        public static Action<object, object> ConvertAction<T1, T2>(this Action<T1, T2> action) => (object t1, object t2) => action((T1)t1, (T2)t2);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="converter1">The converter1.</param>
+        /// <param name="converter2">The converter2.</param>
+        /// <returns>Action&lt;System.Object, System.Object&gt;.</returns>
+        public static Action<object, object> ConvertAction<T1, T2>(
+            this Action<T1, T2> action,
+            Func<object, T1> converter1 = null,
+            Func<object, T2> converter2 = null) => (t1, t2) => action(
+                                                                converter1 == null ? (T1)t1 : converter1(t1),
+                                                                converter2 == null ? (T2)t2 : converter2(t2));
 
         /// <summary>
-        /// Преобразует Action&lt;T1, T2, T3&gt; в Action&lt;object, object, object&gt;
+        /// Преобразует <see cref="Action{T1,T2,T3}" /> в Action{object,object,object},
+        /// выполняя приведение или пользовательское преобразование аргументов.
         /// </summary>
-        public static Action<object, object, object> ConvertAction<T1, T2, T3>(this Action<T1, T2, T3> action) => (object t1, object t2, object t3) => action((T1)t1, (T2)t2, (T3)t3);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="converter1">The converter1.</param>
+        /// <param name="converter2">The converter2.</param>
+        /// <param name="converter3">The converter3.</param>
+        /// <returns>Action&lt;System.Object, System.Object, System.Object&gt;.</returns>
+        public static Action<object, object, object> ConvertAction<T1, T2, T3>(
+            this Action<T1, T2, T3> action,
+            Func<object, T1> converter1 = null,
+            Func<object, T2> converter2 = null,
+            Func<object, T3> converter3 = null) => (t1, t2, t3) => action(
+                                                                converter1 == null ? (T1)t1 : converter1(t1),
+                                                                converter2 == null ? (T2)t2 : converter2(t2),
+                                                                converter3 == null ? (T3)t3 : converter3(t3));
 
         /// <summary>
-        /// Преобразует Action&lt;T1, T2, T3, T4&gt; в Action&lt;object, object, object, object&gt;
+        /// Преобразует <see cref="Action{T1,T2,T3,T4}" /> в Action{object,object,object,object}",
+        /// выполняя приведение или пользовательское преобразование аргументов.
         /// </summary>
-        public static Action<object, object, object, object> ConvertAction<T1, T2, T3, T4>(this Action<T1, T2, T3, T4> action) => (object t1, object t2, object t3, object t4) => action((T1)t1, (T2)t2, (T3)t3, (T4)t4);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="converter1">The converter1.</param>
+        /// <param name="converter2">The converter2.</param>
+        /// <param name="converter3">The converter3.</param>
+        /// <param name="converter4">The converter4.</param>
+        /// <returns>Action&lt;System.Object, System.Object, System.Object, System.Object&gt;.</returns>
+        public static Action<object, object, object, object> ConvertAction<T1, T2, T3, T4>(
+            this Action<T1, T2, T3, T4> action,
+            Func<object, T1> converter1 = null,
+            Func<object, T2> converter2 = null,
+            Func<object, T3> converter3 = null,
+            Func<object, T4> converter4 = null) => (t1, t2, t3, t4) => action(
+                                                                converter1 == null ? (T1)t1 : converter1(t1),
+                                                                converter2 == null ? (T2)t2 : converter2(t2),
+                                                                converter3 == null ? (T3)t3 : converter3(t3),
+                                                                converter4 == null ? (T4)t4 : converter4(t4));
 
         /// <summary>
-        /// Преобразует Action&lt;T1, T2, T3, T4, T5&gt; в Action&lt;object, object, object, object, object&gt;
+        /// Преобразует Action&lt;T1, T2, T3, T4, T5&gt; в Action&lt;object, object, object, object, object&gt;.
         /// </summary>
-        public static Action<object, object, object, object, object> ConvertAction<T1, T2, T3, T4, T5>(this Action<T1, T2, T3, T4, T5> action) => (object t1, object t2, object t3, object t4, object t5) => action((T1)t1, (T2)t2, (T3)t3, (T4)t4, (T5)t5);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <typeparam name="T5">The type of the t5.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="converter1">The converter1.</param>
+        /// <param name="converter2">The converter2.</param>
+        /// <param name="converter3">The converter3.</param>
+        /// <param name="converter4">The converter4.</param>
+        /// <param name="converter5">The converter5.</param>
+        /// <returns>Action&lt;System.Object, System.Object, System.Object, System.Object, System.Object&gt;.</returns>
+        public static Action<object, object, object, object, object> ConvertAction<T1, T2, T3, T4, T5>(
+            this Action<T1, T2, T3, T4, T5> action,
+            Func<object, T1> converter1 = null,
+            Func<object, T2> converter2 = null,
+            Func<object, T3> converter3 = null,
+            Func<object, T4> converter4 = null,
+            Func<object, T5> converter5 = null) => (t1, t2, t3, t4, t5) => action(
+                                                                converter1 == null ? (T1)t1 : converter1(t1),
+                                                                converter2 == null ? (T2)t2 : converter2(t2),
+                                                                converter3 == null ? (T3)t3 : converter3(t3),
+                                                                converter4 == null ? (T4)t4 : converter4(t4),
+                                                                converter5 == null ? (T5)t5 : converter5(t5));
 
         /// <summary>
-        /// Преобразует Action&lt;T1, T2, T3, T4, T5, T6&gt; в Action&lt;object, object, object, object, object, object&gt;
+        /// Преобразует Action&lt;T1, T2, T3, T4, T5, T6&gt; в Action&lt;object, object, object, object, object, object&gt;.
         /// </summary>
-        public static Action<object, object, object, object, object, object> ConvertAction<T1, T2, T3, T4, T5, T6>(this Action<T1, T2, T3, T4, T5, T6> action) => (object t1, object t2, object t3, object t4, object t5, object t6) => action((T1)t1, (T2)t2, (T3)t3, (T4)t4, (T5)t5, (T6)t6);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <typeparam name="T5">The type of the t5.</typeparam>
+        /// <typeparam name="T6">The type of the t6.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="converter1">The converter1.</param>
+        /// <param name="converter2">The converter2.</param>
+        /// <param name="converter3">The converter3.</param>
+        /// <param name="converter4">The converter4.</param>
+        /// <param name="converter5">The converter5.</param>
+        /// <param name="converter6">The converter6.</param>
+        /// <returns>Action&lt;System.Object, System.Object, System.Object, System.Object, System.Object, System.Object&gt;.</returns>
+        public static Action<object, object, object, object, object, object> ConvertAction<T1, T2, T3, T4, T5, T6>(
+            this Action<T1, T2, T3, T4, T5, T6> action,
+            Func<object, T1> converter1 = null,
+            Func<object, T2> converter2 = null,
+            Func<object, T3> converter3 = null,
+            Func<object, T4> converter4 = null,
+            Func<object, T5> converter5 = null,
+            Func<object, T6> converter6 = null) => (t1, t2, t3, t4, t5, t6) => action(
+                                                                converter1 == null ? (T1)t1 : converter1(t1),
+                                                                converter2 == null ? (T2)t2 : converter2(t2),
+                                                                converter3 == null ? (T3)t3 : converter3(t3),
+                                                                converter4 == null ? (T4)t4 : converter4(t4),
+                                                                converter5 == null ? (T5)t5 : converter5(t5),
+                                                                converter6 == null ? (T6)t6 : converter6(t6));
 
         /// <summary>
-        /// Преобразует Action&lt;T1, T2, T3, T4, T5, T6, T7&gt; в Action&lt;object, object, object, object, object, object, object&gt;
+        /// Преобразует Action&lt;T1, T2, T3, T4, T5, T6, T7&gt; в Action&lt;object, object, object, object, object, object,
+        /// object&gt;.
         /// </summary>
-        public static Action<object, object, object, object, object, object, object> ConvertAction<T1, T2, T3, T4, T5, T6, T7>(this Action<T1, T2, T3, T4, T5, T6, T7> action) => (object t1, object t2, object t3, object t4, object t5, object t6, object t7) => action((T1)t1, (T2)t2, (T3)t3, (T4)t4, (T5)t5, (T6)t6, (T7)t7);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <typeparam name="T5">The type of the t5.</typeparam>
+        /// <typeparam name="T6">The type of the t6.</typeparam>
+        /// <typeparam name="T7">The type of the t7.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="converter1">The converter1.</param>
+        /// <param name="converter2">The converter2.</param>
+        /// <param name="converter3">The converter3.</param>
+        /// <param name="converter4">The converter4.</param>
+        /// <param name="converter5">The converter5.</param>
+        /// <param name="converter6">The converter6.</param>
+        /// <param name="converter7">The converter7.</param>
+        /// <returns>Action&lt;System.Object, System.Object, System.Object, System.Object, System.Object, System.Object, System.Object&gt;.</returns>
+        public static Action<object, object, object, object, object, object, object> ConvertAction<T1, T2, T3, T4, T5, T6,
+            T7>(
+            this Action<T1, T2, T3, T4, T5, T6, T7> action,
+            Func<object, T1> converter1 = null,
+            Func<object, T2> converter2 = null,
+            Func<object, T3> converter3 = null,
+            Func<object, T4> converter4 = null,
+            Func<object, T5> converter5 = null,
+            Func<object, T6> converter6 = null,
+            Func<object, T7> converter7 = null) => (t1, t2, t3, t4, t5, t6, t7) => action(
+                                                                converter1 == null ? (T1)t1 : converter1(t1),
+                                                                converter2 == null ? (T2)t2 : converter2(t2),
+                                                                converter3 == null ? (T3)t3 : converter3(t3),
+                                                                converter4 == null ? (T4)t4 : converter4(t4),
+                                                                converter5 == null ? (T5)t5 : converter5(t5),
+                                                                converter6 == null ? (T6)t6 : converter6(t6),
+                                                                converter7 == null ? (T7)t7 : converter7(t7));
 
         /// <summary>
-        /// Преобразует Action&lt;T1, T2, T3, T4, T5, T6, T7, T8&gt; в Action&lt;object, object, object, object, object, object, object, object&gt;
+        /// Преобразует Action&lt;T1, T2, T3, T4, T5, T6, T7, T8&gt; в Action&lt;object, object, object, object, object,
+        /// object, object, object&gt;.
         /// </summary>
-        public static Action<object, object, object, object, object, object, object, object> ConvertAction<T1, T2, T3, T4, T5, T6, T7, T8>(this Action<T1, T2, T3, T4, T5, T6, T7, T8> action) => (object t1, object t2, object t3, object t4, object t5, object t6, object t7, object t8) => action((T1)t1, (T2)t2, (T3)t3, (T4)t4, (T5)t5, (T6)t6, (T7)t7, (T8)t8);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <typeparam name="T5">The type of the t5.</typeparam>
+        /// <typeparam name="T6">The type of the t6.</typeparam>
+        /// <typeparam name="T7">The type of the t7.</typeparam>
+        /// <typeparam name="T8">The type of the t8.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <param name="converter1">The converter1.</param>
+        /// <param name="converter2">The converter2.</param>
+        /// <param name="converter3">The converter3.</param>
+        /// <param name="converter4">The converter4.</param>
+        /// <param name="converter5">The converter5.</param>
+        /// <param name="converter6">The converter6.</param>
+        /// <param name="converter7">The converter7.</param>
+        /// <param name="converter8">The converter8.</param>
+        /// <returns>Action&lt;System.Object, System.Object, System.Object, System.Object, System.Object, System.Object, System.Object, System.Object&gt;.</returns>
+        public static Action<object, object, object, object, object, object, object, object> ConvertAction<T1, T2, T3, T4,
+            T5, T6, T7, T8>(
+            this Action<T1, T2, T3, T4, T5, T6, T7, T8> action,
+            Func<object, T1> converter1 = null,
+            Func<object, T2> converter2 = null,
+            Func<object, T3> converter3 = null,
+            Func<object, T4> converter4 = null,
+            Func<object, T5> converter5 = null,
+            Func<object, T6> converter6 = null,
+            Func<object, T7> converter7 = null,
+            Func<object, T8> converter8 = null) => (t1, t2, t3, t4, t5, t6, t7, t8) => action(
+                                                                converter1 == null ? (T1)t1 : converter1(t1),
+                                                                converter2 == null ? (T2)t2 : converter2(t2),
+                                                                converter3 == null ? (T3)t3 : converter3(t3),
+                                                                converter4 == null ? (T4)t4 : converter4(t4),
+                                                                converter5 == null ? (T5)t5 : converter5(t5),
+                                                                converter6 == null ? (T6)t6 : converter6(t6),
+                                                                converter7 == null ? (T7)t7 : converter7(t7),
+                                                                converter8 == null ? (T8)t8 : converter8(t8));
 
         // Группа методов для преобразования делегатов, работающих с object, в строго типизированные делегаты
 
         /// <summary>
-        /// Преобразует Action&lt;object&gt; в Action&lt;T1&gt;
+        /// Преобразует Action&lt;object&gt; в Action&lt;T1&gt;.
         /// </summary>
-        public static Action<T1> ConvertAction<T1>(this Action<object> action) => (T1 t1) => action(t1);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <returns>Action&lt;T1&gt;.</returns>
+        public static Action<T1> ConvertAction<T1>(this Action<object> action) => t1 => action(t1);
 
         /// <summary>
-        /// Преобразует Action&lt;object, object&gt; в Action&lt;T1, T2&gt;
+        /// Преобразует Action&lt;object, object&gt; в Action&lt;T1, T2&gt;.
         /// </summary>
-        public static Action<T1, T2> ConvertAction<T1, T2>(this Action<object, object> action) => (T1 t1, T2 t2) => action(t1, t2);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <returns>Action&lt;T1, T2&gt;.</returns>
+        public static Action<T1, T2> ConvertAction<T1, T2>(this Action<object, object> action) => (t1, t2) => action(t1, t2);
 
         /// <summary>
-        /// Преобразует Action&lt;object, object, object&gt; в Action&lt;T1, T2, T3&gt;
+        /// Преобразует Action&lt;object, object, object&gt; в Action&lt;T1, T2, T3&gt;.
         /// </summary>
-        public static Action<T1, T2, T3> ConvertAction<T1, T2, T3>(this Action<object, object, object> action) => (T1 t1, T2 t2, T3 t3) => action(t1, t2, t3);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <returns>Action&lt;T1, T2, T3&gt;.</returns>
+        public static Action<T1, T2, T3> ConvertAction<T1, T2, T3>(this Action<object, object, object> action) => (t1, t2, t3) => action(t1, t2, t3);
 
         /// <summary>
-        /// Преобразует Action&lt;object, object, object, object&gt; в Action&lt;T1, T2, T3, T4&gt;
+        /// Преобразует Action&lt;object, object, object, object&gt; в Action&lt;T1, T2, T3, T4&gt;.
         /// </summary>
-        public static Action<T1, T2, T3, T4> ConvertAction<T1, T2, T3, T4>(this Action<object, object, object, object> action) => (T1 t1, T2 t2, T3 t3, T4 t4) => action(t1, t2, t3, t4);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <returns>Action&lt;T1, T2, T3, T4&gt;.</returns>
+        public static Action<T1, T2, T3, T4> ConvertAction<T1, T2, T3, T4>(
+            this Action<object, object, object, object> action) => (t1, t2, t3, t4) => action(t1, t2, t3, t4);
 
         /// <summary>
-        /// Преобразует Action&lt;object, object, object, object, object&gt; в Action&lt;T1, T2, T3, T4, T5&gt;
+        /// Преобразует Action&lt;object, object, object, object, object&gt; в Action&lt;T1, T2, T3, T4, T5&gt;.
         /// </summary>
-        public static Action<T1, T2, T3, T4, T5> ConvertAction<T1, T2, T3, T4, T5>(this Action<object, object, object, object, object> action) => (T1 t1, T2 t2, T3 t3, T4 t4, T5 t5) => action(t1, t2, t3, t4, t5);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <typeparam name="T5">The type of the t5.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <returns>Action&lt;T1, T2, T3, T4, T5&gt;.</returns>
+        public static Action<T1, T2, T3, T4, T5> ConvertAction<T1, T2, T3, T4, T5>(
+            this Action<object, object, object, object, object> action) => (t1, t2, t3, t4, t5) => action(t1, t2, t3, t4, t5);
 
         /// <summary>
-        /// Преобразует Action&lt;object, object, object, object, object, object&gt; в Action&lt;T1, T2, T3, T4, T5, T6&gt;
+        /// Преобразует Action&lt;object, object, object, object, object, object&gt; в Action&lt;T1, T2, T3, T4, T5, T6&gt;.
         /// </summary>
-        public static Action<T1, T2, T3, T4, T5, T6> ConvertAction<T1, T2, T3, T4, T5, T6>(this Action<object, object, object, object, object, object> action) => (T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6) => action(t1, t2, t3, t4, t5, t6);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <typeparam name="T5">The type of the t5.</typeparam>
+        /// <typeparam name="T6">The type of the t6.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <returns>Action&lt;T1, T2, T3, T4, T5, T6&gt;.</returns>
+        public static Action<T1, T2, T3, T4, T5, T6> ConvertAction<T1, T2, T3, T4, T5, T6>(
+            this Action<object, object, object, object, object, object> action) => (t1, t2, t3, t4, t5, t6) => action(t1, t2, t3, t4, t5, t6);
 
         /// <summary>
-        /// Преобразует Action&lt;object, object, object, object, object, object, object&gt; в Action&lt;T1, T2, T3, T4, T5, T6, T7&gt;
+        /// Преобразует Action&lt;object, object, object, object, object, object, object&gt; в Action&lt;T1, T2, T3, T4, T5,
+        /// T6, T7&gt;.
         /// </summary>
-        public static Action<T1, T2, T3, T4, T5, T6, T7> ConvertAction<T1, T2, T3, T4, T5, T6, T7>(this Action<object, object, object, object, object, object, object> action) => (T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7) => action(t1, t2, t3, t4, t5, t6, t7);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <typeparam name="T5">The type of the t5.</typeparam>
+        /// <typeparam name="T6">The type of the t6.</typeparam>
+        /// <typeparam name="T7">The type of the t7.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <returns>Action&lt;T1, T2, T3, T4, T5, T6, T7&gt;.</returns>
+        public static Action<T1, T2, T3, T4, T5, T6, T7> ConvertAction<T1, T2, T3, T4, T5, T6, T7>(
+            this Action<object, object, object, object, object, object, object> action) => (t1, t2, t3, t4, t5, t6, t7) => action(t1, t2, t3, t4, t5, t6, t7);
 
         /// <summary>
-        /// Преобразует Action&lt;object, object, object, object, object, object, object, object&gt; в Action&lt;T1, T2, T3, T4, T5, T6, T7, T8&gt;
+        /// Преобразует Action&lt;object, object, object, object, object, object, object, object&gt; в Action&lt;T1, T2, T3,
+        /// T4, T5, T6, T7, T8&gt;.
         /// </summary>
-        public static Action<T1, T2, T3, T4, T5, T6, T7, T8> ConvertAction<T1, T2, T3, T4, T5, T6, T7, T8>(this Action<object, object, object, object, object, object, object, object> action) => (T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, T6 t6, T7 t7, T8 t8) => action(t1, t2, t3, t4, t5, t6, t7, t8);
+        /// <typeparam name="T1">The type of the t1.</typeparam>
+        /// <typeparam name="T2">The type of the t2.</typeparam>
+        /// <typeparam name="T3">The type of the t3.</typeparam>
+        /// <typeparam name="T4">The type of the t4.</typeparam>
+        /// <typeparam name="T5">The type of the t5.</typeparam>
+        /// <typeparam name="T6">The type of the t6.</typeparam>
+        /// <typeparam name="T7">The type of the t7.</typeparam>
+        /// <typeparam name="T8">The type of the t8.</typeparam>
+        /// <param name="action">The action.</param>
+        /// <returns>Action&lt;T1, T2, T3, T4, T5, T6, T7, T8&gt;.</returns>
+        public static Action<T1, T2, T3, T4, T5, T6, T7, T8> ConvertAction<T1, T2, T3, T4, T5, T6, T7, T8>(
+            this Action<object, object, object, object, object, object, object, object> action) => (t1, t2, t3, t4, t5, t6, t7, t8) => action(t1, t2, t3, t4, t5, t6, t7, t8);
     }
 }
