@@ -2350,6 +2350,11 @@ namespace RuntimeStuff.Helpers
         public static object NewItem(IEnumerable list)
         {
             var itemType = list.GetType().GetGenericArguments().FirstOrDefault();
+            if (itemType == null)
+            {
+                throw new InvalidOperationException("Cannot determine item type of the collection.");
+            }
+
             return New(itemType);
         }
 
@@ -2418,6 +2423,7 @@ namespace RuntimeStuff.Helpers
             {
                 var subMember = FindMember(instance.GetType(), path[0]);
                 var subMemberType = GetMemberReturnType(subMember);
+                if (subMemberType == null) return false;
                 subMemberInstance = New(subMemberType);
                 Set(instance, path[0], subMemberInstance);
             }

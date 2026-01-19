@@ -51,7 +51,7 @@ namespace RuntimeStuff
     /// <typeparam name="T">Тип элементов, содержащихся в списке. Должен быть ссылочным типом.</typeparam>
     /// <remarks>Класс реализует интерфейсы INotifyPropertyChanged, IBindingListView и
     /// INotifyCollectionChanged, что позволяет использовать его в сценариях с динамическим обновлением данных,
-    /// например, в UI-приложениях. Поддерживает многопоточный доступ через объект синхронизации <see cref="SyncRoot" />.
+    /// например, в UI-приложениях. Поддерживает многопоточный доступ через объект синхронизации.
     /// Изменения фильтрации и сортировки автоматически применяются к отображаемому списку. Для корректной работы
     /// рекомендуется использовать с типами, обладающими публичными свойствами, по которым возможна сортировка и
     /// фильтрация.</remarks>
@@ -59,6 +59,8 @@ namespace RuntimeStuff
     public class BindingListView<T> : PropertyChangeNotifier, IBindingListView, INotifyCollectionChanged, IEnumerable<T>
         where T : class
     {
+        private readonly object syncRoot = new object();
+
         /// <summary>
         /// The sort separators.
         /// </summary>
@@ -204,7 +206,7 @@ namespace RuntimeStuff
         {
             get
             {
-                lock (this.SyncRoot)
+                lock (this.syncRoot)
                 {
                     return this.sourceFilteredAndSortedList.Count;
                 }
@@ -373,7 +375,7 @@ namespace RuntimeStuff
         {
             get
             {
-                lock (this.SyncRoot)
+                lock (this.syncRoot)
                 {
                     return this.sourceFilteredAndSortedList[index];
                 }
@@ -386,7 +388,7 @@ namespace RuntimeStuff
                     throw new ArgumentException($"Item must be of type {typeof(T).Name}");
                 }
 
-                lock (this.SyncRoot)
+                lock (this.syncRoot)
                 {
                     this.SubscribeOnPropertyChanged(item, true);
                     this.sourceFilteredAndSortedList[index] = item;
@@ -419,12 +421,7 @@ namespace RuntimeStuff
 
             this.SubscribeOnPropertyChanged(item, true);
 
-            if (item == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 this.sourceList.Add(item);
                 this.sourceFilteredAndSortedList.Add(item);
@@ -476,7 +473,7 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(items));
             }
 
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 var previousSuspendState = this.SuspendListChangedEvents;
                 this.suspendListChangedEvents = true;
@@ -502,7 +499,7 @@ namespace RuntimeStuff
         /// </summary>
         public void ApplyFilterAndSort()
         {
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 var sourceCount = this.sourceList.Count;
 
@@ -561,7 +558,7 @@ namespace RuntimeStuff
             this.SortProperty = property;
             this.SortDirection = direction;
 
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 this.ApplyFilterAndSort();
             }
@@ -590,7 +587,7 @@ namespace RuntimeStuff
         public void Cleanup()
         {
             // Принудительно очищаем большие коллекции
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 this.sourceFilteredAndSortedList.TrimExcess();
                 this.sourceList.TrimExcess();
@@ -611,7 +608,7 @@ namespace RuntimeStuff
         /// </summary>
         public void Clear()
         {
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 foreach (var item in this.sourceList)
                 {
@@ -635,7 +632,7 @@ namespace RuntimeStuff
         /// This method is thread-safe.</remarks>
         public void ClearAll()
         {
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 // Отписываемся от всех событий
                 foreach (var item in this.sourceList)
@@ -672,7 +669,7 @@ namespace RuntimeStuff
         /// <param name="index">Начальный индекс копирования.</param>
         public void CopyTo(Array array, int index)
         {
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 ((ICollection)this.sourceFilteredAndSortedList).CopyTo(array, index);
             }
@@ -686,7 +683,7 @@ namespace RuntimeStuff
         /// <returns>Индекс найденного элемента или -1, если не найден.</returns>
         int IBindingList.Find(PropertyDescriptor property, object key)
         {
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 for (var i = 0; i < this.sourceFilteredAndSortedList.Count; i++)
                 {
@@ -713,7 +710,7 @@ namespace RuntimeStuff
         /// <returns>Перечислитель элементов.</returns>
         public IEnumerator GetEnumerator()
         {
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 return this.sourceFilteredAndSortedList.GetEnumerator();
             }
@@ -729,7 +726,7 @@ namespace RuntimeStuff
         /// reflects the state of the collection at the time GetEnumerator is called.</remarks>
         public IEnumerator GetEnumerator(IndexType indexType)
         {
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 return indexType == IndexType.FilteredSorted ? this.sourceFilteredAndSortedList.GetEnumerator() : this.sourceList.GetEnumerator();
             }
@@ -773,7 +770,7 @@ namespace RuntimeStuff
         /// the original collection order. The method is thread-safe.</remarks>
         public TValue[] GetPropertyValues<TValue>(string propertyName, IndexType indexType = IndexType.FilteredSorted, bool distinct = true)
         {
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 var list = indexType == IndexType.FilteredSorted
                     ? this.sourceFilteredAndSortedList
@@ -866,12 +863,7 @@ namespace RuntimeStuff
                 throw new ArgumentException($"Item must be of type {typeof(T).Name}");
             }
 
-            if (item == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
-
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 this.sourceList.Insert(index, item);
                 var bli = new BindingListViewRow(this, item, index);
@@ -897,7 +889,7 @@ namespace RuntimeStuff
                 return;
             }
 
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 this.SubscribeOnPropertyChanged(item, false);
                 if (this.sourceList.Remove(item))
@@ -921,7 +913,7 @@ namespace RuntimeStuff
         public void RemoveAt(int index)
         {
             T item;
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 item = this.sourceList[index];
                 this.sourceList.RemoveAt(index);
@@ -942,7 +934,7 @@ namespace RuntimeStuff
         {
             this.filter = null;
 
-            lock (this.SyncRoot)
+            lock (this.syncRoot)
             {
                 this.sourceFilteredAndSortedList = this.sourceList.ToList();
                 this.RebuildNodes();
@@ -999,7 +991,7 @@ namespace RuntimeStuff
         {
             if (this.IsSorted)
             {
-                lock (this.SyncRoot)
+                lock (this.syncRoot)
                 {
                     this.ApplyFilterAndSort();
                 }

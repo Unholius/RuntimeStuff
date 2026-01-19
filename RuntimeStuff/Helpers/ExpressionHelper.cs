@@ -145,6 +145,11 @@ namespace RuntimeStuff.Helpers
         private static MemberInfo GetMemberInfoFromLambda(LambdaExpression le)
         {
             var propDeclaringType = le.Type.GenericTypeArguments.FirstOrDefault();
+            if (propDeclaringType == null)
+            {
+                return null;
+            }
+
             var pi = GetMemberInfo(le.Body);
             pi = Obj.GetProperty(propDeclaringType, pi?.Name, StringComparison.Ordinal) ?? pi;
             return pi;

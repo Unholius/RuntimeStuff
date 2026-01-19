@@ -309,6 +309,7 @@ namespace RuntimeStuff
             params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
             where TFrom : class
         {
+            var result = new Dictionary<string, object>(IgnoreCaseComparer);
             var query = SqlQueryBuilder.GetAggSelectClause(this.Options, columnSelectors);
 
             if (whereExpression != null)
@@ -317,7 +318,11 @@ namespace RuntimeStuff
             }
 
             var table = this.ToDataTable(query);
-            var result = new Dictionary<string, object>(IgnoreCaseComparer);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return result;
+            }
+
             foreach (DataColumn dc in table.Columns)
             {
                 var value = table.Rows[0][dc.ColumnName];
@@ -362,6 +367,7 @@ namespace RuntimeStuff
             params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
             where TFrom : class
         {
+            var result = new Dictionary<string, object>(IgnoreCaseComparer);
             var query = SqlQueryBuilder.GetAggSelectClause(this.Options, columnSelectors);
 
             if (whereExpression != null)
@@ -370,7 +376,11 @@ namespace RuntimeStuff
             }
 
             var table = await this.ToDataTableAsync(query, token: token).ConfigureAwait(this.ConfigureAwait);
-            var result = new Dictionary<string, object>(IgnoreCaseComparer);
+            if (table == null || table.Rows.Count == 0)
+            {
+                return result;
+            }
+
             foreach (DataColumn dc in table.Columns)
             {
                 var value = table.Rows[0][dc.ColumnName];
@@ -663,7 +673,7 @@ namespace RuntimeStuff
 
             this.LogCommand(cmd);
 
-            return cmd as DbCommand;
+            return (DbCommand)cmd;
         }
 
         /// <summary>
@@ -990,7 +1000,7 @@ namespace RuntimeStuff
         /// <returns>Задача, которая возвращает результат выполнения запроса как объект указанного типа.</returns>
         /// <exception cref="Exception">Вызывается в случае ошибки при выполнении запроса.</exception>
         /// <remarks>Этот метод выполняет запрос асинхронно и преобразует результат в указанный тип.</remarks>
-        public Task<object> ExecuteScalarAsync(IDbCommand cmd, CancellationToken token = default) => this.ExecuteScalarAsync<object>(cmd as DbCommand, token);
+        public Task<object> ExecuteScalarAsync(IDbCommand cmd, CancellationToken token = default) => this.ExecuteScalarAsync<object>((DbCommand)cmd, token);
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос с выбором значения по указанному выражению и условию.

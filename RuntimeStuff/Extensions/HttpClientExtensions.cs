@@ -107,7 +107,7 @@ namespace RuntimeStuff.Extensions
                 typeFormats[typeof(DateTime)] = dateFormat;
             }
 
-            return SendAsync(client, method, requestUri, content, query, typeFormats, enumAsStrings, ensureSuccessStatusCode);
+            return SendAsync(client, method, requestUri, content, query, typeFormats, enumAsStrings, ensureSuccessStatusCode, token);
         }
 
         /// <summary>

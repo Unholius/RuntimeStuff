@@ -177,8 +177,9 @@ namespace RuntimeStuff
                 this.GroupName = da?.GetType().GetProperty("GroupName")?.GetValue(da)?.ToString();
             }
 
-            if (this.IsType && !this.IsBasic)
+            if (this.IsType)
             {
+                if (this.IsBasic) return;
                 this.DefaultConstructor = this.typeCache?.DefaultConstructor ?? CreateConstructorDelegate(t);
 
                 if (this.typeCache == null)
@@ -202,106 +203,103 @@ namespace RuntimeStuff
                     this.SchemaName = this.typeCache.SchemaName;
                 }
             }
-
-            if (pi != null)
+            else
             {
-                if (this.Parent == null && pi?.DeclaringType != null)
+                if (pi != null)
                 {
-                    this.Parent = Create(pi.DeclaringType);
-                }
+                    this.PropertyType = pi.PropertyType;
+                    this.IsSetterPublic = pi.GetSetMethod()?.IsPublic == true;
+                    this.IsSetterPrivate = pi.GetSetMethod() == null || pi.GetSetMethod()?.IsPrivate == true;
+                    this.IsGetterPublic = pi.GetGetMethod()?.IsPublic == true;
+                    this.IsGetterPrivate = pi.GetGetMethod() == null || pi.GetGetMethod()?.IsPrivate == true;
+                    this.TableName = this.Parent.TableName;
+                    this.SchemaName = this.Parent.SchemaName;
 
-                this.PropertyType = pi.PropertyType;
-                this.IsSetterPublic = pi.GetSetMethod()?.IsPublic == true;
-                this.IsSetterPrivate = pi.GetSetMethod() == null || pi.GetSetMethod()?.IsPrivate == true;
-                this.IsGetterPublic = pi.GetGetMethod()?.IsPublic == true;
-                this.IsGetterPrivate = pi.GetGetMethod() == null || pi.GetGetMethod()?.IsPrivate == true;
-                this.TableName = this.Parent?.TableName;
-                this.SchemaName = this.Parent?.SchemaName;
-
-                if (this.typeCache == null)
-                {
-                    var keyAttr = this.GetAttribute("KeyAttribute");
-                    var colAttr = this.GetAttribute("ColumnAttribute");
-                    var fkAttr = this.GetAttribute("ForeignKeyAttribute");
-                    this.IsPrimaryKey = keyAttr != null || string.Equals(this.Name, "id", StringComparison.OrdinalIgnoreCase);
-                    this.IsForeignKey = fkAttr != null;
-                    this.IsColumn = HasAnyAttributeOfType("ColumnAttribute", "KeyAttribute") || (IsBasic && HasAnyAttributeOfType("ForeignKeyAttribute"));
-                    try
+                    if (this.typeCache == null)
                     {
-                        this.PropertyBackingField = this.Parent.GetFields().FirstOrDefault(x => x.Name == $"<{this.Name}>k__BackingField") ??
-                                                    Obj.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
-                    }
-                    catch
-                    {
-                        // ignore
-                    }
-
-                    try
-                    {
-                        this.Setter = Obj.PropertySetterCache.Get(pi);
-
-                        if (this.Setter == null && this.PropertyBackingField != null)
+                        var keyAttr = this.GetAttribute("KeyAttribute");
+                        var colAttr = this.GetAttribute("ColumnAttribute");
+                        var fkAttr = this.GetAttribute("ForeignKeyAttribute");
+                        this.IsPrimaryKey = keyAttr != null || string.Equals(this.Name, "id", StringComparison.OrdinalIgnoreCase);
+                        this.IsForeignKey = fkAttr != null;
+                        this.IsColumn = HasAnyAttributeOfType("ColumnAttribute", "KeyAttribute") || (IsBasic && HasAnyAttributeOfType("ForeignKeyAttribute"));
+                        try
                         {
-                            this.Setter = Obj.FieldSetterCache.Get(this.PropertyBackingField);
+                            this.PropertyBackingField = this.Parent.GetFields().FirstOrDefault(x => x.Name == $"<{this.Name}>k__BackingField") ??
+                                                        Obj.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
                         }
-                    }
-                    catch (Exception)
-                    {
-                        this.Setter = (o, v) => pi.SetValue(o, v);
-                    }
+                        catch
+                        {
+                            // ignore
+                        }
 
-                    try
-                    {
-                        this.Getter = Obj.PropertyGetterCache.Get(pi);
-                    }
-                    catch (Exception)
-                    {
-                        this.Getter = o => pi.GetValue(o);
-                    }
+                        try
+                        {
+                            this.Setter = Obj.PropertySetterCache.Get(pi);
 
-                    this.TableName = this.Parent?.TableName;
-                    this.ColumnName = colAttr != null
-                        ? colAttr.GetType().GetProperty("Name")?.GetValue(colAttr)?.ToString() ?? this.Name
-                        : this.Name;
+                            if (this.Setter == null && this.PropertyBackingField != null)
+                            {
+                                this.Setter = Obj.FieldSetterCache.Get(this.PropertyBackingField);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            this.Setter = (o, v) => pi.SetValue(o, v);
+                        }
 
-                    this.ForeignKeyName = fkAttr?.GetType().GetProperty("Name")?.GetValue(fkAttr)?.ToString() ??
-                                          string.Empty;
+                        try
+                        {
+                            this.Getter = Obj.PropertyGetterCache.Get(pi);
+                        }
+                        catch (Exception)
+                        {
+                            this.Getter = o => pi.GetValue(o);
+                        }
+
+                        this.TableName = this.Parent.TableName;
+                        this.ColumnName = colAttr != null
+                            ? colAttr.GetType().GetProperty("Name")?.GetValue(colAttr)?.ToString() ?? this.Name
+                            : this.Name;
+
+                        this.ForeignKeyName = fkAttr?.GetType().GetProperty("Name")?.GetValue(fkAttr)?.ToString() ??
+                                              string.Empty;
+                    }
+                    else
+                    {
+                        this.Setter = this.typeCache.Setter;
+                        this.Getter = this.typeCache.Getter;
+                        this.PropertyBackingField = this.typeCache.PropertyBackingField;
+                        this.ColumnName = this.typeCache.ColumnName;
+                        this.ForeignKeyName = this.typeCache.ForeignKeyName;
+                        this.IsPrimaryKey = this.typeCache.IsPrimaryKey;
+                        this.IsForeignKey = this.typeCache.IsForeignKey;
+                    }
                 }
                 else
                 {
-                    this.Setter = this.typeCache.Setter;
-                    this.Getter = this.typeCache.Getter;
-                    this.PropertyBackingField = this.typeCache.PropertyBackingField;
-                    this.ColumnName = this.typeCache.ColumnName;
-                    this.ForeignKeyName = this.typeCache.ForeignKeyName;
-                    this.IsPrimaryKey = this.typeCache.IsPrimaryKey;
-                    this.IsForeignKey = this.typeCache.IsForeignKey;
-                }
-            }
+                    if (fi == null) return;
+                    this.IsSetterPublic = true;
+                    this.IsSetterPrivate = false;
+                    this.IsGetterPublic = true;
+                    this.IsGetterPrivate = false;
+                    this.FieldType = fi.FieldType;
+                    try
+                    {
+                        this.Setter = this.typeCache?.Setter ?? Obj.FieldSetterCache.Get(fi);
+                    }
+                    catch
+                    {
+                        this.Setter = (obj, value) => fi.SetValue(obj, value);
+                    }
 
-            if (fi != null)
-            {
-                this.IsSetterPublic = true;
-                this.IsSetterPrivate = false;
-                this.IsGetterPublic = true;
-                this.IsGetterPrivate = false;
-                this.FieldType = fi.FieldType;
-                try
-                {
-                    this.Setter = this.typeCache?.Setter ?? Obj.FieldSetterCache.Get(fi);
-                }
-                catch
-                {
-                    this.Setter = (obj, value) => fi.SetValue(obj, value);
-                }
-
-                try
-                {
-                    this.Getter = this.typeCache?.Getter ?? Obj.FieldGetterCache.Get(fi);
-                }
-                catch (Exception)
-                {
-                    this.Getter = x => fi.GetValue(x);
+                    try
+                    {
+                        this.Getter = this.typeCache?.Getter ?? Obj.FieldGetterCache.Get(fi);
+                    }
+                    catch (Exception)
+                    {
+                        this.Getter = x => fi.GetValue(x);
+                    }
                 }
             }
         }
@@ -1124,6 +1122,11 @@ namespace RuntimeStuff
         /// <exception cref="InvalidOperationException">Выбрасывается, если DeclaringType равен null.</exception>
         public static MemberCache Create(MemberInfo memberInfo)
         {
+            if (memberInfo == null)
+            {
+                throw new ArgumentNullException(nameof(memberInfo));
+            }
+
             switch (memberInfo)
             {
                 case MemberCache me:
@@ -1598,7 +1601,13 @@ namespace RuntimeStuff
         public TMember GetMember<TMember>(string memberName, params MemberTypes[] memberTypes)
             where TMember : MemberInfo
         {
-            return (TMember)GetMember(memberName, memberTypes).MemberInfo;
+            var memberInfo = GetMember(memberName, memberTypes)?.MemberInfo;
+            if (!(memberInfo is TMember info))
+            {
+                return null;
+            }
+
+            return info;
         }
 
         /// <summary>
@@ -1610,77 +1619,84 @@ namespace RuntimeStuff
         /// <exception cref="NotSupportedException">Выбрасывается для неподдерживаемых типов членов.</exception>
         public MemberCache GetMember(string memberName, params MemberTypes[] memberTypes)
         {
-            if (quickCache.TryGetValue(memberName, out var mc))
-                return mc;
-            if (memberTypes == null || memberTypes.Length == 0)
+            try
             {
-                memberTypes = defaultMemberTypes;
-            }
-
-            foreach (var mt in memberTypes)
-            {
-                switch (mt)
+                if (quickCache.TryGetValue(memberName, out var mc))
+                    return mc;
+                if (memberTypes == null || memberTypes.Length == 0)
                 {
-                    case MemberTypes.Property:
-                        var propInfo = memberPropertiesMap.GetOrAdd(memberName, x => type.GetProperty(x, DefaultBindingFlags) ?? type.GetProperty(x, DefaultIgnoreCaseBindingFlags), p => p.Name);
-                        if (propInfo != null)
-                        {
-                            var propCache = memberCacheMap.GetOrAdd(propInfo, x => new MemberCache(x, this));
-                            quickCache[memberName] = propCache;
-                            return propCache;
-                        }
-
-                        break;
-
-                    case MemberTypes.Field:
-                        var fieldInfo = memberFieldsMap.GetOrAdd(memberName, x => type.GetField(x, DefaultBindingFlags) ?? type.GetField(x, DefaultIgnoreCaseBindingFlags), f => f.Name);
-                        if (fieldInfo != null)
-                        {
-                            var fieldCache = memberCacheMap.GetOrAdd(fieldInfo, x => new MemberCache(x, this));
-                            quickCache[memberName] = fieldCache;
-                            return fieldCache;
-                        }
-
-                        break;
-
-                    case MemberTypes.Method:
-                        var methodInfo = memberMethodsMap.GetOrAdd(memberName, x => type.GetMethod(x, DefaultBindingFlags) ?? type.GetMethod(x, DefaultIgnoreCaseBindingFlags), m => m.Name);
-                        if (methodInfo != null)
-                        {
-                            var methodCache = memberCacheMap.GetOrAdd(methodInfo, x => new MemberCache(x, this));
-                            quickCache[memberName] = methodCache;
-                            return methodCache;
-                        }
-
-                        break;
-
-                    case MemberTypes.Event:
-                        var eventInfo = memberEventsMap.GetOrAdd(memberName, x => type.GetEvent(x, DefaultBindingFlags) ?? type.GetEvent(x, DefaultBindingFlags), e => e.Name);
-                        if (eventInfo != null)
-                        {
-                            var eventCache = memberCacheMap.GetOrAdd(eventInfo, x => new MemberCache(x, this));
-                            quickCache[memberName] = eventCache;
-                            return eventCache;
-                        }
-
-                        break;
-
-                    case MemberTypes.All:
-                        return GetMember(memberName, MemberTypes.Property) ??
-                               GetMember(memberName, MemberTypes.Field) ??
-                               GetMember(memberName, MemberTypes.Method) ??
-                               GetMember(memberName, MemberTypes.Event);
-
-                    case MemberTypes.Constructor:
-                    case MemberTypes.Custom:
-                    case MemberTypes.NestedType:
-                    case MemberTypes.TypeInfo:
-                    default:
-                        throw new NotSupportedException(nameof(mt));
+                    memberTypes = defaultMemberTypes;
                 }
-            }
 
-            return null;
+                foreach (var mt in memberTypes)
+                {
+                    switch (mt)
+                    {
+                        case MemberTypes.Property:
+                            var propInfo = memberPropertiesMap.GetOrAdd(memberName, x => type.GetProperty(x, DefaultBindingFlags) ?? type.GetProperty(x, DefaultIgnoreCaseBindingFlags), p => p.Name);
+                            if (propInfo != null)
+                            {
+                                var propCache = memberCacheMap.GetOrAdd(propInfo, x => new MemberCache(x, this));
+                                quickCache[memberName] = propCache;
+                                return propCache;
+                            }
+
+                            break;
+
+                        case MemberTypes.Field:
+                            var fieldInfo = memberFieldsMap.GetOrAdd(memberName, x => type.GetField(x, DefaultBindingFlags) ?? type.GetField(x, DefaultIgnoreCaseBindingFlags), f => f.Name);
+                            if (fieldInfo != null)
+                            {
+                                var fieldCache = memberCacheMap.GetOrAdd(fieldInfo, x => new MemberCache(x, this));
+                                quickCache[memberName] = fieldCache;
+                                return fieldCache;
+                            }
+
+                            break;
+
+                        case MemberTypes.Method:
+                            var methodInfo = memberMethodsMap.GetOrAdd(memberName, x => type.GetMethod(x, DefaultBindingFlags) ?? type.GetMethod(x, DefaultIgnoreCaseBindingFlags), m => m.Name);
+                            if (methodInfo != null)
+                            {
+                                var methodCache = memberCacheMap.GetOrAdd(methodInfo, x => new MemberCache(x, this));
+                                quickCache[memberName] = methodCache;
+                                return methodCache;
+                            }
+
+                            break;
+
+                        case MemberTypes.Event:
+                            var eventInfo = memberEventsMap.GetOrAdd(memberName, x => type.GetEvent(x, DefaultBindingFlags) ?? type.GetEvent(x, DefaultIgnoreCaseBindingFlags), e => e.Name);
+                            if (eventInfo != null)
+                            {
+                                var eventCache = memberCacheMap.GetOrAdd(eventInfo, x => new MemberCache(x, this));
+                                quickCache[memberName] = eventCache;
+                                return eventCache;
+                            }
+
+                            break;
+
+                        case MemberTypes.All:
+                            return GetMember(memberName, MemberTypes.Property) ??
+                                   GetMember(memberName, MemberTypes.Field) ??
+                                   GetMember(memberName, MemberTypes.Method) ??
+                                   GetMember(memberName, MemberTypes.Event);
+
+                        case MemberTypes.Constructor:
+                        case MemberTypes.Custom:
+                        case MemberTypes.NestedType:
+                        case MemberTypes.TypeInfo:
+                        default:
+                            throw new NotSupportedException(nameof(mt));
+                    }
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw new NotSupportedException($"Ошибка получения члена {memberName} в {this}: {ex.ToString()}", ex);
+            }
         }
 
         /// <summary>
