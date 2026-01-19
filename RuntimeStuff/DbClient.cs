@@ -1414,9 +1414,9 @@ namespace RuntimeStuff
                         var elementCache = MemberCache.Create(memberCache.ElementType);
 
                         var key = elementCache["Key"] ??
-                                  elementCache["Item1"];
+                                  elementCache["Item1", MemberTypes.Field];
                         var val = elementCache["Value"] ??
-                                  elementCache["Item2"];
+                                  elementCache["Item2", MemberTypes.Field];
                         if (key == null || val == null)
                         {
                             break;
@@ -1435,9 +1435,9 @@ namespace RuntimeStuff
                         if (memberCache.IsTuple)
                         {
                             var key = memberCache["Key"] ??
-                                      memberCache["Item1"];
+                                      memberCache["Item1", MemberTypes.Field];
                             var val = memberCache["Value"] ??
-                                      memberCache["Item2"];
+                                      memberCache["Item2", MemberTypes.Field];
 
                             parameters[key.GetValue<string>(cmdParams)] = val.GetValue(cmdParams);
                         }

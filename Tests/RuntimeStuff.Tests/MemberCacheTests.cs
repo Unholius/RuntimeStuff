@@ -794,6 +794,27 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("key2", kvKeyGetter(kv));
         }
 
+        [TestMethod]
+        public void GetIgnoreCasePropertyAndField_Test_01()
+        {
+            var kv = new KeyValuePair<string, object>("123", 123);
+            var t2 = ("123", 123);
+            var kvCache = kv.GetType().GetMemberCache();
+            var t2Cache = t2.GetType().GetMemberCache();
+            var kvKeyCache = kvCache["key"];
+            var kvValueCache = kvCache["VALUE"];
+            var t2Item1Cache = t2Cache["item1"];
+            var t2Item2Cache = t2Cache["item2"];
+            Assert.IsNotNull(kvKeyCache);
+            Assert.AreEqual(kvKeyCache.Name, "Key");
+            Assert.IsNotNull(kvValueCache);
+            Assert.AreEqual(kvValueCache.Name, "Value");
+            Assert.IsNotNull(t2Item1Cache);
+            Assert.AreEqual(t2Item1Cache.Name, "Item1");
+            Assert.IsNotNull(t2Item2Cache);
+            Assert.AreEqual(t2Item2Cache.Name, "Item2");
+        }
+
         public void Test_Implicit_Operators()
         {
             var mc = MemberCache.Create(typeof(SimpleClass));

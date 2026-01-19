@@ -31,32 +31,38 @@ namespace RuntimeStuff
         /// Статический кэш экземпляров MemberCache для типов.
         /// </summary>
         protected static readonly ConcurrentDictionary<Type, MemberCache> TypeCache = new ConcurrentDictionary<Type, MemberCache>();
-        private readonly ConcurrentDictionary<string, MemberCache> quickCache = new ConcurrentDictionary<string, MemberCache>();
+
+        private static MemberTypes[] defaultMemberTypes = new MemberTypes[2]
+        {
+            MemberTypes.Property, MemberTypes.Field,
+        };
+
         private readonly CasePriorityDictionary<Attribute> memberAttributesMap = new CasePriorityDictionary<Attribute>();
         private readonly ConcurrentDictionary<MemberInfo, MemberCache> memberCacheMap = new ConcurrentDictionary<MemberInfo, MemberCache>();
         private readonly CasePriorityDictionary<EventInfo> memberEventsMap = new CasePriorityDictionary<EventInfo>();
         private readonly CasePriorityDictionary<FieldInfo> memberFieldsMap = new CasePriorityDictionary<FieldInfo>();
         private readonly CasePriorityDictionary<MethodInfo> memberMethodsMap = new CasePriorityDictionary<MethodInfo>();
         private readonly CasePriorityDictionary<PropertyInfo> memberPropertiesMap = new CasePriorityDictionary<PropertyInfo>();
+        private readonly ConcurrentDictionary<string, MemberCache> quickCache = new ConcurrentDictionary<string, MemberCache>();
         private readonly Type type;
         private readonly MemberCache typeCache;
         private Type[] baseTypes;
+        private MemberCache[] columns;
+        private MemberCache[] fields;
+        private MemberCache[] fks;
         private string jsonName;
         private Attribute[] memberAttributes;
         private ConstructorInfo[] memberConstructors;
         private EventInfo[] memberEvents;
         private FieldInfo[] memberFields;
         private PropertyInfo[] memberProperties;
-        private MemberCache[] fields;
-        private MemberCache[] publicFields;
-        private MemberCache[] columns;
-        private MemberCache[] fks;
         private MethodInfo[] methods;
         private MemberCache[] pks;
         private MemberCache[] properties;
         private MemberCache[] publicBasicEnumerableProperties;
-        private MemberCache[] publicEnumerableProperties;
         private MemberCache[] publicBasicProperties;
+        private MemberCache[] publicEnumerableProperties;
+        private MemberCache[] publicFields;
         private MemberCache[] publicProperties;
         private MemberCache[] tables;
 
@@ -161,7 +167,7 @@ namespace RuntimeStuff
                 .LastOrDefault() ?? string.Empty;
 
             this.Description = this.typeCache?.Description ??
-                          this.MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
+                               this.MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
             this.DisplayName = this.typeCache?.DisplayName ?? this.MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
 
             if (this.DisplayName == null)
@@ -222,7 +228,7 @@ namespace RuntimeStuff
                     try
                     {
                         this.PropertyBackingField = this.Parent.GetFields().FirstOrDefault(x => x.Name == $"<{this.Name}>k__BackingField") ??
-                                               Obj.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
+                                                    Obj.GetFieldInfoFromGetAccessor(pi.GetGetMethod(true));
                     }
                     catch
                     {
@@ -258,7 +264,7 @@ namespace RuntimeStuff
                         : this.Name;
 
                     this.ForeignKeyName = fkAttr?.GetType().GetProperty("Name")?.GetValue(fkAttr)?.ToString() ??
-                                        string.Empty;
+                                          string.Empty;
                 }
                 else
                 {
@@ -300,10 +306,15 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Флаги привязки по умолчанию, используемые для рефлексии.
+        /// Флаги привязки по умолчанию, используемые для поиска членов в типе.
         /// </summary>
 #pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
-        public static BindingFlags DefaultBindingFlags { get; set; } = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic;
+        public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic;
+
+        /// <summary>
+        /// Флаги привязки по умолчанию c IgnoreCase, используемые для поиска членов в типе.
+        /// </summary>
+        public static BindingFlags DefaultIgnoreCaseBindingFlags { get; } = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.IgnoreCase;
 #pragma warning restore S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
 
         /// <summary>
@@ -405,6 +416,24 @@ namespace RuntimeStuff
         /// Получает тип элементов коллекции, если текущий член является коллекцией.
         /// </summary>
         public Type ElementType { get; }
+
+        /// <summary>
+        /// Получает все поля (включая непубличные) текущего типа.
+        /// </summary>
+        public MemberCache[] Fields
+        {
+            get
+            {
+                if (this.fields != null)
+                {
+                    return this.fields;
+                }
+
+                fields = GetFields().Select(x => new MemberCache(x, this)).ToArray();
+                memberFieldsMap.Init(memberFields, x => x.Name);
+                return this.fields;
+            }
+        }
 
         /// <summary>
         /// Получает тип поля, если текущий член является полем.
@@ -699,24 +728,6 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает все поля (включая непубличные) текущего типа.
-        /// </summary>
-        public MemberCache[] Fields
-        {
-            get
-            {
-                if (this.fields != null)
-                {
-                    return this.fields;
-                }
-
-                fields = GetFields().Select(x => new MemberCache(x, this)).ToArray();
-                memberFieldsMap.Init(memberFields, x => x.Name);
-                return this.fields;
-            }
-        }
-
-        /// <summary>
         /// Получает поле, которое является backing-полем для автосвойства.
         /// </summary>
         public FieldInfo PropertyBackingField { get; }
@@ -944,18 +955,18 @@ namespace RuntimeStuff
         /// <returns>Значение члена.</returns>
         public object this[object source, string memberName]
         {
-            get => this.GetMember(memberName, MemberTypes.All)?.GetValue(source);
+            get => this.GetMember(memberName, MemberTypes.Property, MemberTypes.Field)?.GetValue(source);
 
-            set => this.GetMember(memberName, MemberTypes.All)?.SetValue(source, value);
+            set => this.GetMember(memberName, MemberTypes.Property, MemberTypes.Field)?.SetValue(source, value);
         }
 
         /// <summary>
         /// Получает MemberCache для члена с указанным именем и типом.
         /// </summary>
         /// <param name="memberName">Имя члена.</param>
-        /// <param name="memberType">Тип члена (по умолчанию Property).</param>
+        /// <param name="memberTypes">Тип члена (по умолчанию Property).</param>
         /// <returns>Кэшированная информация о члене или null, если член не найден.</returns>
-        public MemberCache this[string memberName, MemberTypes memberType = MemberTypes.Property] => GetMember(memberName, memberType);
+        public MemberCache this[string memberName, params MemberTypes[] memberTypes] => GetMember(memberName, memberTypes);
 
         /// <summary>
         /// Получает MemberCache для указанного объекта MemberInfo в контексте текущего типа.
@@ -1116,10 +1127,10 @@ namespace RuntimeStuff
                     return TypeCache.GetOrAdd(t, x => new MemberCache(x, null));
 
                 default:
-                    {
-                        var declaringTypeCache = TypeCache.GetOrAdd(memberInfo.DeclaringType ?? throw new InvalidOperationException(), x => new MemberCache(x, null));
-                        return declaringTypeCache[memberInfo];
-                    }
+                {
+                    var declaringTypeCache = TypeCache.GetOrAdd(memberInfo.DeclaringType ?? throw new InvalidOperationException(), x => new MemberCache(x, null));
+                    return declaringTypeCache[memberInfo];
+                }
             }
         }
 
@@ -1426,7 +1437,7 @@ namespace RuntimeStuff
 
             this.memberConstructors = this.type.GetConstructors(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
-                .SelectMany(x => x.GetConstructors(DefaultBindingFlags)))
+                    .SelectMany(x => x.GetConstructors(DefaultBindingFlags)))
                 .OrderBy(c => c.GetParameters().Length)
                 .Distinct()
                 .ToArray();
@@ -1461,7 +1472,7 @@ namespace RuntimeStuff
 
             this.memberEvents = this.type.GetEvents(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
-                .SelectMany(x => x.GetEvents(DefaultBindingFlags)))
+                    .SelectMany(x => x.GetEvents(DefaultBindingFlags)))
                 .Distinct()
                 .ToArray();
             return this.memberEvents;
@@ -1473,7 +1484,7 @@ namespace RuntimeStuff
         /// <param name="fieldName">Имя поля.</param>
         /// <param name="ignoreCase">true для игнорирования регистра при поиске; в противном случае — false.</param>
         /// <returns>MemberCache для поля или null, если поле не найдено.</returns>
-        public MemberCache GetField(string fieldName, bool ignoreCase = true) => GetMember(fieldName, MemberTypes.Field, ignoreCase);
+        public MemberCache GetField(string fieldName, bool ignoreCase = true) => GetMember(fieldName, MemberTypes.Field);
 
         /// <summary>
         /// Получает все поля текущего типа.
@@ -1544,7 +1555,7 @@ namespace RuntimeStuff
         /// <param name="defaultSchemaName">Имя схемы по умолчанию, если SchemaName не задан.</param>
         /// <returns>Полное имя столбца.</returns>
         public string GetFullColumnName(string namePrefix, string nameSuffix, string defaultSchemaName = null) => this.GetFullTableName(namePrefix, nameSuffix, defaultSchemaName) +
-                   $".{namePrefix}{this.ColumnName}{nameSuffix}";
+                                                                                                                  $".{namePrefix}{this.ColumnName}{nameSuffix}";
 
         /// <summary>
         /// Получает полное имя таблицы в формате [Схема].[Таблица] с квадратными скобками.
@@ -1576,94 +1587,94 @@ namespace RuntimeStuff
         /// </summary>
         /// <typeparam name="TMember">Тип члена (PropertyInfo, FieldInfo, MethodInfo, EventInfo).</typeparam>
         /// <param name="memberName">Имя члена.</param>
-        /// <param name="memberType">Тип члена.</param>
-        /// <param name="ignoreCase">true для игнорирования регистра при поиске; в противном случае — false.</param>
+        /// <param name="memberTypes">Тип члена.</param>
         /// <returns>Информация о члене или null, если член не найден.</returns>
-        public TMember GetMember<TMember>(string memberName, MemberTypes memberType, bool ignoreCase = true)
-                                                                                                                            where TMember : MemberInfo
+        public TMember GetMember<TMember>(string memberName, params MemberTypes[] memberTypes)
+            where TMember : MemberInfo
         {
-            return (TMember)GetMember(memberName, memberType, ignoreCase).MemberInfo;
+            return (TMember)GetMember(memberName, memberTypes).MemberInfo;
         }
 
         /// <summary>
         /// Получает MemberCache для члена с указанным именем и типом.
         /// </summary>
         /// <param name="memberName">Имя члена.</param>
-        /// <param name="memberType">Тип члена.</param>
-        /// <param name="ignoreCase">true для игнорирования регистра при поиске; в противном случае — false.</param>
+        /// <param name="memberTypes">Тип члена.</param>
         /// <returns>MemberCache для члена или null, если член не найден.</returns>
         /// <exception cref="NotSupportedException">Выбрасывается для неподдерживаемых типов членов.</exception>
-        public MemberCache GetMember(string memberName, MemberTypes memberType, bool ignoreCase = true)
+        public MemberCache GetMember(string memberName, params MemberTypes[] memberTypes)
         {
             if (quickCache.TryGetValue(memberName, out var mc))
                 return mc;
-            switch (memberType)
+            if (memberTypes == null || memberTypes.Length == 0)
             {
-                case MemberTypes.Property:
-                    var propInfo = memberPropertiesMap.GetOrAdd(memberName, x => type.GetProperty(x, DefaultBindingFlags), p => p.Name, ignoreCase);
-                    if (propInfo != null)
-                    {
-                        var propCache = memberCacheMap.GetOrAdd(propInfo, x => new MemberCache(x, this));
-                        quickCache[memberName] = propCache;
-                        return propCache;
-                    }
-                    else
-                    {
-                        return null;
-                    }
-
-                case MemberTypes.Field:
-                    var fieldInfo = memberFieldsMap.GetOrAdd(memberName, x => type.GetField(x, DefaultBindingFlags), f => f.Name, ignoreCase);
-                    if (fieldInfo != null)
-                    {
-                        var fieldCache = memberCacheMap.GetOrAdd(fieldInfo, x => new MemberCache(x, this));
-                        quickCache[memberName] = fieldCache;
-                        return fieldCache;
-                    }
-                    else
-                    {
-                        return null;
-                    }
-
-                case MemberTypes.Method:
-                    var methodInfo = memberMethodsMap.GetOrAdd(memberName, x => type.GetMethod(x, DefaultBindingFlags), m => m.Name, ignoreCase);
-                    if (methodInfo != null)
-                    {
-                        var methodCache = memberCacheMap.GetOrAdd(methodInfo, x => new MemberCache(x, this));
-                        quickCache[memberName] = methodCache;
-                        return methodCache;
-                    }
-                    else
-                    {
-                        return null;
-                    }
-
-                case MemberTypes.Event:
-                    var eventInfo = memberEventsMap.GetOrAdd(memberName, x => type.GetEvent(x, DefaultBindingFlags), e => e.Name, ignoreCase);
-                    if (eventInfo != null)
-                    {
-                        var eventCache = memberCacheMap.GetOrAdd(eventInfo, x => new MemberCache(x, this));
-                        quickCache[memberName] = eventCache;
-                        return eventCache;
-                    }
-                    else
-                    {
-                        return null;
-                    }
-
-                case MemberTypes.All:
-                    return GetMember(memberName, MemberTypes.Property, ignoreCase) ??
-                           GetMember(memberName, MemberTypes.Field, ignoreCase) ??
-                           GetMember(memberName, MemberTypes.Method, ignoreCase) ??
-                           GetMember(memberName, MemberTypes.Event, ignoreCase);
-
-                case MemberTypes.Constructor:
-                case MemberTypes.Custom:
-                case MemberTypes.NestedType:
-                case MemberTypes.TypeInfo:
-                default:
-                    throw new NotSupportedException(nameof(memberType));
+                memberTypes = defaultMemberTypes;
             }
+
+            foreach (var mt in memberTypes)
+            {
+                switch (mt)
+                {
+                    case MemberTypes.Property:
+                        var propInfo = memberPropertiesMap.GetOrAdd(memberName, x => type.GetProperty(x, DefaultBindingFlags) ?? type.GetProperty(x, DefaultIgnoreCaseBindingFlags), p => p.Name);
+                        if (propInfo != null)
+                        {
+                            var propCache = memberCacheMap.GetOrAdd(propInfo, x => new MemberCache(x, this));
+                            quickCache[memberName] = propCache;
+                            return propCache;
+                        }
+
+                        break;
+
+                    case MemberTypes.Field:
+                        var fieldInfo = memberFieldsMap.GetOrAdd(memberName, x => type.GetField(x, DefaultBindingFlags) ?? type.GetField(x, DefaultIgnoreCaseBindingFlags), f => f.Name);
+                        if (fieldInfo != null)
+                        {
+                            var fieldCache = memberCacheMap.GetOrAdd(fieldInfo, x => new MemberCache(x, this));
+                            quickCache[memberName] = fieldCache;
+                            return fieldCache;
+                        }
+
+                        break;
+
+                    case MemberTypes.Method:
+                        var methodInfo = memberMethodsMap.GetOrAdd(memberName, x => type.GetMethod(x, DefaultBindingFlags) ?? type.GetMethod(x, DefaultIgnoreCaseBindingFlags), m => m.Name);
+                        if (methodInfo != null)
+                        {
+                            var methodCache = memberCacheMap.GetOrAdd(methodInfo, x => new MemberCache(x, this));
+                            quickCache[memberName] = methodCache;
+                            return methodCache;
+                        }
+
+                        break;
+
+                    case MemberTypes.Event:
+                        var eventInfo = memberEventsMap.GetOrAdd(memberName, x => type.GetEvent(x, DefaultBindingFlags) ?? type.GetEvent(x, DefaultBindingFlags), e => e.Name);
+                        if (eventInfo != null)
+                        {
+                            var eventCache = memberCacheMap.GetOrAdd(eventInfo, x => new MemberCache(x, this));
+                            quickCache[memberName] = eventCache;
+                            return eventCache;
+                        }
+
+                        break;
+
+                    case MemberTypes.All:
+                        return GetMember(memberName, MemberTypes.Property) ??
+                               GetMember(memberName, MemberTypes.Field) ??
+                               GetMember(memberName, MemberTypes.Method) ??
+                               GetMember(memberName, MemberTypes.Event);
+
+                    case MemberTypes.Constructor:
+                    case MemberTypes.Custom:
+                    case MemberTypes.NestedType:
+                    case MemberTypes.TypeInfo:
+                    default:
+                        throw new NotSupportedException(nameof(mt));
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
