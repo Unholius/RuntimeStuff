@@ -225,6 +225,7 @@ namespace RuntimeStuff
                     var fkAttr = this.GetAttribute("ForeignKeyAttribute");
                     this.IsPrimaryKey = keyAttr != null || string.Equals(this.Name, "id", StringComparison.OrdinalIgnoreCase);
                     this.IsForeignKey = fkAttr != null;
+                    this.IsColumn = HasAnyAttributeOfType("ColumnAttribute", "KeyAttribute") || (IsBasic && HasAnyAttributeOfType("ForeignKeyAttribute"));
                     try
                     {
                         this.PropertyBackingField = this.Parent.GetFields().FirstOrDefault(x => x.Name == $"<{this.Name}>k__BackingField") ??
@@ -373,7 +374,7 @@ namespace RuntimeStuff
 
                 columns = this.typeCache?.ColumnProperties ?? this.PublicBasicProperties.Where(x =>
                         !x.IsPrimaryKey
-                        && x.GetAttribute("ColumnAttribute") != null
+                        && x.IsColumn
                         && x.GetAttribute("NotMappedAttribute") == null)
                     .ToArray();
 
@@ -566,7 +567,7 @@ namespace RuntimeStuff
         /// <summary>
         /// Получает значение, указывающее, является ли член методом.
         /// </summary>
-        public bool IsMethod { get; set; }
+        public bool IsMethod { get; }
 
         /// <summary>
         /// Получает значение, указывающее, является ли тип nullable (Nullable&lt;T&gt;).
@@ -586,7 +587,12 @@ namespace RuntimeStuff
         /// <summary>
         /// Получает значение, указывающее, является ли член первичным ключом в базе данных.
         /// </summary>
-        public bool IsPrimaryKey { get; set; }
+        public bool IsPrimaryKey { get; }
+
+        /// <summary>
+        /// Получает значение, указывающее, является ли член колонкой в базе данных.
+        /// </summary>
+        public bool IsColumn { get; }
 
         /// <summary>
         /// Получает значение, указывающее, является ли член приватным.
