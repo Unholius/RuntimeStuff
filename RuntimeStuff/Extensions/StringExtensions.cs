@@ -18,6 +18,7 @@ namespace RuntimeStuff.Extensions
     using System.Globalization;
     using System.IO;
     using System.IO.Compression;
+    using System.Linq.Expressions;
     using RuntimeStuff.Helpers;
 
     /// <summary>
@@ -43,6 +44,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="valueParser">
         /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
         /// </param>
+        /// <param name="objectProperties">Маппер колонок из csv на свойства объекта в порядке следования колонок в csv.</param>
         /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
         /// <remarks>
         /// <para>Метод выполняет следующие шаги:</para>
@@ -54,7 +56,7 @@ namespace RuntimeStuff.Extensions
         /// </list>
         /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
         /// </remarks>
-        public static T[] FromCsv<T>(this string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
+        public static T[] FromCsv<T>(this string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null, params Expression<Func<T, object>>[] objectProperties)
     where T : class, new()
         {
             return CsvHelper.FromCsv<T>(csv, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);

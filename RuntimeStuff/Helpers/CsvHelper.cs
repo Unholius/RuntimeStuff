@@ -31,37 +31,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="valueParser">
         /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
         /// </param>
-        /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
-        /// <remarks>
-        /// <para>Метод выполняет следующие шаги:</para>
-        /// <list type="bullet">
-        /// <item>Разбивает CSV по строкам с учётом <paramref name="lineSeparators"/> и игнорирует пустые строки.</item>
-        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>true</c>, первая строка используется для сопоставления колонок с членами класса <typeparamref name="T"/> через <see cref="MemberCache{T}"/>.</item>
-        /// <item>Каждая последующая строка создаёт новый объект <typeparamref name="T"/>. Значения колонок преобразуются с помощью <paramref name="valueParser"/> и присваиваются соответствующим свойствам или полям.</item>
-        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>false</c>, используются все публичные базовые свойства класса.</item>
-        /// </list>
-        /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
-        /// </remarks>
-        public static T[] FromCsv<T>(string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
-            where T : class, new()
-        {
-            return FromCsv<T>(csv, Array.Empty<PropertyInfo>(), hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
-        }
-
-        /// <summary>
-        /// Преобразует CSV-строку в массив объектов указанного класса с возможностью настройки разделителей и парсера значений.
-        /// </summary>
-        /// <typeparam name="T">Тип объектов для создания. Должен быть классом с публичным конструктором без параметров.</typeparam>
-        /// <param name="csv">CSV-строка для обработки.</param>
         /// <param name="objectProperties">Маппер колонок из csv на свойства объекта в порядке следования колонок в csv.</param>
-        /// <param name="hasColumnsHeader">
-        /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
-        /// </param>
-        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { "," }.</param>
-        /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
-        /// <param name="valueParser">
-        /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
-        /// </param>
         /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
         /// <remarks>
         /// <para>Метод выполняет следующие шаги:</para>
@@ -73,7 +43,7 @@ namespace RuntimeStuff.Helpers
         /// </list>
         /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
         /// </remarks>
-        public static T[] FromCsv<T>(string csv, Expression<Func<T, object>>[] objectProperties, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
+        public static T[] FromCsv<T>(string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null, params Expression<Func<T, object>>[] objectProperties)
             where T : class, new()
         {
             var properties = objectProperties != null ? objectProperties.Select(x => x.GetPropertyInfo()).ToArray() : Array.Empty<PropertyInfo>();

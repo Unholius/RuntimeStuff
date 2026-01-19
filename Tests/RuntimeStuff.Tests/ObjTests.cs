@@ -1142,11 +1142,25 @@ Bob,40,Chicago;
         }
 
         [TestMethod]
+        public void FromCsv_Test_04()
+        {
+            var csv = @"
+
+
+""John"",30,""New York"";
+
+Jane,25,Los Angeles;
+Bob,40,Chicago;
+";
+            var result = CsvHelper.FromCsv<TestCsv>(csv, false, null, null, null, x => x.Name, x => x.Age, x => x.City);
+        }
+
+        [TestMethod]
         public void FromCsv_Test_03()
         {
             var csv = @"R2093-AN595SM;144
 ";
-            var result = CsvHelper.FromCsv<ImportFileData>(csv, new[] {"Key", "Value"}, false, new [] {";"});
+            var result = CsvHelper.FromCsv<ImportFileData>(csv, ["Key", "Value"], false, new [] {";"});
         }
 
         public class ImportFileData : INotifyPropertyChanged

@@ -681,11 +681,6 @@ namespace RuntimeStuff.Extensions
         /// <param name="data">
         /// Коллекция объектов, данные которых будут сериализованы в CSV.
         /// </param>
-        /// <param name="columnSelectors">
-        /// Выражения, указывающие свойства типа <typeparamref name="T"/>,
-        /// которые необходимо включить в CSV (например: <c>x =&gt; x.Name</c>).
-        /// Если массив не задан или пуст, используются все публичные простые свойства типа.
-        /// </param>
         /// <param name="writeColumnHeaders">
         /// Признак необходимости записи строки заголовков.
         /// Если значение равно <see langword="true"/>, в первую строку CSV
@@ -702,6 +697,11 @@ namespace RuntimeStuff.Extensions
         /// Принимает описание свойства и его значение.
         /// Если не задана, используется стандартная сериализация.
         /// </param>
+        /// <param name="columnSelectors">
+        /// Выражения, указывающие свойства типа <typeparamref name="T"/>,
+        /// которые необходимо включить в CSV (например: <c>x =&gt; x.Name</c>).
+        /// Если массив не задан или пуст, используются все публичные простые свойства типа.
+        /// </param>
         /// <returns>
         /// Строка, содержащая данные в формате CSV.
         /// </returns>
@@ -711,7 +711,7 @@ namespace RuntimeStuff.Extensions
         /// <exception cref="ArgumentException">
         /// Выбрасывается, если выражение не указывает на свойство типа <typeparamref name="T"/>.
         /// </exception>
-        public static string ToCsv<T>(this IEnumerable<T> data, Expression<Func<T, object>>[] columnSelectors, bool writeColumnHeaders, string columnSeparator = null, string lineSeparator = null, Func<PropertyInfo, object, string> valueSerializer = null)
+        public static string ToCsv<T>(this IEnumerable<T> data, bool writeColumnHeaders, string columnSeparator = null, string lineSeparator = null, Func<PropertyInfo, object, string> valueSerializer = null, params Expression<Func<T, object>>[] columnSelectors)
             where T : class
         {
             return CsvHelper.ToCsv(data, columnSelectors.Select(x => (PropertyInfo)x.GetMemberCache()).ToArray(), writeColumnHeaders, columnSeparator, lineSeparator, valueSerializer);
