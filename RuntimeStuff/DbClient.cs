@@ -827,7 +827,8 @@ namespace RuntimeStuff
                 var i = cmd.ExecuteNonQuery();
                 this.CommandExecuted?.Invoke(cmd);
                 this.Log(cmd);
-                this.CloseConnection(this.Connection);
+                if (cmd.Transaction == null)
+                    this.CloseConnection(this.Connection);
                 return i;
             }
         }
@@ -865,7 +866,8 @@ namespace RuntimeStuff
                 }
                 finally
                 {
-                    this.CloseConnection();
+                    if (cmd.Transaction == null)
+                        this.CloseConnection(this.Connection);
                 }
             }
         }
@@ -957,7 +959,8 @@ namespace RuntimeStuff
                 }
                 finally
                 {
-                    this.CloseConnection();
+                    if (cmd.Transaction == null)
+                        this.CloseConnection(this.Connection);
                 }
             }
         }
@@ -1062,7 +1065,8 @@ namespace RuntimeStuff
                 }
                 finally
                 {
-                    this.CloseConnection();
+                    if (cmd.Transaction == null)
+                        this.CloseConnection(this.Connection);
                 }
             }
         }
