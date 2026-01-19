@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Reflection;
 using RuntimeStuff.Extensions;
 
@@ -866,6 +867,14 @@ namespace RuntimeStuff.MSTests
             private string? prop;
         }
 
+        public class TestAccessModifiersClass
+        {
+            public string PublicPropPublicGetPublicSet { get; set; }
+            public string PublicPropPublicGetPrivateSet { get; private set; }
+            public string PublicPropPrivateGetPublicSet { private get; set; }
+            private string PrivatePropPublicGetPublicSet { get; set; }
+        }
+
         [TestMethod]
         public void GetNonExistedMemberByNameShouldReturnNull()
         {
@@ -888,6 +897,34 @@ namespace RuntimeStuff.MSTests
         {
             var memberInfo = typeof(TestClass).GetMemberCache();
             var m = memberInfo["name"];
+        }
+
+        [TestMethod]
+        public void TestAccessInfo()
+        {
+            Expression<Func<TestAccessModifiersClass, object>> propSelector = x => x.PublicPropPublicGetPrivateSet;
+            var memberInfo = propSelector.GetMemberCache();
+
+            Assert.IsTrue(memberInfo.IsSetterPrivate);
+            Assert.IsFalse(memberInfo.IsSetterPublic);
+            Assert.IsFalse(memberInfo.IsGetterPrivate);
+            Assert.IsTrue(memberInfo.IsGetterPublic);
+
+            propSelector = x => x.PublicPropPublicGetPublicSet;
+            memberInfo = propSelector.GetMemberCache();
+            Assert.IsFalse(memberInfo.IsSetterPrivate);
+            Assert.IsTrue(memberInfo.IsSetterPublic);
+            Assert.IsFalse(memberInfo.IsGetterPrivate);
+            Assert.IsTrue(memberInfo.IsGetterPublic);
+
+            Assert.IsNotNull(memberInfo.Parent);
+
+            memberInfo = memberInfo.Parent[nameof(TestAccessModifiersClass.PublicPropPrivateGetPublicSet)];
+            Assert.IsFalse(memberInfo.IsSetterPrivate);
+            Assert.IsTrue(memberInfo.IsSetterPublic);
+            Assert.IsTrue(memberInfo.IsGetterPrivate);
+            Assert.IsFalse(memberInfo.IsGetterPublic);
+
         }
     }
 }

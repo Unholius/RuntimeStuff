@@ -212,9 +212,9 @@ namespace RuntimeStuff
 
                 this.PropertyType = pi.PropertyType;
                 this.IsSetterPublic = pi.GetSetMethod()?.IsPublic == true;
-                this.IsSetterPrivate = pi.GetSetMethod()?.IsPrivate == true;
+                this.IsSetterPrivate = pi.GetSetMethod() == null || pi.GetSetMethod()?.IsPrivate == true;
                 this.IsGetterPublic = pi.GetGetMethod()?.IsPublic == true;
-                this.IsGetterPrivate = pi.GetGetMethod()?.IsPrivate == true;
+                this.IsGetterPrivate = pi.GetGetMethod() == null || pi.GetGetMethod()?.IsPrivate == true;
                 this.TableName = this.Parent?.TableName;
                 this.SchemaName = this.Parent?.SchemaName;
 
@@ -1869,7 +1869,7 @@ namespace RuntimeStuff
         /// Возвращает строковое представление текущего члена в формате "DeclaringType.Name.Name(Type.Name)".
         /// </summary>
         /// <returns>Строковое представление члена.</returns>
-        public override string ToString() => $"{this.DeclaringType?.Name}{this.Name}({this.Type.Name})";
+        public override string ToString() => $"{(IsPublic ? "public" : "private")} {this.Type.Name} [{this.DeclaringType?.Name}].[{this.Name}] {{{(IsGetterPublic ? " get;" : string.Empty)}{(IsSetterPublic ? " set;" : string.Empty)} }}";
 
         /// <summary>
         /// Проверяет, удовлетворяют ли все элементы последовательности условию.
