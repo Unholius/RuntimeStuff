@@ -656,7 +656,7 @@ namespace RuntimeStuff
                 }
             }
 
-            if (this.tr != null)
+            if (this.tr?.Value != null && cmd.Transaction == null)
             {
                 cmd.Transaction = this.tr.Value;
             }
