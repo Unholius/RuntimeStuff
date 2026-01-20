@@ -11,11 +11,14 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff.Extensions
 {
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Collections.Specialized;
     using System.ComponentModel;
     using System.Data;
     using System.Globalization;
@@ -39,14 +42,73 @@ namespace RuntimeStuff.Extensions
     public static class EnumerableExtensions
     {
         /// <summary>
-        /// Concats the specified arrays.
+        /// Добавляет набор элементов в коллекцию <see cref="ObservableCollection{T}"/>.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="array">The array.</param>
-        /// <param name="arrays">The arrays.</param>
-        /// <returns>T[].</returns>
-        /// <exception cref="System.ArgumentNullException">array.</exception>
-        /// <exception cref="System.ArgumentNullException">arrays.</exception>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции.
+        /// </typeparam>
+        /// <param name="list">
+        /// Целевая коллекция, в которую добавляются элементы.
+        /// </param>
+        /// <param name="items">
+        /// Коллекция элементов для добавления.
+        /// Если значение равно <c>null</c>, метод не выполняет никаких действий.
+        /// </param>
+        /// <remarks>
+        /// Метод последовательно добавляет каждый элемент из <paramref name="items"/>
+        /// с помощью вызова ObservableCollection{T}.Add(T).
+        ///
+        /// Следует учитывать, что при добавлении большого количества элементов
+        /// каждое добавление инициирует событие <see cref="ObservableCollection{T}.CollectionChanged"/>,
+        /// что может негативно сказаться на производительности и обновлении UI.
+        ///
+        /// Для массовых операций рекомендуется использовать специализированные
+        /// реализации коллекций или временно отключать обработку уведомлений.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Генерируется, если <paramref name="list"/> равен <c>null</c>.
+        /// </exception>
+        public static void AddRange<T>(this ObservableCollection<T> list, IEnumerable<T> items)
+        {
+            if (list == null)
+                throw new ArgumentNullException(nameof(list));
+            if (items == null)
+                return;
+
+            foreach (var item in items)
+                list.Add(item);
+        }
+
+        /// <summary>
+        /// Объединяет текущий массив с одним или несколькими дополнительными массивами.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов массивов.
+        /// </typeparam>
+        /// <param name="array">
+        /// Исходный массив, к которому выполняется конкатенация.
+        /// </param>
+        /// <param name="arrays">
+        /// Массив дополнительных массивов для объединения.
+        /// Элементы со значением <c>null</c> игнорируются.
+        /// </param>
+        /// <returns>
+        /// Новый массив, содержащий элементы исходного массива,
+        /// за которыми следуют элементы всех переданных массивов
+        /// в порядке их перечисления.
+        /// </returns>
+        /// <remarks>
+        /// Метод не изменяет исходные массивы и всегда создаёт новый массив.
+        ///
+        /// При вычислении результирующей длины массивы со значением <c>null</c>
+        /// пропускаются.
+        ///
+        /// Для копирования элементов используется <see cref="Array.Copy(Array, int, Array, int, int)"/>,
+        /// что обеспечивает линейную сложность O(n) и минимальные накладные расходы.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Генерируется, если <paramref name="array"/> или <paramref name="arrays"/> равны <c>null</c>.
+        /// </exception>
         public static T[] Concat<T>(this T[] array, params T[][] arrays)
         {
             if (array == null)
