@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using System.Data.SqlClient;
 using RuntimeStuff.Extensions;
 using System.Data;
+using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
@@ -216,6 +217,43 @@ CREATE TABLE student_courses (
                 .AddRow("2")
                 .AddRow("3");
             var result = con.ToList<string>("select * from dbo.TestFunction(@list)", new { list = dt });
+        }
+
+        [TestMethod]
+        public void DbClient_Test_07()
+        {
+            var con = new SqlConnection()
+                .Server("serv40")
+                .Database("Tamuz")
+                .Timeout(2)
+                .IntegratedSecurity(true);
+
+            if (!con.TryOpen())
+                return;
+
+            var list = new List<BadCodeGoodCodeUpdateData>()
+            {
+                new BadCodeGoodCodeUpdateData()
+                {
+                    BadCode = "bad1", GoodCode = "good1"
+                },
+                new BadCodeGoodCodeUpdateData()
+                {
+                    BadCode = "bad2", GoodCode = "good2"
+                },
+            };
+
+            var dt = list.ToDataTable("dbo.Tuple2", 
+                (x => x.GoodCode, "Item1"), 
+                (x => x.BadCode, "Item2")
+                );
+
+            //var dt = new DataTable("dbo.Tuple2");
+            //dt.AddCol("Item1");
+            //dt.AddCol("Item2");
+            //dt
+            //    .AddRow("1", "2");
+            var result = con.ToList<BadCodeGoodCodeUpdateData>("select * from dbo.GetTableBCGC(@companyId, @bgCodes)", new { companyId = 1, bgCodes = dt });
         }
 
         //[TestMethod]

@@ -1849,14 +1849,14 @@ namespace RuntimeStuff
         /// </summary>
         /// <typeparam name="T">Тип объекта.</typeparam>
         /// <param name="instance">Экземпляр объекта.</param>
-        /// <param name="propertyNames">Имена свойств для включения (если не указаны, включаются все публичные базовые свойства).</param>
+        /// <param name="propertyFilter">Фильтр свойств для включения (если не указаны, включаются все публичные свойства).</param>
         /// <returns>Словарь имен и значений свойств.</returns>
-        public Dictionary<string, object> ToDictionary<T>(T instance, params string[] propertyNames)
+        public Dictionary<string, object> ToDictionary<T>(T instance, Func<MemberCache, bool> propertyFilter = null)
             where T : class
         {
             var dic = new Dictionary<string, object>();
 
-            this.ToDictionary(instance, dic, propertyNames);
+            this.ToDictionary(instance, dic, propertyFilter);
 
             return dic;
         }
@@ -1867,13 +1867,14 @@ namespace RuntimeStuff
         /// <typeparam name="T">Тип объекта.</typeparam>
         /// <param name="instance">Экземпляр объекта.</param>
         /// <param name="dictionary">Словарь, в который добавляются пары имя-значение.</param>
-        /// <param name="propertyNames">Имена свойств для включения (если не указаны, включаются все публичные базовые свойства).</param>
-        public void ToDictionary<T>(T instance, Dictionary<string, object> dictionary, params string[] propertyNames)
+        /// <param name="propertyFilter">Фильтр свойств для включения (если не указаны, включаются все публичные свойства).</param>
+        public void ToDictionary<T>(T instance, Dictionary<string, object> dictionary, Func<MemberCache, bool> propertyFilter = null)
             where T : class
         {
-            var props = propertyNames.Any()
-                ? this.PublicBasicProperties.Where(x => propertyNames.Contains(x.Name)).ToArray()
-                : this.PublicBasicProperties;
+            if (propertyFilter == null)
+                propertyFilter = x => x.IsPublic;
+
+            var props = this.Properties.Where(propertyFilter).ToArray();
 
             foreach (var mi in props)
             {

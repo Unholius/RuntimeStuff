@@ -1476,7 +1476,8 @@ namespace RuntimeStuff
                                 }
                             }
 
-                            foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyNames))
+                            var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name);
+                            foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyFilter))
                             {
                                 parameters[kvp.Key] = kvp.Value;
                             }

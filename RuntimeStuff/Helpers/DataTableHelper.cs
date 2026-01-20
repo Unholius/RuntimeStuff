@@ -101,7 +101,7 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="System.ArgumentException">Row data length does not match table columns count.</exception>
         /// <remarks>Значения <see langword="null" /> автоматически преобразуются
         /// в <see cref="DBNull.Value" />.</remarks>
-        public static DataRow AddRow(DataTable table, object[] rowData)
+        public static DataRow AddRow(DataTable table, params object[] rowData)
         {
             if (table == null)
             {
@@ -143,6 +143,7 @@ namespace RuntimeStuff.Helpers
         /// <remarks>Значения берутся из свойств объекта по имени,
         /// совпадающему с именем колонки таблицы.</remarks>
         public static DataRow AddRow<T>(DataTable table, T item)
+            where T : class, new()
         {
             if (table == null)
             {

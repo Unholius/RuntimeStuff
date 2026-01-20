@@ -58,7 +58,7 @@ namespace RuntimeStuff.Extensions
         /// не совпадает с количеством колонок таблицы.</exception>
         /// <remarks>Значения <see langword="null" /> автоматически преобразуются
         /// в <see cref="DBNull.Value" />.</remarks>
-        public static DataTable AddRow(this DataTable table, object[] rowData)
+        public static DataTable AddRow(this DataTable table, params object[] rowData)
         {
             DataTableHelper.AddRow(table, rowData);
             return table;
@@ -77,6 +77,7 @@ namespace RuntimeStuff.Extensions
         /// <remarks>Значения берутся из свойств объекта по имени,
         /// совпадающему с именем колонки таблицы.</remarks>
         public static DataTable AddRow<T>(this DataTable table, T item)
+            where T : class, new()
         {
             DataTableHelper.AddRow(table, item);
             return table;

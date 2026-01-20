@@ -24,6 +24,6 @@ namespace RuntimeStuff.MSTests.Models
         /// <remarks>
         /// Свойство заполняется в процессе валидации и доступно только для чтения извне.
         /// </remarks>
-        public string ErrorMessage { get; private set; }
+        public string Error { get; private set; }
     }
 }
