@@ -702,7 +702,7 @@ namespace RuntimeStuff.Extensions
         public static IList<T> FromCsv<T>(this IList<T> toList, string csv, params Expression<Func<T, object>>[] propertySelectors)
             where T : class, new()
         {
-            var items = CsvHelper.FromCsv<T>(csv, null, null, null, null);
+            var items = CsvHelper.FromCsv<T>(csv, propertySelectors.Select(x => x.GetPropertyInfo()).ToArray(), null, null, null, null);
             foreach (var i in items)
             {
                 toList.Add(i);

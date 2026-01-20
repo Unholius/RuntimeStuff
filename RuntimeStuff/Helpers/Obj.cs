@@ -2350,12 +2350,7 @@ namespace RuntimeStuff.Helpers
         public static object NewItem(IEnumerable list)
         {
             var itemType = list.GetType().GetGenericArguments().FirstOrDefault();
-            if (itemType == null)
-            {
-                throw new InvalidOperationException("Cannot determine item type of the collection.");
-            }
-
-            return New(itemType);
+            return itemType == null ? throw new InvalidOperationException("Cannot determine item type of the collection.") : New(itemType);
         }
 
         /// <summary>

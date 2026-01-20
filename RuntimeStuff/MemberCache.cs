@@ -32,7 +32,7 @@ namespace RuntimeStuff
         /// </summary>
         protected static readonly ConcurrentDictionary<Type, MemberCache> TypeCache = new ConcurrentDictionary<Type, MemberCache>();
 
-        private static MemberTypes[] defaultMemberTypes = new MemberTypes[2]
+        private static readonly MemberTypes[] DefaultMemberTypes = new MemberTypes[2]
         {
             MemberTypes.Property, MemberTypes.Field,
         };
@@ -1491,9 +1491,8 @@ namespace RuntimeStuff
         /// Получает MemberCache для поля с указанным именем.
         /// </summary>
         /// <param name="fieldName">Имя поля.</param>
-        /// <param name="ignoreCase">true для игнорирования регистра при поиске; в противном случае — false.</param>
         /// <returns>MemberCache для поля или null, если поле не найдено.</returns>
-        public MemberCache GetField(string fieldName, bool ignoreCase = true) => GetMember(fieldName, MemberTypes.Field);
+        public MemberCache GetField(string fieldName) => GetMember(fieldName, MemberTypes.Field);
 
         /// <summary>
         /// Получает все поля текущего типа.
@@ -1625,7 +1624,7 @@ namespace RuntimeStuff
                     return mc;
                 if (memberTypes == null || memberTypes.Length == 0)
                 {
-                    memberTypes = defaultMemberTypes;
+                    memberTypes = DefaultMemberTypes;
                 }
 
                 foreach (var mt in memberTypes)
@@ -1695,7 +1694,7 @@ namespace RuntimeStuff
             }
             catch (Exception ex)
             {
-                throw new NotSupportedException($"Ошибка получения члена {memberName} в {this}: {ex.ToString()}", ex);
+                throw new NotSupportedException($"Ошибка получения члена {memberName} в {this}: {ex}", ex);
             }
         }
 
