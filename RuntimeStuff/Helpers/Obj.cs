@@ -562,77 +562,77 @@ namespace RuntimeStuff.Helpers
                 return value;
             }
 
-            var customConverter = GetCustomTypeConverter(fromType, toType);
-            if (customConverter != null)
-            {
-                return customConverter(value);
-            }
-
-            // Преобразование в строку
-            if (toType == typeof(string))
-            {
-                return string.Format(formatProvider, "{0}", value);
-            }
-
-            // ENUM
-            if (toType.IsEnum)
-            {
-                if (value is string es)
-                {
-                    return Enum.Parse(toType, es, true);
-                }
-
-                if (value is bool b)
-                {
-                    return Enum.ToObject(toType, b ? 1 : 0);
-                }
-
-                if (IsNumeric(fromType))
-                {
-                    return Enum.ToObject(toType, Convert.ToInt32(value, CultureInfo.InvariantCulture));
-                }
-            }
-
-            // Преобразование строк
-            if (value is string s)
-            {
-                if (string.IsNullOrWhiteSpace(s) && IsNullable(toType))
-                {
-                    return Default(toType);
-                }
-
-                if (toType == typeof(DateTime))
-                {
-                    return StringToDateTimeConverter(s);
-                }
-
-                if (IsNumeric(toType))
-                {
-                    // сначала пытаемся корректный parse
-                    if (decimal.TryParse(s, NumberStyles.Any, formatProvider, out var dec))
-                    {
-                        return Convert.ChangeType(dec, toType, CultureInfo.InvariantCulture);
-                    }
-
-                    // fallback на замену, если формат "1,23"
-                    s = s.Replace(",", ".");
-                    return Convert.ChangeType(s, toType, CultureInfo.InvariantCulture);
-                }
-
-                if (toType.IsClass || toType.IsValueType)
-                {
-                    return New(toType, s);
-                }
-            }
-
-            // SQL Boolean
-            if (fromType == typeof(bool) && toType.Name == "SqlBoolean")
-            {
-                return Activator.CreateInstance(toType, (bool)value);
-            }
-
             try
             {
+                var customConverter = GetCustomTypeConverter(fromType, toType);
+                if (customConverter != null)
+                {
+                    return customConverter(value);
+                }
+
+                // Преобразование в строку
+                if (toType == typeof(string))
+                {
+                    return string.Format(formatProvider, "{0}", value);
+                }
+
+                // ENUM
+                if (toType.IsEnum)
+                {
+                    if (value is string es)
+                    {
+                        return Enum.Parse(toType, es, true);
+                    }
+
+                    if (value is bool b)
+                    {
+                        return Enum.ToObject(toType, b ? 1 : 0);
+                    }
+
+                    if (IsNumeric(fromType))
+                    {
+                        return Enum.ToObject(toType, Convert.ToInt32(value, CultureInfo.InvariantCulture));
+                    }
+                }
+
+                // Преобразование строк
+                if (value is string s)
+                {
+                    if (string.IsNullOrWhiteSpace(s) && IsNullable(toType))
+                    {
+                        return Default(toType);
+                    }
+
+                    if (toType == typeof(DateTime))
+                    {
+                        return StringToDateTimeConverter(s);
+                    }
+
+                    if (IsNumeric(toType))
+                    {
+                        // сначала пытаемся корректный parse
+                        if (decimal.TryParse(s, NumberStyles.Any, formatProvider, out var dec))
+                        {
+                            return Convert.ChangeType(dec, toType, CultureInfo.InvariantCulture);
+                        }
+
+                        // fallback на замену, если формат "1,23"
+                        s = s.Replace(",", ".");
+                        return Convert.ChangeType(s, toType, CultureInfo.InvariantCulture);
+                    }
+
+                    if (toType.IsClass || toType.IsValueType)
+                    {
+                        return New(toType, s);
+                    }
+                }
+
+                // SQL Boolean
+                if (fromType == typeof(bool) && toType.Name == "SqlBoolean")
+                {
+                    return Activator.CreateInstance(toType, (bool)value);
+                }
+
                 // Универсальное приведение
                 return Convert.ChangeType(value, toType, CultureInfo.InvariantCulture);
             }

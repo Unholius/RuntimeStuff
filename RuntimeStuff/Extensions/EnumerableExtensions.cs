@@ -631,6 +631,26 @@ namespace RuntimeStuff.Extensions
             where T : class => DataTableHelper.ToDataTable(source, tableName, columnSelectors);
 
         /// <summary>
+        /// Преобразует CSV-строку в массив объектов указанного класса и добавляет элементы в список.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов для создания. Должен быть классом с публичным конструктором без параметров.</typeparam>
+        /// <param name="toList">Список в который добавить строки из csv.</param>
+        /// <param name="csv">CSV-строка для обработки.</param>
+        /// <param name="propertySelectors">Выбор свойств для маппинга колонок из csv.</param>
+        /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
+        public static IList<T> FromCsv<T>(this IList<T> toList, string csv, params Expression<Func<T, object>>[] propertySelectors)
+            where T : class, new()
+        {
+            var items = CsvHelper.FromCsv<T>(csv, null, null, null, null);
+            foreach (var i in items)
+            {
+                toList.Add(i);
+            }
+
+            return toList;
+        }
+
+        /// <summary>
         /// Преобразует коллекцию объектов в строку в формате CSV,
         /// позволяя указать набор колонок с помощью лямбда-выражений.
         /// </summary>

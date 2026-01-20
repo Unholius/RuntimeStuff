@@ -1,5 +1,6 @@
 ﻿using RuntimeStuff.Extensions;
 using RuntimeStuff.Helpers;
+using RuntimeStuff.MSTests.Models;
 
 namespace RuntimeStuff.MSTests
 {
@@ -195,7 +196,7 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(FormatException))]
+        [ExpectedException(typeof(InvalidCastException))]
         public void ChangeType_InvalidStringToInt_ThrowsFormatException()
         {
             // Arrange
@@ -1125,6 +1126,16 @@ Jane,25,Los Angeles
 Bob,40,Chicago
 ";
             var result = CsvHelper.FromCsv<TestCsv>(csv, true);
+            Assert.AreEqual(3, result.Length);
+        }
+
+        [TestMethod]
+        public void FromCsv_Test_01_1()
+        {
+            var csv = File.ReadAllText(".\\Databases\\BadCodeGoodCodeUpdateData.csv");
+            var list = new List<BadCodeGoodCodeUpdateData>();
+            list.FromCsv(csv, x => x.BadCode, x => x.GoodCode);
+            Assert.AreEqual(2, list.Count);
         }
 
         [TestMethod]
@@ -1152,7 +1163,8 @@ Bob,40,Chicago;
 Jane,25,Los Angeles;
 Bob,40,Chicago;
 ";
-            var result = CsvHelper.FromCsv<TestCsv>(csv, false, null, null, null, x => x.Name, x => x.Age, x => x.City);
+            var list = new List<TestCsv>();
+            CsvHelper.FromCsv<TestCsv>(csv);
         }
 
         [TestMethod]
@@ -1284,7 +1296,7 @@ Bob,40,Chicago;
         public void FromCsv_WithHeader_ValidData_ReturnsObjects()
         {
             // Arrange
-            var csv = "Name,Age,Salary,BirthDate\nJohn,30,50000.50,1990-01-01\nJane,25,60000.75,1995-05-15";
+            var csv = "Name;Age;Salary;BirthDate\nJohn;30;50000.50;1990-01-01\nJane;25;60000.75;1995-05-15";
             var dateParser = new Func<string, object>(s => DateTime.Parse(s));
 
             // Act
@@ -1319,7 +1331,7 @@ Bob,40,Chicago;
         public void FromCsv_WithoutHeader_ValidData_ReturnsObjects()
         {
             // Arrange
-            var csv = "Value1,Value2\nValue3,Value4";
+            var csv = "Value1;Value2\nValue3;Value4";
             var expectedProperties = typeof(SimpleModel).GetProperties().OrderBy(p => p.Name).Select(p => p.Name).ToArray();
 
             // Act
@@ -1364,7 +1376,7 @@ Bob,40,Chicago;
         public void FromCsv_CustomLineSeparator_WorksCorrectly()
         {
             // Arrange
-            var csv = "Name,Age|John,30|Jane,25";
+            var csv = "Name;Age|John;30|Jane;25";
             var lineSeparators = new[] { "|" };
 
             // Act
@@ -1412,7 +1424,7 @@ Bob,40,Chicago;
         public void FromCsv_CustomValueParser_WorksCorrectly()
         {
             // Arrange
-            var csv = "Name,Age\nJohn,30\nJane,25";
+            var csv = "Name;Age\nJohn;30\nJane;25";
             var customParser = new Func<string, object>(s =>
             {
                 if (s == "John") return "Mr. John";
@@ -1436,7 +1448,7 @@ Bob,40,Chicago;
         public void FromCsv_DefaultValueParser_ReturnsStrings()
         {
             // Arrange
-            var csv = "Name,Age\nJohn,30\nJane,25";
+            var csv = "Name;Age\nJohn;30\nJane;25";
 
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true);
@@ -1455,7 +1467,7 @@ Bob,40,Chicago;
         public void FromCsv_MoreColumnsThanProperties_IgnoresExtraColumns()
         {
             // Arrange
-            var csv = "Name,Age,Salary,Extra1,Extra2\nJohn,30,50000,ExtraValue1,ExtraValue2";
+            var csv = "Name;Age;Salary;Extra1;Extra2\nJohn;30;50000;ExtraValue1;ExtraValue2";
 
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
@@ -1495,7 +1507,7 @@ Bob,40,Chicago;
         public void FromCsv_EmptyLines_AreIgnored()
         {
             // Arrange
-            var csv = "Name,Age\n\nJohn,30\n\n\nJane,25\n";
+            var csv = "Name;Age\n\nJohn;30\n\n\nJane;25\n";
 
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
@@ -1530,7 +1542,7 @@ Bob,40,Chicago;
         public void FromCsv_HeaderWithDifferentCase_MatchesProperties()
         {
             // Arrange
-            var csv = "NAME,age,SALARY\nJohn,30,50000";
+            var csv = "NAME;age;SALARY\nJohn;30;50000";
 
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
@@ -1553,7 +1565,7 @@ Bob,40,Chicago;
         public void FromCsv_ExtraSpacesInHeader_TrimsAndMatches()
         {
             // Arrange
-            var csv = " Name , Age , Salary \nJohn,30,50000";
+            var csv = " Name ; Age ; Salary \nJohn;30;50000";
 
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>

@@ -33,6 +33,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Databases\BadCodeGoodCodeUpdateData.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Databases\sqlte_test.db">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

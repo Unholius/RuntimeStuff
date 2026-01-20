@@ -26,12 +26,11 @@ namespace RuntimeStuff.Helpers
         /// <param name="hasColumnsHeader">
         /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
         /// </param>
-        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { "," }.</param>
+        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { ";" }.</param>
         /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
         /// <param name="valueParser">
         /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
         /// </param>
-        /// <param name="objectProperties">Маппер колонок из csv на свойства объекта в порядке следования колонок в csv.</param>
         /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
         /// <remarks>
         /// <para>Метод выполняет следующие шаги:</para>
@@ -43,11 +42,10 @@ namespace RuntimeStuff.Helpers
         /// </list>
         /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
         /// </remarks>
-        public static T[] FromCsv<T>(string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null, params Expression<Func<T, object>>[] objectProperties)
+        public static T[] FromCsv<T>(string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
             where T : class, new()
         {
-            var properties = objectProperties != null ? objectProperties.Select(x => x.GetPropertyInfo()).ToArray() : Array.Empty<PropertyInfo>();
-            return FromCsv<T>(csv, properties, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
+            return FromCsv<T>(csv, Array.Empty<string>(), hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
         }
 
         /// <summary>
@@ -59,7 +57,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="hasColumnsHeader">
         /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
         /// </param>
-        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { "," }.</param>
+        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { ";" }.</param>
         /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
         /// <param name="valueParser">
         /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
@@ -92,7 +90,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="hasColumnsHeader">
         /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
         /// </param>
-        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { "," }.</param>
+        /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { ";" }.</param>
         /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
         /// <param name="valueParser">
         /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
@@ -118,7 +116,7 @@ namespace RuntimeStuff.Helpers
 
             if (columnSeparators == null)
             {
-                columnSeparators = new string[] { "," };
+                columnSeparators = new string[] { ";" };
             }
 
             if (lineSeparators == null)
@@ -141,13 +139,13 @@ namespace RuntimeStuff.Helpers
 
             if (hasColumnsHeader == null)
             {
-                hasColumnsHeader = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Any(x => typeCache[x] != null);
+                hasColumnsHeader = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Any(x => typeCache[x.Replace(" ", string.Empty)] != null);
             }
 
             MemberCache[] columnNames;
             if (hasColumnsHeader.Value)
             {
-                columnNames = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache[x.Trim()]).ToArray();
+                columnNames = lines[0].SplitBy(StringSplitOptions.None, columnSeparators).Select(x => typeCache[x.Replace(" ", string.Empty)]).ToArray();
             }
             else
             {
@@ -165,6 +163,9 @@ namespace RuntimeStuff.Helpers
                     {
                         continue;
                     }
+
+                    if (string.IsNullOrEmpty($"{values[j]}"))
+                        continue;
 
                     columnNames[j].SetValue(obj, values[j]);
                 }
