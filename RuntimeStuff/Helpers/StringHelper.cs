@@ -59,6 +59,104 @@ namespace RuntimeStuff.Helpers
         };
 
         /// <summary>
+        /// Проверяет, является ли строка потенциально корректным XML-фрагментом.
+        /// </summary>
+        /// <param name="s">
+        /// Проверяемая строка.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если строка по базовым синтаксическим признакам может быть XML;
+        /// <c>false</c> — если строка пуста, состоит из пробельных символов
+        /// или явно не соответствует формату XML.
+        /// </returns>
+        /// <remarks>
+        /// Метод выполняет только быструю предварительную проверку и
+        /// <b>не гарантирует</b> синтаксическую корректность XML.
+        /// Проверяются следующие условия:
+        /// <list type="bullet">
+        /// <item><description>строка не равна <c>null</c> и не пуста;</description></item>
+        /// <item><description>после обрезки пробельных символов строка начинается с символа '&lt;';</description></item>
+        /// <item><description>минимальная допустимая длина XML (&lt;a/&gt;);</description></item>
+        /// <item><description>исключаются HTML-комментарии и объявления DOCTYPE без корневого элемента;</description></item>
+        /// <item><description>наличие закрывающего символа '&gt;'.</description></item>
+        /// </list>
+        /// Для полной проверки корректности XML рекомендуется использовать
+        /// <see cref="System.Xml.XmlReader"/> или <see cref="System.Xml.Linq.XDocument"/>.
+        /// </remarks>
+        public static bool IsXml(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return false;
+
+            s = s.TrimWhiteChars();
+
+            // XML всегда начинается с '<'
+            if (s[0] != '<')
+                return false;
+
+            // Минимальная длина: <a/>
+            if (s.Length < 4)
+                return false;
+
+            // Явно отсекаем HTML-комментарии и DOCTYPE без корневого элемента
+            if (s.StartsWith("<!--", StringComparison.Ordinal) ||
+                s.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            // Проверка наличия закрывающего '>'
+            var close = s.IndexOf('>');
+            if (close < 0)
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Проверяет, является ли строка потенциально корректным JSON-фрагментом.
+        /// </summary>
+        /// <param name="s">
+        /// Проверяемая строка.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если строка по базовым синтаксическим признакам может быть JSON;
+        /// <c>false</c> — если строка пуста, состоит из пробельных символов
+        /// или явно не соответствует формату JSON.
+        /// </returns>
+        /// <remarks>
+        /// Метод выполняет только быструю эвристическую проверку и
+        /// <b>не гарантирует</b> синтаксическую корректность JSON.
+        /// Проверяются следующие условия:
+        /// <list type="bullet">
+        /// <item><description>строка не равна <c>null</c> и не пуста;</description></item>
+        /// <item><description>после обрезки пробельных символов длина строки не менее 2 символов;</description></item>
+        /// <item><description>строка начинается с символа '{' и заканчивается '}', либо начинается с '[' и заканчивается ']'.</description></item>
+        /// </list>
+        /// Метод не проверяет корректность структуры, экранирование строк,
+        /// соответствие стандарту JSON и вложенность элементов.
+        /// Для полноценной проверки рекомендуется использовать сторонние JSON-парсеры.
+        /// </remarks>
+        public static bool IsJson(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return false;
+
+            s = s.TrimWhiteChars();
+
+            // JSON всегда начинается с { или [
+            if (s.Length < 2)
+                return false;
+
+            var first = s[0];
+            var last = s[s.Length - 1];
+
+            if (!((first == '{' && last == '}') ||
+                  (first == '[' && last == ']')))
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
         /// </summary>
         /// <param name="str">
@@ -701,11 +799,11 @@ namespace RuntimeStuff.Helpers
             }
 
             var result = new List<string>();
-            int startIndex = 0;
+            var startIndex = 0;
 
             while (startIndex < s.Length)
             {
-                int nextIndex = -1;
+                var nextIndex = -1;
                 string foundDelimiter = null;
 
                 // ищем ближайший разделитель
@@ -716,7 +814,7 @@ namespace RuntimeStuff.Helpers
                         continue;
                     }
 
-                    int index = s.IndexOf(delimiter, startIndex, StringComparison.Ordinal);
+                    var index = s.IndexOf(delimiter, startIndex, StringComparison.Ordinal);
                     if (index >= 0 && (nextIndex == -1 || index < nextIndex))
                     {
                         nextIndex = index;
@@ -1078,7 +1176,7 @@ namespace RuntimeStuff.Helpers
             {
                 get
                 {
-                    int i = 0;
+                    var i = 0;
                     var t = this;
                     while (t.Previous != null)
                     {
@@ -1122,7 +1220,7 @@ namespace RuntimeStuff.Helpers
             {
                 get
                 {
-                    int level = 0;
+                    var level = 0;
                     var node = Parent;
 
                     while (node != null)
@@ -1187,7 +1285,7 @@ namespace RuntimeStuff.Helpers
             {
                 get
                 {
-                    Token node = this;
+                    var node = this;
                     while (node.Parent != null)
                         node = node.Parent;
 
