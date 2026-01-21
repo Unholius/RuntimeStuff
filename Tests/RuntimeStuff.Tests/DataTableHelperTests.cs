@@ -205,13 +205,13 @@ public class DataTableHelperTests
             };
 
             // Act
-            var row = DataTableHelper.AddRow(table, entity);
+            DataTableHelper.AddRow(table, entity);
 
             // Assert
             Assert.AreEqual(1, table.Rows.Count);
-            Assert.AreEqual(1, row["Id"]);
-            Assert.AreEqual("Test", row["Name"]);
-            Assert.AreEqual(entity.Date, row["Date"]);
+            Assert.AreEqual(1, table.Rows[0]["Id"]);
+            Assert.AreEqual("Test", table.Rows[0]["Name"]);
+            Assert.AreEqual(entity.Date, table.Rows[0]["Date"]);
         }
 
         [TestMethod]
@@ -229,11 +229,11 @@ public class DataTableHelperTests
             };
 
             // Act
-            var row = DataTableHelper.AddRow(table, entity);
+            DataTableHelper.AddRow(table, entity);
 
             // Assert
-            Assert.AreEqual(1, row["Id"]);
-            Assert.AreEqual(DBNull.Value, row["Name"]);
+            Assert.AreEqual(1, table.Rows[0]["Id"]);
+            Assert.AreEqual(DBNull.Value, table.Rows[0]["Name"]);
         }
 
         [TestMethod]
@@ -264,12 +264,12 @@ public class DataTableHelperTests
             };
 
             // Act
-            var row = DataTableHelper.AddRow(table, entity);
+            DataTableHelper.AddRow(table, entity);
 
             // Assert
-            Assert.AreEqual(1, row["Id"]);
-            Assert.AreEqual("Test", row["Name"]);
-            Assert.AreEqual(DBNull.Value, row["ExtraColumn"]);
+            Assert.AreEqual(1, table.Rows[0]["Id"]);
+            Assert.AreEqual("Test", table.Rows[0]["Name"]);
+            Assert.AreEqual(DBNull.Value, table.Rows[0]["ExtraColumn"]);
         }
     }
 

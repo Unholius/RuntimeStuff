@@ -105,12 +105,13 @@ namespace RuntimeStuff.Helpers
                 return source;
             }
 
+            var sourceItemTypeCache = MemberCache.Create(typeof(T));
+            var filteredProps = sourceItemTypeCache.PublicProperties.Where(x => x.Getter != null).ToArray();
+
             // если свойства не заданы — берем все публичные
-            if (propertyNames == null || propertyNames.Length == 0)
+            if (propertyNames?.Any() == true)
             {
-                propertyNames = Obj.GetProperties<T>()
-                    .Select(p => p.Name)
-                    .ToArray();
+                filteredProps = sourceItemTypeCache.Properties.Where(x => propertyNames.Contains(x.Name) && x.Getter != null).ToArray();
             }
 
             text = text.ToLower();
@@ -122,9 +123,9 @@ namespace RuntimeStuff.Helpers
                     return false;
                 }
 
-                foreach (var propName in propertyNames)
+                foreach (var prop in filteredProps)
                 {
-                    var value = Obj.Get(item, propName);
+                    var value = prop.Getter(item);
                     if (value == null)
                     {
                         continue;

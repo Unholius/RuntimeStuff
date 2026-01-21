@@ -95,6 +95,8 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Добавляет строку в таблицу данных из массива значений.
         /// </summary>
+        /// <typeparam name="T">Тип объекта, значения свойств которого используются
+        /// для заполнения строки.</typeparam>
         /// <param name="table">Таблица, в которую добавляется строка.</param>
         /// <param name="rowData">Массив значений строки, соответствующий порядку колонок таблицы.</param>
         /// <returns>Добавленная строка <see cref="DataRow" />.</returns>
@@ -103,7 +105,24 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="System.ArgumentException">Row data length does not match table columns count.</exception>
         /// <remarks>Значения <see langword="null" /> автоматически преобразуются
         /// в <see cref="DBNull.Value" />.</remarks>
-        public static DataRow AddRow(DataTable table, params object[] rowData)
+        public static DataTable AddRow<T>(DataTable table, T rowData)
+            where T : class, new()
+        {
+            return AddRows(table, new[] { rowData });
+        }
+
+        /// <summary>
+        /// Добавляет строку в таблицу данных из массива значений.
+        /// </summary>
+        /// <param name="table">Таблица, в которую добавляется строка.</param>
+        /// <param name="rowData">Массив значений строки, соответствующий порядку колонок таблицы.</param>
+        /// <returns>Добавленная строка <see cref="DataRow" />.</returns>
+        /// <exception cref="System.ArgumentNullException">table.</exception>
+        /// <exception cref="System.ArgumentNullException">rowData.</exception>
+        /// <exception cref="System.ArgumentException">Row data length does not match table columns count.</exception>
+        /// <remarks>Значения <see langword="null" /> автоматически преобразуются
+        /// в <see cref="DBNull.Value" />.</remarks>
+        public static DataRow AddRow(DataTable table, object[] rowData)
         {
             if (table == null)
             {
@@ -138,13 +157,16 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="T">Тип объекта, значения свойств которого используются
         /// для заполнения строки.</typeparam>
         /// <param name="table">Таблица, в которую добавляется строка.</param>
-        /// <param name="item">Объект-источник значений.</param>
+        /// <param name="items">Объект-источник значений.</param>
+        /// <param name="addMissingColumns">Добавлять колонку, если нет с именем свойства в таблице.</param>
+        /// <param name="propertyToColumnMapper">Маппер имени свойства на имя колонки в таблице.</param>
+        /// <param name="valueConverter">Конвертер значения свойства в тип колонки.</param>
         /// <returns>Добавленная строка <see cref="DataRow" />.</returns>
         /// <exception cref="System.ArgumentNullException">table.</exception>
-        /// <exception cref="System.ArgumentNullException">item.</exception>
+        /// <exception cref="System.ArgumentNullException">items.</exception>
         /// <remarks>Значения берутся из свойств объекта по имени,
         /// совпадающему с именем колонки таблицы.</remarks>
-        public static DataRow AddRow<T>(DataTable table, T item)
+        public static DataTable AddRows<T>(DataTable table, IEnumerable<T> items, bool addMissingColumns = true, Dictionary<string, string> propertyToColumnMapper = null, Func<object, Type, object> valueConverter = null)
             where T : class, new()
         {
             if (table == null)
@@ -155,37 +177,64 @@ namespace RuntimeStuff.Helpers
             var row = table.NewRow();
 
             var typeCache = MemberCache<T>.Create();
+
             if (typeCache.IsBasic)
             {
-                row[0] = item;
+                foreach (var item in items)
+                {
+                    row[0] = valueConverter == null ? Convert.ChangeType(item, table.Columns[0].DataType) : valueConverter(item, table.Columns[0].DataType);
+                    table.Rows.Add(row);
+                }
             }
             else
             {
-                var getters = new Func<T, object>[table.Columns.Count];
-                for (var i = 0; i < table.Columns.Count; i++)
+                var props = typeCache.PublicProperties.Where(x => !x.IsCollection).ToArray();
+                var propsMap = new List<(MemberCache Prop, DataColumn Col)>();
+                foreach (var prop in props)
                 {
-                    getters[i] = typeCache[table.Columns[i].ColumnName]?.Getter;
-                }
+                    if (propertyToColumnMapper?.TryGetValue(prop.Name, out var columnName) != true)
+                        columnName = prop.ColumnName;
+                    DataColumn col = null;
+                    if (!table.Columns.Contains(columnName))
+                    {
+                        if (addMissingColumns)
+                        {
+                            col = AddCol(table, columnName, prop.PropertyType);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        col = table.Columns[columnName];
+                    }
 
-                for (var i = 0; i < table.Columns.Count; i++)
-                {
-                    if (getters[i] == null)
+                    if (col == null)
                         continue;
-
-                    getters[i] = typeCache[table.Columns[i].ColumnName]?.Getter;
+                    propsMap.Add((prop, col));
                 }
 
-                foreach (DataColumn col in table.Columns)
+                foreach (var item in items)
                 {
-                    row[col] = typeCache[] //Obj.Get(item, col.ColumnName, col.DataType) ?? DBNull.Value;
+                    foreach (var map in propsMap)
+                    {
+                        var value = valueConverter == null ? Convert.ChangeType(map.Prop.Getter(item), map.Col.DataType) : valueConverter(map.Prop.Getter(item), map.Col.DataType);
+                        if (value == null)
+                        {
+                            continue;
+                        }
+
+                        row[map.Col] = value;
+                    }
+
+                    table.Rows.Add(row);
                 }
             }
 
-            table.Rows.Add(row);
-            return row;
+            return table;
         }
-
-        public static Func<T, object> Getters(DataColumn col)
 
         /// <summary>
         /// Проверяет добавлена ли строка в таблицу.
@@ -322,11 +371,13 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <typeparam name="T">Тип создаваемых объектов.</typeparam>
         /// <param name="table">Исходная таблица данных.</param>
+        /// <param name="columnToPropertyMapper">Сопоставление имен колонок с именами свойств в объекте.</param>
+        /// <param name="valueToPropertyTypeConverter">Конвертер значения в тип свойства. Если не указан используется Convert.ChangeType.</param>
         /// <returns>Список объектов, заполненных значениями из таблицы.</returns>
         /// <exception cref="System.ArgumentNullException">table.</exception>
         /// <remarks>Свойства объекта сопоставляются с колонками таблицы
         /// по имени. Значения <see cref="DBNull.Value" /> игнорируются.</remarks>
-        public static List<T> ToList<T>(DataTable table)
+        public static List<T> ToList<T>(DataTable table, Dictionary<string, string> columnToPropertyMapper = null, Func<object, Type, object> valueToPropertyTypeConverter = null)
             where T : class, new()
         {
             if (table == null)
@@ -335,27 +386,31 @@ namespace RuntimeStuff.Helpers
             }
 
             var result = new List<T>(table.Rows.Count);
-            var memberCache = MemberCache.Create(typeof(T));
+            var typeCache = MemberCache.Create(typeof(T));
+            var propsMap = new List<(DataColumn Col, MemberCache Prop)>();
+            foreach (DataColumn col in table.Columns)
+            {
+                if (columnToPropertyMapper?.TryGetValue(col.ColumnName, out var propName) != true)
+                    propName = col.ColumnName;
+                var propCache = typeCache[propName];
+                if (propCache == null)
+                    continue;
+                propsMap.Add((col, propCache));
+            }
 
             foreach (DataRow row in table.Rows)
             {
                 var item = new T();
 
-                foreach (DataColumn col in table.Columns)
+                foreach (var map in propsMap)
                 {
-                    var prop = memberCache[col.ColumnName];
-                    if (prop == null)
-                    {
-                        continue;
-                    }
-
-                    var value = row[col];
+                    var value = row[map.Col];
                     if (value == DBNull.Value)
                     {
                         continue;
                     }
 
-                    prop.SetValue(item, Obj.ChangeType(value, prop.PropertyType));
+                    map.Prop.SetValue(item, valueToPropertyTypeConverter == null ? Convert.ChangeType(value, map.Prop.PropertyType) : valueToPropertyTypeConverter(value, map.Prop.PropertyType));
                 }
 
                 result.Add(item);

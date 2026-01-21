@@ -687,6 +687,13 @@ namespace RuntimeStuff.Helpers
                 memberNames = GetPropertyNames(source.GetType());
             }
 
+            var sourceTypeCache = MemberCache.Create(source.GetType());
+            if (sourceTypeCache.IsCollection)
+                sourceTypeCache = MemberCache.Create(sourceTypeCache.ElementType);
+            var destTypeCache = MemberCache.Create(destination.GetType());
+            if (destTypeCache.IsCollection)
+                destTypeCache = MemberCache.Create(destTypeCache.ElementType);
+
             if (source is IEnumerable srcList && !(source is string) && destination is IEnumerable dstList && !(destination is string))
             {
                 var srcEnumerator = srcList.GetEnumerator();
@@ -732,8 +739,14 @@ namespace RuntimeStuff.Helpers
             {
                 foreach (var memberName in memberNames)
                 {
-                    var value = Get(source, memberName);
-                    Set(destination, memberName, value);
+                    var get = sourceTypeCache[memberName]?.Getter;
+                    if (get == null)
+                        continue;
+                    var set = destTypeCache[memberName]?.Setter;
+                    if (set == null)
+                        continue;
+                    var value = get(source);
+                    set(destination, value);
                 }
             }
         }
@@ -1365,7 +1378,7 @@ namespace RuntimeStuff.Helpers
 
             if (path.Length == 1)
             {
-                return Get(instance, path[0], convertToType);
+                return GetObsolete(instance, path[0], convertToType);
             }
 
             var getter = GetMemberGetter(instance.GetType(), path[0]);
@@ -1373,7 +1386,7 @@ namespace RuntimeStuff.Helpers
 
             return memberValue == null
                 ? null
-                : Get(memberValue, path.Skip(1).ToArray(), convertToType);
+                : GetObsolete(memberValue, path.Skip(1).ToArray(), convertToType);
         }
 
         /// <summary>
@@ -1383,7 +1396,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="instance">The instance.</param>
         /// <param name="pathToMemberName">Name of the path to member.</param>
         /// <returns>T.</returns>
-        public static T GetObsolete<T>(object instance, IEnumerable<string> pathToMemberName) => (T)Get(instance, pathToMemberName, typeof(T));
+        public static T GetObsolete<T>(object instance, IEnumerable<string> pathToMemberName) => (T)GetObsolete(instance, pathToMemberName, typeof(T));
 
         /// <summary>
         /// Возвращает значение поля или свойства объекта по имени члена,
@@ -1393,7 +1406,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
         /// <param name="memberName">Имя поля или свойства.</param>
         /// <returns>Значение поля или свойства, приведённое к типу <typeparamref name="T" />.</returns>
-        public static T GetObsolete<T>(object instance, string memberName) => (T)Get(instance, memberName, typeof(T));
+        public static T GetObsolete<T>(object instance, string memberName) => (T)GetObsolete(instance, memberName, typeof(T));
 
         /// <summary>
         /// Получает цепочку базовых типов и/или интерфейсов.
@@ -2206,9 +2219,11 @@ namespace RuntimeStuff.Helpers
             where TObject : class
         {
             var values = new List<object>();
-            foreach (var memberName in memberNames)
+            var sourceTypeCache = MemberCache.Create(typeof(TObject));
+            var props = memberNames?.Any() == true ? sourceTypeCache.Properties.Where(x => memberNames.Contains(x.Name)).ToArray() : sourceTypeCache.PublicProperties;
+            foreach (var p in props)
             {
-                values.Add(Get(source, memberName));
+                values.Add(p.Getter?.Invoke(source));
             }
 
             return values.ToArray();
@@ -2485,7 +2500,7 @@ namespace RuntimeStuff.Helpers
                 return false;
             }
 
-            var subMemberInstance = Get(instance, path[0]);
+            var subMemberInstance = GetObsolete(instance, path[0]);
             if (subMemberInstance == null)
             {
                 var subMember = FindMember(instance.GetType(), path[0]);
