@@ -15,7 +15,7 @@ namespace RuntimeStuff.Options
 {
     using System.Collections.Generic;
     using System.Reflection;
-    using RuntimeStuff.Helpers;
+    using RuntimeStuff;
 
     /// <summary>
     /// Базовый класс для работы с набором опций,

@@ -15,7 +15,7 @@ namespace RuntimeStuff.Extensions
 {
     using System;
     using System.Reflection;
-    using RuntimeStuff.Helpers;
+    using RuntimeStuff;
 
     /// <summary>
     /// Class TypeExtensions.

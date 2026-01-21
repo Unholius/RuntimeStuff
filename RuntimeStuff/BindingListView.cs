@@ -23,7 +23,6 @@ namespace RuntimeStuff
     using System.Linq.Expressions;
     using System.Reflection;
     using RuntimeStuff.Extensions;
-    using RuntimeStuff.Helpers;
 
     /// <summary>
     /// Определяет тип индекса, используемый для представления исходных или отфильтрованных и отсортированных данных.
@@ -687,7 +686,7 @@ namespace RuntimeStuff
             {
                 for (var i = 0; i < this.sourceFilteredAndSortedList.Count; i++)
                 {
-                    var value = Obj.GetObsolete(this.sourceFilteredAndSortedList[i], property.Name);
+                    var value = Obj.Get(this.sourceFilteredAndSortedList[i], property.Name);
                     if (Equals(value, key))
                     {
                         return i;
@@ -782,7 +781,7 @@ namespace RuntimeStuff
                     var i = 0;
                     foreach (var item in list)
                     {
-                        result[i++] = Obj.GetObsolete<TValue>(item, propertyName);
+                        result[i++] = Obj.Get<TValue>(item, propertyName);
                     }
 
                     return result;
@@ -792,7 +791,7 @@ namespace RuntimeStuff
 
                 foreach (var item in list)
                 {
-                    set.Add(Obj.GetObsolete<TValue>(item, propertyName));
+                    set.Add(Obj.Get<TValue>(item, propertyName));
                 }
 
                 return set.ToArray();
@@ -836,7 +835,7 @@ namespace RuntimeStuff
             var rowItem = indexType == IndexType.FilteredSorted ? this.sourceFilteredAndSortedList[index] : this.sourceList[index];
             foreach (var property in this.Properties)
             {
-                values[i++] = Obj.GetObsolete(rowItem, property.Name);
+                values[i++] = Obj.Get(rowItem, property.Name);
             }
 
             return values;

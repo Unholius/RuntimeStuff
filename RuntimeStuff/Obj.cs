@@ -12,7 +12,7 @@
 // <summary></summary>
 // ***********************************************************************
 
-namespace RuntimeStuff.Helpers
+namespace RuntimeStuff
 {
     using System;
     using System.Collections;
@@ -1333,7 +1333,7 @@ namespace RuntimeStuff.Helpers
         /// <returns>Значение поля или свойства, приведённое к указанному типу,
         /// либо <see langword="null" />, если объект равен <see langword="null" />
         /// или член не найден.</returns>
-        public static object GetObsolete(object instance, string memberName, Type convertToType = null)
+        public static object Get(object instance, string memberName, Type convertToType = null)
         {
             if (instance == null)
             {
@@ -1367,7 +1367,7 @@ namespace RuntimeStuff.Helpers
         /// <remarks>Метод поддерживает рекурсивный доступ к вложенным членам.
         /// Если на любом этапе пути значение равно <see langword="null" />,
         /// дальнейший обход прекращается и возвращается <see langword="null" />.</remarks>
-        public static object GetObsolete(object instance, IEnumerable<string> pathToMemberName, Type convertToType = null)
+        public static object Get(object instance, IEnumerable<string> pathToMemberName, Type convertToType = null)
         {
             if (instance == null)
             {
@@ -1378,7 +1378,7 @@ namespace RuntimeStuff.Helpers
 
             if (path.Length == 1)
             {
-                return GetObsolete(instance, path[0], convertToType);
+                return Get(instance, path[0], convertToType);
             }
 
             var getter = GetMemberGetter(instance.GetType(), path[0]);
@@ -1386,7 +1386,7 @@ namespace RuntimeStuff.Helpers
 
             return memberValue == null
                 ? null
-                : GetObsolete(memberValue, path.Skip(1).ToArray(), convertToType);
+                : Get(memberValue, path.Skip(1).ToArray(), convertToType);
         }
 
         /// <summary>
@@ -1396,7 +1396,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="instance">The instance.</param>
         /// <param name="pathToMemberName">Name of the path to member.</param>
         /// <returns>T.</returns>
-        public static T GetObsolete<T>(object instance, IEnumerable<string> pathToMemberName) => (T)GetObsolete(instance, pathToMemberName, typeof(T));
+        public static T Get<T>(object instance, IEnumerable<string> pathToMemberName) => (T)Get(instance, pathToMemberName, typeof(T));
 
         /// <summary>
         /// Возвращает значение поля или свойства объекта по имени члена,
@@ -1406,7 +1406,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
         /// <param name="memberName">Имя поля или свойства.</param>
         /// <returns>Значение поля или свойства, приведённое к типу <typeparamref name="T" />.</returns>
-        public static T GetObsolete<T>(object instance, string memberName) => (T)GetObsolete(instance, memberName, typeof(T));
+        public static T Get<T>(object instance, string memberName) => (T)Get(instance, memberName, typeof(T));
 
         /// <summary>
         /// Получает цепочку базовых типов и/или интерфейсов.
@@ -2500,7 +2500,7 @@ namespace RuntimeStuff.Helpers
                 return false;
             }
 
-            var subMemberInstance = GetObsolete(instance, path[0]);
+            var subMemberInstance = Get(instance, path[0]);
             if (subMemberInstance == null)
             {
                 var subMember = FindMember(instance.GetType(), path[0]);

@@ -1,6 +1,4 @@
-﻿using RuntimeStuff.Helpers;
-
-namespace RuntimeStuff.MSTests;
+﻿namespace RuntimeStuff.MSTests;
 
 [TestClass]
 public class ObjCopyTests

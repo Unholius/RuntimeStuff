@@ -14,7 +14,7 @@
 namespace RuntimeStuff.Extensions
 {
     using System;
-    using RuntimeStuff.Helpers;
+    using RuntimeStuff;
     using RuntimeStuff.Properties;
 
     /// <summary>

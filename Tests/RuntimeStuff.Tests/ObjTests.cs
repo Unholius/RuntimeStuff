@@ -5,6 +5,7 @@ using RuntimeStuff.MSTests.Models;
 namespace RuntimeStuff.MSTests
 {
     using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using RuntimeStuff;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -501,7 +502,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Name = "John" };
 
             // Act
-            var value = Obj.GetObsolete(person, "Name");
+            var value = Obj.Get(person, "Name");
 
             // Assert
             Assert.AreEqual("John", value);
@@ -514,7 +515,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Age = 30 };
 
             // Act
-            var value = Obj.GetObsolete<int>(person, "Age");
+            var value = Obj.Get<int>(person, "Age");
 
             // Assert
             Assert.AreEqual(30, value);
@@ -527,7 +528,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Age = 30 };
 
             // Act
-            var value = Obj.GetObsolete(person, "Age", typeof(string));
+            var value = Obj.Get(person, "Age", typeof(string));
 
             // Assert
             Assert.AreEqual("30", value);
@@ -1072,7 +1073,7 @@ namespace RuntimeStuff.MSTests
             var rc = new RecursiveClass();
             Obj.Set(rc, ["Child", "Child", "Child", "Name"], "ChildName");
             Assert.AreEqual("ChildName", rc.Child?.Child?.Child?.Name);
-            Assert.AreEqual("ChildName", Obj.GetObsolete<string>(rc, ["Child", "Child", "Child", "Name"]));
+            Assert.AreEqual("ChildName", Obj.Get<string>(rc, ["Child", "Child", "Child", "Name"]));
         }
 
         [TestMethod]

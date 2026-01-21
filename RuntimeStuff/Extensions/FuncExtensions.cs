@@ -14,7 +14,7 @@
 namespace RuntimeStuff.Extensions
 {
     using System;
-    using RuntimeStuff.Helpers;
+    using RuntimeStuff;
 
     /// <summary>
     /// Предоставляет методы расширения для преобразования делегатов типа Func с произвольным числом
