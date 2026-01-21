@@ -1923,11 +1923,11 @@ namespace RuntimeStuff
         private sealed class CasePriorityDictionary<TValue>
             where TValue : class
         {
-            private readonly Dictionary<string, TValue> exactMap =
-                new Dictionary<string, TValue>(StringComparer.Ordinal);
+            private readonly ConcurrentDictionary<string, TValue> exactMap =
+                new ConcurrentDictionary<string, TValue>(StringComparer.Ordinal);
 
-            private readonly Dictionary<string, TValue> ignoreCaseMap =
-                new Dictionary<string, TValue>(StringComparer.OrdinalIgnoreCase);
+            private readonly ConcurrentDictionary<string, TValue> ignoreCaseMap =
+                new ConcurrentDictionary<string, TValue>(StringComparer.OrdinalIgnoreCase);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public TValue GetOrAdd(string key, Func<string, TValue> valueFactory, Func<TValue, string> keySelector, bool ignoreCase = true)
