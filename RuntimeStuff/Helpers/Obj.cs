@@ -710,7 +710,7 @@ namespace RuntimeStuff.Helpers
                     }
                     else
                     {
-                        dstItem = NewItem(dstList);
+                        dstItem = sourceTypeCache.DefaultConstructor();
                         if (dstList is IList dstIList)
                         {
                             dstListChanged = true;
