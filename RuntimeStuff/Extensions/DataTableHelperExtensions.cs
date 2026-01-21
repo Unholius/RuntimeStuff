@@ -100,6 +100,20 @@ namespace RuntimeStuff.Extensions
                 => DataTableHelper.ToList<T>(table, columnName);
 
         /// <summary>
+        /// Преобразует значения указанной колонки таблицы
+        /// в список заданного типа.
+        /// </summary>
+        /// <param name="table">Исходная таблица данных.</param>
+        /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <returns>Список значений указанной колонки.</returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="table" /> равен <see langword="null" />.</exception>
+        /// <exception cref="ArgumentException">Выбрасывается, если колонка не найдена.</exception>
+        /// <remarks>Строки со значением <see cref="DBNull.Value" />
+        /// пропускаются.</remarks>
+        public static List<string> ToList(this DataTable table, string columnName)
+            => DataTableHelper.ToList<string>(table, columnName, null);
+
+        /// <summary>
         /// Преобразует строки таблицы данных в список объектов
         /// заданного типа.
         /// </summary>
