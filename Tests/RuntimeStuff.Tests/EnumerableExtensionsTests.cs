@@ -203,7 +203,7 @@ public class EnumerableExtensionsTests
     public void IndexOf_WithIndexedMatchFunction_WorksWithIEnumerable()
     {
         // Arrange
-        IEnumerable<int> collection = Enumerable.Range(1, 5);
+        var collection = Enumerable.Range(1, 5);
 
         // Act
         var result = collection.IndexOf((x, i) => x == 3);
@@ -216,7 +216,7 @@ public class EnumerableExtensionsTests
     public void IndexOf_WithIndexedMatchFunction_ReverseSearchWorksWithIEnumerable()
     {
         // Arrange
-        IEnumerable<int> collection = Enumerable.Range(1, 5);
+        var collection = Enumerable.Range(1, 5);
 
         // Act
         var result = collection.IndexOf((x, i) => x == 3, reverseSearch: true);

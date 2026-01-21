@@ -174,7 +174,7 @@ public class ObjCopyTests
 
         // Assert
         Assert.AreEqual(3, destList.Count);
-        for (int i = 0; i < sourceList.Count; i++)
+        for (var i = 0; i < sourceList.Count; i++)
         {
             Assert.AreEqual(sourceList[i].Text, destList[i].Text);
             Assert.AreEqual(sourceList[i].Number, destList[i].Number);
@@ -198,7 +198,7 @@ public class ObjCopyTests
 
         // Assert
         Assert.AreEqual(2, destList.Count);
-        for (int i = 0; i < sourceList.Count; i++)
+        for (var i = 0; i < sourceList.Count; i++)
         {
             Assert.AreEqual(sourceList[i].Text, destList[i].Text);
             Assert.AreEqual(sourceList[i].Number, destList[i].Number);

@@ -61,7 +61,7 @@ namespace RuntimeStuff
         /// <summary>
         /// The query logs.
         /// </summary>
-        private Cache<DateTime, string> queryLogs = new Cache<DateTime, string>(sizeLimit: 100);
+        private List<string> queryLogs = new List<string>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
@@ -209,7 +209,7 @@ namespace RuntimeStuff
             set
             {
                 this.queryLogMaxSize = value;
-                this.queryLogs = new Cache<DateTime, string>(sizeLimit: this.queryLogMaxSize);
+                this.queryLogs = new List<string>();
             }
         }
 
@@ -1495,8 +1495,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
         /// oldest to newest entry. Returns an empty collection if no logs are available.</returns>
-        public IEnumerable<string> GetQueryLogs() =>
-            this.queryLogs.GetEntries().OrderBy(x => x.Created).Select(x => x.Value).ToArray();
+        public IEnumerable<string> GetQueryLogs() => this.queryLogs;
 
         /// <summary>
         /// Получает строку SQL-запроса с заменой всех параметров на их значения.
@@ -3589,7 +3588,7 @@ namespace RuntimeStuff
             }
 
             var now = DateTimeHelper.ExactNow();
-            this.queryLogs.Set(now, string.Format("{0:yyyy-MM-dd HH:mm:ss.ffff}", now) + ": " + message);
+            this.queryLogs.Add($"{now:yyyy-MM-dd HH:mm:ss.ffff}" + ": " + message);
         }
 
         /// <summary>

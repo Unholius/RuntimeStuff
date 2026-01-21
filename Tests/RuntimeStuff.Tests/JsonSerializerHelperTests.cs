@@ -25,7 +25,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_String_ReturnsQuotedString()
         {
             // Arrange
-            string str = "test";
+            var str = "test";
 
             // Act
             var result = JsonSerializerHelper.Serialize(str);
@@ -38,7 +38,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_StringWithSpecialCharacters_EscapesCorrectly()
         {
             // Arrange
-            string str = "test\"quotes\"and\nnewline";
+            var str = "test\"quotes\"and\nnewline";
 
             // Act
             var result = JsonSerializerHelper.Serialize(str);
@@ -51,7 +51,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_BoolTrue_ReturnsTrue()
         {
             // Arrange
-            bool value = true;
+            var value = true;
 
             // Act
             var result = JsonSerializerHelper.Serialize(value);
@@ -64,7 +64,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_BoolFalse_ReturnsFalse()
         {
             // Arrange
-            bool value = false;
+            var value = false;
 
             // Act
             var result = JsonSerializerHelper.Serialize(value);
@@ -77,7 +77,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_Integer_ReturnsStringNumber()
         {
             // Arrange
-            int value = 42;
+            var value = 42;
 
             // Act
             var result = JsonSerializerHelper.Serialize(value);
@@ -90,7 +90,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_Float_ReturnsStringNumber()
         {
             // Arrange
-            float value = 3.14f;
+            var value = 3.14f;
 
             // Act
             var result = JsonSerializerHelper.Serialize(value);
@@ -103,7 +103,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_Decimal_ReturnsStringNumber()
         {
             // Arrange
-            decimal value = 123.456m;
+            var value = 123.456m;
 
             // Act
             var result = JsonSerializerHelper.Serialize(value);
@@ -255,7 +255,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_EmptyArray_ReturnsEmptyJsonArray()
         {
             // Arrange
-            int[] array = Array.Empty<int>();
+            var array = Array.Empty<int>();
 
             // Act
             var result = JsonSerializerHelper.Serialize(array);
@@ -484,7 +484,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_EmptyString_ReturnsQuotedEmptyString()
         {
             // Arrange
-            string str = "";
+            var str = "";
 
             // Act
             var result = JsonSerializerHelper.Serialize(str);
@@ -497,7 +497,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_ZeroNumber_ReturnsZeroString()
         {
             // Arrange
-            int zero = 0;
+            var zero = 0;
 
             // Act
             var result = JsonSerializerHelper.Serialize(zero);

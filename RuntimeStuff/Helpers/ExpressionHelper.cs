@@ -11,9 +11,11 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff.Helpers
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -91,6 +93,56 @@ namespace RuntimeStuff.Helpers
         public static PropertyInfo GetPropertyInfo(Expression expr) => GetMemberInfo(expr) as PropertyInfo;
 
         /// <summary>
+        /// Возвращает информацию о свойстве, заданном лямбда-выражением доступа к нему.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, содержащего свойство.
+        /// </typeparam>
+        /// <param name="propertySelector">
+        /// Лямбда-выражение, описывающее доступ к свойству,
+        /// например: <c>x =&gt; x.Name</c>.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="PropertyInfo"/>, соответствующий выбранному свойству.
+        /// </returns>
+        /// <remarks>
+        /// Метод предназначен для безопасного получения информации о свойстве
+        /// без использования строковых имён.
+        ///
+        /// Поддерживается:
+        /// <list type="bullet">
+        /// <item><description>Прямой доступ к свойству;</description></item>
+        /// <item><description>Доступ к свойствам значимых типов
+        /// с неявным приведением к <see cref="object"/> (boxing).</description></item>
+        /// </list>
+        ///
+        /// Использование выражений гарантирует корректность при рефакторинге
+        /// и снижает вероятность ошибок, связанных с переименованием свойств.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Генерируется, если <paramref name="propertySelector"/> равен <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Генерируется, если выражение не представляет собой доступ к свойству.
+        /// </exception>
+        public static PropertyInfo GetPropertyInfo<T>(Expression<Func<T, object>> propertySelector)
+        {
+            if (propertySelector == null)
+                throw new ArgumentNullException(nameof(propertySelector));
+
+            var body = propertySelector.Body;
+
+            // value-type -> object (boxing)
+            if (body is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
+                body = unary.Operand;
+
+            if (body is MemberExpression member && member.Member is PropertyInfo pi)
+                return pi;
+
+            throw new ArgumentException(@"Expression must be a property access expression.", nameof(propertySelector));
+        }
+
+        /// <summary>
         /// Извлекает <see cref="MemberInfo" /> из различных типов узлов выражения.
         /// Поддерживаемые типы узлов: <see cref="LambdaExpression" />, <see cref="BinaryExpression" />,.
         /// <see cref="MemberExpression" />, <see cref="UnaryExpression" />, <see cref="MethodCallExpression" />,
@@ -115,6 +167,66 @@ namespace RuntimeStuff.Helpers
                 case ConditionalExpression ce: return GetMemberInfo(ce.IfTrue) ?? GetMemberInfo(ce.IfFalse);
                 default: return null;
             }
+        }
+
+        /// <summary>
+        /// Возвращает цепочку свойств, заданную лямбда-выражением доступа к свойству.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, от которого начинается цепочка доступа к свойствам.
+        /// </typeparam>
+        /// <param name="propertySelector">
+        /// Лямбда-выражение, описывающее доступ к свойству или вложенным свойствам,
+        /// например: <c>x =&gt; x.Address.City.Name</c>.
+        /// </param>
+        /// <returns>
+        /// Коллекция <see cref="PropertyInfo"/>, представляющая цепочку свойств
+        /// в порядке от корневого свойства к конечному.
+        /// </returns>
+        /// <remarks>
+        /// Метод извлекает последовательность свойств из выражения
+        /// <see cref="Expression{TDelegate}"/>.
+        ///
+        /// Поддерживаются выражения:
+        /// <list type="bullet">
+        /// <item><description>Прямого доступа к свойству;</description></item>
+        /// <item><description>Вложенного доступа к свойствам;</description></item>
+        /// <item><description>Доступа к значимым типам с неявным приведением к <see cref="object"/>.</description></item>
+        /// </list>
+        ///
+        /// В случае использования поля вместо свойства,
+        /// либо более сложных выражений (вызовы методов, индексаторы и т.п.),
+        /// цепочка будет прервана и сгенерировано исключение.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Генерируется, если <paramref name="propertySelector"/> равен <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Генерируется, если выражение не представляет собой доступ к свойству
+        /// или цепочку доступов к свойствам.
+        /// </exception>
+        public static IReadOnlyList<PropertyInfo> GetPropertyInfoChain<T>(Expression<Func<T, object>> propertySelector)
+        {
+            if (propertySelector == null)
+                throw new ArgumentNullException(nameof(propertySelector));
+
+            var expr = propertySelector.Body;
+
+            if (expr is UnaryExpression u && u.NodeType == ExpressionType.Convert)
+                expr = u.Operand;
+
+            var stack = new Stack<PropertyInfo>();
+
+            while (expr is MemberExpression m)
+            {
+                if (!(m.Member is PropertyInfo pi))
+                    break;
+
+                stack.Push(pi);
+                expr = m.Expression;
+            }
+
+            return stack.Count == 0 ? throw new ArgumentException("Expression must be a property access.") : stack.ToArray();
         }
 
         /// <summary>
@@ -151,7 +263,6 @@ namespace RuntimeStuff.Helpers
             }
 
             var pi = GetMemberInfo(le.Body);
-            pi = Obj.GetProperty(propDeclaringType, pi?.Name, StringComparison.Ordinal) ?? pi;
             return pi;
         }
 

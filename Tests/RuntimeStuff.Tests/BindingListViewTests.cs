@@ -41,7 +41,7 @@ namespace RuntimeStuff.MSTests
             blv.AddRange(arr);
             var count = 100_000;
             blv.Clear();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
                 arr.Add(new TestClassWithBasicProperties(i));
             blv.AddRange(arr);
             blv.Filter = "[Int32] > 1";

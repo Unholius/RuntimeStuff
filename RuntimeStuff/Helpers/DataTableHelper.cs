@@ -27,7 +27,9 @@ namespace RuntimeStuff.Helpers
     /// <remarks>Класс предназначен для упрощения типовых операций с
     /// <see cref="DataTable" /> в сценариях сериализации,
     /// загрузки данных и преобразования табличных структур
-    /// в объектные модели.</remarks>
+    /// в объектные модели.
+    /// <para>COPY-PASTE-READY: не зависит от других классов или библиотек.</para>
+    /// </remarks>
     public static class DataTableHelper
     {
         /// <summary>
@@ -121,7 +123,7 @@ namespace RuntimeStuff.Helpers
 
             var row = table.NewRow();
 
-            for (int i = 0; i < rowData.Length; i++)
+            for (var i = 0; i < rowData.Length; i++)
             {
                 row[i] = rowData[i] ?? DBNull.Value;
             }
@@ -159,15 +161,31 @@ namespace RuntimeStuff.Helpers
             }
             else
             {
+                var getters = new Func<T, object>[table.Columns.Count];
+                for (var i = 0; i < table.Columns.Count; i++)
+                {
+                    getters[i] = typeCache[table.Columns[i].ColumnName]?.Getter;
+                }
+
+                for (var i = 0; i < table.Columns.Count; i++)
+                {
+                    if (getters[i] == null)
+                        continue;
+
+                    getters[i] = typeCache[table.Columns[i].ColumnName]?.Getter;
+                }
+
                 foreach (DataColumn col in table.Columns)
                 {
-                    row[col] = Obj.Get(item, col.ColumnName, col.DataType) ?? DBNull.Value;
+                    row[col] = typeCache[] //Obj.Get(item, col.ColumnName, col.DataType) ?? DBNull.Value;
                 }
             }
 
             table.Rows.Add(row);
             return row;
         }
+
+        public static Func<T, object> Getters(DataColumn col)
 
         /// <summary>
         /// Проверяет добавлена ли строка в таблицу.
@@ -259,13 +277,14 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="T">Тип элементов результирующего списка.</typeparam>
         /// <param name="table">Исходная таблица данных.</param>
         /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <param name="valueConverter">Конвертер значения ячейки из DataColumn в тип {T}. Если не указан, то используется Convert.ChangeType.</param>
         /// <returns>Список значений указанной колонки.</returns>
         /// <exception cref="System.ArgumentNullException">table.</exception>
         /// <exception cref="System.ArgumentException">columnName.</exception>
         /// <exception cref="System.ArgumentException">Column '{columnName}' not found.</exception>
         /// <remarks>Строки со значением <see cref="DBNull.Value" />
         /// пропускаются.</remarks>
-        public static List<T> ToList<T>(DataTable table, string columnName)
+        public static List<T> ToList<T>(DataTable table, string columnName, Func<object, T> valueConverter = null)
         {
             if (table == null)
             {
@@ -274,7 +293,7 @@ namespace RuntimeStuff.Helpers
 
             if (string.IsNullOrWhiteSpace(columnName))
             {
-                throw new ArgumentException(nameof(columnName));
+                throw new ArgumentException(@"Column name cannot be null or whitespace.", nameof(columnName));
             }
 
             if (!table.Columns.Contains(columnName))
@@ -283,15 +302,15 @@ namespace RuntimeStuff.Helpers
             }
 
             var result = new List<T>(table.Rows.Count);
+            var toType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
 
             foreach (DataRow row in table.Rows)
             {
-                if (row[columnName] == DBNull.Value)
-                {
+                var value = row[columnName];
+                if (value == DBNull.Value)
                     continue;
-                }
 
-                result.Add(Obj.ChangeType<T>(row[columnName]));
+                result.Add(valueConverter != null ? valueConverter(value) : (T)Convert.ChangeType(value, toType));
             }
 
             return result;

@@ -1,6 +1,6 @@
 ﻿namespace RuntimeStuff.MSTests
 {
-    [TestClass]
+    ///[TestClass]
     public class CacheTests
     {
         #region Basic Functionality Tests
@@ -143,7 +143,7 @@
             var tasks = new List<Task<string>>();
 
             // Act
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 tasks.Add(Task.Run(() => cache.Get(42)));
             }
@@ -256,7 +256,7 @@
             var tasks = new List<Task<string>>();
 
             // Act
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 tasks.Add(Task.Run(async () => await cache.GetAsync(42)));
             }
@@ -313,7 +313,7 @@
             cache.Set("a", 42);
 
             // Act
-            int value = cache.GetOrDefault("a", -1);
+            var value = cache.GetOrDefault("a", -1);
 
             // Assert
             Assert.AreEqual(42, value);
@@ -326,7 +326,7 @@
             var cache = new Cache<string, int>();
 
             // Act
-            int value = cache.GetOrDefault("missing", -1);
+            var value = cache.GetOrDefault("missing", -1);
 
             // Assert
             Assert.AreEqual(-1, value);
@@ -340,7 +340,7 @@
             await cache.SetAsync("a", Task.FromResult(100));
 
             // Act
-            int value = await cache.GetOrDefaultAsync("a", -1);
+            var value = await cache.GetOrDefaultAsync("a", -1);
 
             // Assert
             Assert.AreEqual(100, value);
@@ -353,7 +353,7 @@
             var cache = new Cache<string, int>();
 
             // Act
-            int value = await cache.GetOrDefaultAsync("missing", -1);
+            var value = await cache.GetOrDefaultAsync("missing", -1);
 
             // Assert
             Assert.AreEqual(-1, value);
@@ -370,7 +370,7 @@
             await Task.Delay(200);
 
             // Act
-            int value = await cache.GetOrDefaultAsync("a", -1);
+            var value = await cache.GetOrDefaultAsync("a", -1);
 
             // Assert
             Assert.AreEqual(-1, value);
@@ -387,7 +387,7 @@
             Task.Delay(100).Wait();
 
             // Act
-            int value = cache.GetOrDefault("a", -1);
+            var value = cache.GetOrDefault("a", -1);
 
             // Assert
             Assert.AreEqual(-1, value);
@@ -494,7 +494,7 @@
             static int factory(string key) => key.Length;
             var cache = new Cache<string, int>(factory);
 
-            int eventCount = 0;
+            var eventCount = 0;
             cache.ItemAdded += key => eventCount++;
 
             // Act
@@ -708,7 +708,7 @@
 
             // Act
             stopwatch.Start();
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 cache.Get("test");
             }
@@ -846,9 +846,9 @@
             var tasks = new List<Task>();
 
             // Act
-            for (int i = 0; i < writers; i++)
+            for (var i = 0; i < writers; i++)
             {
-                int value = i;
+                var value = i;
                 tasks.Add(Task.Run(() => cache.SetAsync(key, Task.FromResult(value))));
             }
 

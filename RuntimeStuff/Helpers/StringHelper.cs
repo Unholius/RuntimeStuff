@@ -789,60 +789,39 @@ namespace RuntimeStuff.Helpers
         public static string[] SplitBy(string s, StringSplitOptions options, params string[] splitBy)
         {
             if (string.IsNullOrEmpty(s))
-            {
                 return Array.Empty<string>();
-            }
 
             if (splitBy == null || splitBy.Length == 0)
+                return new[] { s };
+
+            var result = new List<string>(8);
+            var pos = 0;
+            var len = s.Length;
+
+            while (pos < len)
             {
-                return new string[] { s };
-            }
-
-            var result = new List<string>();
-            var startIndex = 0;
-
-            while (startIndex < s.Length)
-            {
-                var nextIndex = -1;
-                string foundDelimiter = null;
-
-                // ищем ближайший разделитель
-                foreach (var delimiter in splitBy)
+                var nextPos = -1;
+                var sepLen = 0;
+                foreach (var sep in splitBy)
                 {
-                    if (string.IsNullOrEmpty(delimiter))
-                    {
+                    if (string.IsNullOrEmpty(sep))
                         continue;
-                    }
 
-                    var index = s.IndexOf(delimiter, startIndex, StringComparison.Ordinal);
-                    if (index >= 0 && (nextIndex == -1 || index < nextIndex))
-                    {
-                        nextIndex = index;
-                        foundDelimiter = delimiter;
-                    }
+                    var idx = s.IndexOf(sep, pos, StringComparison.Ordinal);
+                    if (idx < 0 || (nextPos >= 0 && idx >= nextPos)) continue;
+                    nextPos = idx;
+                    sepLen = sep.Length;
                 }
 
-                if (nextIndex == -1)
-                {
-                    // разделители не найдены — добавляем остаток строки
-                    var part = s.Substring(startIndex);
-                    if (options != StringSplitOptions.RemoveEmptyEntries || part.Length > 0)
-                    {
-                        result.Add(part);
-                    }
+                var partLen = (nextPos < 0 ? len : nextPos) - pos;
 
+                if (partLen > 0 || options != StringSplitOptions.RemoveEmptyEntries)
+                    result.Add(s.Substring(pos, partLen));
+
+                if (nextPos < 0)
                     break;
-                }
 
-                // добавляем часть строки перед разделителем
-                var segment = s.Substring(startIndex, nextIndex - startIndex);
-                if (options != StringSplitOptions.RemoveEmptyEntries || segment.Length > 0)
-                {
-                    result.Add(segment);
-                }
-
-                // пропускаем разделитель
-                startIndex = nextIndex + (foundDelimiter?.Length ?? 1);
+                pos = nextPos + sepLen;
             }
 
             return result.ToArray();

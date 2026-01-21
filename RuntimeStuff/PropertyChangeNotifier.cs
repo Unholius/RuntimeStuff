@@ -11,9 +11,11 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff
 {
     using System;
+    using System.Collections.Concurrent;
     using System.ComponentModel;
     using System.Runtime.CompilerServices;
     using RuntimeStuff.Extensions;
@@ -41,7 +43,7 @@ namespace RuntimeStuff
         /// <see cref="PropertyChangedEventHandler" />. Используется для автоматической отписки
         /// при замене вложенного объекта.
         /// </summary>
-        private readonly Cache<object, EventHandlers> subscriptions = new Cache<object, EventHandlers>(x => new EventHandlers());
+        private readonly ConcurrentDictionary<object, EventHandlers> subscriptions = new ConcurrentDictionary<object, EventHandlers>();
 
         private readonly object syncRoot = new object();
         private bool disposed;
@@ -92,7 +94,7 @@ namespace RuntimeStuff
                 if (oldValue != null && this.subscriptions.TryGetValue(oldValue, out var oldHandler))
                 {
                     oldValue.PropertyChanged -= oldHandler.Changed;
-                    this.subscriptions.Remove(oldValue);
+                    this.subscriptions.TryRemove(oldValue, out _);
                 }
 
                 if (newValue != null && childPropertyChangeHandler != null)
@@ -106,7 +108,7 @@ namespace RuntimeStuff
                     });
 
                     newValue.PropertyChanged += newPropertyChangedEventHandler;
-                    var s = this.subscriptions.Get(newValue);
+                    var s = this.subscriptions.GetOrAdd(newValue, x => new EventHandlers());
                     s.Changed = newPropertyChangedEventHandler;
 
                     if (typeof(T).IsImplements<INotifyPropertyChanging>())

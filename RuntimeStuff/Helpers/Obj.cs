@@ -297,19 +297,19 @@ namespace RuntimeStuff.Helpers
         /// Gets the field getter cache.
         /// </summary>
         /// <value>The field getter cache.</value>
-        public static Cache<FieldInfo, Func<object, object>> FieldGetterCache { get; } = new Cache<FieldInfo, Func<object, object>>(CreateFieldGetter);
+        public static ConcurrentDictionary<FieldInfo, Func<object, object>> FieldGetterCache { get; } = new ConcurrentDictionary<FieldInfo, Func<object, object>>();
 
         /// <summary>
         /// Gets the field setter cache.
         /// </summary>
         /// <value>The field setter cache.</value>
-        public static Cache<FieldInfo, Action<object, object>> FieldSetterCache { get; } = new Cache<FieldInfo, Action<object, object>>(CreateDirectFieldSetter);
+        public static ConcurrentDictionary<FieldInfo, Action<object, object>> FieldSetterCache { get; } = new ConcurrentDictionary<FieldInfo, Action<object, object>>();
 
         /// <summary>
         /// Gets the member information cache.
         /// </summary>
         /// <value>The member information cache.</value>
-        public static Cache<string, MemberInfo> MemberInfoCache { get; } = new Cache<string, MemberInfo>();
+        public static ConcurrentDictionary<string, MemberInfo> MemberInfoCache { get; } = new ConcurrentDictionary<string, MemberInfo>();
 
         /// <summary>
         /// Gets значения, трактуемые как null (null, DBNull, NaN).
@@ -321,13 +321,13 @@ namespace RuntimeStuff.Helpers
         /// Gets the property getter cache.
         /// </summary>
         /// <value>The property getter cache.</value>
-        public static Cache<PropertyInfo, Func<object, object>> PropertyGetterCache { get; } = new Cache<PropertyInfo, Func<object, object>>(CreatePropertyGetter);
+        public static ConcurrentDictionary<PropertyInfo, Func<object, object>> PropertyGetterCache { get; } = new ConcurrentDictionary<PropertyInfo, Func<object, object>>();
 
         /// <summary>
         /// Gets the property setter cache.
         /// </summary>
         /// <value>The property setter cache.</value>
-        public static Cache<PropertyInfo, Action<object, object>> PropertySetterCache { get; } = new Cache<PropertyInfo, Action<object, object>>(CreatePropertySetter);
+        public static ConcurrentDictionary<PropertyInfo, Action<object, object>> PropertySetterCache { get; } = new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
 
         /// <summary>
         /// Gets the ctor cache.
@@ -1238,7 +1238,7 @@ namespace RuntimeStuff.Helpers
             }
 
             memberInfo = FindMember(type, name, false, null) ?? FindMember(type, name, true, DefaultBindingFlags);
-            MemberInfoCache.Set(type.FullName + "." + name, memberInfo);
+            MemberInfoCache.TryAdd(type.FullName + "." + name, memberInfo);
             return memberInfo;
         }
 
@@ -1320,7 +1320,7 @@ namespace RuntimeStuff.Helpers
         /// <returns>Значение поля или свойства, приведённое к указанному типу,
         /// либо <see langword="null" />, если объект равен <see langword="null" />
         /// или член не найден.</returns>
-        public static object Get(object instance, string memberName, Type convertToType = null)
+        public static object GetObsolete(object instance, string memberName, Type convertToType = null)
         {
             if (instance == null)
             {
@@ -1354,7 +1354,7 @@ namespace RuntimeStuff.Helpers
         /// <remarks>Метод поддерживает рекурсивный доступ к вложенным членам.
         /// Если на любом этапе пути значение равно <see langword="null" />,
         /// дальнейший обход прекращается и возвращается <see langword="null" />.</remarks>
-        public static object Get(object instance, IEnumerable<string> pathToMemberName, Type convertToType = null)
+        public static object GetObsolete(object instance, IEnumerable<string> pathToMemberName, Type convertToType = null)
         {
             if (instance == null)
             {
@@ -1383,7 +1383,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="instance">The instance.</param>
         /// <param name="pathToMemberName">Name of the path to member.</param>
         /// <returns>T.</returns>
-        public static T Get<T>(object instance, IEnumerable<string> pathToMemberName) => (T)Get(instance, pathToMemberName, typeof(T));
+        public static T GetObsolete<T>(object instance, IEnumerable<string> pathToMemberName) => (T)Get(instance, pathToMemberName, typeof(T));
 
         /// <summary>
         /// Возвращает значение поля или свойства объекта по имени члена,
@@ -1393,7 +1393,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
         /// <param name="memberName">Имя поля или свойства.</param>
         /// <returns>Значение поля или свойства, приведённое к типу <typeparamref name="T" />.</returns>
-        public static T Get<T>(object instance, string memberName) => (T)Get(instance, memberName, typeof(T));
+        public static T GetObsolete<T>(object instance, string memberName) => (T)Get(instance, memberName, typeof(T));
 
         /// <summary>
         /// Получает цепочку базовых типов и/или интерфейсов.
@@ -1797,16 +1797,46 @@ namespace RuntimeStuff.Helpers
         public static Func<object, object> GetMemberGetter(Type type, string memberName)
         {
             var member = FindMember(type, memberName);
-            switch (member)
+            return GetMemberGetter(member);
+        }
+
+        /// <summary>
+        /// Возвращает делегат для получения значения поля или свойства.
+        /// </summary>
+        /// <param name="memberInfo">
+        /// Информация о члене типа, для которого требуется получить геттер.
+        /// Поддерживаются поля (<see cref="FieldInfo"/>) и свойства (<see cref="PropertyInfo"/>).
+        /// </param>
+        /// <returns>
+        /// Делегат вида <c>Func&lt;object, object&gt;</c>, принимающий экземпляр объекта
+        /// (или <c>null</c> для статических членов) и возвращающий значение члена.
+        ///
+        /// Если переданный член не является полем или свойством,
+        /// возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Для повышения производительности используются кэши
+        /// делегатов геттеров, что позволяет избежать повторного
+        /// создания выражений или динамического кода.
+        ///
+        /// Метод не выполняет проверку доступности члена
+        /// (например, <c>private</c>) и не гарантирует успешное
+        /// получение значения при ошибках приведения типов
+        /// или отсутствии геттера у свойства.
+        /// </remarks>
+        public static Func<object, object> GetMemberGetter(MemberInfo memberInfo)
+        {
+            switch (memberInfo)
             {
                 case FieldInfo fi:
-                    return FieldGetterCache.Get(fi);
+                    return FieldGetterCache.GetOrAdd(fi, CreateFieldGetter);
 
                 case PropertyInfo pi:
-                    return PropertyGetterCache.Get(pi);
-            }
+                    return PropertyGetterCache.GetOrAdd(pi, CreatePropertyGetter);
 
-            return null;
+                default:
+                    return null;
+            }
         }
 
         /// <summary>
@@ -1834,6 +1864,48 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Возвращает делегат для установки значения поля или свойства.
+        /// </summary>
+        /// <param name="memberInfo">
+        /// Информация о члене типа, для которого требуется получить сеттер.
+        /// Поддерживаются поля (<see cref="FieldInfo"/>) и свойства (<see cref="PropertyInfo"/>).
+        /// </param>
+        /// <returns>
+        /// Делегат вида <c>Action&lt;object, object&gt;</c>, принимающий:
+        /// <list type="bullet">
+        /// <item><description>Экземпляр объекта (или <c>null</c> для статических членов);</description></item>
+        /// <item><description>Значение, которое необходимо установить.</description></item>
+        /// </list>
+        ///
+        /// Если переданный член не является полем или свойством,
+        /// возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Для повышения производительности используются внутренние кэши
+        /// делегатов сеттеров.
+        ///
+        /// Создание делегата обычно выполняется с применением выражений
+        /// (<see cref="System.Linq.Expressions"/>) или динамической генерации кода,
+        /// что значительно быстрее прямого использования Reflection при повторных вызовах.
+        ///
+        /// Метод не выполняет проверку доступности члена (например, <c>private</c>)
+        /// и не гарантирует успешную установку значения при несовпадении типов.
+        /// </remarks>
+        public static Action<object, object> GetMemberSetter(MemberInfo memberInfo)
+        {
+            switch (memberInfo)
+            {
+                case FieldInfo fi:
+                    return FieldSetterCache.GetOrAdd(fi, CreateFieldSetter);
+
+                case PropertyInfo pi:
+                    return PropertySetterCache.GetOrAdd(pi, CreatePropertySetter);
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Возвращает делегат, позволяющий установить значение указанного поля или свойства объекта типа по имени члена.
         /// </summary>
         /// <param name="type">Тип в котором искать свойство или поле.</param>
@@ -1852,15 +1924,15 @@ namespace RuntimeStuff.Helpers
             {
                 case FieldInfo fi:
                     memberType = fi.FieldType;
-                    return FieldSetterCache.Get(fi);
+                    return FieldSetterCache.GetOrAdd(fi, CreateFieldSetter);
 
                 case PropertyInfo pi:
                     memberType = pi.PropertyType;
-                    return PropertySetterCache.Get(pi);
+                    return PropertySetterCache.GetOrAdd(pi, CreatePropertySetter);
             }
 
             memberType = null;
-            return null;
+            return GetMemberSetter(member);
         }
 
         /// <summary>

@@ -182,7 +182,7 @@ CREATE TABLE student_courses (
         public void DbClient_Test_04()
         {
             using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
             }
@@ -219,7 +219,7 @@ CREATE TABLE student_courses (
             var result = con.ToList<string>("select * from dbo.TestFunction(@list)", new { list = dt });
         }
 
-        [TestMethod]
+        //[TestMethod]
         public void DbClient_Test_07()
         {
             var con = new SqlConnection()

@@ -719,7 +719,7 @@ namespace RuntimeStuff.MSTests
             var sw = new Stopwatch();
             mc["ColNullableInt"].Setter(x, 1);
             sw.Restart();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 mc["ColNullableInt"].Setter(x, i);
             }
@@ -728,7 +728,7 @@ namespace RuntimeStuff.MSTests
 
             var setter = mc["ColNullableInt"].Setter;
             sw.Restart();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 x.ColNullableInt = i;
                 setter(x, 123);
@@ -738,7 +738,7 @@ namespace RuntimeStuff.MSTests
 
             var ta = TypeAccessor.Create(typeof(DtoTestClass));
             sw.Restart();
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
                 ta[x, nameof(DtoTestClass.ColNVarCharMax)] = i.ToString();
             }

@@ -235,11 +235,11 @@ namespace RuntimeStuff
 
                         try
                         {
-                            this.Setter = Obj.PropertySetterCache.Get(pi);
+                            this.Setter = Obj.GetMemberSetter(pi);
 
                             if (this.Setter == null && this.PropertyBackingField != null)
                             {
-                                this.Setter = Obj.FieldSetterCache.Get(this.PropertyBackingField);
+                                this.Setter = Obj.GetMemberSetter(this.PropertyBackingField);
                             }
                         }
                         catch (Exception)
@@ -249,7 +249,7 @@ namespace RuntimeStuff
 
                         try
                         {
-                            this.Getter = Obj.PropertyGetterCache.Get(pi);
+                            this.Getter = Obj.GetMemberGetter(pi);
                         }
                         catch (Exception)
                         {
@@ -285,7 +285,7 @@ namespace RuntimeStuff
                     this.FieldType = fi.FieldType;
                     try
                     {
-                        this.Setter = this.typeCache?.Setter ?? Obj.FieldSetterCache.Get(fi);
+                        this.Setter = this.typeCache?.Setter ?? Obj.GetMemberSetter(fi);
                     }
                     catch
                     {
@@ -294,7 +294,7 @@ namespace RuntimeStuff
 
                     try
                     {
-                        this.Getter = this.typeCache?.Getter ?? Obj.FieldGetterCache.Get(fi);
+                        this.Getter = this.typeCache?.Getter ?? Obj.GetMemberGetter(fi);
                     }
                     catch (Exception)
                     {

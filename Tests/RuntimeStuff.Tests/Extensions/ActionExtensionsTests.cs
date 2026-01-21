@@ -8,7 +8,7 @@ namespace RuntimeStuff.MSTests.Extensions
         [TestMethod]
         public void ConvertAction_TypedToObject_1Param()
         {
-            int called = 0;
+            var called = 0;
             Action<int> act = x => called = x;
             var objAct = act.ConvertAction();
             objAct(42);
@@ -18,7 +18,7 @@ namespace RuntimeStuff.MSTests.Extensions
         [TestMethod]
         public void ConvertAction_TypedToObject_2Params()
         {
-            int sum = 0;
+            var sum = 0;
             Action<int, int> act = (a, b) => sum = a + b;
             var objAct = act.ConvertAction();
             objAct(3, 4);
@@ -58,7 +58,7 @@ namespace RuntimeStuff.MSTests.Extensions
         [TestMethod]
         public void ConvertAction_TypedToObject_6Params()
         {
-            int sum = 0;
+            var sum = 0;
             Action<int, int, int, int, int, int> act = (a, b, c, d, e, f) => sum = a + b + c + d + e + f;
             var objAct = act.ConvertAction();
             objAct(1, 2, 3, 4, 5, 6);
@@ -90,7 +90,7 @@ namespace RuntimeStuff.MSTests.Extensions
         [TestMethod]
         public void ConvertAction_ObjectToTyped_1Param()
         {
-            int called = 0;
+            var called = 0;
             Action<object> act = o => called = (int)o;
             var typedAct = act.ConvertAction<int>();
             typedAct(99);
@@ -100,7 +100,7 @@ namespace RuntimeStuff.MSTests.Extensions
         [TestMethod]
         public void ConvertAction_ObjectToTyped_2Params()
         {
-            int sum = 0;
+            var sum = 0;
             Action<object, object> act = (a, b) => sum = (int)a + (int)b;
             var typedAct = act.ConvertAction<int, int>();
             typedAct(10, 20);
@@ -140,7 +140,7 @@ namespace RuntimeStuff.MSTests.Extensions
         [TestMethod]
         public void ConvertAction_ObjectToTyped_6Params()
         {
-            int sum = 0;
+            var sum = 0;
             Action<object, object, object, object, object, object> act =
                 (a, b, c, d, e, f) => sum = (int)a + (int)b + (int)c + (int)d + (int)e + (int)f;
             var typedAct = act.ConvertAction<int, int, int, int, int, int>();

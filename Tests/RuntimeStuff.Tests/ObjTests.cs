@@ -1302,11 +1302,11 @@ Bob,40,Chicago;
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
-                if (DateTime.TryParse(s, out DateTime date))
+                if (DateTime.TryParse(s, out var date))
                     return date;
-                if (int.TryParse(s, out int intValue))
+                if (int.TryParse(s, out var intValue))
                     return intValue;
-                if (double.TryParse(s, out double doubleValue))
+                if (double.TryParse(s, out var doubleValue))
                     return doubleValue;
                 return s;
             });
@@ -1357,9 +1357,9 @@ Bob,40,Chicago;
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, columnSeparators: separators, valueParser: s =>
             {
-                if (int.TryParse(s, out int intValue))
+                if (int.TryParse(s, out var intValue))
                     return intValue;
-                if (double.TryParse(s, out double doubleValue))
+                if (double.TryParse(s, out var doubleValue))
                     return doubleValue;
                 return s;
             });
@@ -1382,7 +1382,7 @@ Bob,40,Chicago;
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, lineSeparators: lineSeparators, valueParser: s =>
             {
-                if (int.TryParse(s, out int intValue))
+                if (int.TryParse(s, out var intValue))
                     return intValue;
                 return s;
             });
@@ -1405,9 +1405,9 @@ Bob,40,Chicago;
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, columnSeparators: separators, valueParser: s =>
             {
-                if (int.TryParse(s, out int intValue))
+                if (int.TryParse(s, out var intValue))
                     return intValue;
-                if (double.TryParse(s, out double doubleValue))
+                if (double.TryParse(s, out var doubleValue))
                     return doubleValue;
                 return s;
             });
@@ -1429,7 +1429,7 @@ Bob,40,Chicago;
             {
                 if (s == "John") return "Mr. John";
                 if (s == "Jane") return "Ms. Jane";
-                if (int.TryParse(s, out int age)) return age + 100; // Add 100 for test
+                if (int.TryParse(s, out var age)) return age + 100; // Add 100 for test
                 return s;
             });
 
@@ -1472,9 +1472,9 @@ Bob,40,Chicago;
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
-                if (int.TryParse(s, out int intValue))
+                if (int.TryParse(s, out var intValue))
                     return intValue;
-                if (double.TryParse(s, out double doubleValue))
+                if (double.TryParse(s, out var doubleValue))
                     return doubleValue;
                 return s;
             });
@@ -1512,7 +1512,7 @@ Bob,40,Chicago;
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
-                if (int.TryParse(s, out int intValue))
+                if (int.TryParse(s, out var intValue))
                     return intValue;
                 return s;
             });
@@ -1547,9 +1547,9 @@ Bob,40,Chicago;
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
-                if (int.TryParse(s, out int intValue))
+                if (int.TryParse(s, out var intValue))
                     return intValue;
-                if (double.TryParse(s, out double doubleValue))
+                if (double.TryParse(s, out var doubleValue))
                     return doubleValue;
                 return s;
             });
@@ -1570,9 +1570,9 @@ Bob,40,Chicago;
             // Act
             var result = CsvHelper.FromCsv<TestModel>(csv, true, valueParser: s =>
             {
-                if (int.TryParse(s, out int intValue))
+                if (int.TryParse(s, out var intValue))
                     return intValue;
-                if (double.TryParse(s, out double doubleValue))
+                if (double.TryParse(s, out var doubleValue))
                     return doubleValue;
                 return s;
             });
@@ -1633,17 +1633,17 @@ Bob,40,Chicago;
                 {
                     if (property.PropertyType == typeof(int) && value is string stringValue)
                     {
-                        if (int.TryParse(stringValue, out int intValue))
+                        if (int.TryParse(stringValue, out var intValue))
                             value = intValue;
                     }
                     else if (property.PropertyType == typeof(double) && value is string doubleString)
                     {
-                        if (double.TryParse(doubleString, out double doubleValue))
+                        if (double.TryParse(doubleString, out var doubleValue))
                             value = doubleValue;
                     }
                     else if (property.PropertyType == typeof(DateTime) && value is string dateString)
                     {
-                        if (DateTime.TryParse(dateString, out DateTime dateValue))
+                        if (DateTime.TryParse(dateString, out var dateValue))
                             value = dateValue;
                     }
                 }

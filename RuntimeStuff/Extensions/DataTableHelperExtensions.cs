@@ -95,7 +95,9 @@ namespace RuntimeStuff.Extensions
         /// <exception cref="ArgumentException">Выбрасывается, если колонка не найдена.</exception>
         /// <remarks>Строки со значением <see cref="DBNull.Value" />
         /// пропускаются.</remarks>
-        public static List<T> ToList<T>(this DataTable table, string columnName) => DataTableHelper.ToList<T>(table, columnName);
+        public static List<T> ToList<T>(this DataTable table, string columnName)
+            where T : struct
+                => DataTableHelper.ToList<T>(table, columnName);
 
         /// <summary>
         /// Преобразует строки таблицы данных в список объектов

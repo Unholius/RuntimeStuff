@@ -11,8 +11,10 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff
 {
+    using System.Collections.Concurrent;
     using System.Data;
 
     /// <summary>
@@ -27,8 +29,8 @@ namespace RuntimeStuff
         /// <summary>
         /// The client cache.
         /// </summary>
-        private static readonly Cache<IDbConnection, DbClient<T>> ClientCache =
-            new Cache<IDbConnection, DbClient<T>>(con => new DbClient<T>((T)con));
+        private static readonly ConcurrentDictionary<IDbConnection, DbClient<T>> ClientCache =
+            new ConcurrentDictionary<IDbConnection, DbClient<T>>();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
@@ -76,8 +78,8 @@ namespace RuntimeStuff
         /// <returns>Экземпляр <see cref="DbClient{T}" />.</returns>
         public static DbClient<T> Create(string connectionString)
         {
-            T con = new T { ConnectionString = connectionString };
-            DbClient<T> dbClient = ClientCache.Get(con);
+            var con = new T { ConnectionString = connectionString };
+            var dbClient = ClientCache.GetOrAdd(con, x => new DbClient<T>((T)x));
             return dbClient;
         }
 
@@ -88,7 +90,7 @@ namespace RuntimeStuff
         /// <returns>Экземпляр <see cref="DbClient{T}" />.</returns>
         public static DbClient<T> Create(T con)
         {
-            DbClient<T> dbClient = ClientCache.Get(con);
+            var dbClient = ClientCache.GetOrAdd(con, x => new DbClient<T>((T)x));
             return dbClient;
         }
     }

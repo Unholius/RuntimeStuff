@@ -11,7 +11,7 @@ namespace RuntimeStuff.MSTests
         public void Test1()
         {
             var lst = new List<TestClassWithBasicProperties>();
-            for (int i = 0; i < 100; i++)
+            for (var i = 0; i < 100; i++)
             {
                 lst.Add(new TestClassWithBasicProperties()
                 {
