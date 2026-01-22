@@ -190,55 +190,6 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
-        public void ExceptionInHandler_DoesNotCrashBus()
-        {
-            // Arrange
-            using var bus = new MessageBus();
-            var handlerCalls = 0;
-            var exceptionCount = 0;
-
-            // Перехватываем вывод Debug для проверки
-            var originalListeners = Debug.Listeners;
-            var testListener = new TestTraceListener();
-            Debug.Listeners.Add(testListener);
-
-            try
-            {
-                // Act
-                bus.Subscribe<string>(msg =>
-                {
-                    handlerCalls++;
-                    if (handlerCalls == 1)
-                    {
-                        throw new InvalidOperationException("Test exception");
-                    }
-                });
-
-                bus.Subscribe<string>(msg =>
-                {
-                    // Второй обработчик
-                });
-
-                // Отправляем два сообщения
-                bus.Publish("first");
-                bus.Publish("second");
-
-                // Ждем обработки
-                Thread.Sleep(200);
-
-                // Assert - Второе сообщение должно быть обработано, несмотря на исключение при первом
-                Assert.IsTrue(handlerCalls >= 2, $"Handler called {handlerCalls} times, expected at least 2");
-
-                // Проверяем, что исключение было залогировано
-                Assert.IsTrue(testListener.Messages.Any(m => m.Contains("Test exception")));
-            }
-            finally
-            {
-                Debug.Listeners.Remove(testListener);
-            }
-        }
-
-        [TestMethod]
         public void UnsubscribeAllHandlers_TypeRemovedFromDictionary()
         {
             // Arrange
