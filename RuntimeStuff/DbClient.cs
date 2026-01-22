@@ -171,6 +171,13 @@ namespace RuntimeStuff
         public bool EnableLogging { get; set; }
 
         /// <summary>
+        /// Retrieves a collection of query log entries in chronological order.
+        /// </summary>
+        /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
+        /// oldest to newest entry. Returns an empty collection if no logs are available.</returns>
+        public IEnumerable<string> QueryLogs => this.queryLogs;
+
+        /// <summary>
         /// Gets a value indicating whether признак того, что экземпляр <see cref="DbClient" /> был освобождён.
         /// </summary>
         /// <value><c>true</c> if this instance is disposed; otherwise, <c>false</c>.</value>
@@ -1489,13 +1496,6 @@ namespace RuntimeStuff
 
             return parameters;
         }
-
-        /// <summary>
-        /// Retrieves a collection of query log entries in chronological order.
-        /// </summary>
-        /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
-        /// oldest to newest entry. Returns an empty collection if no logs are available.</returns>
-        public IEnumerable<string> QueryLogs => this.queryLogs;
 
         /// <summary>
         /// Получает строку SQL-запроса с заменой всех параметров на их значения.
