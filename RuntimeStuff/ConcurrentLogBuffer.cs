@@ -29,99 +29,47 @@ namespace RuntimeStuff
     /// полагаясь на атомарные операции <see cref="Interlocked"/>.
     /// </remarks>
     public sealed class ConcurrentLogBuffer<T> : IEnumerable<T>
+        where T : class
     {
         private readonly T[] buffer;
         private int index;
         private int count;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConcurrentLogBuffer{T}"/> class.
-        /// Инициализирует новый экземпляр <see cref="ConcurrentLogBuffer{T}"/>
-        /// с заданной ёмкостью.
-        /// </summary>
-        /// <param name="capacity">
-        /// Максимальное количество элементов,
-        /// одновременно хранимых в буфере.
-        /// </param>
-        /// <exception cref="ArgumentOutOfRangeException">
-        /// Может быть сгенерировано, если <paramref name="capacity"/> меньше либо равен нулю
-        /// (проверка должна выполняться вызывающим кодом).
-        /// </exception>
         public ConcurrentLogBuffer(int capacity)
         {
+            if (capacity <= 0) throw new ArgumentOutOfRangeException(nameof(capacity));
             buffer = new T[capacity];
         }
 
-        /// <summary>
-        /// Добавляет элемент в буфер.
-        /// </summary>
-        /// <param name="item">
-        /// Добавляемый элемент.
-        /// </param>
-        /// <remarks>
-        /// Добавление выполняется атомарно.
-        ///
-        /// Если буфер заполнен, элемент перезаписывает
-        /// самый старый сохранённый элемент.
-        ///
-        /// Порядок добавления между потоками не гарантируется,
-        /// однако сохраняется корректная последовательность индексов.
-        /// </remarks>
         public void Add(T item)
         {
             int i = Interlocked.Increment(ref index) - 1;
-            buffer[i % buffer.Length] = item;
+            Volatile.Write(ref buffer[i % buffer.Length], item);
 
-            if (count < buffer.Length)
-                Interlocked.Increment(ref count);
+            int c;
+            do
+            {
+                c = count;
+                if (c >= buffer.Length) break;
+            }
+            while (Interlocked.CompareExchange(ref count, c + 1, c) != c);
         }
 
-        /// <summary>
-        /// Возвращает снимок текущего содержимого буфера.
-        /// </summary>
-        /// <returns>
-        /// Коллекция, содержащая элементы буфера
-        /// в порядке их добавления — от самых старых к самым новым.
-        /// </returns>
-        /// <remarks>
-        /// Метод возвращает логический «снимок» данных
-        /// на момент вызова без блокировки потоков.
-        ///
-        /// Возвращаемая коллекция не связана с внутренним буфером
-        /// и не изменяется при последующих вызовах <see cref="Add"/>.
-        ///
-        /// В условиях высокой конкурентности возможно,
-        /// что часть элементов будет добавлена параллельно
-        /// и не попадёт в текущий снимок.
-        /// </remarks>
         public IReadOnlyList<T> Snapshot()
         {
-            var result = new List<T>(count);
-            int start = Math.Max(0, index - count);
+            var snapshot = new List<T>(Volatile.Read(ref count));
+            int c = Volatile.Read(ref count);
+            int startIndex = Math.Max(0, Volatile.Read(ref index) - c);
 
-            for (int i = start; i < index; i++)
-                result.Add(buffer[i % buffer.Length]);
+            for (int i = startIndex; i < startIndex + c; i++)
+            {
+                snapshot.Add(Volatile.Read(ref buffer[i % buffer.Length]));
+            }
 
-            return result;
+            return snapshot;
         }
 
-        /// <summary>
-        /// Возвращает перечислитель для перебора элементов буфера.
-        /// </summary>
-        /// <remarks>
-        /// Перебор выполняется по снимку данных,
-        /// эквивалентному результату вызова <see cref="Snapshot"/>.
-        /// </remarks>
-        /// <returns>Содержимое буфера.</returns>
-        public IEnumerator<T> GetEnumerator()
-        {
-            return Snapshot().GetEnumerator();
-        }
-
-        /// <inheritdoc />
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
+        public IEnumerator<T> GetEnumerator() => Snapshot().GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

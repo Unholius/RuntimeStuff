@@ -18,14 +18,14 @@ namespace RuntimeStuff.MSTests
             const int capacity = 100;
             const int threadCount = 50;
             const int iterations = 1000;
-            var buffer = new ConcurrentLogBuffer<int>(capacity);
+            var buffer = new ConcurrentLogBuffer<string>(capacity);
 
             // Act
             Parallel.For(0, threadCount, thread =>
             {
                 for (int i = 0; i < iterations; i++)
                 {
-                    buffer.Add(i * threadCount + thread);
+                    buffer.Add((i * threadCount + thread).ToString());
                 }
             });
 
@@ -42,7 +42,7 @@ namespace RuntimeStuff.MSTests
             const int capacity = 200;
             const int threadCount = 10;
             const int durationMs = 200;
-            var buffer = new ConcurrentLogBuffer<long>(capacity);
+            var buffer = new ConcurrentLogBuffer<string>(capacity);
             var stopwatch = new Stopwatch();
             var exceptions = new ConcurrentBag<Exception>();
 
@@ -58,7 +58,7 @@ namespace RuntimeStuff.MSTests
                     {
                         try
                         {
-                            buffer.Add(DateTime.UtcNow.Ticks);
+                            buffer.Add(DateTime.UtcNow.Ticks.ToString());
                             await Task.Delay(1);
                         }
                         catch (Exception ex)
@@ -70,7 +70,7 @@ namespace RuntimeStuff.MSTests
             }
 
             // Take snapshots periodically
-            var snapshots = new List<IReadOnlyList<long>>();
+            var snapshots = new List<IReadOnlyList<string>>();
             stopwatch.Start();
 
             while (stopwatch.ElapsedMilliseconds < durationMs)
@@ -117,14 +117,14 @@ namespace RuntimeStuff.MSTests
             // Arrange
             const int capacity = 1000;
             const int iterations = 100000;
-            var buffer = new ConcurrentLogBuffer<int>(capacity);
+            var buffer = new ConcurrentLogBuffer<string>(capacity);
             var stopwatch = new Stopwatch();
 
             // Act
             stopwatch.Start();
             for (int i = 0; i < iterations; i++)
             {
-                buffer.Add(i);
+                buffer.Add(i.ToString());
             }
 
             stopwatch.Stop();
@@ -186,13 +186,13 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             const int capacity = 3;
-            var buffer = new ConcurrentLogBuffer<int>(capacity);
+            var buffer = new ConcurrentLogBuffer<string>(capacity);
 
             // Act - Force index to wrap around by adding many items
             // We'll add enough items to cause multiple wrap-arounds
             for (int i = 0; i < capacity * 10 + 2; i++) // 32 items for buffer of size 3
             {
-                buffer.Add(i);
+                buffer.Add(i.ToString());
             }
 
             var snapshot = buffer.Snapshot();
@@ -204,7 +204,7 @@ namespace RuntimeStuff.MSTests
             var expectedStart = capacity * 10 + 2 - capacity; // 32 - 3 = 29
             for (int i = 0; i < capacity; i++)
             {
-                Assert.AreEqual(expectedStart + i, snapshot[i]);
+                Assert.AreEqual((expectedStart + i).ToString(), snapshot[i]);
             }
         }
 
@@ -215,7 +215,7 @@ namespace RuntimeStuff.MSTests
             const int capacity = 100;
             const int threadCount = 100;
             const int testDurationMs = 500;
-            var buffer = new ConcurrentLogBuffer<int>(capacity);
+            var buffer = new ConcurrentLogBuffer<string>(capacity);
             var cts = new CancellationTokenSource(testDurationMs);
             var exceptions = new ConcurrentBag<Exception>();
             var completedTasks = new ConcurrentBag<int>();
@@ -232,7 +232,7 @@ namespace RuntimeStuff.MSTests
                     {
                         while (!cts.Token.IsCancellationRequested)
                         {
-                            buffer.Add(threadId);
+                            buffer.Add(threadId.ToString());
 
                             // Occasionally take snapshot
                             if (threadId % 10 == 0)
