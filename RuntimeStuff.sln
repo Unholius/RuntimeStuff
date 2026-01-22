@@ -11,6 +11,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{AEE86BE6
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuntimeStuff.DI", "RuntimeStuff.DI\RuntimeStuff.DI.csproj", "{60C5BD38-6FF3-4122-9B79-5C1D0F59F97B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestWinFormsApp", "TestWinFormsApp\TestWinFormsApp.csproj", "{C152979D-6487-4091-922C-3565E6941508}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,12 +31,17 @@ Global
 		{60C5BD38-6FF3-4122-9B79-5C1D0F59F97B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{60C5BD38-6FF3-4122-9B79-5C1D0F59F97B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{60C5BD38-6FF3-4122-9B79-5C1D0F59F97B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C152979D-6487-4091-922C-3565E6941508}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C152979D-6487-4091-922C-3565E6941508}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C152979D-6487-4091-922C-3565E6941508}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C152979D-6487-4091-922C-3565E6941508}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{FD073E6C-839D-4DC5-9F9D-DE81C869356E} = {AEE86BE6-8DAE-4A4D-9043-AC60D724A0E5}
+		{C152979D-6487-4091-922C-3565E6941508} = {AEE86BE6-8DAE-4A4D-9043-AC60D724A0E5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {093588C5-D2DB-48B1-AEF9-C4141182B33A}

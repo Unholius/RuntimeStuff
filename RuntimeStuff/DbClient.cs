@@ -56,12 +56,12 @@ namespace RuntimeStuff
         /// <summary>
         /// The query log maximum size.
         /// </summary>
-        private uint queryLogMaxSize = 100;
+        private int queryLogMaxSize = 100;
 
         /// <summary>
         /// The query logs.
         /// </summary>
-        private List<string> queryLogs = new List<string>();
+        private ConcurrentLogBuffer<string> queryLogs = new ConcurrentLogBuffer<string>(100);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
@@ -203,13 +203,13 @@ namespace RuntimeStuff
         /// Gets or sets the maximum size of the query log.
         /// </summary>
         /// <value>The maximum size of the query log.</value>
-        public uint QueryLogMaxSize
+        public int QueryLogMaxSize
         {
             get => this.queryLogMaxSize;
             set
             {
                 this.queryLogMaxSize = value;
-                this.queryLogs = new List<string>();
+                this.queryLogs = new ConcurrentLogBuffer<string>(this.queryLogMaxSize);
             }
         }
 
@@ -1495,7 +1495,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
         /// oldest to newest entry. Returns an empty collection if no logs are available.</returns>
-        public IEnumerable<string> GetQueryLogs() => this.queryLogs;
+        public IEnumerable<string> QueryLogs => this.queryLogs;
 
         /// <summary>
         /// Получает строку SQL-запроса с заменой всех параметров на их значения.
