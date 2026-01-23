@@ -44,6 +44,7 @@ namespace RuntimeStuff
         /// при замене вложенного объекта.
         /// </summary>
         private readonly ConcurrentDictionary<object, EventHandlers> subscriptions = new ConcurrentDictionary<object, EventHandlers>();
+        private readonly ConcurrentDictionary<string, object> values = new ConcurrentDictionary<string, object>();
 
         private readonly object syncRoot = new object();
         private bool disposed;
@@ -229,6 +230,17 @@ namespace RuntimeStuff
             onChanged?.Invoke(value);
             this.OnPropertyChanged(propertyName);
             return true;
+        }
+
+        public T GetProperty<T>([CallerMemberName] string propertyName = null)
+        {
+            return (T)values.GetOrAdd(propertyName, x => default(T));
+        }
+
+        public void SetProperty<T>(T value, [CallerMemberName] string propertyName = null)
+        {
+            values[propertyName] = value;
+            OnPropertyChanged(propertyName);
         }
 
         /// <summary>
