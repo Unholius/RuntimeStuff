@@ -11,14 +11,14 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+namespace RuntimeStuff.Internal
 {
     using System.Reflection;
 
     /// <summary>
     /// Class PropertyMapping. This class cannot be inherited.
     /// </summary>
-    public sealed class PropertyMapping
+    internal sealed class PropertyMapping
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="PropertyMapping" /> class.

@@ -16,7 +16,7 @@ namespace RuntimeStuff.Builders
     using System;
     using System.Linq.Expressions;
     using System.Reflection;
-    using RuntimeStuff;
+    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Class PropertyMapBuilder. This class cannot be inherited.

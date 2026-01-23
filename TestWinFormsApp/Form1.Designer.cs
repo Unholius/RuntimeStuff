@@ -32,8 +32,9 @@
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
             flowLayoutPanel1 = new FlowLayoutPanel();
-            tabPage2 = new TabPage();
             textBox1 = new TextBox();
+            tabPage2 = new TabPage();
+            propertyGrid1 = new PropertyGrid();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
@@ -42,7 +43,7 @@
             // btnMemberCacheAllMembers
             // 
             btnMemberCacheAllMembers.AutoSize = true;
-            btnMemberCacheAllMembers.Location = new Point(3, 3);
+            btnMemberCacheAllMembers.Location = new Point(304, 3);
             btnMemberCacheAllMembers.Name = "btnMemberCacheAllMembers";
             btnMemberCacheAllMembers.Size = new Size(159, 25);
             btnMemberCacheAllMembers.TabIndex = 0;
@@ -73,6 +74,7 @@
             // 
             // flowLayoutPanel1
             // 
+            flowLayoutPanel1.Controls.Add(propertyGrid1);
             flowLayoutPanel1.Controls.Add(btnMemberCacheAllMembers);
             flowLayoutPanel1.Controls.Add(textBox1);
             flowLayoutPanel1.Dock = DockStyle.Fill;
@@ -80,6 +82,14 @@
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(786, 416);
             flowLayoutPanel1.TabIndex = 0;
+            // 
+            // textBox1
+            // 
+            textBox1.Location = new Point(469, 3);
+            textBox1.Name = "textBox1";
+            textBox1.Size = new Size(100, 23);
+            textBox1.TabIndex = 1;
+            textBox1.TextChanged += textBox1_TextChanged;
             // 
             // tabPage2
             // 
@@ -91,12 +101,12 @@
             tabPage2.Text = "tabPage2";
             tabPage2.UseVisualStyleBackColor = true;
             // 
-            // textBox1
+            // propertyGrid1
             // 
-            textBox1.Location = new Point(168, 3);
-            textBox1.Name = "textBox1";
-            textBox1.Size = new Size(100, 23);
-            textBox1.TabIndex = 1;
+            propertyGrid1.Location = new Point(3, 3);
+            propertyGrid1.Name = "propertyGrid1";
+            propertyGrid1.Size = new Size(295, 391);
+            propertyGrid1.TabIndex = 2;
             // 
             // Form1
             // 
@@ -122,5 +132,6 @@
         private FlowLayoutPanel flowLayoutPanel1;
         private TabPage tabPage2;
         private TextBox textBox1;
+        private PropertyGrid propertyGrid1;
     }
 }

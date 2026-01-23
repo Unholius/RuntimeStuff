@@ -6,7 +6,7 @@
 // Last Modified By : RS
 // Last Modified On : 01-07-2026
 // ***********************************************************************
-// <copyright file="PropertyChangeNotifier.cs" company="Rudnev Sergey">
+// <copyright file="PropertyObserver.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 // <summary></summary>
@@ -19,6 +19,7 @@ namespace RuntimeStuff
     using System.ComponentModel;
     using System.Runtime.CompilerServices;
     using RuntimeStuff.Extensions;
+    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Базовый класс, предоставляющий реализацию интерфейсов <see cref="INotifyPropertyChanged" />, <see cref="INotifyPropertyChanging" /> и
@@ -36,7 +37,7 @@ namespace RuntimeStuff
     /// remove =&gt; _notifier.PropertyChanged -= value;
     /// }
     /// </code></remarks>
-    public class PropertyChangeNotifier : INotifyPropertyChanged, INotifyPropertyChanging, IDisposable
+    public abstract class PropertyObserver : INotifyPropertyChanged, INotifyPropertyChanging, IDisposable
     {
         /// <summary>
         /// Сопоставление вложенных объектов (<see cref="INotifyPropertyChanged" />) с их обработчиками
@@ -44,20 +45,19 @@ namespace RuntimeStuff
         /// при замене вложенного объекта.
         /// </summary>
         private readonly ConcurrentDictionary<object, EventHandlers> subscriptions = new ConcurrentDictionary<object, EventHandlers>();
-        private readonly ConcurrentDictionary<string, object> values = new ConcurrentDictionary<string, object>();
-
         private readonly object syncRoot = new object();
+        private readonly ConcurrentDictionary<string, object> values = new ConcurrentDictionary<string, object>();
         private bool disposed;
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="PropertyChangeNotifier"/> class.
+        /// Finalizes an instance of the <see cref="PropertyObserver"/> class.
         /// Освобождает ресурсы, используемые экземпляром класса PropertyChangeNotifier перед его удалением сборщиком
         /// мусора.
         /// </summary>
         /// <remarks>Этот финализатор вызывается автоматически при удалении объекта сборщиком мусора, если
         /// метод Dispose не был вызван явно. Обычно не требуется вызывать этот метод напрямую в пользовательском
         /// коде.</remarks>
-        ~PropertyChangeNotifier()
+        ~PropertyObserver()
         {
             this.Dispose(false);
         }
@@ -149,6 +149,53 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Возвращает значение свойства по его имени, либо значение по умолчанию,
+        /// если свойство ещё не было инициализировано.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип значения свойства.
+        /// </typeparam>
+        /// <param name="propertyName">
+        /// Имя свойства. Если не указано явно, подставляется имя вызывающего члена
+        /// с использованием атрибута <see cref="CallerMemberNameAttribute"/>.
+        /// </param>
+        /// <returns>
+        /// Текущее значение свойства либо значение по умолчанию для типа <typeparamref name="T"/>,
+        /// если значение отсутствует.
+        /// </returns>
+        /// <remarks>
+        /// Метод предназначен для использования в реализациях шаблона хранения значений свойств
+        /// (например, в базовых классах моделей представления).
+        /// Значения кэшируются во внутреннем хранилище и инициализируются лениво.
+        /// </remarks>
+        public T Get<T>([CallerMemberName] string propertyName = null)
+        {
+            return (T)values.GetOrAdd(propertyName, x => default(T));
+        }
+
+        /// <summary>
+        /// Возвращает значение свойства по его имени, либо значение по умолчанию,
+        /// если свойство ещё не было инициализировано.
+        /// </summary>
+        /// <param name="propertyName">
+        /// Имя свойства. Если не указано явно, подставляется имя вызывающего члена
+        /// с использованием атрибута <see cref="CallerMemberNameAttribute"/>.
+        /// </param>
+        /// <returns>
+        /// Текущее значение свойства либо null,
+        /// если значение отсутствует.
+        /// </returns>
+        /// <remarks>
+        /// Метод предназначен для использования в реализациях шаблона хранения значений свойств
+        /// (например, в базовых классах моделей представления).
+        /// Значения кэшируются во внутреннем хранилище и инициализируются лениво.
+        /// </remarks>
+        public object Get([CallerMemberName] string propertyName = null)
+        {
+            return values.GetOrAdd(propertyName, x => null);
+        }
+
+        /// <summary>
         /// Вызывает событие <see cref="PropertyChanged" /> для указанного свойства.
         /// </summary>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
@@ -178,7 +225,7 @@ namespace RuntimeStuff
             where T : class, INotifyPropertyChanged
         {
             this.BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
-            if (this.SetProperty(ref oldValue, newValue, (Action)null, propertyName))
+            if (this.Set(ref oldValue, newValue, (Action)null, propertyName))
             {
                 thisPropertyChangeHandler?.Invoke(propertyName);
             }
@@ -194,7 +241,7 @@ namespace RuntimeStuff
         /// <param name="onChanged">Действие после изменения свойства.</param>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
-        public bool SetProperty<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
+        public bool Set<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
         {
             if (Equals(field, value))
             {
@@ -218,7 +265,7 @@ namespace RuntimeStuff
         /// <param name="onChanged">Действие после изменения свойства.</param>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
-        public bool SetProperty<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
+        public bool Set<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
         {
             if (Equals(field, value))
             {
@@ -232,12 +279,27 @@ namespace RuntimeStuff
             return true;
         }
 
-        public T GetProperty<T>([CallerMemberName] string propertyName = null)
-        {
-            return (T)values.GetOrAdd(propertyName, x => default(T));
-        }
-
-        public void SetProperty<T>(T value, [CallerMemberName] string propertyName = null)
+        /// <summary>
+        /// Устанавливает значение свойства и уведомляет подписчиков
+        /// об изменении свойства.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип значения свойства.
+        /// </typeparam>
+        /// <param name="value">
+        /// Новое значение свойства.
+        /// </param>
+        /// <param name="propertyName">
+        /// Имя свойства. Если не указано явно, подставляется имя вызывающего члена
+        /// с использованием атрибута <see cref="CallerMemberNameAttribute"/>.
+        /// </param>
+        /// <remarks>
+        /// Метод сохраняет значение во внутреннем хранилище и инициирует вызов
+        /// <c>OnPropertyChanged</c> для указанного свойства.
+        /// Предназначен для использования в реализациях шаблона
+        /// <see cref="INotifyPropertyChanged"/>.
+        /// </remarks>
+        public void Set<T>(T value, [CallerMemberName] string propertyName = null)
         {
             values[propertyName] = value;
             OnPropertyChanged(propertyName);

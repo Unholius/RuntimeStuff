@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using RuntimeStuff;
 using RuntimeStuff.Extensions;
 
@@ -35,20 +34,22 @@ namespace TestWinFormsApp
             sw.Stop();
             var ms2 = sw.ElapsedMilliseconds;
             btnMemberCacheAllMembers.BindEventToAction(nameof(Button.Click), BtnClick);
-            btnMemberCacheAllMembers.BindEventToAction(nameof(Button.EnabledChanged), PChanged);
-            m.BindProperties(x => x.Text, textBox1, x => x.Text, nameof(TextBox.TextChanged));
+            textBox1.BindEventToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged);
+            m.BindProperties(x => x.Text, "PropertyChanged", textBox1, x => x.Text, nameof(TextBox.TextChanged));
+            propertyGrid1.Subscribe(m, nameof(INotifyPropertyChanged.PropertyChanged), (s, e) => s.Refresh());
             m.Text = "123";
-            m.PropertyChanged += M_PropertyChanged;
+            m.BindPropertyChangedToAction(M_PropertyChanged); //m.PropertyChanged += M_PropertyChanged;
+            propertyGrid1.SelectedObject = m;
         }
 
         private void M_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            
+
         }
 
         Model m = new Model();
 
-        private void PChanged(object sender, object e)
+        private void TextBoxEnabledChanged(object sender, object e)
         {
             MessageBox.Show("Changed!");
         }
@@ -56,16 +57,26 @@ namespace TestWinFormsApp
         private void BtnClick(object sender, object e)
         {
             MessageBox.Show("Click");
-            btnMemberCacheAllMembers.Enabled = false;
+            textBox1.Enabled = !textBox1.Enabled;
+        }
+
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            if (m.Text != textBox1.Text)
+            {
+
+            }
         }
     }
 
-    public class Model : PropertyChangeNotifier
+    public class Model : PropertyObserver
     {
         public string Text
         {
-            get => GetProperty<string>();
-            set => SetProperty(value);
+            get => Get<string>();
+            set => Set(value);
         }
+
+        public Model? Child { get; set; }
     }
 }

@@ -17,6 +17,7 @@ namespace RuntimeStuff.Builders
     using System.Linq.Expressions;
     using System.Reflection;
     using RuntimeStuff;
+    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Class EntityMapBuilder. This class cannot be inherited.

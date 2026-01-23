@@ -11,7 +11,7 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+namespace RuntimeStuff.Internal
 {
     using System;
     using System.Collections.Generic;
@@ -20,7 +20,7 @@ namespace RuntimeStuff
     /// <summary>
     /// Class EntityMapping. This class cannot be inherited.
     /// </summary>
-    public sealed class EntityMapping
+    internal sealed class EntityMapping
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EntityMapping" /> class.

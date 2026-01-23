@@ -18,6 +18,7 @@ namespace RuntimeStuff
     using System.Linq;
     using System.Reflection;
     using RuntimeStuff.Builders;
+    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Class EntityMap.

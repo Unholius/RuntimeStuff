@@ -18,7 +18,9 @@ namespace RuntimeStuff.Extensions
     using System.Globalization;
     using System.IO;
     using System.IO.Compression;
+    using System.Linq;
     using System.Linq.Expressions;
+    using System.Text;
     using RuntimeStuff.Helpers;
 
     /// <summary>
@@ -31,6 +33,32 @@ namespace RuntimeStuff.Extensions
     /// строку, а возвращают новую строку с применёнными изменениями.</remarks>
     public static class StringExtensions
     {
+        /// <summary>
+        /// Преобразует строку в строку Base64 с использованием кодировки UTF-8.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="encoding">Кодировка. По умолчанию - UTF8.</param>
+        /// <returns>Строка в формате Base64.</returns>
+        /// <remarks>
+        /// Метод кодирует исходную строку в массив байтов UTF-8 и затем преобразует
+        /// его в строку Base64. Используется для безопасной передачи бинарных данных
+        /// в текстовом виде.
+        /// </remarks>
+        public static string ToBase64(this string s, Encoding encoding = null) => Convert.ToBase64String((encoding ?? Encoding.UTF8).GetBytes(s));
+
+        /// <summary>
+        /// Преобразует строку Base64 обратно в обычную строку с использованием кодировки UTF-8.
+        /// </summary>
+        /// <param name="s">Строка в формате Base64.</param>
+        /// <param name="encoding">Кодировка. По умолчанию - UTF8.</param>
+        /// <returns>Декодированная исходная строка.</returns>
+        /// <remarks>
+        /// Метод декодирует строку Base64 в массив байтов и затем преобразует его
+        /// в строку UTF-8. Если строка Base64 некорректна, будет выброшено
+        /// <see cref="FormatException"/>.
+        /// </remarks>
+        public static string FromBase64(this string s, Encoding encoding = null) => (encoding ?? Encoding.UTF8).GetString(Convert.FromBase64String(s));
+
         /// <summary>
         /// Проверяет, является ли строка потенциально корректным XML-фрагментом.
         /// </summary>
@@ -112,7 +140,7 @@ namespace RuntimeStuff.Extensions
         public static T[] FromCsv<T>(this string csv, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null, params Expression<Func<T, object>>[] objectProperties)
     where T : class, new()
         {
-            return CsvHelper.FromCsv<T>(csv, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
+            return CsvHelper.FromCsv<T>(csv, objectProperties.Select(x => x.GetPropertyInfo()).ToArray(), hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
         }
 
         /// <summary>

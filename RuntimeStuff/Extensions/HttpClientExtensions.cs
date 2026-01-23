@@ -101,13 +101,85 @@ namespace RuntimeStuff.Extensions
             bool ensureSuccessStatusCode = false,
             CancellationToken token = default)
         {
-            var typeFormats = new Dictionary<Type, string>();
+            Dictionary<Type, string> typeFormats = null;
             if (dateFormat != null)
             {
-                typeFormats[typeof(DateTime)] = dateFormat;
+                typeFormats = new Dictionary<Type, string>
+                {
+                    [typeof(DateTime)] = dateFormat,
+                };
             }
 
             return SendAsync(client, method, requestUri, content, query, typeFormats, enumAsStrings, ensureSuccessStatusCode, token);
+        }
+
+        /// <summary>
+        /// Выполняет асинхронный HTTP-запрос с указанным методом, URI и дополнительными параметрами.
+        /// </summary>
+        /// <param name="client">Экземпляр <see cref="HttpClient"/>, используемый для запроса.</param>
+        /// <param name="methodName">HTTP-метод запроса (например, "GET", "POST", "PUT", "DELETE").</param>
+        /// <param name="requestUri">URI ресурса, к которому выполняется запрос.</param>
+        /// <param name="query">Словарь параметров запроса, добавляемых к URI. Может быть <c>null</c>.</param>
+        /// <param name="content">Объект содержимого запроса. Может быть <c>null</c>.</param>
+        /// <param name="dateFormat">Форматирование дат при сериализации содержимого. Если <c>null</c>, используется стандартное.</param>
+        /// <param name="enumAsStrings">Если <c>true</c>, перечисления будут сериализованы как строки; иначе — как числа.</param>
+        /// <param name="ensureSuccessStatusCode">Если <c>true</c>, выбрасывает исключение при коде ответа, отличном от успешного.</param>
+        /// <param name="token">Токен отмены для асинхронной операции.</param>
+        /// <returns>Задача <see cref="Task{HttpResponse}"/>, представляющая результат HTTP-запроса.</returns>
+        /// <remarks>
+        /// Метод создаёт экземпляр <see cref="HttpMethod"/> на основе <paramref name="methodName"/>
+        /// и вызывает перегруженную версию <c>SendAsync</c>, которая принимает <see cref="HttpMethod"/>.
+        /// Позволяет удобно отправлять запросы с различными HTTP-методами, сериализуя содержимое
+        /// и параметры запроса при необходимости.
+        /// </remarks>
+        public static Task<HttpResponse> SendAsync(
+            this HttpClient client,
+            string methodName,
+            string requestUri,
+            Dictionary<string, object> query = null,
+            object content = null,
+            string dateFormat = null,
+            bool enumAsStrings = false,
+            bool ensureSuccessStatusCode = false,
+            CancellationToken token = default)
+        {
+            var httpMethod = new HttpMethod(methodName);
+            Dictionary<Type, string> typeFormats = null;
+            if (dateFormat != null)
+            {
+                typeFormats = new Dictionary<Type, string>
+                {
+                    [typeof(DateTime)] = dateFormat,
+                };
+            }
+
+            return SendAsync(client, httpMethod, requestUri, content, query, typeFormats, enumAsStrings, ensureSuccessStatusCode, token);
+        }
+
+        /// <summary>
+        /// Выполняет асинхронный HTTP-запрос с указанным методом, URI и дополнительными параметрами.
+        /// </summary>
+        /// <param name="client">Экземпляр <see cref="HttpClient"/>, используемый для запроса.</param>
+        /// <param name="methodName">HTTP-метод запроса (например, "GET", "POST", "PUT", "DELETE").</param>
+        /// <param name="content">Объект содержимого запроса. Может быть <c>null</c>.</param>
+        /// <param name="ensureSuccessStatusCode">Если <c>true</c>, выбрасывает исключение при коде ответа, отличном от успешного.</param>
+        /// <param name="token">Токен отмены для асинхронной операции.</param>
+        /// <returns>Задача <see cref="Task{HttpResponse}"/>, представляющая результат HTTP-запроса.</returns>
+        /// <remarks>
+        /// Метод создаёт экземпляр <see cref="HttpMethod"/> на основе <paramref name="methodName"/>
+        /// и вызывает перегруженную версию <c>SendAsync</c>, которая принимает <see cref="HttpMethod"/>.
+        /// Позволяет удобно отправлять запросы с различными HTTP-методами, сериализуя содержимое
+        /// и параметры запроса при необходимости.
+        /// </remarks>
+        public static Task<HttpResponse> SendAsync(
+            this HttpClient client,
+            string methodName,
+            string content,
+            bool ensureSuccessStatusCode,
+            CancellationToken token = default)
+        {
+            var httpMethod = new HttpMethod(methodName);
+            return SendAsync(client, httpMethod, null, content, null, null, false, ensureSuccessStatusCode, token);
         }
 
         /// <summary>
@@ -208,6 +280,31 @@ namespace RuntimeStuff.Extensions
             }
 
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            return client;
+        }
+
+        /// <summary>
+        /// Добавляет заголовок Basic Authentication к <see cref="HttpClient"/>.
+        /// </summary>
+        /// <param name="client">Экземпляр <see cref="HttpClient"/>, к которому добавляется авторизация.</param>
+        /// <param name="userName">Имя пользователя для Basic Authentication.</param>
+        /// <param name="password">Пароль пользователя для Basic Authentication.</param>
+        /// <returns>Тот же экземпляр <see cref="HttpClient"/> с установленным заголовком авторизации.</returns>
+        /// <remarks>
+        /// Метод проверяет, есть ли уже заголовок "Authorization", и удаляет его при необходимости.
+        /// Затем добавляется новый заголовок Basic Authentication, где имя пользователя и пароль
+        /// кодируются в Base64. Используется для простого HTTP-аутентификационного механизма.
+        /// Значение заголовка в формате "Basic userName:password" где userName:password кодируются в base64 строку.
+        /// </remarks>
+        public static HttpClient WithBasicAuth(this HttpClient client, string userName, string password)
+        {
+            if (client.DefaultRequestHeaders.Contains("Authorization"))
+            {
+                client.DefaultRequestHeaders.Remove("Authorization");
+            }
+
+            var authValue = $"Basic {(userName + ":" + password).ToBase64()}";
+            client.DefaultRequestHeaders.Add("Authorization", authValue);
             return client;
         }
 

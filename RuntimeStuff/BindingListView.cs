@@ -55,7 +55,7 @@ namespace RuntimeStuff
     /// рекомендуется использовать с типами, обладающими публичными свойствами, по которым возможна сортировка и
     /// фильтрация.</remarks>
     [DebuggerDisplay("Count = {Count} TotalCount = {TotalCount}")]
-    public class BindingListView<T> : PropertyChangeNotifier, IBindingListView, INotifyCollectionChanged, IEnumerable<T>
+    public class BindingListView<T> : PropertyObserver, IBindingListView, INotifyCollectionChanged, IEnumerable<T>
         where T : class
     {
         private readonly object syncRoot = new object();
@@ -174,7 +174,7 @@ namespace RuntimeStuff
         public bool AllowEdit
         {
             get => this.allowEdit;
-            set => this.SetProperty(ref this.allowEdit, value);
+            set => this.Set(ref this.allowEdit, value);
         }
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace RuntimeStuff
         public bool AllowNew
         {
             get => this.allowNew;
-            set => this.SetProperty(ref this.allowNew, value);
+            set => this.Set(ref this.allowNew, value);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace RuntimeStuff
         public bool AllowRemove
         {
             get => this.allowRemove;
-            set => this.SetProperty(ref this.allowRemove, value);
+            set => this.Set(ref this.allowRemove, value);
         }
 
         /// <summary>
@@ -224,7 +224,7 @@ namespace RuntimeStuff
             get => this.filter;
             set
             {
-                if (!this.SetProperty(ref this.filter, value))
+                if (!this.Set(ref this.filter, value))
                 {
                     return;
                 }
@@ -259,7 +259,7 @@ namespace RuntimeStuff
         public bool IsSorted
         {
             get => this.isSorted;
-            set => this.SetProperty(ref this.isSorted, value);
+            set => this.Set(ref this.isSorted, value);
         }
 
         /// <summary>
@@ -291,7 +291,7 @@ namespace RuntimeStuff
         public string SortBy
         {
             get => this.sortBy;
-            set => this.SetProperty(ref this.sortBy, value, this.OnSortByChanged);
+            set => this.Set(ref this.sortBy, value, this.OnSortByChanged);
         }
 
         /// <summary>
@@ -349,7 +349,7 @@ namespace RuntimeStuff
         public bool SuspendListChangedEvents
         {
             get => this.suspendListChangedEvents;
-            set => this.SetProperty(ref this.suspendListChangedEvents, value, this.RaiseResetEvents);
+            set => this.Set(ref this.suspendListChangedEvents, value, this.RaiseResetEvents);
         }
 
         /// <summary>
