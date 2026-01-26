@@ -18,9 +18,9 @@ namespace RuntimeStuff.Helpers
     /// <remarks>
     /// Класс предоставляет методы для:
     /// <list type="bullet">
-    /// <item><description>привязки обработчиков к событиям во время выполнения;</description></item>
-    /// <item><description>адаптации событий с различными сигнатурами к унифицированным делегатам;</description></item>
-    /// <item><description>безопасного управления подписками через <see cref="IDisposable"/>.</description></item>
+    /// <item><description>Привязки обработчиков к событиям во время выполнения;</description></item>
+    /// <item><description>Адаптации событий с различными сигнатурами к унифицированным делегатам;</description></item>
+    /// <item><description>Безопасного управления подписками через <see cref="IDisposable"/>.</description></item>
     /// </list>
     ///
     /// Предназначен для инфраструктурного кода, динамического связывания,
@@ -45,7 +45,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="eventInfo">
         /// Метаданные события, к которому необходимо привязать обработчик.
         /// </param>
-        /// <param name="actionSenderAndArgs">
+        /// <param name="action">
         /// Делегат, который будет вызван при возникновении события.
         ///
         /// Первый параметр — объект-источник события (<c>sender</c>),
@@ -58,9 +58,9 @@ namespace RuntimeStuff.Helpers
         /// <remarks>
         /// Метод:
         /// <list type="bullet">
-        /// <item><description>создаёт делегат обработчика, совместимый с типом события;</description></item>
-        /// <item><description>подписывается на событие через <see cref="EventInfo.AddEventHandler"/>;</description></item>
-        /// <item><description>возвращает объект-обёртку для безопасного отписывания.</description></item>
+        /// <item><description>Создаёт делегат обработчика, совместимый с типом события;</description></item>
+        /// <item><description>Подписывается на событие через <see cref="EventInfo.AddEventHandler"/>;</description></item>
+        /// <item><description>Возвращает объект-обёртку для безопасного отписывания.</description></item>
         /// </list>
         ///
         /// Это позволяет использовать единый <see cref="Action{Object, Object}"/>
@@ -68,71 +68,23 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         /// <exception cref="ArgumentNullException">
         /// Генерируется, если <paramref name="obj"/>,
-        /// <paramref name="eventInfo"/> или <paramref name="actionSenderAndArgs"/> равны <c>null</c>.
+        /// <paramref name="eventInfo"/> или <paramref name="action"/> равны <c>null</c>.
         /// </exception>
         public static IDisposable BindEventToAction<T, TArgs>(
             T obj,
             EventInfo eventInfo,
-            Action<T, TArgs> actionSenderAndArgs)
+            Action<T, TArgs> action)
         {
             if (eventInfo == null)
                 throw new ArgumentNullException(nameof(eventInfo));
-            if (actionSenderAndArgs == null)
-                throw new ArgumentNullException(nameof(actionSenderAndArgs));
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
             var eventHandlerType = eventInfo.EventHandlerType;
-            var handler = CreateEventHandlerDelegate(eventHandlerType, actionSenderAndArgs);
+            var handler = CreateEventHandlerDelegate(eventHandlerType, action);
 
             eventInfo.AddEventHandler(obj, handler);
             return new EventBinding(obj, eventInfo, handler);
-        }
-
-        /// <summary>
-        /// Создаёт делегат обработчика события указанного типа на основе переданного действия.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта-источника события (<c>sender</c>).
-        /// </typeparam>
-        /// <typeparam name="TArgs">
-        /// Тип аргументов события (<c>EventArgs</c> или производный тип).
-        /// </typeparam>
-        /// <param name="eventHandlerType">
-        /// Тип делегата обработчика события (например, <see cref="EventHandler"/> или пользовательский делегат).
-        /// </param>
-        /// <param name="action">
-        /// Действие, которое будет вызвано при срабатывании события.
-        /// </param>
-        /// <returns>
-        /// Скомпилированный делегат, совместимый с указанным типом обработчика события.
-        /// </returns>
-        /// <exception cref="InvalidOperationException">
-        /// Выбрасывается, если сигнатура делегата обработчика события содержит менее двух параметров
-        /// (ожидаются как минимум <c>sender</c> и аргументы события).
-        /// </exception>
-        /// <remarks>
-        /// Метод динамически создаёт выражение вызова для переданного <paramref name="action"/>,
-        /// приводит параметры события к типам <typeparamref name="T"/> и <typeparamref name="TArgs"/>,
-        /// а затем компилирует его в делегат заданного типа.
-        /// </remarks>
-        public static Delegate CreateEventHandlerDelegate<T, TArgs>(Type eventHandlerType, Action<T, TArgs> action)
-        {
-            var invokeMethod = eventHandlerType.GetMethod("Invoke");
-            var parameters = invokeMethod.GetParameters();
-
-            if (parameters.Length < 2)
-                throw new InvalidOperationException("Event must have at least 2 parameters (sender and args).");
-
-            var senderParam = Expression.Parameter(parameters[0].ParameterType, "sender");
-            var argsParam = Expression.Parameter(parameters[1].ParameterType, "args");
-
-            var actionCall = Expression.Call(
-                Expression.Constant(action),
-                action.GetType().GetMethod("Invoke"),
-                Expression.Convert(senderParam, typeof(T)),
-                Expression.Convert(argsParam, typeof(TArgs)));
-
-            var lambda = Expression.Lambda(eventHandlerType, actionCall, senderParam, argsParam);
-            return lambda.Compile();
         }
 
         /// <summary>
@@ -207,6 +159,104 @@ namespace RuntimeStuff.Helpers
             return new CompositeDisposable(disposables);
         }
 
+        /// <summary>
+        /// Создаёт делегат обработчика события указанного типа на основе переданного действия.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта-источника события (<c>sender</c>).
+        /// </typeparam>
+        /// <typeparam name="TArgs">
+        /// Тип аргументов события (<c>EventArgs</c> или производный тип).
+        /// </typeparam>
+        /// <param name="eventHandlerType">
+        /// Тип делегата обработчика события (например, <see cref="EventHandler"/> или пользовательский делегат).
+        /// </param>
+        /// <param name="action">
+        /// Действие, которое будет вызвано при срабатывании события.
+        /// </param>
+        /// <returns>
+        /// Скомпилированный делегат, совместимый с указанным типом обработчика события.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если сигнатура делегата обработчика события содержит менее двух параметров
+        /// (ожидаются как минимум <c>sender</c> и аргументы события).
+        /// </exception>
+        /// <remarks>
+        /// Метод динамически создаёт выражение вызова для переданного <paramref name="action"/>,
+        /// приводит параметры события к типам <typeparamref name="T"/> и <typeparamref name="TArgs"/>,
+        /// а затем компилирует его в делегат заданного типа.
+        /// </remarks>
+        public static Delegate CreateEventHandlerDelegate<T, TArgs>(Type eventHandlerType, Action<T, TArgs> action)
+        {
+            var invokeMethod = eventHandlerType.GetMethod("Invoke");
+            if (invokeMethod == null) return null;
+            var parameters = invokeMethod.GetParameters();
+
+            if (parameters.Length < 2)
+                throw new InvalidOperationException("Event must have at least 2 parameters (sender and args).");
+
+            var senderParam = Expression.Parameter(parameters[0].ParameterType, "sender");
+            var argsParam = Expression.Parameter(parameters[1].ParameterType, "args");
+
+            var actionCall = Expression.Call(
+                Expression.Constant(action),
+                action.GetType().GetMethod("Invoke") ?? throw new InvalidOperationException(),
+                Expression.Convert(senderParam, typeof(T)),
+                Expression.Convert(argsParam, typeof(TArgs)));
+
+            var lambda = Expression.Lambda(eventHandlerType, actionCall, senderParam, argsParam);
+            return lambda.Compile();
+        }
+
+        /// <summary>
+        /// Отписывает ранее привязанный обработчик от указанного события объекта.
+        /// </summary>
+        /// <param name="obj">
+        /// Объект-источник события, от которого необходимо отписать обработчик.
+        /// </param>
+        /// <param name="eventInfo">
+        /// Метаданные события, от которого выполняется отписка.
+        /// </param>
+        /// <param name="actionHandler">
+        /// Делегат обработчика, который был ранее подписан на событие.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="eventInfo"/> или <paramref name="actionHandler"/> равны <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод выполняет прямой вызов <see cref="EventInfo.RemoveEventHandler(object, Delegate)"/>
+        /// и предполагает, что переданный делегат полностью соответствует ранее
+        /// зарегистрированному обработчику события.
+        /// </remarks>
+        public static void UnBindActionFromEvent(
+            object obj,
+            EventInfo eventInfo,
+            Delegate actionHandler)
+        {
+            if (eventInfo == null)
+                throw new ArgumentNullException(nameof(eventInfo));
+            if (actionHandler == null)
+                throw new ArgumentNullException(nameof(actionHandler));
+
+            eventInfo.RemoveEventHandler(obj, actionHandler);
+        }
+
+        private sealed class CompositeDisposable : IDisposable
+        {
+            private readonly IEnumerable<IDisposable> disposables;
+
+            public CompositeDisposable(IEnumerable<IDisposable> disposables)
+            {
+                this.disposables = disposables;
+            }
+
+            public void Dispose()
+            {
+                foreach (var d in disposables)
+                    d.Dispose();
+            }
+        }
+
         private sealed class EventBinding : IDisposable
         {
             private readonly EventInfo eventInfo;
@@ -228,22 +278,6 @@ namespace RuntimeStuff.Helpers
 
                 eventInfo.RemoveEventHandler(target, handler);
                 disposed = true;
-            }
-        }
-
-        private sealed class CompositeDisposable : IDisposable
-        {
-            private readonly IEnumerable<IDisposable> disposables;
-
-            public CompositeDisposable(IEnumerable<IDisposable> disposables)
-            {
-                this.disposables = disposables;
-            }
-
-            public void Dispose()
-            {
-                foreach (var d in disposables)
-                    d.Dispose();
             }
         }
 

@@ -37,7 +37,7 @@ namespace TestWinFormsApp
             btnMemberCacheAllMembers.BindEventToAction(nameof(Button.Click), BtnClick);
             textBox1.BindEventToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged);
             m.BindProperties(x => x.Text, "PropertyChanged", textBox1, x => x.Text, nameof(TextBox.TextChanged));
-            propertyGrid1.Subscribe(m, nameof(INotifyPropertyChanged.PropertyChanged), (s, e) => s.Refresh());
+            propertyGrid1.Subscribe(m, propertyGrid1.Refresh);
             m.Text = "123";
             m.BindPropertyChangedToAction(M_PropertyChanged); //m.PropertyChanged += M_PropertyChanged;
             propertyGrid1.SelectedObject = m;
@@ -51,7 +51,7 @@ namespace TestWinFormsApp
 
         }
 
-        private void BindCollectionChangedToAction(object sender, CollectionChangeEventArgs args)
+        private void BindCollectionChangedToAction(object sender, object args)
         {
 
         }
