@@ -20,8 +20,7 @@ namespace RuntimeStuff
     /// <typeparam name="T">Тип элементов коллекции.</typeparam>
     public class ObservableCollectionEx<T> : ObservableCollection<T>
     {
-        private readonly Dictionary<INotifyPropertyChanged, PropertyChangedEventHandler> subscriptions
-            = new Dictionary<INotifyPropertyChanged, PropertyChangedEventHandler>();
+        private readonly WeakEventManager weakEventManager = new WeakEventManager();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableCollectionEx{T}"/> class.
@@ -125,6 +124,7 @@ namespace RuntimeStuff
             foreach (var item in this)
                 Unsubscribe(item);
 
+            weakEventManager.ClearWeakEventListeners();
             base.ClearItems();
         }
 
@@ -226,13 +226,21 @@ namespace RuntimeStuff
         /// </summary>
         private void Subscribe(T item)
         {
-            if (item is INotifyPropertyChanged inpc && !subscriptions.ContainsKey(inpc))
-            {
-                PropertyChangedEventHandler handler = (s, e) => { OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset)); };
+            if (!(item is INotifyPropertyChanged inpc))
+                return;
 
-                inpc.PropertyChanged += handler;
-                subscriptions[inpc] = handler;
-            }
+            weakEventManager.AddWeakEventListener(
+                inpc,
+                new Action<INotifyPropertyChanged, PropertyChangedEventArgs>((sender, args) =>
+                {
+                    if (SuppressNotifyCollectionChange)
+                        return;
+
+                    // ItemChanged через Replace(old == new)
+                    OnCollectionChanged(
+                        new NotifyCollectionChangedEventArgs(
+                            NotifyCollectionChangedAction.Reset));
+                }));
         }
 
         /// <summary>
@@ -251,10 +259,9 @@ namespace RuntimeStuff
         /// </summary>
         private void Unsubscribe(T item)
         {
-            if (item is INotifyPropertyChanged inpc && subscriptions.TryGetValue(inpc, out var handler))
+            if (item is INotifyPropertyChanged inpc)
             {
-                inpc.PropertyChanged -= handler;
-                subscriptions.Remove(inpc);
+                weakEventManager.RemoveWeakEventListener(inpc);
             }
         }
     }

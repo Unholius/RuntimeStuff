@@ -32,9 +32,10 @@
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
             flowLayoutPanel1 = new FlowLayoutPanel();
+            propertyGrid1 = new PropertyGrid();
             textBox1 = new TextBox();
             tabPage2 = new TabPage();
-            propertyGrid1 = new PropertyGrid();
+            checkBox1 = new CheckBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
@@ -77,11 +78,19 @@
             flowLayoutPanel1.Controls.Add(propertyGrid1);
             flowLayoutPanel1.Controls.Add(btnMemberCacheAllMembers);
             flowLayoutPanel1.Controls.Add(textBox1);
+            flowLayoutPanel1.Controls.Add(checkBox1);
             flowLayoutPanel1.Dock = DockStyle.Fill;
             flowLayoutPanel1.Location = new Point(3, 3);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(786, 416);
             flowLayoutPanel1.TabIndex = 0;
+            // 
+            // propertyGrid1
+            // 
+            propertyGrid1.Location = new Point(3, 3);
+            propertyGrid1.Name = "propertyGrid1";
+            propertyGrid1.Size = new Size(295, 391);
+            propertyGrid1.TabIndex = 2;
             // 
             // textBox1
             // 
@@ -101,12 +110,15 @@
             tabPage2.Text = "tabPage2";
             tabPage2.UseVisualStyleBackColor = true;
             // 
-            // propertyGrid1
+            // checkBox1
             // 
-            propertyGrid1.Location = new Point(3, 3);
-            propertyGrid1.Name = "propertyGrid1";
-            propertyGrid1.Size = new Size(295, 391);
-            propertyGrid1.TabIndex = 2;
+            checkBox1.AutoSize = true;
+            checkBox1.Location = new Point(575, 3);
+            checkBox1.Name = "checkBox1";
+            checkBox1.Size = new Size(70, 19);
+            checkBox1.TabIndex = 3;
+            checkBox1.Text = "Четное?";
+            checkBox1.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -133,5 +145,6 @@
         private TabPage tabPage2;
         private TextBox textBox1;
         private PropertyGrid propertyGrid1;
+        private CheckBox checkBox1;
     }
 }

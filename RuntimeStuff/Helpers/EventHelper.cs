@@ -95,8 +95,14 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="TSource">
         /// Тип объекта-источника.
         /// </typeparam>
+        /// <typeparam name="TSourceProp">
+        /// Тип свойства-источника.
+        /// </typeparam>
         /// <typeparam name="TDest">
         /// Тип объекта-приёмника.
+        /// </typeparam>
+        /// <typeparam name="TDestProp">
+        /// Тип свойства-назначения.
         /// </typeparam>
         /// <param name="source">
         /// Объект-источник, свойство которого участвует в связывании.
@@ -119,6 +125,8 @@ namespace RuntimeStuff.Helpers
         /// связанного свойства.
         /// </param>
         /// <param name="bindingDirection">Параметр направления связи.</param>
+        /// <param name="sourceToDestConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
+        /// <param name="destToSourceConverter">Конвертор значения свойства назначения в тип свойства источника.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, управляющий жизненным циклом связывания
         /// и позволяющий отписаться от событий.
@@ -130,7 +138,16 @@ namespace RuntimeStuff.Helpers
         /// Ожидается, что переданные события соответствуют стандартному .NET-паттерну
         /// и используют аргументы, производные от <see cref="EventArgs"/>.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TDest>(TSource source, Expression<Func<TSource, object>> sourcePropertySelector, EventInfo sourceEvent, TDest dest, Expression<Func<TDest, object>> destPropertySelector, EventInfo destEvent, BindingDirection bindingDirection = BindingDirection.TwoWay)
+        public static IDisposable BindProperties<TSource, TSourceProp, TDest, TDestProp>(
+            TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            EventInfo sourceEvent,
+            TDest dest,
+            Expression<Func<TDest, TDestProp>> destPropertySelector,
+            EventInfo destEvent,
+            BindingDirection bindingDirection = BindingDirection.TwoWay,
+            Func<TSourceProp, TDestProp> sourceToDestConverter = null,
+            Func<TDestProp, TSourceProp> destToSourceConverter = null)
             where TSource : class
             where TDest : class
         {
@@ -139,20 +156,20 @@ namespace RuntimeStuff.Helpers
 
             var disposables = new List<IDisposable>
             {
-                new WeakEventSubscription<PropertiesBinding>(
+                new WeakEventSubscription<PropertiesBinding<TSourceProp, TDestProp>>(
                     source,
                     sourceEvent,
-                    new PropertiesBinding(source, srcProp, dest, dstProp),
+                    new PropertiesBinding<TSourceProp, TDestProp>(source, srcProp, dest, dstProp, sourceToDestConverter, destToSourceConverter),
                     (binding, sender, args) => binding.SrcPropChanged(sender, args)),
             };
 
             if (bindingDirection == BindingDirection.TwoWay)
             {
                 disposables.Add(
-                    new WeakEventSubscription<PropertiesBinding>(
+                    new WeakEventSubscription<PropertiesBinding<TSourceProp, TDestProp>>(
                         dest,
                         destEvent,
-                        new PropertiesBinding(source, srcProp, dest, dstProp),
+                        new PropertiesBinding<TSourceProp, TDestProp>(source, srcProp, dest, dstProp, sourceToDestConverter, destToSourceConverter),
                         (binding, sender, args) => binding.DstPropChanged(sender, args)));
             }
 
@@ -281,17 +298,21 @@ namespace RuntimeStuff.Helpers
             }
         }
 
-        private sealed class PropertiesBinding : IDisposable
+        private sealed class PropertiesBinding<TSrc, TDest> : IDisposable
         {
             private readonly object dest;
             private readonly PropertyInfo destPropertyInfo;
             private readonly object source;
             private readonly PropertyInfo sourcePropertyInfo;
+            private readonly Func<TSrc, TDest> sourceToDestConverter;
+            private readonly Func<TDest, TSrc> destToSourceConverter;
 
-            public PropertiesBinding(object src, PropertyInfo srcPropInfo, object dest, PropertyInfo destPropInfo)
+            public PropertiesBinding(object src, PropertyInfo srcPropInfo, object dest, PropertyInfo destPropInfo, Func<TSrc, TDest> sourceToDestConverter = null, Func<TDest, TSrc> destToSourceConverter = null)
             {
                 sourcePropertyInfo = srcPropInfo;
                 destPropertyInfo = destPropInfo;
+                this.sourceToDestConverter = sourceToDestConverter;
+                this.destToSourceConverter = destToSourceConverter;
                 source = src;
                 this.dest = dest;
             }
@@ -323,10 +344,13 @@ namespace RuntimeStuff.Helpers
 
                 var senderValue = destPropertyInfo.GetValue(sender);
                 var destValue = sourcePropertyInfo.GetValue(source);
-                if (EqualityComparer<object>.Default.Equals(senderValue, destValue))
+                var convertedValue = destToSourceConverter != null
+                    ? destToSourceConverter((TDest)senderValue)
+                    : senderValue;
+                if (EqualityComparer<object>.Default.Equals(destValue, convertedValue))
                     return;
 
-                sourcePropertyInfo.SetValue(source, senderValue);
+                sourcePropertyInfo.SetValue(source, convertedValue);
             }
 
             internal void SrcPropChanged(object sender, object args)
@@ -334,12 +358,15 @@ namespace RuntimeStuff.Helpers
                 if (args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
                     return;
 
-                var srcValue = sourcePropertyInfo.GetValue(sender);
+                var senderValue = sourcePropertyInfo.GetValue(sender);
                 var destValue = destPropertyInfo.GetValue(dest);
-                if (EqualityComparer<object>.Default.Equals(srcValue, destValue))
+                var convertedValue = sourceToDestConverter != null
+                    ? sourceToDestConverter((TSrc)senderValue)
+                    : senderValue;
+                if (EqualityComparer<object>.Default.Equals(destValue, convertedValue))
                     return;
 
-                destPropertyInfo.SetValue(dest, srcValue);
+                destPropertyInfo.SetValue(dest, convertedValue);
             }
         }
     }

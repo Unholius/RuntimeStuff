@@ -44,6 +44,7 @@ namespace TestWinFormsApp
             var oc = new ObservableCollection<object>();
             oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
             oc.Add(new object());
+            textBox1.BindProperties(x => x.Text, nameof(TextBox.TextChanged), checkBox1, x => x.Checked, nameof(CheckBox.CheckedChanged), BindingDirection.OneWay, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
         }
 
         private void M_PropertyChanged(object? sender, PropertyChangedEventArgs e)

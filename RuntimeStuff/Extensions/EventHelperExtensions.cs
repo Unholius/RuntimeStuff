@@ -416,10 +416,16 @@ namespace RuntimeStuff.Extensions
         /// синхронизируя их значения при изменении.
         /// </summary>
         /// <typeparam name="TSource">
-        /// Тип объекта-источника, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// Тип объекта-источника.
+        /// </typeparam>
+        /// <typeparam name="TSourceProp">
+        /// Тип свойства-источника.
         /// </typeparam>
         /// <typeparam name="TDest">
-        /// Тип объекта-приёмника, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// Тип объекта-приёмника.
+        /// </typeparam>
+        /// <typeparam name="TDestProp">
+        /// Тип свойства-назначения.
         /// </typeparam>
         /// <param name="source">
         /// Объект-источник, изменения свойства которого будут отслеживаться.
@@ -437,6 +443,8 @@ namespace RuntimeStuff.Extensions
         /// Определяет направление привязки свойств:
         /// одностороннюю или двустороннюю синхронизацию.
         /// </param>
+        /// <param name="sourceToDestConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
+        /// <param name="destToSourceConverter">Конвертор значения свойства назначения в тип свойства источника.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, позволяющий разорвать связь и отписаться
         /// от событий изменения свойств.
@@ -446,13 +454,20 @@ namespace RuntimeStuff.Extensions
         /// у обоих объектов и делегирует фактическую логику связывания перегруженному
         /// методу <c>BindProperties</c> с явным указанием типов аргументов события.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, TDest dest, Expression<Func<TDest, object>> destPropertySelector, BindingDirection bindingDirection = BindingDirection.TwoWay)
+        public static IDisposable BindProperties<TSource, TSourceProp, TDest, TDestProp>(
+            this TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            TDest dest,
+            Expression<Func<TDest, TDestProp>> destPropertySelector,
+            BindingDirection bindingDirection = BindingDirection.TwoWay,
+            Func<TSourceProp, TDestProp> sourceToDestConverter = null,
+            Func<TDestProp, TSourceProp> destToSourceConverter = null)
             where TSource : class, INotifyPropertyChanged
             where TDest : class, INotifyPropertyChanged
         {
             var srcEvent = source.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
             var destEvent = dest.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
-            return EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent, bindingDirection);
+            return EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent, bindingDirection, sourceToDestConverter, destToSourceConverter);
         }
 
         /// <summary>
@@ -460,10 +475,16 @@ namespace RuntimeStuff.Extensions
         /// используя указанные события для отслеживания изменений.
         /// </summary>
         /// <typeparam name="TSource">
-        /// Тип объекта-источника, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// Тип объекта-источника.
+        /// </typeparam>
+        /// <typeparam name="TSourceProp">
+        /// Тип свойства-источника.
         /// </typeparam>
         /// <typeparam name="TDest">
-        /// Тип объекта-приёмника, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// Тип объекта-приёмника.
+        /// </typeparam>
+        /// <typeparam name="TDestProp">
+        /// Тип свойства-назначения.
         /// </typeparam>
         /// <param name="source">
         /// Объект-источник, изменения свойства которого будут отслеживаться.
@@ -487,7 +508,8 @@ namespace RuntimeStuff.Extensions
         /// Определяет направление привязки свойств:
         /// одностороннюю или двустороннюю синхронизацию.
         /// </param>
-        /// <returns>
+        /// <param name="sourceToDestConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
+        /// <param name="destToSourceConverter">Конвертор значения свойства назначения в тип свойства источника.</param>        /// <returns>
         /// Объект <see cref="IDisposable"/>, позволяющий разорвать связь и отписаться
         /// от событий источника и приёмника.
         /// </returns>
@@ -496,7 +518,16 @@ namespace RuntimeStuff.Extensions
         /// фактическую логику связывания перегруженному методу <c>BindProperties</c>
         /// с явным указанием типов аргументов событий (<see cref="ProgressChangedEventArgs"/>).
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, string sourceEventName, TDest dest, Expression<Func<TDest, object>> destPropertySelector, string destEventName, BindingDirection bindingDirection = BindingDirection.TwoWay)
+        public static IDisposable BindProperties<TSource, TSourceProp, TDest, TDestProp>(
+            this TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            string sourceEventName,
+            TDest dest,
+            Expression<Func<TDest, TDestProp>> destPropertySelector,
+            string destEventName,
+            BindingDirection bindingDirection = BindingDirection.TwoWay,
+            Func<TSourceProp, TDestProp> sourceToDestConverter = null,
+            Func<TDestProp, TSourceProp> destToSourceConverter = null)
             where TSource : class
             where TDest : class
         {
@@ -513,7 +544,7 @@ namespace RuntimeStuff.Extensions
             var destEvent = dest.GetType().GetEvent(destEventName);
             return destEvent == null
                 ? throw new ArgumentException($@"Событие '{destEventName}' не найдено в типе '{dest.GetType().Name}'", nameof(destEventName))
-                : EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent, bindingDirection);
+                : EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent, bindingDirection, sourceToDestConverter, destToSourceConverter);
         }
 
         /// <summary>
@@ -522,10 +553,16 @@ namespace RuntimeStuff.Extensions
         /// у источника и пользовательское событие у объекта-приёмника.
         /// </summary>
         /// <typeparam name="TSource">
-        /// Тип объекта-источника, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// Тип объекта-источника.
+        /// </typeparam>
+        /// <typeparam name="TSourceProp">
+        /// Тип свойства-источника.
         /// </typeparam>
         /// <typeparam name="TDest">
         /// Тип объекта-приёмника.
+        /// </typeparam>
+        /// <typeparam name="TDestProp">
+        /// Тип свойства-назначения.
         /// </typeparam>
         /// <param name="source">
         /// Объект-источник, изменения свойства которого будут отслеживаться.
@@ -546,7 +583,8 @@ namespace RuntimeStuff.Extensions
         /// Определяет направление привязки свойств:
         /// одностороннюю или двустороннюю синхронизацию.
         /// </param>
-        /// <returns>
+        /// <param name="sourceToDestConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
+        /// <param name="destToSourceConverter">Конвертор значения свойства назначения в тип свойства источника.</param>        /// <returns>
         /// Объект <see cref="IDisposable"/>, позволяющий разорвать связь и отписаться
         /// от используемых событий.
         /// </returns>
@@ -557,12 +595,20 @@ namespace RuntimeStuff.Extensions
         /// Фактическая логика связывания делегируется перегруженному методу
         /// <c>BindProperties</c> с явным указанием типов аргументов событий.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, TDest dest, Expression<Func<TDest, object>> destPropertySelector, string destEventName, BindingDirection bindingDirection = BindingDirection.TwoWay)
+        public static IDisposable BindProperties<TSource, TSourceProp, TDest, TDestProp>(
+            this TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            TDest dest,
+            Expression<Func<TDest, TDestProp>> destPropertySelector,
+            string destEventName,
+            BindingDirection bindingDirection = BindingDirection.TwoWay,
+            Func<TSourceProp, TDestProp> sourceToDestConverter = null,
+            Func<TDestProp, TSourceProp> destToSourceConverter = null)
             where TSource : class, INotifyPropertyChanged
             where TDest : class
         {
             var srcEventName = nameof(INotifyPropertyChanged.PropertyChanged);
-            return BindProperties(source, sourcePropertySelector, srcEventName, dest, destPropertySelector, destEventName, bindingDirection);
+            return BindProperties(source, sourcePropertySelector, srcEventName, dest, destPropertySelector, destEventName, bindingDirection, sourceToDestConverter, destToSourceConverter);
         }
 
         /// <summary>
@@ -573,8 +619,14 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="TSource">
         /// Тип объекта-источника.
         /// </typeparam>
+        /// <typeparam name="TSourceProp">
+        /// Тип свойства-источника.
+        /// </typeparam>
         /// <typeparam name="TDest">
         /// Тип объекта-приёмника.
+        /// </typeparam>
+        /// <typeparam name="TDestProp">
+        /// Тип свойства-назначения.
         /// </typeparam>
         /// <param name="source">
         /// Объект-источник, свойство которого участвует в связывании.
@@ -600,6 +652,8 @@ namespace RuntimeStuff.Extensions
         /// Определяет направление привязки свойств:
         /// одностороннюю или двустороннюю синхронизацию.
         /// </param>
+        /// <param name="sourceToDestConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
+        /// <param name="destToSourceConverter">Конвертор значения свойства назначения в тип свойства источника.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, управляющий жизненным циклом связывания
         /// и позволяющий отписаться от событий.
@@ -611,11 +665,20 @@ namespace RuntimeStuff.Extensions
         /// Ожидается, что переданные события соответствуют стандартному .NET-паттерну
         /// и используют аргументы, производные от <see cref="EventArgs"/>.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, EventInfo sourceEvent, TDest dest, Expression<Func<TDest, object>> destPropertySelector, EventInfo destEvent, BindingDirection bindingDirection = BindingDirection.TwoWay)
+        public static IDisposable BindProperties<TSource, TSourceProp, TDest, TDestProp>(
+            TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            EventInfo sourceEvent,
+            TDest dest,
+            Expression<Func<TDest, TDestProp>> destPropertySelector,
+            EventInfo destEvent,
+            BindingDirection bindingDirection = BindingDirection.TwoWay,
+            Func<TSourceProp, TDestProp> sourceToDestConverter = null,
+            Func<TDestProp, TSourceProp> destToSourceConverter = null)
             where TSource : class
             where TDest : class
         {
-            return EventHelper.BindProperties(source, sourcePropertySelector, sourceEvent, dest, destPropertySelector, destEvent, bindingDirection);
+            return EventHelper.BindProperties(source, sourcePropertySelector, sourceEvent, dest, destPropertySelector, destEvent, bindingDirection, sourceToDestConverter, destToSourceConverter);
         }
 
         /// <summary>
