@@ -1,7 +1,9 @@
-using System.ComponentModel;
-using System.Diagnostics;
 using RuntimeStuff;
 using RuntimeStuff.Extensions;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Diagnostics;
 
 namespace TestWinFormsApp
 {
@@ -22,7 +24,6 @@ namespace TestWinFormsApp
                 formCache = MemberCache.Create(this.GetType());
                 var p = formCache["BackgroundImageLayout"];
             }
-
             sw.Stop();
             var ms1 = sw.ElapsedMilliseconds;
 
@@ -40,6 +41,9 @@ namespace TestWinFormsApp
             m.Text = "123";
             m.BindPropertyChangedToAction(M_PropertyChanged); //m.PropertyChanged += M_PropertyChanged;
             propertyGrid1.SelectedObject = m;
+            var oc = new ObservableCollection<object>();
+            oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
+            oc.Add(new object());
         }
 
         private void M_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -47,7 +51,12 @@ namespace TestWinFormsApp
 
         }
 
-        Model m = new Model();
+        private void BindCollectionChangedToAction(object sender, CollectionChangeEventArgs args)
+        {
+
+        }
+
+        private readonly Model m = new();
 
         private void TextBoxEnabledChanged(object sender, object e)
         {
@@ -58,6 +67,7 @@ namespace TestWinFormsApp
         {
             MessageBox.Show("Click");
             textBox1.Enabled = !textBox1.Enabled;
+            
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)

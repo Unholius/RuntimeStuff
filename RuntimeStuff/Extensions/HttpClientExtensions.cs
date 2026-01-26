@@ -211,10 +211,27 @@ namespace RuntimeStuff.Extensions
             bool ensureSuccessStatusCode,
             CancellationToken token = default)
         {
+            Uri uri = null;
+            if (string.IsNullOrWhiteSpace(requestUri))
+            {
+                uri = client.BaseAddress ?? throw new InvalidOperationException("BaseAddress is not set.");
+            }
+            else
+            {
+                uri = new Uri(requestUri, UriKind.RelativeOrAbsolute);
+
+                if (!uri.IsAbsoluteUri)
+                {
+                    if (client.BaseAddress == null)
+                        throw new InvalidOperationException("BaseAddress is not set.");
+
+                    uri = new Uri(client.BaseAddress, uri);
+                }
+            }
+
             if (query != null && query.Count > 0)
             {
-                var queryString = BuildQueryString(query);
-                requestUri += requestUri.Contains("?") ? "&" + queryString : "?" + queryString;
+                uri = AppendQuery(uri, query);
             }
 
             HttpContent httpContent = null;
@@ -249,7 +266,7 @@ namespace RuntimeStuff.Extensions
                 httpContent = new StringContent(body, Encoding.UTF8, contentType);
             }
 
-            using (var request = new HttpRequestMessage(method, requestUri) { Content = httpContent })
+            using (var request = new HttpRequestMessage(method, uri) { Content = httpContent })
             {
                 using (var response = await client.SendAsync(request, token).ConfigureAwait(false))
                 {
@@ -404,6 +421,27 @@ namespace RuntimeStuff.Extensions
             }
 
             return queryParams.ToString();
+        }
+
+        private static Uri AppendQuery(Uri uri, Dictionary<string, object> query)
+        {
+            if (query == null || query.Count == 0)
+                return uri;
+
+            var newQuery = BuildQueryString(query);
+
+            var builder = new UriBuilder(uri);
+
+            if (string.IsNullOrEmpty(builder.Query))
+            {
+                builder.Query = newQuery;
+            }
+            else
+            {
+                builder.Query = builder.Query.TrimStart('?') + "&" + newQuery;
+            }
+
+            return builder.Uri;
         }
 
         /// <summary>

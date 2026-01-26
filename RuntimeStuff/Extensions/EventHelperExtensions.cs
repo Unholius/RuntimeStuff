@@ -5,7 +5,9 @@
 namespace RuntimeStuff.Extensions
 {
     using System;
+    using System.Collections.Specialized;
     using System.ComponentModel;
+    using System.Data.SqlTypes;
     using System.Linq.Expressions;
     using System.Reflection;
     using RuntimeStuff.Helpers;
@@ -32,6 +34,70 @@ namespace RuntimeStuff.Extensions
     /// </remarks>
     public static class EventHelperExtensions
     {
+        /// <summary>
+        /// Привязывает указанное действие к событию изменения коллекции
+        /// <see cref="INotifyCollectionChanged.CollectionChanged"/>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, реализующего <see cref="INotifyCollectionChanged"/>.
+        /// </typeparam>
+        /// <param name="obj">
+        /// Объект, коллекция которого будет отслеживаться.
+        /// </param>
+        /// <param name="action">
+        /// Действие, выполняемое при изменении коллекции.
+        /// Получает объект-источник события и аргументы изменения коллекции.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
+        /// изменения коллекции.
+        /// </returns>
+        /// <remarks>
+        /// Метод является специализированной обёрткой над <c>BindEventToAction</c>
+        /// для события <c>CollectionChanged</c> и упрощает подписку на изменения
+        /// коллекций без ручной реализации обработчиков событий.
+        /// </remarks>
+        public static IDisposable BindCollectionChangedToAction<T>(
+            this T obj,
+            Action<T, CollectionChangeEventArgs> action)
+            where T : class
+        {
+            var eventName = nameof(INotifyCollectionChanged.CollectionChanged);
+            return BindEventToAction<T, CollectionChangeEventArgs>(obj, eventName, action);
+        }
+
+        /// <summary>
+        /// Привязывает указанное действие к событию изменения коллекции
+        /// <see cref="INotifyCollectionChanged.CollectionChanged"/>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, реализующего <see cref="INotifyCollectionChanged"/>.
+        /// </typeparam>
+        /// <param name="obj">
+        /// Объект, коллекция которого будет отслеживаться.
+        /// </param>
+        /// <param name="action">
+        /// Действие, выполняемое при изменении коллекции.
+        /// Получает объект-источник события и аргументы изменения коллекции.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
+        /// изменения коллекции.
+        /// </returns>
+        /// <remarks>
+        /// Метод является специализированной обёрткой над <c>BindEventToAction</c>
+        /// для события <c>CollectionChanged</c> и упрощает подписку на изменения
+        /// коллекций без ручной реализации обработчиков событий.
+        /// </remarks>
+        public static IDisposable BindCollectionChangedToAction<T>(
+            this T obj,
+            Action action)
+            where T : class
+        {
+            var eventName = nameof(INotifyCollectionChanged.CollectionChanged);
+            return BindEventToAction(obj, eventName, action);
+        }
+
         /// <summary>
         /// Привязывает обработчик к событию объекта по имени события.
         /// </summary>
@@ -75,7 +141,6 @@ namespace RuntimeStuff.Extensions
             this T obj,
             string eventName,
             Action<T, TArgs> action)
-            where T : class
         {
             var eventInfo = obj.GetType().GetEvent(eventName);
             return eventInfo == null
@@ -113,7 +178,6 @@ namespace RuntimeStuff.Extensions
             this T obj,
             string eventName,
             Action<T, EventArgs> action)
-            where T : class
         {
             var eventInfo = obj.GetType().GetEvent(eventName);
             return eventInfo == null
@@ -150,7 +214,6 @@ namespace RuntimeStuff.Extensions
             this T obj,
             string eventName,
             Action action)
-            where T : class
         {
             var eventInfo = obj.GetType().GetEvent(eventName);
             return eventInfo == null
@@ -162,9 +225,6 @@ namespace RuntimeStuff.Extensions
         /// Привязывает обработчик к событию объекта,
         /// используя <see cref="EventInfo"/>.
         /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, содержащего событие.
-        /// </typeparam>
         /// <param name="obj">
         /// Экземпляр объекта, к событию которого выполняется привязка.
         /// </param>
@@ -196,13 +256,12 @@ namespace RuntimeStuff.Extensions
         /// Генерируется, если <paramref name="obj"/>,
         /// <paramref name="eventInfo"/> или <paramref name="action"/> равны <c>null</c>.
         /// </exception>
-        public static IDisposable BindEventToAction<T>(
-            this T obj,
+        public static IDisposable BindEventToAction(
+            this object obj,
             EventInfo eventInfo,
             Action<object, object> action)
-            where T : class
         {
-            return EventHelper.BindEventToAction<T, EventArgs>(obj, eventInfo, action);
+            return EventHelper.BindEventToAction<object, EventArgs>(obj, eventInfo, action);
         }
 
         /// <summary>
@@ -227,6 +286,10 @@ namespace RuntimeStuff.Extensions
         /// <param name="destPropertySelector">
         /// Выражение, указывающее связываемое свойство объекта-приёмника.
         /// </param>
+        /// <param name="bindingDirection">
+        /// Определяет направление привязки свойств:
+        /// одностороннюю или двустороннюю синхронизацию.
+        /// </param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, позволяющий разорвать связь и отписаться
         /// от событий изменения свойств.
@@ -236,13 +299,13 @@ namespace RuntimeStuff.Extensions
         /// у обоих объектов и делегирует фактическую логику связывания перегруженному
         /// методу <c>BindProperties</c> с явным указанием типов аргументов события.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, TDest dest, Expression<Func<TDest, object>> destPropertySelector)
+        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, TDest dest, Expression<Func<TDest, object>> destPropertySelector, BindingDirection bindingDirection = BindingDirection.TwoWay)
             where TSource : class, INotifyPropertyChanged
             where TDest : class, INotifyPropertyChanged
         {
             var srcEvent = source.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
             var destEvent = dest.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
-            return BindProperties<TSource, PropertyChangedEventArgs, TDest, PropertyChangedEventArgs>(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent);
+            return EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent, bindingDirection);
         }
 
         /// <summary>
@@ -273,6 +336,10 @@ namespace RuntimeStuff.Extensions
         /// <param name="destEventName">
         /// Имя события объекта-приёмника, при срабатывании которого выполняется обновление свойства.
         /// </param>
+        /// <param name="bindingDirection">
+        /// Определяет направление привязки свойств:
+        /// одностороннюю или двустороннюю синхронизацию.
+        /// </param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, позволяющий разорвать связь и отписаться
         /// от событий источника и приёмника.
@@ -282,7 +349,7 @@ namespace RuntimeStuff.Extensions
         /// фактическую логику связывания перегруженному методу <c>BindProperties</c>
         /// с явным указанием типов аргументов событий (<see cref="ProgressChangedEventArgs"/>).
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, string sourceEventName, TDest dest, Expression<Func<TDest, object>> destPropertySelector, string destEventName)
+        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, string sourceEventName, TDest dest, Expression<Func<TDest, object>> destPropertySelector, string destEventName, BindingDirection bindingDirection = BindingDirection.TwoWay)
             where TSource : class
             where TDest : class
         {
@@ -299,7 +366,7 @@ namespace RuntimeStuff.Extensions
             var destEvent = dest.GetType().GetEvent(destEventName);
             return destEvent == null
                 ? throw new ArgumentException($"Событие '{destEventName}' не найдено в типе '{dest.GetType().Name}'", nameof(destEventName))
-                : BindProperties<TSource, EventArgs, TDest, EventArgs>(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent);
+                : EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent, bindingDirection);
         }
 
         /// <summary>
@@ -328,6 +395,10 @@ namespace RuntimeStuff.Extensions
         /// <param name="destEventName">
         /// Имя события объекта-приёмника, при срабатывании которого выполняется обновление свойства.
         /// </param>
+        /// <param name="bindingDirection">
+        /// Определяет направление привязки свойств:
+        /// одностороннюю или двустороннюю синхронизацию.
+        /// </param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, позволяющий разорвать связь и отписаться
         /// от используемых событий.
@@ -339,70 +410,12 @@ namespace RuntimeStuff.Extensions
         /// Фактическая логика связывания делегируется перегруженному методу
         /// <c>BindProperties</c> с явным указанием типов аргументов событий.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, TDest dest, Expression<Func<TDest, object>> destPropertySelector, string destEventName)
-    where TSource : class, INotifyPropertyChanged
-    where TDest : class
+        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, TDest dest, Expression<Func<TDest, object>> destPropertySelector, string destEventName, BindingDirection bindingDirection = BindingDirection.TwoWay)
+            where TSource : class, INotifyPropertyChanged
+            where TDest : class
         {
             var srcEventName = nameof(INotifyPropertyChanged.PropertyChanged);
-            return BindProperties<TSource, PropertyChangedEventArgs, TDest, EventArgs>(source, sourcePropertySelector, srcEventName, dest, destPropertySelector, destEventName);
-        }
-
-        /// <summary>
-        /// Связывает указанное свойство объекта-источника со свойством объекта-приёмника,
-        /// используя заданные имена событий у обоих объектов для отслеживания изменений.
-        /// </summary>
-        /// <typeparam name="TSource">
-        /// Тип объекта-источника.
-        /// </typeparam>
-        /// <typeparam name="TSourceEventArgs">
-        /// Тип аргументов события объекта-источника.
-        /// </typeparam>
-        /// <typeparam name="TDest">
-        /// Тип объекта-приёмника.
-        /// </typeparam>
-        /// <typeparam name="TDestEventArgs">
-        /// Тип аргументов события объекта-приёмника.
-        /// </typeparam>
-        /// <param name="source">
-        /// Объект-источник, изменения свойства которого будут отслеживаться.
-        /// </param>
-        /// <param name="sourcePropertySelector">
-        /// Выражение, указывающее связываемое свойство объекта-источника.
-        /// </param>
-        /// <param name="sourceEventName">
-        /// Имя события объекта-источника, при срабатывании которого выполняется синхронизация свойства.
-        /// </param>
-        /// <param name="dest">
-        /// Объект-приёмник, свойство которого будет обновляться.
-        /// </param>
-        /// <param name="destPropertySelector">
-        /// Выражение, указывающее связываемое свойство объекта-приёмника.
-        /// </param>
-        /// <param name="destEventName">
-        /// Имя события объекта-приёмника, при срабатывании которого выполняется синхронизация свойства.
-        /// </param>
-        /// <returns>
-        /// Объект <see cref="IDisposable"/>, позволяющий разорвать связь и отписаться
-        /// от событий источника и приёмника.
-        /// </returns>
-        /// <remarks>
-        /// Метод выполняет поиск событий по их именам с использованием рефлексии,
-        /// после чего делегирует фактическую логику связывания перегруженному методу
-        /// <c>BindProperties</c>, принимающему объекты <see cref="EventInfo"/>.
-        /// Ожидается, что указанные события соответствуют стандартному .NET-паттерну
-        /// и используют аргументы, производные от <see cref="EventArgs"/>.
-        /// </remarks>
-        public static IDisposable BindProperties<TSource, TSourceEventArgs, TDest, TDestEventArgs>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, string sourceEventName, TDest dest, Expression<Func<TDest, object>> destPropertySelector, string destEventName)
-            where TSource : class
-            where TSourceEventArgs : EventArgs
-            where TDest : class
-            where TDestEventArgs : EventArgs
-        {
-            var srcEvent = source.GetType().GetEvent(sourceEventName) ?? throw new ArgumentException($"Событие '{sourceEventName}' не найдено в типе '{source.GetType().Name}'", nameof(sourceEventName));
-            var dstEvent = dest.GetType().GetEvent(destEventName);
-            return dstEvent == null
-                ? throw new ArgumentException($"Событие '{destEventName}' не найдено в типе '{dest.GetType().Name}'", nameof(destEventName))
-                : BindProperties<TSource, TSourceEventArgs, TDest, TDestEventArgs>(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, dstEvent);
+            return BindProperties<TSource, TDest>(source, sourcePropertySelector, srcEventName, dest, destPropertySelector, destEventName, bindingDirection);
         }
 
         /// <summary>
@@ -413,14 +426,8 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="TSource">
         /// Тип объекта-источника.
         /// </typeparam>
-        /// <typeparam name="TSourceEventArgs">
-        /// Тип аргументов события объекта-источника.
-        /// </typeparam>
         /// <typeparam name="TDest">
         /// Тип объекта-приёмника.
-        /// </typeparam>
-        /// <typeparam name="TDestEventArgs">
-        /// Тип аргументов события объекта-приёмника.
         /// </typeparam>
         /// <param name="source">
         /// Объект-источник, свойство которого участвует в связывании.
@@ -442,6 +449,10 @@ namespace RuntimeStuff.Extensions
         /// Событие объекта-приёмника, при срабатывании которого выполняется обновление
         /// связанного свойства.
         /// </param>
+        /// <param name="bindingDirection">
+        /// Определяет направление привязки свойств:
+        /// одностороннюю или двустороннюю синхронизацию.
+        /// </param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, управляющий жизненным циклом связывания
         /// и позволяющий отписаться от событий.
@@ -453,13 +464,11 @@ namespace RuntimeStuff.Extensions
         /// Ожидается, что переданные события соответствуют стандартному .NET-паттерну
         /// и используют аргументы, производные от <see cref="EventArgs"/>.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TSourceEventArgs, TDest, TDestEventArgs>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, EventInfo sourceEvent, TDest dest, Expression<Func<TDest, object>> destPropertySelector, EventInfo destEvent)
+        public static IDisposable BindProperties<TSource, TDest>(this TSource source, Expression<Func<TSource, object>> sourcePropertySelector, EventInfo sourceEvent, TDest dest, Expression<Func<TDest, object>> destPropertySelector, EventInfo destEvent, BindingDirection bindingDirection = BindingDirection.TwoWay)
             where TSource : class
-            where TSourceEventArgs : EventArgs
             where TDest : class
-            where TDestEventArgs : EventArgs
         {
-            return EventHelper.BindProperties<TSource, TSourceEventArgs, TDest, TDestEventArgs>(source, sourcePropertySelector, sourceEvent, dest, destPropertySelector, destEvent);
+            return EventHelper.BindProperties<TSource, TDest>(source, sourcePropertySelector, sourceEvent, dest, destPropertySelector, destEvent, bindingDirection);
         }
 
         /// <summary>
@@ -562,7 +571,7 @@ namespace RuntimeStuff.Extensions
             where TSubscriber : class
             where TSource : class
         {
-            EventHelper.Subscribe(subscriber, eventSource, sourceEvent, action);
+            EventHelper.BindEventToAction<TSource, object>(eventSource, sourceEvent, (s, e) => action(subscriber, s));
         }
 
         /// <summary>
@@ -594,11 +603,11 @@ namespace RuntimeStuff.Extensions
         /// подписчиками без ручной реализации обработчиков.
         /// </remarks>
         public static void Subscribe<TSubscriber, TSource>(this TSubscriber subscriber, TSource eventSource, string sourceEventName, Action<TSubscriber, TSource> action)
-    where TSubscriber : class
-    where TSource : class
+            where TSubscriber : class
+            where TSource : class
         {
             var sourceEvent = eventSource.GetType().GetEvent(sourceEventName);
-            EventHelper.Subscribe(subscriber, eventSource, sourceEvent, action);
+            EventHelper.BindEventToAction<TSource, object>(eventSource, sourceEvent, (s, e) => action(subscriber, s));
         }
     }
 }

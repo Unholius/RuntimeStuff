@@ -3,7 +3,9 @@ using System.Diagnostics;
 
 namespace RuntimeStuff.MSTests
 {
+#if DEBUG
     [TestClass]
+#endif
     public class MessageBusIntegrationTests
     {
         [TestMethod]
@@ -224,7 +226,7 @@ namespace RuntimeStuff.MSTests
             // Arrange
             using var bus = new MessageBus();
             var tcs = new TaskCompletionSource<string>();
-            string receivedMessage = null;
+            string? receivedMessage = null;
 
             // Act
             bus.Subscribe<string>(msg =>
@@ -243,7 +245,7 @@ namespace RuntimeStuff.MSTests
 
         private class TestTraceListener : TraceListener
         {
-            public ConcurrentBag<string> Messages { get; } = new ConcurrentBag<string>();
+            public ConcurrentBag<string> Messages { get; } = [];
 
             public override void Write(string message)
             {

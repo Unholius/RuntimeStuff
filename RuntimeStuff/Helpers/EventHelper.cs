@@ -9,6 +9,7 @@ namespace RuntimeStuff.Helpers
     using System.ComponentModel;
     using System.Linq.Expressions;
     using System.Reflection;
+    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Вспомогательный класс для динамической работы с событиями
@@ -73,10 +74,7 @@ namespace RuntimeStuff.Helpers
             T obj,
             EventInfo eventInfo,
             Action<T, TArgs> actionSenderAndArgs)
-            where T : class
         {
-            if (obj == null)
-                throw new ArgumentNullException(nameof(obj));
             if (eventInfo == null)
                 throw new ArgumentNullException(nameof(eventInfo));
             if (actionSenderAndArgs == null)
@@ -145,14 +143,8 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="TSource">
         /// Тип объекта-источника.
         /// </typeparam>
-        /// <typeparam name="TSourceEventArgs">
-        /// Тип аргументов события объекта-источника.
-        /// </typeparam>
         /// <typeparam name="TDest">
         /// Тип объекта-приёмника.
-        /// </typeparam>
-        /// <typeparam name="TDestEventArgs">
-        /// Тип аргументов события объекта-приёмника.
         /// </typeparam>
         /// <param name="source">
         /// Объект-источник, свойство которого участвует в связывании.
@@ -174,6 +166,7 @@ namespace RuntimeStuff.Helpers
         /// Событие объекта-приёмника, при срабатывании которого выполняется обновление
         /// связанного свойства.
         /// </param>
+        /// <param name="bindingDirection">Параметр направления связи.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, управляющий жизненным циклом связывания
         /// и позволяющий отписаться от событий.
@@ -185,51 +178,33 @@ namespace RuntimeStuff.Helpers
         /// Ожидается, что переданные события соответствуют стандартному .NET-паттерну
         /// и используют аргументы, производные от <see cref="EventArgs"/>.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TSourceEventArgs, TDest, TDestEventArgs>(TSource source, Expression<Func<TSource, object>> sourcePropertySelector, EventInfo sourceEvent, TDest dest, Expression<Func<TDest, object>> destPropertySelector, EventInfo destEvent)
+        public static IDisposable BindProperties<TSource, TDest>(TSource source, Expression<Func<TSource, object>> sourcePropertySelector, EventInfo sourceEvent, TDest dest, Expression<Func<TDest, object>> destPropertySelector, EventInfo destEvent, BindingDirection bindingDirection = BindingDirection.TwoWay)
             where TSource : class
-            where TSourceEventArgs : EventArgs
             where TDest : class
-            where TDestEventArgs : EventArgs
         {
-            var binding = new PropertiesBinding(source, ExpressionHelper.GetPropertyInfo(sourcePropertySelector), dest, ExpressionHelper.GetPropertyInfo(destPropertySelector));
-            EventHelper.BindEventToAction<TSource, TSourceEventArgs>(source, sourceEvent, binding.SrcPropChanged);
-            EventHelper.BindEventToAction<TDest, TDestEventArgs>(dest, destEvent, binding.DstPropChanged);
-            return binding;
-        }
+            var srcProp = ExpressionHelper.GetPropertyInfo(sourcePropertySelector);
+            var dstProp = ExpressionHelper.GetPropertyInfo(destPropertySelector);
 
-        /// <summary>
-        /// Подписывает указанный объект-подписчик на событие источника и выполняет действие
-        /// при срабатывании события.
-        /// </summary>
-        /// <typeparam name="TSubscriber">
-        /// Тип объекта-подписчика.
-        /// </typeparam>
-        /// <typeparam name="TSource">
-        /// Тип объекта-источника события.
-        /// </typeparam>
-        /// <param name="subscriber">
-        /// Объект-подписчик, для которого выполняется действие при срабатывании события.
-        /// </param>
-        /// <param name="eventSource">
-        /// Источник события.
-        /// </param>
-        /// <param name="sourceEvent">
-        /// Событие источника, на которое необходимо подписаться.
-        /// </param>
-        /// <param name="action">
-        /// Действие, которое будет вызвано при срабатывании события. Получает объект-подписчик
-        /// и объект-источник события.
-        /// </param>
-        /// <remarks>
-        /// Метод использует BindEventToAction{TSource,TEventArgs} для привязки
-        /// события к действию и обеспечивает удобный способ связывать события с конкретными
-        /// подписчиками без ручной реализации обработчиков.
-        /// </remarks>
-        public static void Subscribe<TSubscriber, TSource>(TSubscriber subscriber, TSource eventSource, EventInfo sourceEvent, Action<TSubscriber, TSource> action)
-            where TSubscriber : class
-            where TSource : class
-        {
-            BindEventToAction<TSource, object>(eventSource, sourceEvent, (s, e) => action(subscriber, s));
+            var disposables = new List<IDisposable>
+            {
+                new WeakEventSubscription<PropertiesBinding>(
+                    source,
+                    sourceEvent,
+                    new PropertiesBinding(source, srcProp, dest, dstProp),
+                    (binding, sender, args) => binding.SrcPropChanged(sender, args)),
+            };
+
+            if (bindingDirection == BindingDirection.TwoWay)
+            {
+                disposables.Add(
+                    new WeakEventSubscription<PropertiesBinding>(
+                        dest,
+                        destEvent,
+                        new PropertiesBinding(source, srcProp, dest, dstProp),
+                        (binding, sender, args) => binding.DstPropChanged(sender, args)));
+            }
+
+            return new CompositeDisposable(disposables);
         }
 
         private sealed class EventBinding : IDisposable
@@ -253,6 +228,22 @@ namespace RuntimeStuff.Helpers
 
                 eventInfo.RemoveEventHandler(target, handler);
                 disposed = true;
+            }
+        }
+
+        private sealed class CompositeDisposable : IDisposable
+        {
+            private readonly IEnumerable<IDisposable> disposables;
+
+            public CompositeDisposable(IEnumerable<IDisposable> disposables)
+            {
+                this.disposables = disposables;
+            }
+
+            public void Dispose()
+            {
+                foreach (var d in disposables)
+                    d.Dispose();
             }
         }
 
