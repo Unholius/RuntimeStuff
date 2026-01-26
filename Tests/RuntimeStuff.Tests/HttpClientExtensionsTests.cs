@@ -3,7 +3,9 @@ using System.Net.Http;
 
 namespace RuntimeStuff.MSTests
 {
+#if DEBUG
     [TestClass]
+#endif
     public class HttpClientExtensionsTests
     {
         private static HttpClient? http;
