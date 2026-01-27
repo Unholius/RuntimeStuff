@@ -154,16 +154,18 @@ namespace RuntimeStuff.Helpers
             var srcProp = ExpressionHelper.GetPropertyInfo(sourcePropertySelector);
             var dstProp = ExpressionHelper.GetPropertyInfo(destPropertySelector);
 
-            var disposables = new List<IDisposable>
+            var disposables = new List<IDisposable>();
+            if (sourceEvent != null)
             {
-                new WeakEventSubscription<PropertiesBinding<TSourceProp, TDestProp>>(
-                    source,
-                    sourceEvent,
-                    new PropertiesBinding<TSourceProp, TDestProp>(source, srcProp, dest, dstProp, sourceToDestConverter, destToSourceConverter),
-                    (binding, sender, args) => binding.SrcPropChanged(sender, args)),
-            };
+                disposables.Add(
+                    new WeakEventSubscription<PropertiesBinding<TSourceProp, TDestProp>>(
+                        source,
+                        sourceEvent,
+                        new PropertiesBinding<TSourceProp, TDestProp>(source, srcProp, dest, dstProp, sourceToDestConverter, destToSourceConverter),
+                        (binding, sender, args) => binding.SrcPropChanged(sender, args)));
+            }
 
-            if (bindingDirection == BindingDirection.TwoWay)
+            if (bindingDirection == BindingDirection.TwoWay && destEvent != null)
             {
                 disposables.Add(
                     new WeakEventSubscription<PropertiesBinding<TSourceProp, TDestProp>>(

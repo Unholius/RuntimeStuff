@@ -612,6 +612,64 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
+        /// Устанавливает одностороннюю привязку свойства источника к свойству назначения.
+        /// </summary>
+        /// <typeparam name="TSource">
+        /// Тип объекта-источника, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// </typeparam>
+        /// <typeparam name="TSourceProp">
+        /// Тип свойства источника.
+        /// </typeparam>
+        /// <typeparam name="TDest">
+        /// Тип объекта-приёмника.
+        /// </typeparam>
+        /// <typeparam name="TDestProp">
+        /// Тип свойства приёмника.
+        /// </typeparam>
+        /// <param name="source">
+        /// Объект-источник, изменения свойств которого отслеживаются.
+        /// </param>
+        /// <param name="sourcePropertySelector">
+        /// Лямбда-выражение, указывающее привязываемое свойство источника.
+        /// </param>
+        /// <param name="dest">
+        /// Объект-приёмник, свойство которого будет обновляться.
+        /// </param>
+        /// <param name="destPropertySelector">
+        /// Лямбда-выражение, указывающее привязываемое свойство приёмника.
+        /// </param>
+        /// <param name="sourceToDestConverter">
+        /// Необязательный конвертер значения из типа свойства источника
+        /// в тип свойства приёмника.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий разорвать привязку
+        /// и освободить связанные ресурсы.
+        /// </returns>
+        /// <remarks>
+        /// Привязка является односторонней (OneWay):
+        /// изменения свойства источника автоматически обновляют свойство приёмника.
+        /// Обратная синхронизация не выполняется.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/>,
+        /// <paramref name="sourcePropertySelector"/>,
+        /// <paramref name="dest"/> или <paramref name="destPropertySelector"/> равны <c>null</c>.
+        /// </exception>
+        public static IDisposable BindProperties<TSource, TSourceProp, TDest, TDestProp>(
+            this TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            TDest dest,
+            Expression<Func<TDest, TDestProp>> destPropertySelector,
+            Func<TSourceProp, TDestProp> sourceToDestConverter = null)
+            where TSource : class, INotifyPropertyChanged
+            where TDest : class
+        {
+            var srcEvent = source.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
+            return EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, null, BindingDirection.OneWay, sourceToDestConverter, null);
+        }
+
+        /// <summary>
         /// Связывает свойства объекта-источника и объекта-приёмника,
         /// подписываясь на указанные события обоих объектов и обеспечивая
         /// двустороннюю синхронизацию значений.
