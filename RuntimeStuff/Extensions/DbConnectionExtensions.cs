@@ -82,7 +82,7 @@ namespace RuntimeStuff.Extensions
         /// (обычно <c>true</c> или <c>false</c>).
         /// </param>
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection TrustCertificate(this IDbConnection con, string value)
+        public static IDbConnection TrustCertificate(this IDbConnection con, bool value)
         {
             return Param(con, SqlProviderOptions.GetInstance(con).TrustServerCertificateParameterName, value);
         }
@@ -1049,9 +1049,10 @@ namespace RuntimeStuff.Extensions
         /// <param name="whereExpression">Условие WHERE (опционально).</param>
         /// <param name="fetchRows">Количество извлекаемых строк (-1 для всех).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="columnSelectors">Селекторы колонок (опционально).</param>
         /// <returns>DataTable с результатами запроса.</returns>
-        public static DataTable ToDataTable<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, params Expression<Func<TFrom, object>>[] columnSelectors) => connection.AsDbClient().ToDataTable(whereExpression, fetchRows, offsetRows, columnSelectors);
+        public static DataTable ToDataTable<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, int fetchRows = -1, int offsetRows = 0, Func<string, object, DataColumn, object> valueConverter = null, params Expression<Func<TFrom, object>>[] columnSelectors) => connection.AsDbClient().ToDataTable(whereExpression, fetchRows, offsetRows, valueConverter, columnSelectors);
 
         /// <summary>
         /// Преобразует результат SQL-запроса в DataTable.
@@ -1059,9 +1060,10 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="query">SQL-запрос.</param>
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="columnMap">Соответствие колонок (опционально).</param>
         /// <returns>DataTable с результатами запроса.</returns>
-        public static DataTable ToDataTable(this IDbConnection connection, string query, object cmdParams = null, params (string, string)[] columnMap) => connection.AsDbClient().ToDataTable(query, cmdParams, columnMap);
+        public static DataTable ToDataTable(this IDbConnection connection, string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap) => connection.AsDbClient().ToDataTable(query, cmdParams, valueConverter, columnMap);
 
         /// <summary>
         /// Асинхронно преобразует результат запроса в DataTable.
@@ -1081,10 +1083,11 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="query">SQL-запрос.</param>
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="token">Токен отмены.</param>
         /// <param name="columnMap">Соответствие колонок (опционально).</param>
         /// <returns>Задача, возвращающая DataTable с результатами запроса.</returns>
-        public static Task<DataTable> ToDataTableAsync(this IDbConnection connection, string query, object cmdParams = null, CancellationToken token = default, params (string, string)[] columnMap) => connection.AsDbClient().ToDataTableAsync(query, cmdParams, token, columnMap);
+        public static Task<DataTable> ToDataTableAsync(this IDbConnection connection, string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, CancellationToken token = default, params (string, string)[] columnMap) => connection.AsDbClient().ToDataTableAsync(query, cmdParams, valueConverter, token, columnMap);
 
         /// <summary>
         /// Преобразует результат SQL-запроса в массив DataTable (для нескольких результирующих наборов).
@@ -1092,9 +1095,10 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="query">SQL-запрос.</param>
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="columnMap">Соответствие колонок (опционально).</param>
         /// <returns>Массив DataTable с результатами запроса.</returns>
-        public static DataTable[] ToDataTables(this IDbConnection connection, string query, object cmdParams = null, params (string, string)[] columnMap) => connection.AsDbClient().ToDataTables(query, cmdParams, columnMap);
+        public static DataTable[] ToDataTables(this IDbConnection connection, string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap) => connection.AsDbClient().ToDataTables(query, cmdParams, valueConverter, columnMap);
 
         /// <summary>
         /// Асинхронно преобразует результат SQL-запроса в массив DataTable.
@@ -1102,10 +1106,11 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="query">SQL-запрос.</param>
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="token">Токен отмены.</param>
         /// <param name="columnMap">Соответствие колонок (опционально).</param>
         /// <returns>Задача, возвращающая массив DataTable с результатами запроса.</returns>
-        public static Task<DataTable[]> ToDataTablesAsync(this IDbConnection connection, string query, object cmdParams = null, CancellationToken token = default, params (string, string)[] columnMap) => connection.AsDbClient().ToDataTablesAsync(query, cmdParams, token, columnMap);
+        public static Task<DataTable[]> ToDataTablesAsync(this IDbConnection connection, string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, CancellationToken token = default, params (string, string)[] columnMap) => connection.AsDbClient().ToDataTablesAsync(query, cmdParams, valueConverter, token, columnMap);
 
         /// <summary>
         /// Преобразует результат SQL-запроса в словарь.

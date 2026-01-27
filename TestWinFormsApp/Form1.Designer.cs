@@ -34,11 +34,15 @@
             flowLayoutPanel1 = new FlowLayoutPanel();
             propertyGrid1 = new PropertyGrid();
             textBox1 = new TextBox();
-            tabPage2 = new TabPage();
             checkBox1 = new CheckBox();
+            tabPage2 = new TabPage();
+            dataGridView1 = new DataGridView();
+            btnLoad = new Button();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
+            tabPage2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             SuspendLayout();
             // 
             // btnMemberCacheAllMembers
@@ -100,16 +104,6 @@
             textBox1.TabIndex = 1;
             textBox1.TextChanged += textBox1_TextChanged;
             // 
-            // tabPage2
-            // 
-            tabPage2.Location = new Point(4, 24);
-            tabPage2.Name = "tabPage2";
-            tabPage2.Padding = new Padding(3);
-            tabPage2.Size = new Size(792, 422);
-            tabPage2.TabIndex = 1;
-            tabPage2.Text = "tabPage2";
-            tabPage2.UseVisualStyleBackColor = true;
-            // 
             // checkBox1
             // 
             checkBox1.AutoSize = true;
@@ -119,6 +113,39 @@
             checkBox1.TabIndex = 3;
             checkBox1.Text = "Четное?";
             checkBox1.UseVisualStyleBackColor = true;
+            // 
+            // tabPage2
+            // 
+            tabPage2.Controls.Add(dataGridView1);
+            tabPage2.Controls.Add(btnLoad);
+            tabPage2.Location = new Point(4, 24);
+            tabPage2.Name = "tabPage2";
+            tabPage2.Padding = new Padding(3);
+            tabPage2.Size = new Size(792, 422);
+            tabPage2.TabIndex = 1;
+            tabPage2.Text = "tabPage2";
+            tabPage2.UseVisualStyleBackColor = true;
+            // 
+            // dataGridView1
+            // 
+            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridView1.Dock = DockStyle.Fill;
+            dataGridView1.Location = new Point(3, 26);
+            dataGridView1.Name = "dataGridView1";
+            dataGridView1.Size = new Size(786, 393);
+            dataGridView1.TabIndex = 0;
+            dataGridView1.Click += dataGridView1_Click;
+            // 
+            // btnLoad
+            // 
+            btnLoad.Dock = DockStyle.Top;
+            btnLoad.Location = new Point(3, 3);
+            btnLoad.Name = "btnLoad";
+            btnLoad.Size = new Size(786, 23);
+            btnLoad.TabIndex = 1;
+            btnLoad.Text = "Load";
+            btnLoad.UseVisualStyleBackColor = true;
+            btnLoad.Click += btnLoad_Click;
             // 
             // Form1
             // 
@@ -133,6 +160,8 @@
             tabPage1.ResumeLayout(false);
             flowLayoutPanel1.ResumeLayout(false);
             flowLayoutPanel1.PerformLayout();
+            tabPage2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             ResumeLayout(false);
         }
 
@@ -146,5 +175,7 @@
         private TextBox textBox1;
         private PropertyGrid propertyGrid1;
         private CheckBox checkBox1;
+        private DataGridView dataGridView1;
+        private Button btnLoad;
     }
 }

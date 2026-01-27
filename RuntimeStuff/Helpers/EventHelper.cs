@@ -9,7 +9,6 @@ namespace RuntimeStuff.Helpers
     using System.ComponentModel;
     using System.Linq.Expressions;
     using System.Reflection;
-    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Вспомогательный класс для динамической работы с событиями
@@ -153,29 +152,24 @@ namespace RuntimeStuff.Helpers
         {
             var srcProp = ExpressionHelper.GetPropertyInfo(sourcePropertySelector);
             var dstProp = ExpressionHelper.GetPropertyInfo(destPropertySelector);
-
-            var disposables = new List<IDisposable>();
+            var pb = new PropertiesBinding<TSourceProp, TDestProp>(source, srcProp, sourceEvent, dest, dstProp, destEvent, sourceToDestConverter, destToSourceConverter);
             if (sourceEvent != null)
             {
-                disposables.Add(
-                    new WeakEventSubscription<PropertiesBinding<TSourceProp, TDestProp>>(
-                        source,
-                        sourceEvent,
-                        new PropertiesBinding<TSourceProp, TDestProp>(source, srcProp, dest, dstProp, sourceToDestConverter, destToSourceConverter),
-                        (binding, sender, args) => binding.SrcPropChanged(sender, args)));
+                var eventHandlerType = sourceEvent.EventHandlerType;
+                var eventHandler = CreateEventHandlerDelegate<TSource, object>(eventHandlerType, pb.SrcPropChanged);
+                sourceEvent.AddEventHandler(source, eventHandler);
+                pb.SrcEventHandler = eventHandler;
             }
 
             if (bindingDirection == BindingDirection.TwoWay && destEvent != null)
             {
-                disposables.Add(
-                    new WeakEventSubscription<PropertiesBinding<TSourceProp, TDestProp>>(
-                        dest,
-                        destEvent,
-                        new PropertiesBinding<TSourceProp, TDestProp>(source, srcProp, dest, dstProp, sourceToDestConverter, destToSourceConverter),
-                        (binding, sender, args) => binding.DstPropChanged(sender, args)));
+                var eventHandlerType = destEvent.EventHandlerType;
+                var eventHandler = CreateEventHandlerDelegate<TDest, object>(eventHandlerType, pb.DstPropChanged);
+                destEvent.AddEventHandler(dest, eventHandler);
+                pb.DstEventHandler = eventHandler;
             }
 
-            return new CompositeDisposable(disposables);
+            return pb;
         }
 
         /// <summary>
@@ -260,22 +254,6 @@ namespace RuntimeStuff.Helpers
             eventInfo.RemoveEventHandler(obj, actionHandler);
         }
 
-        private sealed class CompositeDisposable : IDisposable
-        {
-            private readonly IEnumerable<IDisposable> disposables;
-
-            public CompositeDisposable(IEnumerable<IDisposable> disposables)
-            {
-                this.disposables = disposables;
-            }
-
-            public void Dispose()
-            {
-                foreach (var d in disposables)
-                    d.Dispose();
-            }
-        }
-
         private sealed class EventBinding : IDisposable
         {
             private readonly EventInfo eventInfo;
@@ -308,21 +286,30 @@ namespace RuntimeStuff.Helpers
             private readonly PropertyInfo sourcePropertyInfo;
             private readonly Func<TSrc, TDest> sourceToDestConverter;
             private readonly Func<TDest, TSrc> destToSourceConverter;
+            private readonly EventInfo sourceEvent;
+            private readonly EventInfo destEvent;
 
-            public PropertiesBinding(object src, PropertyInfo srcPropInfo, object dest, PropertyInfo destPropInfo, Func<TSrc, TDest> sourceToDestConverter = null, Func<TDest, TSrc> destToSourceConverter = null)
+            public PropertiesBinding(object src, PropertyInfo srcPropInfo, EventInfo sourceEvent, object dest, PropertyInfo destPropInfo, EventInfo destEvent, Func<TSrc, TDest> sourceToDestConverter = null, Func<TDest, TSrc> destToSourceConverter = null)
             {
                 sourcePropertyInfo = srcPropInfo;
                 destPropertyInfo = destPropInfo;
                 this.sourceToDestConverter = sourceToDestConverter;
                 this.destToSourceConverter = destToSourceConverter;
+                this.sourceEvent = sourceEvent;
+                this.destEvent = destEvent;
                 source = src;
                 this.dest = dest;
             }
+
+            internal Delegate SrcEventHandler { get; set; }
+
+            internal Delegate DstEventHandler { get; set; }
 
             /// <summary>
             /// Освобождает ресурсы, связанные с привязкой свойств,
             /// и отписывает обработчики событий изменения свойств
             /// у источника и приёмника.
+            ///
             /// </summary>
             /// <remarks>
             /// Метод снимает подписку с события <see cref="INotifyPropertyChanged.PropertyChanged"/>
@@ -334,9 +321,13 @@ namespace RuntimeStuff.Helpers
             {
                 if (source is INotifyPropertyChanged srcNotify)
                     srcNotify.PropertyChanged -= SrcPropChanged;
+                else
+                    EventHelper.UnBindActionFromEvent(source, sourceEvent, SrcEventHandler);
 
                 if (dest is INotifyPropertyChanged destNotify)
                     destNotify.PropertyChanged -= DstPropChanged;
+                else
+                    EventHelper.UnBindActionFromEvent(dest, destEvent, DstEventHandler);
             }
 
             internal void DstPropChanged(object sender, object args)

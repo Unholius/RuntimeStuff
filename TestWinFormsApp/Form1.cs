@@ -2,6 +2,7 @@ using RuntimeStuff;
 using RuntimeStuff.Extensions;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Data.SqlClient;
 using System.Diagnostics;
 
 namespace TestWinFormsApp
@@ -44,6 +45,8 @@ namespace TestWinFormsApp
             oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
             oc.Add(new object());
             textBox1.BindProperties(x => x.Text, nameof(TextBox.TextChanged), checkBox1, x => x.Checked, nameof(CheckBox.CheckedChanged), BindingDirection.OneWay, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
+            Obj.Set(dataGridView1, "DoubleBuffered", true);
+            m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled);
         }
 
         private void M_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -73,6 +76,25 @@ namespace TestWinFormsApp
             {
             }
         }
+
+        private async void btnLoad_Click(object sender, EventArgs e)
+        {
+            m.IsFree = false;
+            dataGridView1.DataSource = null;
+            using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
+            {
+                var dt = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
+                dataGridView1.DataSource = dt;
+                dt = null;
+            }
+
+            m.IsFree = true;
+        }
+
+        private void dataGridView1_Click(object sender, EventArgs e)
+        {
+            btnLoad.Enabled = true;
+        }
     }
 
     public class Model : PropertyObserver
@@ -83,6 +105,16 @@ namespace TestWinFormsApp
             set => Set(value);
         }
 
-        public Model? Child { get; set; }
+        public int Number
+        {
+            get => Get<int>();
+            set => Set(value);
+        }
+
+        public bool IsFree
+        {
+            get => Get<bool>();
+            set => Set(value);
+        }
     }
 }

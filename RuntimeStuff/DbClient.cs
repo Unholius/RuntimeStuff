@@ -2322,6 +2322,7 @@ namespace RuntimeStuff
         /// <param name="whereExpression">Условие выборки данных в виде выражения. Может быть <c>null</c>.</param>
         /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
         /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="columnSelectors">Селекторы столбцов для выборки. Может быть <c>null</c>.</param>
         /// <returns><see cref="DataTable" />, содержащий результат выполнения запроса.</returns>
         /// <remarks>Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде <see cref="DataTable" />.
@@ -2331,6 +2332,7 @@ namespace RuntimeStuff
             Expression<Func<TFrom, bool>> whereExpression = null,
             int fetchRows = -1,
             int offsetRows = 0,
+            Func<string, object, DataColumn, object> valueConverter = null,
             params Expression<Func<TFrom, object>>[] columnSelectors)
         {
             var query = (SqlQueryBuilder.GetSelectQuery(this.Options, columnSelectors) + " " +
@@ -2354,6 +2356,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="query">SQL-запрос для выполнения.</param>
         /// <param name="cmdParams">Параметры запроса.</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="columnMap">
         ///     Отображение столбцов запроса в имена свойств объектов. Каждый элемент содержит имя столбца и
         ///     имя свойства объекта.
@@ -2364,7 +2367,7 @@ namespace RuntimeStuff
         ///     позволяет
         ///     отображать столбцы запроса в соответствии с их именами в объекте.
         /// </remarks>
-        public DataTable ToDataTable(string query, object cmdParams = null, params (string, string)[] columnMap) => this.ToDataTables(query, cmdParams, columnMap).FirstOrDefault();
+        public DataTable ToDataTable(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap) => this.ToDataTables(query, cmdParams, valueConverter, columnMap).FirstOrDefault();
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос и возвращает результат в виде <see cref="DataTable" />.
@@ -2403,6 +2406,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="query">SQL-запрос для выполнения.</param>
         /// <param name="cmdParams">Параметры запроса.</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="token">Токен отмены асинхронной операции.</param>
         /// <param name="columnMap">
         ///     Отображение столбцов запроса в имена свойств объектов. Каждый элемент содержит имя столбца и
@@ -2417,8 +2421,9 @@ namespace RuntimeStuff
         public async Task<DataTable> ToDataTableAsync(
             string query,
             object cmdParams = null,
+            Func<string, object, DataColumn, object> valueConverter = null,
             CancellationToken token = default,
-            params (string, string)[] columnMap) => (await this.ToDataTablesAsync(query, cmdParams, token, columnMap)
+            params (string, string)[] columnMap) => (await this.ToDataTablesAsync(query, cmdParams, valueConverter, token, columnMap)
                 .ConfigureAwait(this.ConfigureAwait)).FirstOrDefault();
 
         /// <summary>
@@ -2426,6 +2431,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="query">SQL-запрос для выполнения.</param>
         /// <param name="cmdParams">Параметры запроса.</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="columnMap">Отображение столбцов запроса в имена свойств объектов.</param>
         /// <returns>Массив <see cref="DataTable" />, содержащий результаты выполнения запроса.</returns>
         /// <remarks>
@@ -2433,7 +2439,7 @@ namespace RuntimeStuff
         ///     запрос
         ///     возвращает несколько наборов данных, они будут разделены в разные таблицы.
         /// </remarks>
-        public DataTable[] ToDataTables(string query, object cmdParams = null, params (string, string)[] columnMap)
+        public DataTable[] ToDataTables(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap)
         {
             if (string.IsNullOrWhiteSpace(query))
             {
@@ -2441,6 +2447,10 @@ namespace RuntimeStuff
             }
 
             var result = new List<DataTable>();
+            if (valueConverter == null)
+            {
+                valueConverter = (fieldName, fieldValue, column) => fieldValue;
+            }
 
             using (var cmd = this.CreateCommand(query, cmdParams))
             {
@@ -2477,7 +2487,7 @@ namespace RuntimeStuff
                                         continue;
                                     }
 
-                                    item[kv.Value] = raw;
+                                    item[kv.Value] = valueConverter(kv.Value, raw, dataTable.Columns[kv.Value]);
                                 }
 
                                 dataTable.Rows.Add(item);
@@ -2508,6 +2518,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="query">SQL-запрос для выполнения.</param>
         /// <param name="cmdParams">Параметры запроса.</param>
+        /// <param name="valueConverter">Конвертор значения из БД в тип данных колонки таблицы.</param>
         /// <param name="token">Токен отмены асинхронной операции.</param>
         /// <param name="columnMap">Отображение столбцов запроса в имена свойств объектов.</param>
         /// <returns>Задача, которая возвращает массив <see cref="DataTable" />, содержащий результаты выполнения запроса.</returns>
@@ -2519,6 +2530,7 @@ namespace RuntimeStuff
         public async Task<DataTable[]> ToDataTablesAsync(
             string query,
             object cmdParams = null,
+            Func<string, object, DataColumn, object> valueConverter = null,
             CancellationToken token = default,
             params (string, string)[] columnMap)
         {
@@ -2528,6 +2540,10 @@ namespace RuntimeStuff
             }
 
             var result = new List<DataTable>();
+            if (valueConverter == null)
+            {
+                valueConverter = (fieldName, fieldValue, col) => fieldValue;
+            }
 
             using (var cmd = this.CreateCommand(query, cmdParams))
             {
@@ -2564,7 +2580,7 @@ namespace RuntimeStuff
                                         continue;
                                     }
 
-                                    item[kv.Value] = raw;
+                                    item[kv.Value] = valueConverter(kv.Value, raw, dataTable.Columns[kv.Value]);
                                 }
 
                                 dataTable.Rows.Add(item);
