@@ -289,6 +289,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <value>The default binding flags.</value>
 #pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
+
         public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
 #pragma warning restore S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
                                                                   BindingFlags.Public | BindingFlags.Static;
@@ -2546,8 +2547,10 @@ namespace RuntimeStuff
             {
                 case PropertyInfo pi:
                     return pi.PropertyType;
+
                 case FieldInfo fi:
                     return fi.FieldType;
+
                 default:
                     return null;
             }

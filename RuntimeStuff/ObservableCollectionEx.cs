@@ -117,15 +117,32 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Очищает коллекцию и снимает подписку на события всех элементов.
+        /// Удаляет все элементы из коллекции,
+        /// предварительно корректно освобождая связанные ресурсы.
         /// </summary>
+        /// <remarks>
+        /// Перед очисткой коллекции метод отписывается от событий всех элементов.
+        /// После этого очищаются все слабые подписчики событий,
+        /// и затем выполняется базовая очистка коллекции.
+        /// Такой порядок предотвращает утечки памяти и некорректные уведомления.
+        /// </remarks>
         protected override void ClearItems()
         {
-            foreach (var item in this)
-                Unsubscribe(item);
+            var oldSuppress = SuppressNotifyCollectionChange;
+            SuppressNotifyCollectionChange = true;
 
-            weakEventManager.ClearWeakEventListeners();
-            base.ClearItems();
+            try
+            {
+                foreach (var item in this)
+                    Unsubscribe(item);
+
+                weakEventManager.ClearWeakEventListeners();
+                base.ClearItems();
+            }
+            finally
+            {
+                SuppressNotifyCollectionChange = oldSuppress;
+            }
         }
 
         /// <summary>
@@ -208,6 +225,32 @@ namespace RuntimeStuff
         {
             Unsubscribe(this[index]);
             base.RemoveItem(index);
+        }
+
+        /// <summary>
+        /// Заменяет элемент коллекции по указанному индексу,
+        /// корректно управляя подписками на события элементов.
+        /// </summary>
+        /// <param name="index">
+        /// Индекс элемента, который требуется заменить.
+        /// </param>
+        /// <param name="item">
+        /// Новый элемент, устанавливаемый в коллекцию.
+        /// </param>
+        /// <remarks>
+        /// Перед заменой метод отписывается от событий старого элемента,
+        /// после чего выполняет замену и подписывается на события нового элемента.
+        /// Это обеспечивает корректную работу коллекции и предотвращает утечки памяти.
+        /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если <paramref name="index"/> выходит за пределы коллекции.
+        /// </exception>
+        protected override void SetItem(int index, T item)
+        {
+            var oldItem = this[index];
+            Unsubscribe(oldItem);
+            base.SetItem(index, item);
+            Subscribe(item);
         }
 
         /// <summary>

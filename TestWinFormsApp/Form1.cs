@@ -1,7 +1,6 @@
 using RuntimeStuff;
 using RuntimeStuff.Extensions;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -49,12 +48,10 @@ namespace TestWinFormsApp
 
         private void M_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-
         }
 
         private void BindCollectionChangedToAction(object sender, object args)
         {
-
         }
 
         private readonly Model m = new();
@@ -68,14 +65,12 @@ namespace TestWinFormsApp
         {
             MessageBox.Show("Click");
             textBox1.Enabled = !textBox1.Enabled;
-            
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
         {
             if (m.Text != textBox1.Text)
             {
-
             }
         }
     }
