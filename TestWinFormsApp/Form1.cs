@@ -36,7 +36,7 @@ namespace TestWinFormsApp
             sw.Stop();
             var ms2 = sw.ElapsedMilliseconds;
             btnMemberCacheAllMembers.BindEventToAction(nameof(Button.Click), BtnClick);
-            textBox1.BindEventToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged);
+            textBox1.BindEventToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, (box, args) => dataGridView1.RowCount > 0);
             m.BindProperties(x => x.Text, "PropertyChanged", textBox1, x => x.Text, nameof(TextBox.TextChanged));
             propertyGrid1.Subscribe(m, propertyGrid1.Refresh);
             m.Text = "123";

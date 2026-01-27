@@ -51,6 +51,7 @@ namespace RuntimeStuff.Helpers
         /// Первый параметр — объект-источник события (<c>sender</c>),
         /// второй параметр — аргументы события.
         /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, удаляющий привязку обработчика
         /// при вызове <see cref="IDisposable.Dispose"/>.
@@ -73,7 +74,8 @@ namespace RuntimeStuff.Helpers
         public static IDisposable BindEventToAction<T, TArgs>(
             T obj,
             EventInfo eventInfo,
-            Action<T, TArgs> action)
+            Action<T, TArgs> action,
+            Func<T, TArgs, bool> canExecuteAction = null)
         {
             if (eventInfo == null)
                 throw new ArgumentNullException(nameof(eventInfo));
@@ -88,7 +90,8 @@ namespace RuntimeStuff.Helpers
                 var a = (Action<T, TArgs>)weakAction.Target;
                 if (a != null)
                 {
-                    a(sender, args);
+                    if (canExecuteAction == null || canExecuteAction(sender, args))
+                        a(sender, args);
                 }
                 else
                 {

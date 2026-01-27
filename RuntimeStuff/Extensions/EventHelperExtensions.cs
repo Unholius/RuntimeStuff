@@ -119,6 +119,7 @@ namespace RuntimeStuff.Extensions
         /// Первый параметр — объект-источник события (<c>sender</c>),
         /// второй параметр — аргументы события (<c>EventArgs</c> или производный тип).
         /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, удаляющий привязанный обработчик
         /// при вызове <see cref="IDisposable.Dispose"/>.
@@ -140,12 +141,13 @@ namespace RuntimeStuff.Extensions
         public static IDisposable BindEventToAction<T, TArgs>(
             this T obj,
             string eventName,
-            Action<T, TArgs> action)
+            Action<T, TArgs> action,
+            Func<T, TArgs, bool> canExecuteAction = null)
         {
             var eventInfo = obj.GetType().GetEvent(eventName);
             return eventInfo == null
                 ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
-                : EventHelper.BindEventToAction(obj, eventInfo, action);
+                : EventHelper.BindEventToAction(obj, eventInfo, action, canExecuteAction);
         }
 
         /// <summary>
@@ -164,6 +166,7 @@ namespace RuntimeStuff.Extensions
         /// Действие, выполняемое при срабатывании события; получает объект-источник события
         /// и его аргументы.
         /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
         /// и освободить связанные ресурсы.
@@ -177,12 +180,13 @@ namespace RuntimeStuff.Extensions
         public static IDisposable BindEventToAction<T>(
             this T obj,
             string eventName,
-            Action<T, EventArgs> action)
+            Action<T, EventArgs> action,
+            Func<T, EventArgs, bool> canExecuteAction = null)
         {
             var eventInfo = obj.GetType().GetEvent(eventName);
             return eventInfo == null
                 ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
-                : EventHelper.BindEventToAction(obj, eventInfo, action);
+                : EventHelper.BindEventToAction(obj, eventInfo, action, canExecuteAction);
         }
 
         /// <summary>
@@ -200,6 +204,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="action">
         /// Действие, которое будет выполнено при срабатывании события.
         /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
         /// и освободить связанные ресурсы.
@@ -213,12 +218,13 @@ namespace RuntimeStuff.Extensions
         public static IDisposable BindEventToAction<T>(
             this T obj,
             string eventName,
-            Action action)
+            Action action,
+            Func<T, object, bool> canExecuteAction = null)
         {
             var eventInfo = obj.GetType().GetEvent(eventName);
             return eventInfo == null
                 ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
-                : EventHelper.BindEventToAction<T, object>(obj, eventInfo, (s, e) => action());
+                : EventHelper.BindEventToAction<T, object>(obj, eventInfo, (s, e) => action(), canExecuteAction);
         }
 
         /// <summary>
@@ -237,6 +243,7 @@ namespace RuntimeStuff.Extensions
         /// Первый параметр — объект-источник события (<c>sender</c>),
         /// второй параметр — аргументы события.
         /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, удаляющий привязку обработчика
         /// при вызове <see cref="IDisposable.Dispose"/>.
@@ -259,9 +266,10 @@ namespace RuntimeStuff.Extensions
         public static IDisposable BindEventToAction(
             this object obj,
             EventInfo eventInfo,
-            Action<object, object> action)
+            Action<object, object> action,
+            Func<object, object, bool> canExecuteAction = null)
         {
-            return EventHelper.BindEventToAction<object, EventArgs>(obj, eventInfo, action);
+            return EventHelper.BindEventToAction<object, EventArgs>(obj, eventInfo, action, canExecuteAction);
         }
 
         /// <summary>
@@ -736,6 +744,70 @@ namespace RuntimeStuff.Extensions
         {
             var srcEvent = source.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
             return EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, null, BindingDirection.OneWay, sourceToDestConverter, null);
+        }
+
+        /// <summary>
+        /// Устанавливает одностороннюю привязку свойства источника
+        /// к одному и тому же свойству нескольких объектов-приёмников.
+        /// </summary>
+        /// <typeparam name="TSource">
+        /// Тип объекта-источника, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// </typeparam>
+        /// <typeparam name="TSourceProp">
+        /// Тип свойства источника.
+        /// </typeparam>
+        /// <typeparam name="TDest">
+        /// Тип объектов-приёмников.
+        /// </typeparam>
+        /// <typeparam name="TDestProp">
+        /// Тип свойства приёмников.
+        /// </typeparam>
+        /// <param name="source">
+        /// Объект-источник, изменения свойств которого отслеживаются.
+        /// </param>
+        /// <param name="sourcePropertySelector">
+        /// Лямбда-выражение, указывающее привязываемое свойство источника.
+        /// </param>
+        /// <param name="destArray">
+        /// Коллекция объектов-приёмников, свойства которых будут обновляться.
+        /// </param>
+        /// <param name="destPropertySelector">
+        /// Лямбда-выражение, указывающее привязываемое свойство приёмников.
+        /// </param>
+        /// <param name="sourceToDestConverter">
+        /// Необязательный конвертер значения из типа свойства источника
+        /// в тип свойства приёмников.
+        /// </param>
+        /// <returns>
+        /// Последовательность объектов <see cref="IDisposable"/>,
+        /// каждый из которых позволяет разорвать соответствующую привязку.
+        /// </returns>
+        /// <remarks>
+        /// Привязка является односторонней:
+        /// изменения свойства источника автоматически распространяются
+        /// на все объекты-приёмники.
+        /// Возвращаемая последовательность создаётся лениво с помощью
+        /// <c>yield return</c>.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/>,
+        /// <paramref name="sourcePropertySelector"/>,
+        /// <paramref name="destArray"/> или
+        /// <paramref name="destPropertySelector"/> равны <c>null</c>.
+        /// </exception>
+        public static IEnumerable<IDisposable> BindToProperty<TSource, TSourceProp, TDest, TDestProp>(
+            this TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            IEnumerable<TDest> destArray,
+            Expression<Func<TDest, TDestProp>> destPropertySelector,
+            Func<TSourceProp, TDestProp> sourceToDestConverter = null)
+            where TSource : class, INotifyPropertyChanged
+            where TDest : class
+        {
+            foreach (var dest in destArray)
+            {
+                yield return BindToProperty(source, sourcePropertySelector, dest, destPropertySelector, sourceToDestConverter);
+            }
         }
 
         /// <summary>
