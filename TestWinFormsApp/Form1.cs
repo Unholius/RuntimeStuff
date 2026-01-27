@@ -12,6 +12,7 @@ namespace TestWinFormsApp
         public Form1()
         {
             InitializeComponent();
+            
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -45,6 +46,7 @@ namespace TestWinFormsApp
             oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
             oc.Add(new object());
             textBox1.BindProperties(x => x.Text, nameof(TextBox.TextChanged), checkBox1, x => x.Checked, nameof(CheckBox.CheckedChanged), BindingDirection.OneWay, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
+            
             Obj.Set(dataGridView1, "DoubleBuffered", true);
             m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled);
         }

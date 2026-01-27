@@ -80,8 +80,23 @@ namespace RuntimeStuff.Helpers
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
-            var eventHandlerType = eventInfo.EventHandlerType;
-            var handler = CreateEventHandlerDelegate(eventHandlerType, action);
+            var weakAction = new WeakReference(action);
+            Delegate handler = null;
+
+            void Proxy(T sender, TArgs args)
+            {
+                var a = (Action<T, TArgs>)weakAction.Target;
+                if (a != null)
+                {
+                    a(sender, args);
+                }
+                else
+                {
+                    eventInfo.RemoveEventHandler(obj, handler);
+                }
+            }
+
+            handler = CreateEventHandlerDelegate(eventInfo.EventHandlerType, (Action<T, TArgs>)Proxy);
 
             eventInfo.AddEventHandler(obj, handler);
             return new EventBinding(obj, eventInfo, handler);
@@ -280,6 +295,11 @@ namespace RuntimeStuff.Helpers
                 this.handler = handler;
             }
 
+            ~EventBinding()
+            {
+                Dispose();
+            }
+
             public void Dispose()
             {
                 if (disposed)
@@ -292,15 +312,15 @@ namespace RuntimeStuff.Helpers
 
         private sealed class PropertiesBinding<TSrc, TDest> : IDisposable
         {
-            private bool disposed;
             private WeakReference dest;
+            private EventInfo destEvent;
             private PropertyInfo destPropertyInfo;
+            private Func<TDest, TSrc> destToSourceConverter;
+            private bool disposed;
             private WeakReference source;
+            private EventInfo sourceEvent;
             private PropertyInfo sourcePropertyInfo;
             private Func<TSrc, TDest> sourceToDestConverter;
-            private Func<TDest, TSrc> destToSourceConverter;
-            private EventInfo sourceEvent;
-            private EventInfo destEvent;
 
             public PropertiesBinding(object src, PropertyInfo srcPropInfo, EventInfo sourceEvent, object dest, PropertyInfo destPropInfo, EventInfo destEvent, Func<TSrc, TDest> sourceToDestConverter = null, Func<TDest, TSrc> destToSourceConverter = null)
             {
@@ -314,9 +334,9 @@ namespace RuntimeStuff.Helpers
                 this.dest = new WeakReference(dest);
             }
 
-            internal Delegate SrcEventHandler { get; set; }
-
             internal Delegate DstEventHandler { get; set; }
+
+            internal Delegate SrcEventHandler { get; set; }
 
             /// <summary>
             /// Освобождает ресурсы, связанные с привязкой свойств,
@@ -335,11 +355,14 @@ namespace RuntimeStuff.Helpers
                 if (disposed)
                     return;
 
-                if (sourceEvent != null && SrcEventHandler != null)
-                    EventHelper.UnBindActionFromEvent(source, sourceEvent, SrcEventHandler);
+                var src = source?.Target;
+                var dst = dest?.Target;
 
-                if (destEvent != null && DstEventHandler != null)
-                    EventHelper.UnBindActionFromEvent(dest, destEvent, DstEventHandler);
+                if (src != null && sourceEvent != null && SrcEventHandler != null)
+                    EventHelper.UnBindActionFromEvent(source.Target, sourceEvent, SrcEventHandler);
+
+                if (dst != null && destEvent != null && DstEventHandler != null)
+                    EventHelper.UnBindActionFromEvent(dest.Target, destEvent, DstEventHandler);
                 this.sourcePropertyInfo = null;
                 this.destPropertyInfo = null;
                 this.sourceToDestConverter = null;
@@ -356,13 +379,7 @@ namespace RuntimeStuff.Helpers
                 if (args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
                     return;
 
-                if (!source.IsAlive)
-                {
-                    Dispose();
-                    return;
-                }
-
-                if (!dest.IsAlive)
+                if (source.Target == null || dest.Target == null)
                 {
                     Dispose();
                     return;
@@ -384,13 +401,7 @@ namespace RuntimeStuff.Helpers
                 if (args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
                     return;
 
-                if (!source.IsAlive)
-                {
-                    Dispose();
-                    return;
-                }
-
-                if (!dest.IsAlive)
+                if (source.Target == null || dest.Target == null)
                 {
                     Dispose();
                     return;
