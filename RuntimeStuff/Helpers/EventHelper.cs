@@ -280,24 +280,24 @@ namespace RuntimeStuff.Helpers
 
         private sealed class PropertiesBinding<TSrc, TDest> : IDisposable
         {
-            private readonly object dest;
-            private readonly PropertyInfo destPropertyInfo;
-            private readonly object source;
-            private readonly PropertyInfo sourcePropertyInfo;
-            private readonly Func<TSrc, TDest> sourceToDestConverter;
-            private readonly Func<TDest, TSrc> destToSourceConverter;
-            private readonly EventInfo sourceEvent;
-            private readonly EventInfo destEvent;
+            private object dest;
+            private PropertyInfo destPropertyInfo;
+            private object source;
+            private PropertyInfo sourcePropertyInfo;
+            private Func<TSrc, TDest> sourceToDestConverter;
+            private Func<TDest, TSrc> destToSourceConverter;
+            private EventInfo sourceEvent;
+            private EventInfo destEvent;
 
             public PropertiesBinding(object src, PropertyInfo srcPropInfo, EventInfo sourceEvent, object dest, PropertyInfo destPropInfo, EventInfo destEvent, Func<TSrc, TDest> sourceToDestConverter = null, Func<TDest, TSrc> destToSourceConverter = null)
             {
-                sourcePropertyInfo = srcPropInfo;
-                destPropertyInfo = destPropInfo;
+                this.sourcePropertyInfo = srcPropInfo;
+                this.destPropertyInfo = destPropInfo;
                 this.sourceToDestConverter = sourceToDestConverter;
                 this.destToSourceConverter = destToSourceConverter;
                 this.sourceEvent = sourceEvent;
                 this.destEvent = destEvent;
-                source = src;
+                this.source = src;
                 this.dest = dest;
             }
 
@@ -328,6 +328,14 @@ namespace RuntimeStuff.Helpers
                     destNotify.PropertyChanged -= DstPropChanged;
                 else
                     EventHelper.UnBindActionFromEvent(dest, destEvent, DstEventHandler);
+                this.sourcePropertyInfo = null;
+                this.destPropertyInfo = null;
+                this.sourceToDestConverter = null;
+                this.destToSourceConverter = null;
+                this.sourceEvent = null;
+                this.destEvent = null;
+                this.source = null;
+                this.dest = null;
             }
 
             internal void DstPropChanged(object sender, object args)
