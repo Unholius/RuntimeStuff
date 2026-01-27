@@ -83,7 +83,7 @@ namespace TestWinFormsApp
             dataGridView1.DataSource = null;
             using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
             {
-                var dt = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
+                var dt = await con.ToDataTableAsync("select top 10000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
                 dataGridView1.DataSource = dt;
                 dt = null;
             }

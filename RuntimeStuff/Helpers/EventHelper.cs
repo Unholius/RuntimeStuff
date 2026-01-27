@@ -5,6 +5,7 @@
 namespace RuntimeStuff.Helpers
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Linq.Expressions;
@@ -199,26 +200,37 @@ namespace RuntimeStuff.Helpers
         /// приводит параметры события к типам <typeparamref name="T"/> и <typeparamref name="TArgs"/>,
         /// а затем компилирует его в делегат заданного типа.
         /// </remarks>
-        public static Delegate CreateEventHandlerDelegate<T, TArgs>(Type eventHandlerType, Action<T, TArgs> action)
+        public static Delegate CreateEventHandlerDelegate<T, TArgs>(
+            Type eventHandlerType,
+            Action<T, TArgs> action)
         {
-            var invokeMethod = eventHandlerType.GetMethod("Invoke");
-            if (invokeMethod == null) return null;
-            var parameters = invokeMethod.GetParameters();
+            if (eventHandlerType == null)
+                throw new ArgumentNullException(nameof(eventHandlerType));
+            if (action == null)
+                throw new ArgumentNullException(nameof(action));
 
+            var invokeMethod = eventHandlerType.GetMethod("Invoke")
+                               ?? throw new InvalidOperationException("Event handler has no Invoke method.");
+
+            var parameters = invokeMethod.GetParameters();
             if (parameters.Length < 2)
                 throw new InvalidOperationException("Event must have at least 2 parameters (sender and args).");
 
             var senderParam = Expression.Parameter(parameters[0].ParameterType, "sender");
             var argsParam = Expression.Parameter(parameters[1].ParameterType, "args");
 
-            var actionCall = Expression.Call(
+            var actionInvoke = action.GetType().GetMethod("Invoke")
+                               ?? throw new InvalidOperationException();
+
+            var body = Expression.Call(
                 Expression.Constant(action),
-                action.GetType().GetMethod("Invoke") ?? throw new InvalidOperationException(),
+                actionInvoke,
                 Expression.Convert(senderParam, typeof(T)),
                 Expression.Convert(argsParam, typeof(TArgs)));
 
-            var lambda = Expression.Lambda(eventHandlerType, actionCall, senderParam, argsParam);
-            return lambda.Compile();
+            return Expression
+                .Lambda(eventHandlerType, body, senderParam, argsParam)
+                .Compile();
         }
 
         /// <summary>
@@ -280,9 +292,10 @@ namespace RuntimeStuff.Helpers
 
         private sealed class PropertiesBinding<TSrc, TDest> : IDisposable
         {
-            private object dest;
+            private bool disposed;
+            private WeakReference dest;
             private PropertyInfo destPropertyInfo;
-            private object source;
+            private WeakReference source;
             private PropertyInfo sourcePropertyInfo;
             private Func<TSrc, TDest> sourceToDestConverter;
             private Func<TDest, TSrc> destToSourceConverter;
@@ -297,8 +310,8 @@ namespace RuntimeStuff.Helpers
                 this.destToSourceConverter = destToSourceConverter;
                 this.sourceEvent = sourceEvent;
                 this.destEvent = destEvent;
-                this.source = src;
-                this.dest = dest;
+                this.source = new WeakReference(src);
+                this.dest = new WeakReference(dest);
             }
 
             internal Delegate SrcEventHandler { get; set; }
@@ -319,14 +332,13 @@ namespace RuntimeStuff.Helpers
             /// </remarks>
             public void Dispose()
             {
-                if (source is INotifyPropertyChanged srcNotify)
-                    srcNotify.PropertyChanged -= SrcPropChanged;
-                else
+                if (disposed)
+                    return;
+
+                if (sourceEvent != null && SrcEventHandler != null)
                     EventHelper.UnBindActionFromEvent(source, sourceEvent, SrcEventHandler);
 
-                if (dest is INotifyPropertyChanged destNotify)
-                    destNotify.PropertyChanged -= DstPropChanged;
-                else
+                if (destEvent != null && DstEventHandler != null)
                     EventHelper.UnBindActionFromEvent(dest, destEvent, DstEventHandler);
                 this.sourcePropertyInfo = null;
                 this.destPropertyInfo = null;
@@ -336,6 +348,7 @@ namespace RuntimeStuff.Helpers
                 this.destEvent = null;
                 this.source = null;
                 this.dest = null;
+                disposed = true;
             }
 
             internal void DstPropChanged(object sender, object args)
@@ -343,15 +356,27 @@ namespace RuntimeStuff.Helpers
                 if (args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
                     return;
 
+                if (!source.IsAlive)
+                {
+                    Dispose();
+                    return;
+                }
+
+                if (!dest.IsAlive)
+                {
+                    Dispose();
+                    return;
+                }
+
                 var senderValue = destPropertyInfo.GetValue(sender);
-                var destValue = sourcePropertyInfo.GetValue(source);
+                var destValue = sourcePropertyInfo.GetValue(source.Target);
                 var convertedValue = destToSourceConverter != null
                     ? destToSourceConverter((TDest)senderValue)
                     : senderValue;
-                if (EqualityComparer<object>.Default.Equals(destValue, convertedValue))
+                if (EqualityComparer<TSrc>.Default.Equals((TSrc)destValue, (TSrc)convertedValue))
                     return;
 
-                sourcePropertyInfo.SetValue(source, convertedValue);
+                sourcePropertyInfo.SetValue(source.Target, convertedValue);
             }
 
             internal void SrcPropChanged(object sender, object args)
@@ -359,15 +384,27 @@ namespace RuntimeStuff.Helpers
                 if (args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
                     return;
 
+                if (!source.IsAlive)
+                {
+                    Dispose();
+                    return;
+                }
+
+                if (!dest.IsAlive)
+                {
+                    Dispose();
+                    return;
+                }
+
                 var senderValue = sourcePropertyInfo.GetValue(sender);
-                var destValue = destPropertyInfo.GetValue(dest);
+                var destValue = destPropertyInfo.GetValue(dest.Target);
                 var convertedValue = sourceToDestConverter != null
                     ? sourceToDestConverter((TSrc)senderValue)
                     : senderValue;
-                if (EqualityComparer<object>.Default.Equals(destValue, convertedValue))
+                if (EqualityComparer<TDest>.Default.Equals((TDest)destValue, (TDest)convertedValue))
                     return;
 
-                destPropertyInfo.SetValue(dest, convertedValue);
+                destPropertyInfo.SetValue(dest.Target, convertedValue);
             }
         }
     }
