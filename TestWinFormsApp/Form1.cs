@@ -2,6 +2,7 @@ using RuntimeStuff;
 using RuntimeStuff.Extensions;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
 
@@ -35,20 +36,21 @@ namespace TestWinFormsApp
             var count2 = formCache.CachedMembersCount;
             sw.Stop();
             var ms2 = sw.ElapsedMilliseconds;
-            btnMemberCacheAllMembers.BindEventToAction(nameof(Button.Click), BtnClick);
-            textBox1.BindEventToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, (box, args) => dataGridView1.RowCount > 0);
+            btnMemberCacheAllMembers.BindToAction(nameof(Button.Click), BtnClick);
+            textBox1.BindToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, (box, args) => checkBox1.Checked);
             m.BindProperties(x => x.Text, "PropertyChanged", textBox1, x => x.Text, nameof(TextBox.TextChanged));
             propertyGrid1.Subscribe(m, propertyGrid1.Refresh);
             m.Text = "123";
-            m.BindPropertyChangedToAction(M_PropertyChanged); //m.PropertyChanged += M_PropertyChanged;
+            m.BindToAction(x => x.Text, M_PropertyChanged); //m.PropertyChanged += M_PropertyChanged;
             propertyGrid1.SelectedObject = m;
             var oc = new ObservableCollection<object>();
-            oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
+            oc.BindToAction(BindCollectionChangedToAction);
             oc.Add(new object());
             textBox1.BindProperties(x => x.Text, nameof(TextBox.TextChanged), checkBox1, x => x.Checked, nameof(CheckBox.CheckedChanged), BindingDirection.OneWay, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
             
             Obj.Set(dataGridView1, "DoubleBuffered", true);
             m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled);
+            m.BindToAction(x => x.Number, (s, e) => MessageBox.Show(e.PropertyName));
         }
 
         private void M_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -82,14 +84,17 @@ namespace TestWinFormsApp
         private async void btnLoad_Click(object sender, EventArgs e)
         {
             m.IsFree = false;
-            dataGridView1.DataSource = null;
-            using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
-            {
-                var dt = await con.ToDataTableAsync("select top 10000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
-                dataGridView1.DataSource = dt;
-                dt = null;
-            }
-
+            var dt = new DataTable();
+            dt.AddCol("ID", typeof(int));
+            dt.AddRow(1).AddRow(2).AddRow(3);
+            //dataGridView1.DataSource = null;
+            //using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
+            //{
+            //    var dt = await con.ToDataTableAsync("select top 10000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
+            //    dataGridView1.DataSource = dt;
+            //    dt = null;
+            //}
+            dataGridView1.DataSource = dt;
             m.IsFree = true;
         }
 

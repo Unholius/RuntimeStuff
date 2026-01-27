@@ -35,391 +35,6 @@ namespace RuntimeStuff.Extensions
     public static class EventHelperExtensions
     {
         /// <summary>
-        /// Привязывает указанное действие к событию изменения коллекции
-        /// <see cref="INotifyCollectionChanged.CollectionChanged"/>.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, реализующего <see cref="INotifyCollectionChanged"/>.
-        /// </typeparam>
-        /// <param name="obj">
-        /// Объект, коллекция которого будет отслеживаться.
-        /// </param>
-        /// <param name="action">
-        /// Действие, выполняемое при изменении коллекции.
-        /// Получает объект-источник события и аргументы изменения коллекции.
-        /// </param>
-        /// <returns>
-        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
-        /// изменения коллекции.
-        /// </returns>
-        /// <remarks>
-        /// Метод является специализированной обёрткой над <c>BindEventToAction</c>
-        /// для события <c>CollectionChanged</c> и упрощает подписку на изменения
-        /// коллекций без ручной реализации обработчиков событий.
-        /// </remarks>
-        public static IDisposable BindCollectionChangedToAction<T>(
-            this T obj,
-            Action<T, NotifyCollectionChangedEventArgs> action)
-            where T : class
-        {
-            var eventName = nameof(INotifyCollectionChanged.CollectionChanged);
-            return BindEventToAction(obj, eventName, action);
-        }
-
-        /// <summary>
-        /// Привязывает указанное действие к событию изменения коллекции
-        /// <see cref="INotifyCollectionChanged.CollectionChanged"/>.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, реализующего <see cref="INotifyCollectionChanged"/>.
-        /// </typeparam>
-        /// <param name="obj">
-        /// Объект, коллекция которого будет отслеживаться.
-        /// </param>
-        /// <param name="action">
-        /// Действие, выполняемое при изменении коллекции.
-        /// Получает объект-источник события и аргументы изменения коллекции.
-        /// </param>
-        /// <returns>
-        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
-        /// изменения коллекции.
-        /// </returns>
-        /// <remarks>
-        /// Метод является специализированной обёрткой над <c>BindEventToAction</c>
-        /// для события <c>CollectionChanged</c> и упрощает подписку на изменения
-        /// коллекций без ручной реализации обработчиков событий.
-        /// </remarks>
-        public static IDisposable BindCollectionChangedToAction<T>(
-            this T obj,
-            Action action)
-            where T : class
-        {
-            var eventName = nameof(INotifyCollectionChanged.CollectionChanged);
-            return BindEventToAction(obj, eventName, action);
-        }
-
-        /// <summary>
-        /// Привязывает обработчик к событию объекта по имени события.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, содержащего событие.
-        /// </typeparam>
-        /// <typeparam name="TArgs">
-        /// Тип аргумента события.
-        /// </typeparam>
-        /// <param name="obj">
-        /// Экземпляр объекта, к событию которого выполняется привязка.
-        /// </param>
-        /// <param name="eventName">
-        /// Имя события, к которому необходимо привязать обработчик.
-        /// </param>
-        /// <param name="action">
-        /// Делегат, который будет вызван при возникновении события.
-        ///
-        /// Первый параметр — объект-источник события (<c>sender</c>),
-        /// второй параметр — аргументы события (<c>EventArgs</c> или производный тип).
-        /// </param>
-        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
-        /// <returns>
-        /// Объект <see cref="IDisposable"/>, удаляющий привязанный обработчик
-        /// при вызове <see cref="IDisposable.Dispose"/>.
-        /// </returns>
-        /// <remarks>
-        /// Метод использует Reflection для поиска события по имени
-        /// и динамически создаёт делегат обработчика соответствующего типа.
-        ///
-        /// Удобен для сценариев, где имя события известно только во время выполнения
-        /// (например, динамическое связывание UI или инфраструктурный код).
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">
-        /// Генерируется, если <paramref name="obj"/>,
-        /// <paramref name="eventName"/> или <paramref name="action"/> равны <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Может быть сгенерировано, если событие с указанным именем не найдено.
-        /// </exception>
-        public static IDisposable BindEventToAction<T, TArgs>(
-            this T obj,
-            string eventName,
-            Action<T, TArgs> action,
-            Func<T, TArgs, bool> canExecuteAction = null)
-        {
-            var eventInfo = obj.GetType().GetEvent(eventName);
-            return eventInfo == null
-                ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
-                : EventHelper.BindEventToAction(obj, eventInfo, action, canExecuteAction);
-        }
-
-        /// <summary>
-        /// Привязывает указанное действие к событию объекта по имени события.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, содержащего событие.
-        /// </typeparam>
-        /// <param name="obj">
-        /// Экземпляр объекта, событие которого будет использовано.
-        /// </param>
-        /// <param name="eventName">
-        /// Имя события, к которому необходимо привязать действие.
-        /// </param>
-        /// <param name="action">
-        /// Действие, выполняемое при срабатывании события; получает объект-источник события
-        /// и его аргументы.
-        /// </param>
-        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
-        /// <returns>
-        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
-        /// и освободить связанные ресурсы.
-        /// </returns>
-        /// <remarks>
-        /// Метод является удобной обёрткой над <c>EventHelper.BindEventToAction</c>
-        /// и использует рефлексию для поиска события по его имени.
-        /// Ожидается, что указанное событие соответствует стандартному .NET-паттерну
-        /// и использует аргументы, производные от <see cref="EventArgs"/>.
-        /// </remarks>
-        public static IDisposable BindEventToAction<T>(
-            this T obj,
-            string eventName,
-            Action<T, EventArgs> action,
-            Func<T, EventArgs, bool> canExecuteAction = null)
-        {
-            var eventInfo = obj.GetType().GetEvent(eventName);
-            return eventInfo == null
-                ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
-                : EventHelper.BindEventToAction(obj, eventInfo, action, canExecuteAction);
-        }
-
-        /// <summary>
-        /// Привязывает указанное действие без аргументов к событию объекта по имени события.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип объекта, содержащего событие.
-        /// </typeparam>
-        /// <param name="obj">
-        /// Экземпляр объекта, событие которого будет использовано.
-        /// </param>
-        /// <param name="eventName">
-        /// Имя события, к которому необходимо привязать действие.
-        /// </param>
-        /// <param name="action">
-        /// Действие, которое будет выполнено при срабатывании события.
-        /// </param>
-        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
-        /// <returns>
-        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
-        /// и освободить связанные ресурсы.
-        /// </returns>
-        /// <remarks>
-        /// Метод использует рефлексию для поиска события по имени и привязывает его
-        /// к указанному действию, игнорируя аргументы события. Является удобной
-        /// перегрузкой для случаев, когда обработчик события не использует параметры
-        /// <see cref="EventArgs"/> или источник события.
-        /// </remarks>
-        public static IDisposable BindEventToAction<T>(
-            this T obj,
-            string eventName,
-            Action action,
-            Func<T, object, bool> canExecuteAction = null)
-        {
-            var eventInfo = obj.GetType().GetEvent(eventName);
-            return eventInfo == null
-                ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
-                : EventHelper.BindEventToAction<T, object>(obj, eventInfo, (s, e) => action(), canExecuteAction);
-        }
-
-        /// <summary>
-        /// Привязывает обработчик к событию объекта,
-        /// используя <see cref="EventInfo"/>.
-        /// </summary>
-        /// <param name="obj">
-        /// Экземпляр объекта, к событию которого выполняется привязка.
-        /// </param>
-        /// <param name="eventInfo">
-        /// Метаданные события, к которому необходимо привязать обработчик.
-        /// </param>
-        /// <param name="action">
-        /// Делегат, который будет вызван при возникновении события.
-        ///
-        /// Первый параметр — объект-источник события (<c>sender</c>),
-        /// второй параметр — аргументы события.
-        /// </param>
-        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
-        /// <returns>
-        /// Объект <see cref="IDisposable"/>, удаляющий привязку обработчика
-        /// при вызове <see cref="IDisposable.Dispose"/>.
-        /// </returns>
-        /// <remarks>
-        /// Метод:
-        /// <list type="bullet">
-        /// <item><description>Создаёт делегат обработчика, совместимый с типом события;</description></item>
-        /// <item><description>Подписывается на событие через <see cref="EventInfo.AddEventHandler"/>;</description></item>
-        /// <item><description>Возвращает объект-обёртку для безопасного отписывания.</description></item>
-        /// </list>
-        ///
-        /// Это позволяет использовать единый <see cref="Action{Object, Object}"/>
-        /// для обработки событий с разными сигнатурами.
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">
-        /// Генерируется, если <paramref name="obj"/>,
-        /// <paramref name="eventInfo"/> или <paramref name="action"/> равны <c>null</c>.
-        /// </exception>
-        public static IDisposable BindEventToAction(
-            this object obj,
-            EventInfo eventInfo,
-            Action<object, object> action,
-            Func<object, object, bool> canExecuteAction = null)
-        {
-            return EventHelper.BindEventToAction<object, EventArgs>(obj, eventInfo, action, canExecuteAction);
-        }
-
-        /// <summary>
-        /// Привязывает действие без аргументов к указанному событию
-        /// для каждого элемента коллекции.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип элементов коллекции.
-        /// </typeparam>
-        /// <param name="list">
-        /// Коллекция элементов, для которых будет выполнена подписка на событие.
-        /// </param>
-        /// <param name="eventName">
-        /// Имя события, к которому необходимо выполнить привязку.
-        /// Событие должно существовать у типа <typeparamref name="T"/>.
-        /// </param>
-        /// <param name="action">
-        /// Действие, выполняемое при возникновении события у любого элемента коллекции.
-        /// </param>
-        /// <returns>
-        /// Последовательность объектов <see cref="IDisposable"/>,
-        /// позволяющих отписаться от событий каждого элемента коллекции.
-        /// </returns>
-        /// <remarks>
-        /// Метод последовательно подписывается на событие с указанным именем
-        /// каждого элемента коллекции и возвращает набор объектов,
-        /// управляющих временем жизни соответствующих подписок.
-        /// Аргументы события игнорируются.
-        /// </remarks>
-        /// <exception cref="ArgumentException">
-        /// Может быть выброшено, если событие с указанным именем
-        /// не найдено у типа <typeparamref name="T"/>.
-        /// </exception>
-        public static IEnumerable<IDisposable> BindItemEventToAction<T>(
-            this IEnumerable<T> list,
-            string eventName,
-            Action action)
-            where T : class
-        {
-            foreach (var item in list)
-            {
-                yield return BindEventToAction<object, object>(item, eventName, (s, e) => action());
-            }
-        }
-
-        /// <summary>
-        /// Подписывает действие на указанное событие каждого элемента коллекции.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип элементов коллекции, содержащих событие.
-        /// </typeparam>
-        /// <param name="list">
-        /// Коллекция объектов, для каждого из которых будет выполнена подписка на событие.
-        /// </param>
-        /// <param name="eventName">
-        /// Имя события, на которое необходимо подписаться.
-        /// </param>
-        /// <param name="action">
-        /// Действие, вызываемое при срабатывании события.
-        /// Первый параметр — объект, у которого произошло событие,
-        /// второй параметр — аргументы события.
-        /// </param>
-        /// <returns>
-        /// Перечисление объектов <see cref="IDisposable"/>, каждый из которых отвечает
-        /// за отмену подписки на событие соответствующего элемента коллекции.
-        /// </returns>
-        /// <remarks>
-        /// Метод предназначен для работы с событиями стандартного вида
-        /// (<see cref="EventHandler"/> или <see cref="EventHandler{TEventArgs}"/>).
-        /// Отписка от всех событий выполняется посредством вызова <see cref="IDisposable.Dispose"/>
-        /// для каждого возвращаемого элемента.
-        /// </remarks>
-        public static IEnumerable<IDisposable> BindItemEventToAction<T>(
-            this IEnumerable<T> list,
-            string eventName,
-            Action<T, EventArgs> action)
-            where T : class
-        {
-            foreach (var item in list)
-            {
-                yield return BindEventToAction<T, EventArgs>(item, eventName, action);
-            }
-        }
-
-        /// <summary>
-        /// Привязывает указанное действие к событию изменения свойства
-        /// <see cref="INotifyPropertyChanged.PropertyChanged"/> для каждого элемента коллекции.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип элементов коллекции, реализующий <see cref="INotifyPropertyChanged"/>.
-        /// </typeparam>
-        /// <param name="list">
-        /// Коллекция элементов, для которых будет выполнена подписка на изменение свойств.
-        /// </param>
-        /// <param name="action">
-        /// Действие, выполняемое при изменении свойства элемента.
-        /// Получает элемент коллекции и аргументы события.
-        /// </param>
-        /// <returns>
-        /// Последовательность объектов <see cref="IDisposable"/>,
-        /// позволяющих отписаться от событий каждого элемента коллекции.
-        /// </returns>
-        /// <remarks>
-        /// Метод последовательно подписывается на событие <c>PropertyChanged</c>
-        /// каждого элемента коллекции и возвращает набор объектов,
-        /// управляющих временем жизни соответствующих подписок.
-        /// </remarks>
-        public static IEnumerable<IDisposable> BindItemPropertyChangedToAction<T>(
-            this IEnumerable<T> list,
-            Action<T, PropertyChangedEventArgs> action)
-            where T : INotifyPropertyChanged
-        {
-            var eventName = nameof(INotifyPropertyChanged.PropertyChanged);
-            foreach (var item in list)
-            {
-                yield return BindEventToAction(item, eventName, action);
-            }
-        }
-
-        /// <summary>
-        /// Привязывает действие без аргументов к событию изменения свойства
-        /// <see cref="INotifyPropertyChanged.PropertyChanged"/> для каждого элемента коллекции.
-        /// </summary>
-        /// <typeparam name="T">
-        /// Тип элементов коллекции, реализующий <see cref="INotifyPropertyChanged"/>.
-        /// </typeparam>
-        /// <param name="list">
-        /// Коллекция элементов, для которых будет выполнена подписка на изменение свойств.
-        /// </param>
-        /// <param name="action">
-        /// Действие, выполняемое при изменении свойства любого элемента коллекции.
-        /// </param>
-        /// <returns>
-        /// Последовательность объектов <see cref="IDisposable"/>,
-        /// позволяющих отписаться от событий каждого элемента коллекции.
-        /// </returns>
-        /// <remarks>
-        /// Перегрузка предназначена для сценариев, в которых аргументы события
-        /// и конкретный элемент коллекции не имеют значения для логики обработки.
-        /// </remarks>
-        public static IEnumerable<IDisposable> BindItemPropertyChangedToAction<T>(
-            this IEnumerable<T> list,
-            Action action)
-            where T : class, INotifyPropertyChanged
-        {
-            var eventName = nameof(INotifyPropertyChanged.PropertyChanged);
-            return BindItemEventToAction(list, eventName, action);
-        }
-
-        /// <summary>
         /// Связывает указанное свойство объекта-источника со свойством объекта-приёмника,
         /// синхронизируя их значения при изменении.
         /// </summary>
@@ -621,40 +236,150 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
-        /// Привязывает обработчик к событию <see cref="INotifyPropertyChanged.PropertyChanged"/>
-        /// объекта и перенаправляет вызовы в унифицированное действие.
+        /// Привязывает действие без аргументов к указанному событию
+        /// для каждого элемента коллекции.
         /// </summary>
         /// <typeparam name="T">
-        /// Тип объекта, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// Тип элементов коллекции.
         /// </typeparam>
-        /// <param name="obj">
-        /// Экземпляр объекта, для которого выполняется подписка на событие
-        /// <see cref="INotifyPropertyChanged.PropertyChanged"/>.
+        /// <param name="list">
+        /// Коллекция элементов, для которых будет выполнена подписка на событие.
+        /// </param>
+        /// <param name="eventName">
+        /// Имя события, к которому необходимо выполнить привязку.
+        /// Событие должно существовать у типа <typeparamref name="T"/>.
         /// </param>
         /// <param name="action">
-        /// Делегат, принимающий отправителя события и аргументы события
-        /// (<see cref="PropertyChangedEventArgs"/>), переданные как <see cref="object"/>.
+        /// Действие, выполняемое при возникновении события у любого элемента коллекции.
         /// </param>
         /// <returns>
-        /// Объект <see cref="IDisposable"/>, при уничтожении которого
-        /// выполняется отписка от события.
+        /// Последовательность объектов <see cref="IDisposable"/>,
+        /// позволяющих отписаться от событий каждого элемента коллекции.
         /// </returns>
         /// <remarks>
-        /// Метод является thin-wrapper над <c>BindEventToAction</c> и предназначен
-        /// для упрощения сценариев наблюдения за изменениями свойств:
-        /// логирования, трассировки, data-binding инфраструктуры и runtime-инструментов.
-        ///
-        /// Не выполняет проверку реализации <see cref="INotifyPropertyChanged"/>
-        /// на этапе компиляции — ошибка возможна во время выполнения,
-        /// если событие отсутствует.
+        /// Метод последовательно подписывается на событие с указанным именем
+        /// каждого элемента коллекции и возвращает набор объектов,
+        /// управляющих временем жизни соответствующих подписок.
+        /// Аргументы события игнорируются.
         /// </remarks>
-        public static IDisposable BindPropertyChangedToAction<T>(
-            this T obj,
-            Action<T, PropertyChangedEventArgs> action)
+        /// <exception cref="ArgumentException">
+        /// Может быть выброшено, если событие с указанным именем
+        /// не найдено у типа <typeparamref name="T"/>.
+        /// </exception>
+        public static IEnumerable<IDisposable> BindToAction<T>(
+            this IEnumerable<T> list,
+            string eventName,
+            Action action)
             where T : class
         {
+            foreach (var item in list)
+            {
+                yield return BindToAction<object, object>(item, eventName, (s, e) => action());
+            }
+        }
+
+        /// <summary>
+        /// Подписывает действие на указанное событие каждого элемента коллекции.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции, содержащих событие.
+        /// </typeparam>
+        /// <param name="list">
+        /// Коллекция объектов, для каждого из которых будет выполнена подписка на событие.
+        /// </param>
+        /// <param name="eventName">
+        /// Имя события, на которое необходимо подписаться.
+        /// </param>
+        /// <param name="action">
+        /// Действие, вызываемое при срабатывании события.
+        /// Первый параметр — объект, у которого произошло событие,
+        /// второй параметр — аргументы события.
+        /// </param>
+        /// <returns>
+        /// Перечисление объектов <see cref="IDisposable"/>, каждый из которых отвечает
+        /// за отмену подписки на событие соответствующего элемента коллекции.
+        /// </returns>
+        /// <remarks>
+        /// Метод предназначен для работы с событиями стандартного вида
+        /// (<see cref="EventHandler"/> или <see cref="EventHandler{TEventArgs}"/>).
+        /// Отписка от всех событий выполняется посредством вызова <see cref="IDisposable.Dispose"/>
+        /// для каждого возвращаемого элемента.
+        /// </remarks>
+        public static IEnumerable<IDisposable> BindToAction<T>(
+            this IEnumerable<T> list,
+            string eventName,
+            Action<T, EventArgs> action)
+            where T : class
+        {
+            foreach (var item in list)
+            {
+                yield return BindToAction<T, EventArgs>(item, eventName, action);
+            }
+        }
+
+        /// <summary>
+        /// Привязывает указанное действие к событию изменения свойства
+        /// <see cref="INotifyPropertyChanged.PropertyChanged"/> для каждого элемента коллекции.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции, реализующий <see cref="INotifyPropertyChanged"/>.
+        /// </typeparam>
+        /// <param name="list">
+        /// Коллекция элементов, для которых будет выполнена подписка на изменение свойств.
+        /// </param>
+        /// <param name="action">
+        /// Действие, выполняемое при изменении свойства элемента.
+        /// Получает элемент коллекции и аргументы события.
+        /// </param>
+        /// <returns>
+        /// Последовательность объектов <see cref="IDisposable"/>,
+        /// позволяющих отписаться от событий каждого элемента коллекции.
+        /// </returns>
+        /// <remarks>
+        /// Метод последовательно подписывается на событие <c>PropertyChanged</c>
+        /// каждого элемента коллекции и возвращает набор объектов,
+        /// управляющих временем жизни соответствующих подписок.
+        /// </remarks>
+        public static IEnumerable<IDisposable> BindToAction<T>(
+            this IEnumerable<T> list,
+            Action<T, PropertyChangedEventArgs> action)
+            where T : INotifyPropertyChanged
+        {
             var eventName = nameof(INotifyPropertyChanged.PropertyChanged);
-            return BindEventToAction(obj, eventName, action);
+            foreach (var item in list)
+            {
+                yield return BindToAction(item, eventName, action);
+            }
+        }
+
+        /// <summary>
+        /// Привязывает действие без аргументов к событию изменения свойства
+        /// <see cref="INotifyPropertyChanged.PropertyChanged"/> для каждого элемента коллекции.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции, реализующий <see cref="INotifyPropertyChanged"/>.
+        /// </typeparam>
+        /// <param name="list">
+        /// Коллекция элементов, для которых будет выполнена подписка на изменение свойств.
+        /// </param>
+        /// <param name="action">
+        /// Действие, выполняемое при изменении свойства любого элемента коллекции.
+        /// </param>
+        /// <returns>
+        /// Последовательность объектов <see cref="IDisposable"/>,
+        /// позволяющих отписаться от событий каждого элемента коллекции.
+        /// </returns>
+        /// <remarks>
+        /// Перегрузка предназначена для сценариев, в которых аргументы события
+        /// и конкретный элемент коллекции не имеют значения для логики обработки.
+        /// </remarks>
+        public static IEnumerable<IDisposable> BindToAction<T>(
+            this IEnumerable<T> list,
+            Action action)
+            where T : class, INotifyPropertyChanged
+        {
+            var eventName = nameof(INotifyPropertyChanged.PropertyChanged);
+            return BindToAction(list, eventName, action);
         }
 
         /// <summary>
@@ -675,17 +400,262 @@ namespace RuntimeStuff.Extensions
         /// и прекратить выполнение действия.
         /// </returns>
         /// <remarks>
-        /// Метод использует перегрузку <see cref="BindEventToAction{T,TEventArgs}"/>
+        /// Метод использует перегрузку <see cref="BindToAction{T,TEventArgs}"/>
         /// для привязки события <c>PropertyChanged</c> к указанному действию,
         /// игнорируя аргументы события.
         /// </remarks>
-        public static IDisposable BindPropertyChangedToAction<T>(
+        public static IDisposable BindToAction<T>(
             this T obj,
             Action action)
             where T : class
         {
             var eventName = nameof(INotifyPropertyChanged.PropertyChanged);
-            return BindEventToAction<T, PropertyChangedEventArgs>(obj, eventName, (s, e) => action());
+            return BindToAction<T, PropertyChangedEventArgs>(obj, eventName, (s, e) => action());
+        }
+
+        /// <summary>
+        /// Привязывает указанное действие к событию изменения коллекции
+        /// <see cref="INotifyCollectionChanged.CollectionChanged"/>.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, реализующего <see cref="INotifyCollectionChanged"/>.
+        /// </typeparam>
+        /// <param name="obj">
+        /// Объект, коллекция которого будет отслеживаться.
+        /// </param>
+        /// <param name="action">
+        /// Действие, выполняемое при изменении коллекции.
+        /// Получает объект-источник события и аргументы изменения коллекции.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
+        /// изменения коллекции.
+        /// </returns>
+        /// <remarks>
+        /// Метод является специализированной обёрткой над <c>BindEventToAction</c>
+        /// для события <c>CollectionChanged</c> и упрощает подписку на изменения
+        /// коллекций без ручной реализации обработчиков событий.
+        /// </remarks>
+        public static IDisposable BindToAction<T>(
+            this T obj,
+            Action<T, NotifyCollectionChangedEventArgs> action)
+            where T : class
+        {
+            var eventName = nameof(INotifyCollectionChanged.CollectionChanged);
+            return BindToAction(obj, eventName, action);
+        }
+
+        /// <summary>
+        /// Привязывает обработчик к событию объекта по имени события.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, содержащего событие.
+        /// </typeparam>
+        /// <typeparam name="TArgs">
+        /// Тип аргумента события.
+        /// </typeparam>
+        /// <param name="obj">
+        /// Экземпляр объекта, к событию которого выполняется привязка.
+        /// </param>
+        /// <param name="eventName">
+        /// Имя события, к которому необходимо привязать обработчик.
+        /// </param>
+        /// <param name="action">
+        /// Делегат, который будет вызван при возникновении события.
+        ///
+        /// Первый параметр — объект-источник события (<c>sender</c>),
+        /// второй параметр — аргументы события (<c>EventArgs</c> или производный тип).
+        /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, удаляющий привязанный обработчик
+        /// при вызове <see cref="IDisposable.Dispose"/>.
+        /// </returns>
+        /// <remarks>
+        /// Метод использует Reflection для поиска события по имени
+        /// и динамически создаёт делегат обработчика соответствующего типа.
+        ///
+        /// Удобен для сценариев, где имя события известно только во время выполнения
+        /// (например, динамическое связывание UI или инфраструктурный код).
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Генерируется, если <paramref name="obj"/>,
+        /// <paramref name="eventName"/> или <paramref name="action"/> равны <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Может быть сгенерировано, если событие с указанным именем не найдено.
+        /// </exception>
+        public static IDisposable BindToAction<T, TArgs>(
+            this T obj,
+            string eventName,
+            Action<T, TArgs> action,
+            Func<T, TArgs, bool> canExecuteAction = null)
+        {
+            var eventInfo = obj.GetType().GetEvent(eventName);
+            return eventInfo == null
+                ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
+                : EventHelper.BindEventToAction(obj, eventInfo, action, canExecuteAction);
+        }
+
+        /// <summary>
+        /// Привязывает указанное действие к событию объекта по имени события.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, содержащего событие.
+        /// </typeparam>
+        /// <param name="obj">
+        /// Экземпляр объекта, событие которого будет использовано.
+        /// </param>
+        /// <param name="eventName">
+        /// Имя события, к которому необходимо привязать действие.
+        /// </param>
+        /// <param name="action">
+        /// Действие, выполняемое при срабатывании события; получает объект-источник события
+        /// и его аргументы.
+        /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
+        /// и освободить связанные ресурсы.
+        /// </returns>
+        /// <remarks>
+        /// Метод является удобной обёрткой над <c>EventHelper.BindEventToAction</c>
+        /// и использует рефлексию для поиска события по его имени.
+        /// Ожидается, что указанное событие соответствует стандартному .NET-паттерну
+        /// и использует аргументы, производные от <see cref="EventArgs"/>.
+        /// </remarks>
+        public static IDisposable BindToAction<T>(
+            this T obj,
+            string eventName,
+            Action<T, EventArgs> action,
+            Func<T, EventArgs, bool> canExecuteAction = null)
+        {
+            var eventInfo = obj.GetType().GetEvent(eventName);
+            return eventInfo == null
+                ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
+                : EventHelper.BindEventToAction(obj, eventInfo, action, canExecuteAction);
+        }
+
+        /// <summary>
+        /// Привязывает указанное действие без аргументов к событию объекта по имени события.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, содержащего событие.
+        /// </typeparam>
+        /// <param name="obj">
+        /// Экземпляр объекта, событие которого будет использовано.
+        /// </param>
+        /// <param name="eventName">
+        /// Имя события, к которому необходимо привязать действие.
+        /// </param>
+        /// <param name="action">
+        /// Действие, которое будет выполнено при срабатывании события.
+        /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отписаться от события
+        /// и освободить связанные ресурсы.
+        /// </returns>
+        /// <remarks>
+        /// Метод использует рефлексию для поиска события по имени и привязывает его
+        /// к указанному действию, игнорируя аргументы события. Является удобной
+        /// перегрузкой для случаев, когда обработчик события не использует параметры
+        /// <see cref="EventArgs"/> или источник события.
+        /// </remarks>
+        public static IDisposable BindToAction<T>(
+            this T obj,
+            string eventName,
+            Action action,
+            Func<T, object, bool> canExecuteAction = null)
+        {
+            var eventInfo = obj.GetType().GetEvent(eventName);
+            return eventInfo == null
+                ? throw new ArgumentException($@"Событие '{eventName}' не найдено в типе '{obj.GetType().Name}'", nameof(eventName))
+                : EventHelper.BindEventToAction<T, object>(obj, eventInfo, (s, e) => action(), canExecuteAction);
+        }
+
+        /// <summary>
+        /// Привязывает обработчик к событию объекта,
+        /// используя <see cref="EventInfo"/>.
+        /// </summary>
+        /// <param name="obj">
+        /// Экземпляр объекта, к событию которого выполняется привязка.
+        /// </param>
+        /// <param name="eventInfo">
+        /// Метаданные события, к которому необходимо привязать обработчик.
+        /// </param>
+        /// <param name="action">
+        /// Делегат, который будет вызван при возникновении события.
+        ///
+        /// Первый параметр — объект-источник события (<c>sender</c>),
+        /// второй параметр — аргументы события.
+        /// </param>
+        /// <param name="canExecuteAction">Условие для выполнения делегата.</param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, удаляющий привязку обработчика
+        /// при вызове <see cref="IDisposable.Dispose"/>.
+        /// </returns>
+        /// <remarks>
+        /// Метод:
+        /// <list type="bullet">
+        /// <item><description>Создаёт делегат обработчика, совместимый с типом события;</description></item>
+        /// <item><description>Подписывается на событие через <see cref="EventInfo.AddEventHandler"/>;</description></item>
+        /// <item><description>Возвращает объект-обёртку для безопасного отписывания.</description></item>
+        /// </list>
+        ///
+        /// Это позволяет использовать единый <see cref="Action{Object, Object}"/>
+        /// для обработки событий с разными сигнатурами.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Генерируется, если <paramref name="obj"/>,
+        /// <paramref name="eventInfo"/> или <paramref name="action"/> равны <c>null</c>.
+        /// </exception>
+        public static IDisposable BindToAction(
+            this object obj,
+            EventInfo eventInfo,
+            Action<object, object> action,
+            Func<object, object, bool> canExecuteAction = null)
+        {
+            return EventHelper.BindEventToAction<object, EventArgs>(obj, eventInfo, action, canExecuteAction);
+        }
+
+        /// <summary>
+        /// Привязывает обработчик к событию <see cref="INotifyPropertyChanged.PropertyChanged"/>
+        /// объекта и перенаправляет вызовы в унифицированное действие.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, реализующего <see cref="INotifyPropertyChanged"/>.
+        /// </typeparam>
+        /// <param name="obj">
+        /// Экземпляр объекта, для которого выполняется подписка на событие
+        /// <see cref="INotifyPropertyChanged.PropertyChanged"/>.
+        /// </param>
+        /// <param name="propertySelector">Выбор свойства.</param>
+        /// <param name="action">
+        /// Делегат, принимающий отправителя события и аргументы события
+        /// (<see cref="PropertyChangedEventArgs"/>), переданные как <see cref="object"/>.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, при уничтожении которого
+        /// выполняется отписка от события.
+        /// </returns>
+        /// <remarks>
+        /// Метод является thin-wrapper над <c>BindEventToAction</c> и предназначен
+        /// для упрощения сценариев наблюдения за изменениями свойств:
+        /// логирования, трассировки, data-binding инфраструктуры и runtime-инструментов.
+        ///
+        /// Не выполняет проверку реализации <see cref="INotifyPropertyChanged"/>
+        /// на этапе компиляции — ошибка возможна во время выполнения,
+        /// если событие отсутствует.
+        /// </remarks>
+        public static IDisposable BindToAction<T>(
+            this T obj,
+            Expression<Func<T, object>> propertySelector,
+            Action<T, PropertyChangedEventArgs> action)
+            where T : class
+        {
+            var eventName = nameof(INotifyPropertyChanged.PropertyChanged);
+            return BindToAction<T, PropertyChangedEventArgs>(obj, eventName, action, (sender, args) => args.PropertyName == propertySelector.GetPropertyName());
         }
 
         /// <summary>
@@ -834,7 +804,7 @@ namespace RuntimeStuff.Extensions
         /// и объект-источник события.
         /// </param>
         /// <remarks>
-        /// Метод использует <see cref="BindEventToAction{TSource,TEventArgs}"/> для привязки
+        /// Метод использует <see cref="BindToAction{TSource,TEventArgs}"/> для привязки
         /// события к действию и обеспечивает удобный способ связывать события с конкретными
         /// подписчиками без ручной реализации обработчиков.
         /// </remarks>
@@ -869,7 +839,7 @@ namespace RuntimeStuff.Extensions
         /// и объект-источник события.
         /// </param>
         /// <remarks>
-        /// Метод использует <see cref="BindEventToAction{TSource,TEventArgs}"/> для привязки
+        /// Метод использует <see cref="BindToAction{TSource,TEventArgs}"/> для привязки
         /// события к действию и обеспечивает удобный способ связывать события с конкретными
         /// подписчиками без ручной реализации обработчиков.
         /// </remarks>
