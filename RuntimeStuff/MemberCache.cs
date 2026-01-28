@@ -171,11 +171,19 @@ namespace RuntimeStuff
                                MemberInfo.GetCustomAttributes<DescriptionAttribute>().FirstOrDefault()?.Description;
             DisplayName = typeCache?.DisplayName ?? MemberInfo.GetCustomAttribute<DisplayNameAttribute>()?.DisplayName;
 
-            if (DisplayName == null)
+            var da = GetAttribute("DisplayAttribute");
+            if (da != null)
             {
-                var da = GetAttribute("DisplayAttribute");
-                DisplayName = da?.GetType().GetProperty("Name")?.GetValue(da)?.ToString();
-                GroupName = da?.GetType().GetProperty("GroupName")?.GetValue(da)?.ToString();
+                if (string.IsNullOrEmpty(DisplayName))
+                    DisplayName = da?.GetType().GetMethod("GetName")?.Invoke(da, null)?.ToString();
+                if (string.IsNullOrEmpty(Description))
+                    Description = da?.GetType().GetMethod("GetDescription")?.Invoke(da, null)?.ToString();
+                GroupName = da?.GetType().GetMethod("GetGroupName")?.Invoke(da, null)?.ToString();
+                ShortName = da?.GetType().GetMethod("GetShortName")?.Invoke(da, null)?.ToString();
+                Prompt = da?.GetType().GetProperty("GetPrompt")?.GetValue(da)?.ToString();
+                Order = (int?)da?.GetType().GetMethod("GetOrder")?.Invoke(da, null);
+                AutoGenerateFilter = (bool?)da?.GetType().GetMethod("GetAutoGenerateFilter")?.Invoke(da, null);
+                AutoGenerateField = (bool?)da?.GetType().GetMethod("GetAutoGenerateField")?.Invoke(da, null);
             }
 
             if (IsType)
@@ -413,6 +421,31 @@ namespace RuntimeStuff
         /// Получает отображаемое имя члена из атрибута <see cref="DisplayNameAttribute"/> или DisplayAttribute.
         /// </summary>
         public string DisplayName { get; }
+
+        /// <summary>
+        /// Получает значение свойства ShortName из атрибута DisplayAttribute.
+        /// </summary>
+        public string ShortName { get; }
+
+        /// <summary>
+        /// Получает значение свойства Prompt из атрибута DisplayAttribute.
+        /// </summary>
+        public string Prompt { get; }
+
+        /// <summary>
+        /// Получает значение свойства AutoGenerateField из атрибута DisplayAttribute.
+        /// </summary>
+        public bool? AutoGenerateField { get; }
+
+        /// <summary>
+        /// Получает значение свойства AutoGenerateFilter из атрибута DisplayAttribute.
+        /// </summary>
+        public bool? AutoGenerateFilter { get; }
+
+        /// <summary>
+        /// Получает значение свойства Order из атрибута DisplayAttribute.
+        /// </summary>
+        public int? Order { get; }
 
         /// <summary>
         /// Получает тип элементов коллекции, если текущий член является коллекцией.
@@ -1365,6 +1398,22 @@ namespace RuntimeStuff
                 attributeTypeName,
                 n => GetAttributes().FirstOrDefault(x => x.GetType().Name.Equals(n)) ?? GetAttributes().FirstOrDefault(x => x.GetType().Name.Equals(n, StringComparison.OrdinalIgnoreCase)),
                 a => a.GetType().Name);
+        }
+
+        /// <summary>
+        /// Получает метод по имени.
+        /// </summary>
+        /// <param name="methodName">Имя метода.</param>
+        /// <returns>MethodInfo или null, если метод не найден.</returns>
+        public MethodInfo GetMethod(string methodName)
+        {
+            if (string.IsNullOrWhiteSpace(methodName))
+                return null;
+
+            return memberMethodsMap.GetOrAdd(
+                methodName,
+                n => GetMethods().FirstOrDefault(x => x.Name.Equals(n)) ?? GetMethods().FirstOrDefault(x => x.Name.Equals(n, StringComparison.OrdinalIgnoreCase)),
+                a => a.Name);
         }
 
         /// <summary>

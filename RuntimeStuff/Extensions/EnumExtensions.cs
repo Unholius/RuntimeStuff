@@ -11,9 +11,14 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
+using System.Linq;
+
 namespace RuntimeStuff.Extensions
 {
     using System;
+    using System.ComponentModel;
+    using System.Reflection;
 
     /// <summary>
     /// Предоставляет расширения для работы с перечислениями и компараторами строк в .NET.
@@ -88,7 +93,7 @@ namespace RuntimeStuff.Extensions
                     return OrdinalIgnoreCase;
 
                 default:
-                    throw new ArgumentException("Invalid StringComparison value", nameof(comparison));
+                    throw new ArgumentException(@"Invalid StringComparison value", nameof(comparison));
             }
         }
 
@@ -134,7 +139,25 @@ namespace RuntimeStuff.Extensions
                 return StringComparison.InvariantCultureIgnoreCase;
             }
 
-            throw new ArgumentException("Неизвестный StringComparer", nameof(comparer));
+            throw new ArgumentException(@"Неизвестный StringComparer", nameof(comparer));
+        }
+
+        public static string GetDescription(this Enum enumValue)
+        {
+            if (enumValue == null)
+                throw new ArgumentNullException(nameof(enumValue));
+
+            var cache = MemberCache.Create(enumValue.GetType()).GetField(Enum.GetName(enumValue.GetType(), enumValue));
+            return cache.Description;
+        }
+
+        public static string GetDisplayName(this Enum enumValue)
+        {
+            if (enumValue == null)
+                throw new ArgumentNullException(nameof(enumValue));
+
+            var cache = MemberCache.Create(enumValue.GetType()).GetField(Enum.GetName(enumValue.GetType(), enumValue));
+            return cache.DisplayName;
         }
     }
 }
