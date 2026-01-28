@@ -40,23 +40,23 @@ namespace TestWinFormsApp
             textBox1.BindToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, (box, args) => checkBox1.Checked);
             m.BindProperties(x => x.Text, "PropertyChanged", textBox1, x => x.Text, nameof(TextBox.TextChanged));
             propertyGrid1.Subscribe(m, propertyGrid1.Refresh);
-
             m.Text = "123";
             m.BindToAction(x => x.Text, M_PropertyChanged); //m.PropertyChanged += M_PropertyChanged;
             propertyGrid1.SelectedObject = m;
-            kryptonPropertyGrid1.SelectedObject = m;
             var oc = new ObservableCollection<object>();
             oc.BindToAction(BindCollectionChangedToAction);
             oc.Add(new object());
             textBox1.BindProperties(x => x.Text, nameof(TextBox.TextChanged), checkBox1, x => x.Checked, nameof(CheckBox.CheckedChanged), BindingDirection.OneWay, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
-            
+
             Obj.Set(dataGridView1, "DoubleBuffered", true);
             m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled);
             m.BindToAction(x => x.Number, (s, e) => MessageBox.Show(e.PropertyName));
+            webView21.Source = new Uri("https://wiki.yandex.ru/homepage/wiki/6006d9b92584/miuz-tamuz/history.md/");
         }
 
         private void M_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            
         }
 
         private void BindCollectionChangedToAction(object sender, object args)
@@ -87,14 +87,11 @@ namespace TestWinFormsApp
         {
             m.IsFree = false;
             var dt = new DataTable();
-
-            kryptonOutlookGrid1.DataSource = null;
-            using (var con = new SqlConnection().Server("NAS\\RSSQLSERVER").Database("Test").TrustCertificate(true).IntegratedSecurity(true))
+            using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
             {
-                dt = await con.ToDataTableAsync("select top 10000 * from books", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
+                dt = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
                 dataGridView1.DataSource = dt;
             }
-            kryptonOutlookGrid1.DataSource = dt;
             m.IsFree = true;
         }
 

@@ -81,27 +81,12 @@ namespace RuntimeStuff.Helpers
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
-            var weakAction = new WeakReference(action);
-            Delegate handler = null;
-
-            void Proxy(T sender, TArgs args)
-            {
-                var a = (Action<T, TArgs>)weakAction.Target;
-                if (a != null)
-                {
-                    if (canExecuteAction == null || canExecuteAction(sender, args))
-                        a(sender, args);
-                }
-                else
-                {
-                    eventInfo.RemoveEventHandler(obj, handler);
-                }
-            }
-
-            handler = CreateEventHandlerDelegate(eventInfo.EventHandlerType, (Action<T, TArgs>)Proxy);
+            var binding = new EventBinding<T, TArgs>(obj, eventInfo, action, canExecuteAction);
+            var handler = CreateEventHandlerDelegate<T, TArgs>(eventInfo.EventHandlerType, binding.OnEvent);
+            binding.ActionHandler = handler;
 
             eventInfo.AddEventHandler(obj, handler);
-            return new EventBinding(obj, eventInfo, handler);
+            return binding;
         }
 
         /// <summary>
@@ -283,18 +268,20 @@ namespace RuntimeStuff.Helpers
             eventInfo.RemoveEventHandler(obj, actionHandler);
         }
 
-        private sealed class EventBinding : IDisposable
+        private sealed class EventBinding<TSource, TEventArgs> : IDisposable
         {
             private readonly EventInfo eventInfo;
-            private readonly Delegate handler;
             private readonly object target;
+            private readonly Action<TSource, TEventArgs> action;
+            private readonly Func<TSource, TEventArgs, bool> canExecute;
             private bool disposed;
 
-            public EventBinding(object target, EventInfo eventInfo, Delegate handler)
+            public EventBinding(TSource target, EventInfo eventInfo, Action<TSource, TEventArgs> action, Func<TSource, TEventArgs, bool> canExecute)
             {
                 this.target = target;
                 this.eventInfo = eventInfo;
-                this.handler = handler;
+                this.action = action;
+                this.canExecute = canExecute;
             }
 
             ~EventBinding()
@@ -302,13 +289,22 @@ namespace RuntimeStuff.Helpers
                 Dispose();
             }
 
+            public Delegate ActionHandler { get; internal set; }
+
             public void Dispose()
             {
                 if (disposed)
                     return;
 
-                eventInfo.RemoveEventHandler(target, handler);
+                eventInfo.RemoveEventHandler(target, ActionHandler);
                 disposed = true;
+            }
+
+            public void OnEvent(TSource source, TEventArgs args)
+            {
+                if (canExecute != null && !this.canExecute(source, args))
+                    return;
+                this.action(source, args);
             }
         }
 

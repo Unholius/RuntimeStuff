@@ -28,8 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            Krypton.Toolkit.Suite.Extended.Outlook.Grid.OutlookGridGroupCollection outlookGridGroupCollection1 = new Krypton.Toolkit.Suite.Extended.Outlook.Grid.OutlookGridGroupCollection();
-            DataGridViewCellStyle dataGridViewCellStyle1 = new DataGridViewCellStyle();
             btnMemberCacheAllMembers = new Button();
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
@@ -41,17 +39,15 @@
             dataGridView1 = new DataGridView();
             btnLoad = new Button();
             tabPage3 = new TabPage();
-            kryptonOutlookGrid1 = new Krypton.Toolkit.Suite.Extended.Outlook.Grid.KryptonOutlookGrid();
-            Column1 = new Krypton.Toolkit.KryptonDataGridViewCheckBoxColumn();
-            Column2 = new Krypton.Toolkit.Suite.Extended.Outlook.Grid.KryptonDataGridViewTreeTextColumn();
-            kryptonPropertyGrid1 = new Krypton.Toolkit.KryptonPropertyGrid();
+            tabPage4 = new TabPage();
+            webView21 = new Microsoft.Web.WebView2.WinForms.WebView2();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
             tabPage2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
-            tabPage3.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)kryptonOutlookGrid1).BeginInit();
+            tabPage4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)webView21).BeginInit();
             SuspendLayout();
             // 
             // btnMemberCacheAllMembers
@@ -69,11 +65,12 @@
             tabControl1.Controls.Add(tabPage1);
             tabControl1.Controls.Add(tabPage2);
             tabControl1.Controls.Add(tabPage3);
+            tabControl1.Controls.Add(tabPage4);
             tabControl1.Dock = DockStyle.Fill;
             tabControl1.Location = new Point(0, 0);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(800, 787);
+            tabControl1.Size = new Size(800, 455);
             tabControl1.TabIndex = 1;
             // 
             // tabPage1
@@ -82,7 +79,7 @@
             tabPage1.Location = new Point(4, 24);
             tabPage1.Name = "tabPage1";
             tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(792, 759);
+            tabPage1.Size = new Size(792, 427);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "tabPage1";
             tabPage1.UseVisualStyleBackColor = true;
@@ -93,11 +90,10 @@
             flowLayoutPanel1.Controls.Add(btnMemberCacheAllMembers);
             flowLayoutPanel1.Controls.Add(textBox1);
             flowLayoutPanel1.Controls.Add(checkBox1);
-            flowLayoutPanel1.Controls.Add(kryptonPropertyGrid1);
             flowLayoutPanel1.Dock = DockStyle.Fill;
             flowLayoutPanel1.Location = new Point(3, 3);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new Size(786, 753);
+            flowLayoutPanel1.Size = new Size(786, 421);
             flowLayoutPanel1.TabIndex = 0;
             // 
             // propertyGrid1
@@ -132,7 +128,7 @@
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
             tabPage2.Padding = new Padding(3);
-            tabPage2.Size = new Size(792, 422);
+            tabPage2.Size = new Size(792, 759);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "tabPage2";
             tabPage2.UseVisualStyleBackColor = true;
@@ -143,7 +139,7 @@
             dataGridView1.Dock = DockStyle.Fill;
             dataGridView1.Location = new Point(3, 26);
             dataGridView1.Name = "dataGridView1";
-            dataGridView1.Size = new Size(786, 393);
+            dataGridView1.Size = new Size(786, 730);
             dataGridView1.TabIndex = 0;
             dataGridView1.Click += dataGridView1_Click;
             // 
@@ -160,63 +156,42 @@
             // 
             // tabPage3
             // 
-            tabPage3.Controls.Add(kryptonOutlookGrid1);
             tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
             tabPage3.Padding = new Padding(3);
-            tabPage3.Size = new Size(792, 422);
+            tabPage3.Size = new Size(792, 759);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "tabPage3";
             tabPage3.UseVisualStyleBackColor = true;
             // 
-            // kryptonOutlookGrid1
+            // tabPage4
             // 
-            kryptonOutlookGrid1.AllowUserToOrderColumns = true;
-            kryptonOutlookGrid1.BorderStyle = BorderStyle.None;
-            kryptonOutlookGrid1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            kryptonOutlookGrid1.Columns.AddRange(new DataGridViewColumn[] { Column1, Column2 });
-            kryptonOutlookGrid1.Dock = DockStyle.Fill;
-            kryptonOutlookGrid1.FillMode = Krypton.Toolkit.Suite.Extended.Outlook.Grid.FillMode.GroupsOnly;
-            kryptonOutlookGrid1.GroupCollection = outlookGridGroupCollection1;
-            kryptonOutlookGrid1.GroupHeaderHeight = 30;
-            kryptonOutlookGrid1.Location = new Point(3, 3);
-            kryptonOutlookGrid1.Name = "kryptonOutlookGrid1";
-            kryptonOutlookGrid1.PreviousSelectedGroupRow = -1;
-            kryptonOutlookGrid1.ShowLines = false;
-            kryptonOutlookGrid1.Size = new Size(786, 416);
-            kryptonOutlookGrid1.TabIndex = 0;
+            tabPage4.Controls.Add(webView21);
+            tabPage4.Location = new Point(4, 24);
+            tabPage4.Name = "tabPage4";
+            tabPage4.Padding = new Padding(3);
+            tabPage4.Size = new Size(792, 759);
+            tabPage4.TabIndex = 3;
+            tabPage4.Text = "tabPage4";
+            tabPage4.UseVisualStyleBackColor = true;
             // 
-            // Column1
+            // webView21
             // 
-            dataGridViewCellStyle1.Alignment = DataGridViewContentAlignment.MiddleCenter;
-            dataGridViewCellStyle1.NullValue = false;
-            Column1.DefaultCellStyle = dataGridViewCellStyle1;
-            Column1.FalseValue = null;
-            Column1.HeaderText = "Column1";
-            Column1.IndeterminateValue = null;
-            Column1.Name = "Column1";
-            Column1.TrueValue = null;
-            // 
-            // Column2
-            // 
-            Column2.HeaderText = "Column2";
-            Column2.Name = "Column2";
-            Column2.Width = 100;
-            // 
-            // kryptonPropertyGrid1
-            // 
-            kryptonPropertyGrid1.Location = new Point(3, 400);
-            kryptonPropertyGrid1.Name = "kryptonPropertyGrid1";
-            kryptonPropertyGrid1.Padding = new Padding(1);
-            kryptonPropertyGrid1.Size = new Size(289, 251);
-            kryptonPropertyGrid1.TabIndex = 4;
-            kryptonPropertyGrid1.Text = "kryptonPropertyGrid1";
+            webView21.AllowExternalDrop = true;
+            webView21.CreationProperties = null;
+            webView21.DefaultBackgroundColor = Color.White;
+            webView21.Dock = DockStyle.Fill;
+            webView21.Location = new Point(3, 3);
+            webView21.Name = "webView21";
+            webView21.Size = new Size(786, 753);
+            webView21.TabIndex = 0;
+            webView21.ZoomFactor = 1D;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 787);
+            ClientSize = new Size(800, 455);
             Controls.Add(tabControl1);
             Name = "Form1";
             Text = "Form1";
@@ -227,8 +202,8 @@
             flowLayoutPanel1.PerformLayout();
             tabPage2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
-            tabPage3.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)kryptonOutlookGrid1).EndInit();
+            tabPage4.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)webView21).EndInit();
             ResumeLayout(false);
         }
 
@@ -245,9 +220,7 @@
         private DataGridView dataGridView1;
         private Button btnLoad;
         private TabPage tabPage3;
-        private Krypton.Toolkit.Suite.Extended.Outlook.Grid.KryptonOutlookGrid kryptonOutlookGrid1;
-        private Krypton.Toolkit.KryptonPropertyGrid kryptonPropertyGrid1;
-        private Krypton.Toolkit.KryptonDataGridViewCheckBoxColumn Column1;
-        private Krypton.Toolkit.Suite.Extended.Outlook.Grid.KryptonDataGridViewTreeTextColumn Column2;
+        private TabPage tabPage4;
+        private Microsoft.Web.WebView2.WinForms.WebView2 webView21;
     }
 }
