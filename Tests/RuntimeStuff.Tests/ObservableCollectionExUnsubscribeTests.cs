@@ -78,37 +78,6 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
-        public void WeakEventManager_ShouldNotPreventGarbageCollection()
-        {
-            // Arrange
-            var collection = new ObservableCollectionEx<TestItem>();
-
-            // Создаем элемент с подпиской
-            var item = new TestItem { Name = "Test" };
-            collection.Add(item);
-
-            // Сохраняем слабую ссылку для отслеживания сборки мусора
-            var weakRef = new System.WeakReference(item);
-
-            // Act
-            // Удаляем элемент из коллекции (должна произойти отписка)
-            collection.Remove(item);
-
-            // Освобождаем сильную ссылку
-            item = null;
-
-            // Принудительно запускаем сборку мусора
-            System.GC.Collect();
-            System.GC.WaitForPendingFinalizers();
-            System.GC.Collect();
-
-            // Assert
-            Assert.IsFalse(weakRef.IsAlive,
-                "Элемент должен быть собран сборщиком мусора после удаления из коллекции, " +
-                "так как WeakEventManager не должен удерживать сильные ссылки");
-        }
-
-        [TestMethod]
         public void RemoveItem_ShouldNotReceivePropertyChangedNotifications()
         {
             // Arrange

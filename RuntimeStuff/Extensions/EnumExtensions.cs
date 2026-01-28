@@ -12,12 +12,11 @@
 // <summary></summary>
 // ***********************************************************************
 
-using System.Linq;
-
 namespace RuntimeStuff.Extensions
 {
     using System;
     using System.ComponentModel;
+    using System.Globalization;
     using System.Reflection;
 
     /// <summary>
@@ -30,11 +29,6 @@ namespace RuntimeStuff.Extensions
     /// </summary>
     public static class EnumExtensions
     {
-        /// <summary>
-        /// The ordinal ignore case.
-        /// </summary>
-        private static readonly StringComparer OrdinalIgnoreCase = StringComparer.OrdinalIgnoreCase;
-
         /// <summary>
         /// The current culture.
         /// </summary>
@@ -59,6 +53,75 @@ namespace RuntimeStuff.Extensions
         /// The ordinal.
         /// </summary>
         private static readonly StringComparer Ordinal = StringComparer.Ordinal;
+
+        /// <summary>
+        /// The ordinal ignore case.
+        /// </summary>
+        private static readonly StringComparer OrdinalIgnoreCase = StringComparer.OrdinalIgnoreCase;
+
+        /// <summary>
+        /// Возвращает текстовое описание значения перечисления.
+        /// </summary>
+        /// <param name="enumValue">
+        /// Значение перечисления, для которого требуется получить описание.
+        /// </param>
+        /// <returns>
+        /// Значение атрибута <c>Description</c>, связанного с элементом перечисления,
+        /// либо имя элемента перечисления, если описание отсутствует.
+        /// Если имя элемента определить невозможно, возвращается результат
+        /// вызова <see cref="Enum.ToString()"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="enumValue"/> равен <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод использует кэш метаданных для получения описания,
+        /// что позволяет избежать повторного отражения (reflection).
+        /// </remarks>
+        public static string GetDescription(this Enum enumValue)
+        {
+            if (enumValue == null)
+                throw new ArgumentNullException(nameof(enumValue));
+
+            var name = Enum.GetName(enumValue.GetType(), enumValue);
+            if (name == null)
+                return enumValue.ToString();
+
+            var cache = MemberCache.Create(enumValue.GetType()).GetField(name);
+            return string.IsNullOrEmpty(cache.Description) ? name : cache.Description;
+        }
+
+        /// <summary>
+        /// Возвращает отображаемое имя значения перечисления.
+        /// </summary>
+        /// <param name="enumValue">
+        /// Значение перечисления, для которого требуется получить отображаемое имя.
+        /// </param>
+        /// <returns>
+        /// Значение атрибута <c>DisplayName</c>, связанного с элементом перечисления,
+        /// либо имя элемента перечисления, если отображаемое имя отсутствует.
+        /// Если имя элемента определить невозможно, возвращается результат
+        /// вызова <see cref="Enum.ToString()"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="enumValue"/> равен <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод предназначен для использования в UI-слоях,
+        /// где требуется человекочитаемое представление значений перечислений.
+        /// </remarks>
+        public static string GetDisplayName(this Enum enumValue)
+        {
+            if (enumValue == null)
+                throw new ArgumentNullException(nameof(enumValue));
+
+            var name = Enum.GetName(enumValue.GetType(), enumValue);
+            if (name == null)
+                return enumValue.ToString();
+
+            var cache = MemberCache.Create(enumValue.GetType()).GetField(name);
+            return string.IsNullOrEmpty(cache.DisplayName) ? name : cache.DisplayName;
+        }
 
         /// <summary>
         /// Преобразует значение <see cref="StringComparison" /> в эквивалентный объект <see cref="StringComparer" />.
@@ -109,55 +172,29 @@ namespace RuntimeStuff.Extensions
         /// <exception cref="System.ArgumentException">Неизвестный StringComparer - comparer.</exception>
         public static StringComparison ToStringComparison(this StringComparer comparer)
         {
-            if (comparer == Ordinal)
-            {
+            if (comparer == null)
+                throw new ArgumentNullException(nameof(comparer));
+
+            if (ReferenceEquals(comparer, StringComparer.Ordinal))
                 return StringComparison.Ordinal;
-            }
 
-            if (comparer == OrdinalIgnoreCase)
-            {
+            if (ReferenceEquals(comparer, StringComparer.OrdinalIgnoreCase))
                 return StringComparison.OrdinalIgnoreCase;
-            }
 
-            if (comparer == CurrentCulture)
-            {
+            if (comparer.Equals(StringComparer.CurrentCulture))
                 return StringComparison.CurrentCulture;
-            }
 
-            if (comparer == CurrentCultureIgnoreCase)
-            {
+            if (comparer.Equals(StringComparer.CurrentCultureIgnoreCase))
                 return StringComparison.CurrentCultureIgnoreCase;
-            }
 
-            if (comparer == InvariantCulture)
-            {
+            if (comparer.Equals(StringComparer.InvariantCulture))
                 return StringComparison.InvariantCulture;
-            }
 
-            if (comparer == InvariantCultureIgnoreCase)
-            {
+            if (comparer.Equals(StringComparer.InvariantCultureIgnoreCase))
                 return StringComparison.InvariantCultureIgnoreCase;
-            }
 
-            throw new ArgumentException(@"Неизвестный StringComparer", nameof(comparer));
-        }
-
-        public static string GetDescription(this Enum enumValue)
-        {
-            if (enumValue == null)
-                throw new ArgumentNullException(nameof(enumValue));
-
-            var cache = MemberCache.Create(enumValue.GetType()).GetField(Enum.GetName(enumValue.GetType(), enumValue));
-            return cache.Description;
-        }
-
-        public static string GetDisplayName(this Enum enumValue)
-        {
-            if (enumValue == null)
-                throw new ArgumentNullException(nameof(enumValue));
-
-            var cache = MemberCache.Create(enumValue.GetType()).GetField(Enum.GetName(enumValue.GetType(), enumValue));
-            return cache.DisplayName;
+            throw new NotSupportedException(
+                $"StringComparer '{comparer.GetType().FullName}' cannot be converted to StringComparison.");
         }
     }
 }

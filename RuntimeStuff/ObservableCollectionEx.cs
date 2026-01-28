@@ -253,6 +253,16 @@ namespace RuntimeStuff
             Subscribe(item);
         }
 
+        private static void OnItemPropertyChanged(ObservableCollectionEx<T> collection, PropertyChangedEventArgs args)
+        {
+            if (collection.SuppressNotifyCollectionChange)
+                return;
+
+            collection.OnCollectionChanged(
+                new NotifyCollectionChangedEventArgs(
+                    NotifyCollectionChangedAction.Reset));
+        }
+
         /// <summary>
         /// Генерирует единое событие CollectionChanged и уведомления о свойствах,
         /// вызываемое после массового добавления или удаления элементов.
@@ -272,18 +282,7 @@ namespace RuntimeStuff
             if (!(item is INotifyPropertyChanged inpc))
                 return;
 
-            weakEventManager.AddWeakEventListener(
-                inpc,
-                new Action<INotifyPropertyChanged, PropertyChangedEventArgs>((sender, args) =>
-                {
-                    if (SuppressNotifyCollectionChange)
-                        return;
-
-                    // ItemChanged через Replace(old == new)
-                    OnCollectionChanged(
-                        new NotifyCollectionChangedEventArgs(
-                            NotifyCollectionChangedAction.Reset));
-                }));
+            weakEventManager.AddWeakEventListener(inpc, (s, e) => OnItemPropertyChanged(this, e));
         }
 
         /// <summary>

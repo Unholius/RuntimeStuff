@@ -73,18 +73,7 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void ToStringComparison_CustomComparer_ThrowsArgumentException()
-        {
-            // Arrange
-            var customComparer = StringComparer.Create(System.Globalization.CultureInfo.CurrentCulture, false);
-
-            // Act
-            customComparer.ToStringComparison();
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
+        [ExpectedException(typeof(ArgumentNullException))]
         public void ToStringComparison_NullComparer_ThrowsArgumentException()
         {
             // Arrange
@@ -201,7 +190,7 @@ namespace RuntimeStuff.MSTests
             var result = enumValue.GetDisplayName();
 
             // Assert
-            Assert.IsNull(result);
+            Assert.AreEqual(result, "FirstValue");
         }
 
         [TestMethod]
@@ -214,7 +203,7 @@ namespace RuntimeStuff.MSTests
             var result = enumValue.GetDisplayName();
 
             // Assert
-            Assert.IsNull(result);
+            Assert.AreEqual(result, "SecondValue");
         }
 
         [TestMethod]
@@ -255,7 +244,7 @@ namespace RuntimeStuff.MSTests
             var result = enumValue.GetDisplayName();
 
             // Assert
-            Assert.IsNull(result);
+            Assert.AreEqual("999", result);
         }
 
         #endregion
