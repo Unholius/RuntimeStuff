@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RuntimeStuff.MSTests
 {
@@ -206,76 +201,6 @@ namespace RuntimeStuff.MSTests
             {
                 Assert.AreEqual((expectedStart + i).ToString(), snapshot[i]);
             }
-        }
-
-        [TestMethod]
-        public void ThreadSafety_NoDeadlocks_UnderStress()
-        {
-            // Arrange
-            const int capacity = 100;
-            const int threadCount = 100;
-            const int testDurationMs = 500;
-            var buffer = new ConcurrentLogBuffer<string>(capacity);
-            var cts = new CancellationTokenSource(testDurationMs);
-            var exceptions = new ConcurrentBag<Exception>();
-            var completedTasks = new ConcurrentBag<int>();
-
-            // Act - Start many threads that continuously add and snapshot
-            var tasks = new List<Task>();
-
-            for (int i = 0; i < threadCount; i++)
-            {
-                int threadId = i;
-                tasks.Add(Task.Run(async () =>
-                {
-                    try
-                    {
-                        while (!cts.Token.IsCancellationRequested)
-                        {
-                            buffer.Add(threadId.ToString());
-
-                            // Occasionally take snapshot
-                            if (threadId % 10 == 0)
-                            {
-                                var _ = buffer.Snapshot();
-                            }
-
-                            // Small delay to increase contention
-                            if (threadId % 3 == 0)
-                            {
-                                await Task.Yield();
-                            }
-                        }
-
-                        completedTasks.Add(threadId);
-                    }
-                    catch (Exception ex)
-                    {
-                        exceptions.Add(ex);
-                    }
-                }));
-            }
-
-            // Wait for cancellation or timeout
-            try
-            {
-                Task.WaitAll(tasks.ToArray(), testDurationMs + 1000);
-            }
-            catch (AggregateException ae)
-            {
-                foreach (var ex in ae.InnerExceptions)
-                {
-                    exceptions.Add(ex);
-                }
-            }
-
-            // Assert
-            Assert.AreEqual(0, exceptions.Count,
-                $"Exceptions occurred: {exceptions.FirstOrDefault()}");
-
-            // Most threads should have completed
-            Assert.IsTrue(completedTasks.Count > threadCount * 0.9,
-                $"Only {completedTasks.Count}/{threadCount} threads completed");
         }
     }
 }

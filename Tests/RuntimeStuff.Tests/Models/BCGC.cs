@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace RuntimeStuff.MSTests.Models
+﻿namespace RuntimeStuff.MSTests.Models
 {
     public class BadCodeGoodCodeUpdateData
     {

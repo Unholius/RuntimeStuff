@@ -40,9 +40,11 @@ namespace TestWinFormsApp
             textBox1.BindToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, (box, args) => checkBox1.Checked);
             m.BindProperties(x => x.Text, "PropertyChanged", textBox1, x => x.Text, nameof(TextBox.TextChanged));
             propertyGrid1.Subscribe(m, propertyGrid1.Refresh);
+
             m.Text = "123";
             m.BindToAction(x => x.Text, M_PropertyChanged); //m.PropertyChanged += M_PropertyChanged;
             propertyGrid1.SelectedObject = m;
+            kryptonPropertyGrid1.SelectedObject = m;
             var oc = new ObservableCollection<object>();
             oc.BindToAction(BindCollectionChangedToAction);
             oc.Add(new object());
@@ -85,16 +87,14 @@ namespace TestWinFormsApp
         {
             m.IsFree = false;
             var dt = new DataTable();
-            dt.AddCol("ID", typeof(int));
-            dt.AddRow(1).AddRow(2).AddRow(3);
-            //dataGridView1.DataSource = null;
-            //using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
-            //{
-            //    var dt = await con.ToDataTableAsync("select top 10000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
-            //    dataGridView1.DataSource = dt;
-            //    dt = null;
-            //}
-            dataGridView1.DataSource = dt;
+
+            kryptonOutlookGrid1.DataSource = null;
+            using (var con = new SqlConnection().Server("NAS\\RSSQLSERVER").Database("Test").TrustCertificate(true).IntegratedSecurity(true))
+            {
+                dt = await con.ToDataTableAsync("select top 10000 * from books", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
+                dataGridView1.DataSource = dt;
+            }
+            kryptonOutlookGrid1.DataSource = dt;
             m.IsFree = true;
         }
 
