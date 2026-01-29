@@ -100,10 +100,10 @@ namespace RuntimeStuff.Helpers
         /// <typeparam name="TSourceProp">
         /// Тип свойства-источника.
         /// </typeparam>
-        /// <typeparam name="TDest">
+        /// <typeparam name="TTarget">
         /// Тип объекта-приёмника.
         /// </typeparam>
-        /// <typeparam name="TDestProp">
+        /// <typeparam name="TTargetProp">
         /// Тип свойства-назначения.
         /// </typeparam>
         /// <param name="source">
@@ -116,19 +116,19 @@ namespace RuntimeStuff.Helpers
         /// Событие объекта-источника, при срабатывании которого выполняется обновление
         /// связанного свойства.
         /// </param>
-        /// <param name="dest">
+        /// <param name="target">
         /// Объект-приёмник, свойство которого участвует в связывании.
         /// </param>
-        /// <param name="destPropertySelector">
+        /// <param name="targetPropertySelector">
         /// Выражение, указывающее связываемое свойство объекта-приёмника.
         /// </param>
-        /// <param name="destEvent">
+        /// <param name="targetEvent">
         /// Событие объекта-приёмника, при срабатывании которого выполняется обновление
         /// связанного свойства.
         /// </param>
         /// <param name="bindingDirection">Параметр направления связи.</param>
-        /// <param name="sourceToDestConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
-        /// <param name="destToSourceConverter">Конвертор значения свойства назначения в тип свойства источника.</param>
+        /// <param name="sourceValueToTargetValueConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
+        /// <param name="targetValueToSourceValueConverter">Конвертор значения свойства назначения в тип свойства источника.</param>
         /// <returns>
         /// Объект <see cref="IDisposable"/>, управляющий жизненным циклом связывания
         /// и позволяющий отписаться от событий.
@@ -140,35 +140,39 @@ namespace RuntimeStuff.Helpers
         /// Ожидается, что переданные события соответствуют стандартному .NET-паттерну
         /// и используют аргументы, производные от <see cref="EventArgs"/>.
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TSourceProp, TDest, TDestProp>(
+        public static IDisposable BindProperties<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(
             TSource source,
             Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
             EventInfo sourceEvent,
-            TDest dest,
-            Expression<Func<TDest, TDestProp>> destPropertySelector,
-            EventInfo destEvent,
-            BindingDirection bindingDirection = BindingDirection.TwoWay,
-            Func<TSourceProp, TDestProp> sourceToDestConverter = null,
-            Func<TDestProp, TSourceProp> destToSourceConverter = null)
+            Func<TSource, TSourceEventArgs, bool> canAcceptSourceEvent,
+            TTarget target,
+            Expression<Func<TTarget, TTargetProp>> targetPropertySelector,
+            EventInfo targetEvent,
+            Func<TTarget, TTargetEventArgs, bool> canAcceptTargetEvent,
+            Func<TSourceProp, TTargetProp> sourceValueToTargetValueConverter = null,
+            Func<TTargetProp, TSourceProp> targetValueToSourceValueConverter = null,
+            Action<PropertyChangedEventArgs> onPropertyChanged = null)
             where TSource : class
-            where TDest : class
+            where TTarget : class
+            where TSourceEventArgs : EventArgs
+            where TTargetEventArgs : EventArgs
         {
             var srcProp = ExpressionHelper.GetPropertyInfo(sourcePropertySelector);
-            var dstProp = ExpressionHelper.GetPropertyInfo(destPropertySelector);
-            var pb = new PropertiesBinding<TSourceProp, TDestProp>(source, srcProp, sourceEvent, dest, dstProp, destEvent, sourceToDestConverter, destToSourceConverter);
+            var dstProp = ExpressionHelper.GetPropertyInfo(targetPropertySelector);
+            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, srcProp, sourceEvent, canAcceptSourceEvent, target, dstProp, targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter);
             if (sourceEvent != null)
             {
                 var eventHandlerType = sourceEvent.EventHandlerType;
-                var eventHandler = CreateEventHandlerDelegate<TSource, object>(eventHandlerType, pb.SrcPropChanged);
+                var eventHandler = CreateEventHandlerDelegate<TSource, object>(eventHandlerType, pb.OnSourceEvent);
                 sourceEvent.AddEventHandler(source, eventHandler);
                 pb.SrcEventHandler = eventHandler;
             }
 
-            if (bindingDirection == BindingDirection.TwoWay && destEvent != null)
+            if (targetEvent != null)
             {
-                var eventHandlerType = destEvent.EventHandlerType;
-                var eventHandler = CreateEventHandlerDelegate<TDest, object>(eventHandlerType, pb.DstPropChanged);
-                destEvent.AddEventHandler(dest, eventHandler);
+                var eventHandlerType = targetEvent.EventHandlerType;
+                var eventHandler = CreateEventHandlerDelegate<TTarget, object>(eventHandlerType, pb.OnTargetEvent);
+                targetEvent.AddEventHandler(target, eventHandler);
                 pb.DstEventHandler = eventHandler;
             }
 
@@ -308,28 +312,46 @@ namespace RuntimeStuff.Helpers
             }
         }
 
-        private sealed class PropertiesBinding<TSrc, TDest> : IDisposable
+        private sealed class PropertiesBinding<TSrc, TSrcValue, TSrcArgs, TTarget, TTargetValue, TTargetArgs> : IDisposable
+            where TSrc : class
+            where TTarget : class
+            where TSrcArgs : EventArgs
+            where TTargetArgs : EventArgs
         {
-            private WeakReference dest;
-            private EventInfo destEvent;
-            private PropertyInfo destPropertyInfo;
-            private Func<TDest, TSrc> destToSourceConverter;
+            private WeakReference target;
+            private EventInfo targetEvent;
+            private PropertyInfo targetPropertyInfo;
+            private Func<TTarget, TSrc> targetToSourceConverter;
+            private Func<TTarget, TTargetArgs, bool> canAcceptTargetEvent;
             private bool disposed;
             private WeakReference source;
             private EventInfo sourceEvent;
             private PropertyInfo sourcePropertyInfo;
-            private Func<TSrc, TDest> sourceToDestConverter;
+            private Func<TSrc, TTarget> sourceToTargetConverter;
+            private Func<TSrc, TSrcArgs, bool> canAcceptSourceEvent;
 
-            public PropertiesBinding(object src, PropertyInfo srcPropInfo, EventInfo sourceEvent, object dest, PropertyInfo destPropInfo, EventInfo destEvent, Func<TSrc, TDest> sourceToDestConverter = null, Func<TDest, TSrc> destToSourceConverter = null)
+            public PropertiesBinding(
+                object src,
+                PropertyInfo srcPropInfo,
+                EventInfo sourceEvent,
+                Func<TSrc, TSrcArgs, bool> canAcceptSourceEvent,
+                object target,
+                PropertyInfo targetPropInfo,
+                EventInfo targetEvent,
+                Func<TTarget, TTargetArgs, bool> canAcceptTargetEvent,
+                Func<TSrcValue, TTargetValue> sourceToTargetConverter = null,
+                Func<TTargetValue, TSrcValue> targetToSourceConverter = null)
             {
                 this.sourcePropertyInfo = srcPropInfo;
-                this.destPropertyInfo = destPropInfo;
-                this.sourceToDestConverter = sourceToDestConverter;
-                this.destToSourceConverter = destToSourceConverter;
+                this.targetPropertyInfo = targetPropInfo;
+                this.sourceToTargetConverter = sourceToTargetConverter;
+                this.targetToSourceConverter = targetToSourceConverter;
                 this.sourceEvent = sourceEvent;
-                this.destEvent = destEvent;
+                this.targetEvent = targetEvent;
                 this.source = new WeakReference(src);
-                this.dest = new WeakReference(dest);
+                this.target = new WeakReference(target);
+                this.canAcceptSourceEvent = canAcceptSourceEvent;
+                this.canAcceptTargetEvent = canAcceptTargetEvent;
             }
 
             internal Delegate DstEventHandler { get; set; }
@@ -344,7 +366,7 @@ namespace RuntimeStuff.Helpers
             /// </summary>
             /// <remarks>
             /// Метод снимает подписку с события <see cref="INotifyPropertyChanged.PropertyChanged"/>
-            /// у объектов <c>source</c> и <c>dest</c>, если они реализуют
+            /// у объектов <c>source</c> и <c>target</c>, если они реализуют
             /// <see cref="INotifyPropertyChanged"/>. После вызова метода
             /// объект <c>PropertiesBinding</c> больше не синхронизирует свойства.
             /// </remarks>
@@ -354,66 +376,72 @@ namespace RuntimeStuff.Helpers
                     return;
 
                 var src = source?.Target;
-                var dst = dest?.Target;
+                var dst = target?.Target;
 
                 if (src != null && sourceEvent != null && SrcEventHandler != null)
                     EventHelper.UnBindActionFromEvent(source.Target, sourceEvent, SrcEventHandler);
 
-                if (dst != null && destEvent != null && DstEventHandler != null)
-                    EventHelper.UnBindActionFromEvent(dest.Target, destEvent, DstEventHandler);
+                if (dst != null && targetEvent != null && DstEventHandler != null)
+                    EventHelper.UnBindActionFromEvent(target.Target, targetEvent, DstEventHandler);
                 this.sourcePropertyInfo = null;
-                this.destPropertyInfo = null;
-                this.sourceToDestConverter = null;
-                this.destToSourceConverter = null;
+                this.targetPropertyInfo = null;
+                this.sourceToTargetConverter = null;
+                this.targetToSourceConverter = null;
                 this.sourceEvent = null;
-                this.destEvent = null;
+                this.targetEvent = null;
                 this.source = null;
-                this.dest = null;
+                this.target = null;
                 disposed = true;
             }
 
-            internal void DstPropChanged(object sender, object args)
+            internal void OnTargetEvent(object sender, object args)
             {
-                if (args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
+                if (canAcceptTargetEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
                     return;
 
-                if (source.Target == null || dest.Target == null)
+                if (canAcceptTargetEvent != null && sender is TTarget s && args is TTargetArgs a && !canAcceptTargetEvent(s, a))
+                    return;
+
+                if (source.Target == null || target.Target == null)
                 {
                     Dispose();
                     return;
                 }
 
-                var senderValue = destPropertyInfo.GetValue(sender);
-                var destValue = sourcePropertyInfo.GetValue(source.Target);
-                var convertedValue = destToSourceConverter != null
-                    ? destToSourceConverter((TDest)senderValue)
+                var senderValue = targetPropertyInfo.GetValue(sender);
+                var targetValue = sourcePropertyInfo.GetValue(source.Target);
+                var convertedValue = targetToSourceConverter != null
+                    ? targetToSourceConverter((TTarget)senderValue)
                     : senderValue;
-                if (EqualityComparer<TSrc>.Default.Equals((TSrc)destValue, (TSrc)convertedValue))
+                if (EqualityComparer<TSrc>.Default.Equals((TSrc)targetValue, (TSrc)convertedValue))
                     return;
 
                 sourcePropertyInfo.SetValue(source.Target, convertedValue);
             }
 
-            internal void SrcPropChanged(object sender, object args)
+            internal void OnSourceEvent(object sender, object args)
             {
-                if (args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
+                if (canAcceptSourceEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
                     return;
 
-                if (source.Target == null || dest.Target == null)
+                if (canAcceptSourceEvent != null && sender is TSrc src && args is TSrcArgs srcArgs && !canAcceptSourceEvent(src, srcArgs))
+                    return;
+
+                if (source.Target == null || target.Target == null)
                 {
                     Dispose();
                     return;
                 }
 
                 var senderValue = sourcePropertyInfo.GetValue(sender);
-                var destValue = destPropertyInfo.GetValue(dest.Target);
-                var convertedValue = sourceToDestConverter != null
-                    ? sourceToDestConverter((TSrc)senderValue)
+                var targetValue = targetPropertyInfo.GetValue(target.Target);
+                var convertedValue = sourceToTargetConverter != null
+                    ? sourceToTargetConverter((TSrc)senderValue)
                     : senderValue;
-                if (EqualityComparer<TDest>.Default.Equals((TDest)destValue, (TDest)convertedValue))
+                if (EqualityComparer<TTarget>.Default.Equals((TTarget)targetValue, (TTarget)convertedValue))
                     return;
 
-                destPropertyInfo.SetValue(dest.Target, convertedValue);
+                targetPropertyInfo.SetValue(target.Target, convertedValue);
             }
         }
     }

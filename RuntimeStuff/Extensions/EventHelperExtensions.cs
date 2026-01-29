@@ -88,6 +88,16 @@ namespace RuntimeStuff.Extensions
             return EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent, BindingDirection.TwoWay, sourceToDestConverter, destToSourceConverter);
         }
 
+        //public static IDisposable Bind<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(
+        //    this TSource source,
+        //    string onEvent,
+        //    Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+        //    Func<TSource, TSourceEventArgs, bool> acceptSourceEvent,
+        //)
+        //{
+
+        //}
+
         /// <summary>
         /// Связывает свойства объекта-источника и объекта-приёмника,
         /// используя указанные события для отслеживания изменений.
@@ -113,13 +123,13 @@ namespace RuntimeStuff.Extensions
         /// <param name="sourceEventName">
         /// Имя события объекта-источника, при срабатывании которого выполняется обновление свойства.
         /// </param>
-        /// <param name="dest">
+        /// <param name="target">
         /// Объект-приёмник, свойство которого будет обновляться.
         /// </param>
         /// <param name="destPropertySelector">
         /// Выражение, указывающее связываемое свойство объекта-приёмника.
         /// </param>
-        /// <param name="destEventName">
+        /// <param name="targetEventName">
         /// Имя события объекта-приёмника, при срабатывании которого выполняется обновление свойства.
         /// </param>
         /// <param name="sourceToDestConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
@@ -132,36 +142,37 @@ namespace RuntimeStuff.Extensions
         /// фактическую логику связывания перегруженному методу <c>BindProperties</c>
         /// с явным указанием типов аргументов событий (<see cref="ProgressChangedEventArgs"/>).
         /// </remarks>
-        public static IDisposable BindProperties<TSource, TSourceProp, TTarget, TTargetProp>(
+        public static IDisposable BindProperties<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(
             this TSource source,
             Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
             string sourceEventName,
-            TTarget dest,
+            TTarget target,
             Expression<Func<TTarget, TTargetProp>> destPropertySelector,
-            string destEventName,
+            string targetEventName,
             Func<TSourceProp, TTargetProp> sourceToDestConverter = null,
             Func<TTargetProp, TSourceProp> destToSourceConverter = null,
-            Func<TSource, EventArgs, bool> canTargetUpdate = null,
-            Func<TTarget, EventArgs, bool> canSourceUpdate = null,
-            Action<TSource, TTarget> actionAfterTargetUpdated = null,
-            Action<TSource, TTarget> actionAfterSourceUpdated = null)
+            Func<TSource, TSourceEventArgs, bool> canAcceptSourceEvent = null,
+            Func<TTarget, TTargetEventArgs, bool> canAcceptTargetEvent = null,
+            Action onPropertyChanged = null)
             where TSource : class
             where TTarget : class
+            where TSourceEventArgs : EventArgs
+            where TTargetEventArgs : EventArgs
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
-            if (dest == null)
-                throw new ArgumentNullException(nameof(dest));
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
             if (string.IsNullOrWhiteSpace(sourceEventName))
                 throw new ArgumentException(@"Имя события источника не может быть пустым", nameof(sourceEventName));
-            if (string.IsNullOrWhiteSpace(destEventName))
-                throw new ArgumentException(@"Имя события приёмника не может быть пустым", nameof(destEventName));
+            if (string.IsNullOrWhiteSpace(targetEventName))
+                throw new ArgumentException(@"Имя события приёмника не может быть пустым", nameof(targetEventName));
 
             var srcEvent = source.GetType().GetEvent(sourceEventName) ?? throw new ArgumentException($@"Событие '{sourceEventName}' не найдено в типе '{source.GetType().Name}'", nameof(sourceEventName));
-            var destEvent = dest.GetType().GetEvent(destEventName);
+            var destEvent = target.GetType().GetEvent(targetEventName);
             return destEvent == null
-                ? throw new ArgumentException($@"Событие '{destEventName}' не найдено в типе '{dest.GetType().Name}'", nameof(destEventName))
-                : EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, dest, destPropertySelector, destEvent, BindingDirection.TwoWay, sourceToDestConverter, destToSourceConverter);
+                ? throw new ArgumentException($@"Событие '{targetEventName}' не найдено в типе '{target.GetType().Name}'", nameof(targetEventName))
+                : EventHelper.BindProperties(source, sourcePropertySelector, srcEvent, target, destPropertySelector, destEvent, BindingDirection.TwoWay, sourceToDestConverter, destToSourceConverter);
         }
 
         /// <summary>
