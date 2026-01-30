@@ -657,30 +657,30 @@ namespace RuntimeStuff
         /// отдельными объектами, так и между коллекциями объектов.
         /// </summary>
         /// <typeparam name="TSource">Тип исходного объекта, из которого копируются значения. Должен быть ссылочным типом.</typeparam>
-        /// <typeparam name="TDest">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
+        /// <typeparam name="TTarget">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
         /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
-        /// <param name="destination">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
+        /// <param name="targetination">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
         /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
         /// свойства исходного объекта.</param>
         /// <exception cref="System.ArgumentNullException">source.</exception>
-        /// <exception cref="System.ArgumentNullException">destination.</exception>
-        /// <exception cref="System.InvalidOperationException">Destination collection is not IList and cannot add new items.</exception>
-        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="destination" />
+        /// <exception cref="System.ArgumentNullException">targetination.</exception>
+        /// <exception cref="System.InvalidOperationException">Targetination collection is not IList and cannot add new items.</exception>
+        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="targetination" />
         /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
         /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
         /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
-        public static void Copy<TSource, TDest>(TSource source, TDest destination, params string[] memberNames)
+        public static void Copy<TSource, TTarget>(TSource source, TTarget targetination, params string[] memberNames)
             where TSource : class
-            where TDest : class
+            where TTarget : class
         {
             if (source == null || typeof(TSource) == typeof(string))
             {
                 throw new ArgumentNullException(nameof(source));
             }
 
-            if (destination == null || typeof(TDest) == typeof(string))
+            if (targetination == null || typeof(TTarget) == typeof(string))
             {
-                throw new ArgumentNullException(nameof(destination));
+                throw new ArgumentNullException(nameof(targetination));
             }
 
             if (memberNames == null || memberNames.Length == 0)
@@ -691,11 +691,11 @@ namespace RuntimeStuff
             var sourceTypeCache = MemberCache.Create(source.GetType());
             if (sourceTypeCache.IsCollection)
                 sourceTypeCache = MemberCache.Create(sourceTypeCache.ElementType);
-            var destTypeCache = MemberCache.Create(destination.GetType());
-            if (destTypeCache.IsCollection)
-                destTypeCache = MemberCache.Create(destTypeCache.ElementType);
+            var targetTypeCache = MemberCache.Create(targetination.GetType());
+            if (targetTypeCache.IsCollection)
+                targetTypeCache = MemberCache.Create(targetTypeCache.ElementType);
 
-            if (source is IEnumerable srcList && !(source is string) && destination is IEnumerable dstList && !(destination is string))
+            if (source is IEnumerable srcList && !(source is string) && targetination is IEnumerable dstList && !(targetination is string))
             {
                 var srcEnumerator = srcList.GetEnumerator();
                 var dstEnumerator = dstList.GetEnumerator();
@@ -719,7 +719,7 @@ namespace RuntimeStuff
                         }
                         else
                         {
-                            throw new InvalidOperationException("Destination collection is not IList and cannot add new items.");
+                            throw new InvalidOperationException("Targetination collection is not IList and cannot add new items.");
                         }
                     }
 
@@ -743,11 +743,11 @@ namespace RuntimeStuff
                     var get = sourceTypeCache[memberName]?.Getter;
                     if (get == null)
                         continue;
-                    var set = destTypeCache[memberName]?.Setter;
+                    var set = targetTypeCache[memberName]?.Setter;
                     if (set == null)
                         continue;
                     var value = get(source);
-                    set(destination, value);
+                    set(targetination, value);
                 }
             }
         }

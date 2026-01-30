@@ -10,8 +10,8 @@ namespace RuntimeStuff.MSTests
         {
             var pc1 = new PropClass1();
             var pc2 = new PropClass2();
-            pc1.BindToProperty(z => z.IsBusy, pc2, z => z.BusyChanged);
-            pc1.BindToProperty(z => z.IsBusy, pc1, z => z.IsBusyChanged);
+            pc1.Bind(z => z.IsBusy, pc2, z => z.BusyChanged);
+            pc1.Bind(z => z.IsBusy, pc1, z => z.IsBusyChanged);
             Assert.IsFalse(pc2.BusyChanged);
             pc1.IsBusy = true;
             Assert.IsTrue(pc2.BusyChanged);

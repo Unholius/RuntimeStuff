@@ -109,7 +109,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="source">
         /// Объект-источник, свойство которого участвует в связывании.
         /// </param>
-        /// <param name="sourcePropertySelector">
+        /// <param name="sourceProperty">
         /// Выражение, указывающее связываемое свойство объекта-источника.
         /// </param>
         /// <param name="sourceEvent">
@@ -119,7 +119,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="target">
         /// Объект-приёмник, свойство которого участвует в связывании.
         /// </param>
-        /// <param name="targetPropertySelector">
+        /// <param name="targetProperty">
         /// Выражение, указывающее связываемое свойство объекта-приёмника.
         /// </param>
         /// <param name="targetEvent">
@@ -142,24 +142,22 @@ namespace RuntimeStuff.Helpers
         /// </remarks>
         public static IDisposable BindProperties<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(
             TSource source,
-            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            PropertyInfo sourceProperty,
             EventInfo sourceEvent,
             Func<TSource, TSourceEventArgs, bool> canAcceptSourceEvent,
             TTarget target,
-            Expression<Func<TTarget, TTargetProp>> targetPropertySelector,
+            PropertyInfo targetProperty,
             EventInfo targetEvent,
             Func<TTarget, TTargetEventArgs, bool> canAcceptTargetEvent,
             Func<TSourceProp, TTargetProp> sourceValueToTargetValueConverter = null,
             Func<TTargetProp, TSourceProp> targetValueToSourceValueConverter = null,
-            Action<PropertyChangedEventArgs> onPropertyChanged = null)
+            Action<object, PropertyChangedEventArgs> onPropertyChanged = null)
             where TSource : class
             where TTarget : class
             where TSourceEventArgs : EventArgs
             where TTargetEventArgs : EventArgs
         {
-            var srcProp = ExpressionHelper.GetPropertyInfo(sourcePropertySelector);
-            var dstProp = ExpressionHelper.GetPropertyInfo(targetPropertySelector);
-            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, srcProp, sourceEvent, canAcceptSourceEvent, target, dstProp, targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter);
+            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, sourceProperty, sourceEvent, canAcceptSourceEvent, target, targetProperty, targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter, onPropertyChanged);
             if (sourceEvent != null)
             {
                 var eventHandlerType = sourceEvent.EventHandlerType;
@@ -321,14 +319,15 @@ namespace RuntimeStuff.Helpers
             private WeakReference target;
             private EventInfo targetEvent;
             private PropertyInfo targetPropertyInfo;
-            private Func<TTarget, TSrc> targetToSourceConverter;
+            private Func<TSrcValue, TTargetValue> sourceToTargetConverter;
+            private Func<TTargetValue, TSrcValue> targetToSourceConverter;
             private Func<TTarget, TTargetArgs, bool> canAcceptTargetEvent;
+            private Func<TSrc, TSrcArgs, bool> canAcceptSourceEvent;
             private bool disposed;
             private WeakReference source;
             private EventInfo sourceEvent;
             private PropertyInfo sourcePropertyInfo;
-            private Func<TSrc, TTarget> sourceToTargetConverter;
-            private Func<TSrc, TSrcArgs, bool> canAcceptSourceEvent;
+            private Action<object, PropertyChangedEventArgs> onPropertyChanged;
 
             public PropertiesBinding(
                 object src,
@@ -339,8 +338,9 @@ namespace RuntimeStuff.Helpers
                 PropertyInfo targetPropInfo,
                 EventInfo targetEvent,
                 Func<TTarget, TTargetArgs, bool> canAcceptTargetEvent,
-                Func<TSrcValue, TTargetValue> sourceToTargetConverter = null,
-                Func<TTargetValue, TSrcValue> targetToSourceConverter = null)
+                Func<TSrcValue, TTargetValue> sourceToTargetConverter,
+                Func<TTargetValue, TSrcValue> targetToSourceConverter,
+                Action<object, PropertyChangedEventArgs> onPropertyChanged)
             {
                 this.sourcePropertyInfo = srcPropInfo;
                 this.targetPropertyInfo = targetPropInfo;
@@ -352,6 +352,7 @@ namespace RuntimeStuff.Helpers
                 this.target = new WeakReference(target);
                 this.canAcceptSourceEvent = canAcceptSourceEvent;
                 this.canAcceptTargetEvent = canAcceptTargetEvent;
+                this.onPropertyChanged = onPropertyChanged;
             }
 
             internal Delegate DstEventHandler { get; set; }
@@ -411,12 +412,13 @@ namespace RuntimeStuff.Helpers
                 var senderValue = targetPropertyInfo.GetValue(sender);
                 var targetValue = sourcePropertyInfo.GetValue(source.Target);
                 var convertedValue = targetToSourceConverter != null
-                    ? targetToSourceConverter((TTarget)senderValue)
+                    ? targetToSourceConverter((TTargetValue)senderValue)
                     : senderValue;
-                if (EqualityComparer<TSrc>.Default.Equals((TSrc)targetValue, (TSrc)convertedValue))
+                if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue, (TSrcValue)convertedValue))
                     return;
 
                 sourcePropertyInfo.SetValue(source.Target, convertedValue);
+                onPropertyChanged?.Invoke(source.Target, new PropertyChangedEventArgs(sourcePropertyInfo.Name));
             }
 
             internal void OnSourceEvent(object sender, object args)
@@ -436,12 +438,13 @@ namespace RuntimeStuff.Helpers
                 var senderValue = sourcePropertyInfo.GetValue(sender);
                 var targetValue = targetPropertyInfo.GetValue(target.Target);
                 var convertedValue = sourceToTargetConverter != null
-                    ? sourceToTargetConverter((TSrc)senderValue)
+                    ? sourceToTargetConverter((TSrcValue)senderValue)
                     : senderValue;
-                if (EqualityComparer<TTarget>.Default.Equals((TTarget)targetValue, (TTarget)convertedValue))
+                if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue, (TTargetValue)convertedValue))
                     return;
 
                 targetPropertyInfo.SetValue(target.Target, convertedValue);
+                onPropertyChanged?.Invoke(target.Target, new PropertyChangedEventArgs(targetPropertyInfo.Name));
             }
         }
     }

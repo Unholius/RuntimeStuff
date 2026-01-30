@@ -12,7 +12,7 @@ public class ObjCopyTests
         public string? IgnoredProperty { get; set; }
     }
 
-    public class DestClass
+    public class TargetClass
     {
         public string? Name { get; set; }
         public int Age { get; set; }
@@ -44,22 +44,22 @@ public class ObjCopyTests
     public void Copy_ThrowsArgumentNullException_WhenSourceIsNull()
     {
         // Arrange
-        var dest = new DestClass();
+        var target = new TargetClass();
 
         // Act & Assert
         Assert.ThrowsException<ArgumentNullException>(() =>
-            Obj.Copy<SourceClass, DestClass>(null, dest));
+            Obj.Copy<SourceClass, TargetClass>(null, target));
     }
 
     [TestMethod]
-    public void Copy_ThrowsArgumentNullException_WhenDestinationIsNull()
+    public void Copy_ThrowsArgumentNullException_WhenTargetinationIsNull()
     {
         // Arrange
         var source = new SourceClass();
 
         // Act & Assert
         Assert.ThrowsException<ArgumentNullException>(() =>
-            Obj.Copy<SourceClass, DestClass>(source, null));
+            Obj.Copy<SourceClass, TargetClass>(source, null));
     }
 
     [TestMethod]
@@ -74,19 +74,19 @@ public class ObjCopyTests
             IgnoredProperty = "Should not be copied"
         };
 
-        var dest = new DestClass
+        var target = new TargetClass
         {
             AdditionalProperty = "Existing value"
         };
 
         // Act
-        Obj.Copy(source, dest);
+        Obj.Copy(source, target);
 
         // Assert
-        Assert.AreEqual(source.Name, dest.Name);
-        Assert.AreEqual(source.Age, dest.Age);
-        Assert.AreEqual(source.Value, dest.Value);
-        Assert.AreEqual("Existing value", dest.AdditionalProperty); // Не должно измениться
+        Assert.AreEqual(source.Name, target.Name);
+        Assert.AreEqual(source.Age, target.Age);
+        Assert.AreEqual(source.Value, target.Value);
+        Assert.AreEqual("Existing value", target.AdditionalProperty); // Не должно измениться
     }
 
     [TestMethod]
@@ -101,16 +101,16 @@ public class ObjCopyTests
             IgnoredProperty = "Should not be copied"
         };
 
-        var dest = new DestClass();
+        var target = new TargetClass();
 
         // Act
-        Obj.Copy(source, dest, "Name", "Age");
+        Obj.Copy(source, target, "Name", "Age");
 
         // Assert
-        Assert.AreEqual(source.Name, dest.Name);
-        Assert.AreEqual(source.Age, dest.Age);
-        Assert.AreEqual(0, dest.Value); // Не должно быть скопировано
-        Assert.IsNull(dest.AdditionalProperty); // Не должно быть скопировано
+        Assert.AreEqual(source.Name, target.Name);
+        Assert.AreEqual(source.Age, target.Age);
+        Assert.AreEqual(0, target.Value); // Не должно быть скопировано
+        Assert.IsNull(target.AdditionalProperty); // Не должно быть скопировано
     }
 
     [TestMethod]
@@ -139,15 +139,15 @@ public class ObjCopyTests
     {
         // Arrange
         var source = new SourceClass { Name = "Test" };
-        var dest = new DestClass();
+        var target = new TargetClass();
 
         // Act
-        Obj.Copy(source, dest, new string[0]);
+        Obj.Copy(source, target, new string[0]);
 
         // Assert - должен скопировать все свойства
-        Assert.AreEqual(source.Name, dest.Name);
-        Assert.AreEqual(source.Age, dest.Age);
-        Assert.AreEqual(source.Value, dest.Value);
+        Assert.AreEqual(source.Name, target.Name);
+        Assert.AreEqual(source.Age, target.Age);
+        Assert.AreEqual(source.Value, target.Value);
     }
 
     [TestMethod]
@@ -161,21 +161,21 @@ public class ObjCopyTests
             new() { Text = "Item3", Number = 3 }
         };
 
-        var destList = new List<SimpleItem>
+        var targetList = new List<SimpleItem>
         {
             new() { Text = "Old1", Number = 0 },
             new() { Text = "Old2", Number = 0 }
         };
 
         // Act
-        Obj.Copy(sourceList, destList);
+        Obj.Copy(sourceList, targetList);
 
         // Assert
-        Assert.AreEqual(3, destList.Count);
+        Assert.AreEqual(3, targetList.Count);
         for (var i = 0; i < sourceList.Count; i++)
         {
-            Assert.AreEqual(sourceList[i].Text, destList[i].Text);
-            Assert.AreEqual(sourceList[i].Number, destList[i].Number);
+            Assert.AreEqual(sourceList[i].Text, targetList[i].Text);
+            Assert.AreEqual(sourceList[i].Number, targetList[i].Number);
         }
     }
 
@@ -189,17 +189,17 @@ public class ObjCopyTests
             new() { Text = "Item2", Number = 2 }
         };
 
-        var destList = new List<SimpleItem>();
+        var targetList = new List<SimpleItem>();
 
         // Act
-        Obj.Copy(sourceList, destList);
+        Obj.Copy(sourceList, targetList);
 
         // Assert
-        Assert.AreEqual(2, destList.Count);
+        Assert.AreEqual(2, targetList.Count);
         for (var i = 0; i < sourceList.Count; i++)
         {
-            Assert.AreEqual(sourceList[i].Text, destList[i].Text);
-            Assert.AreEqual(sourceList[i].Number, destList[i].Number);
+            Assert.AreEqual(sourceList[i].Text, targetList[i].Text);
+            Assert.AreEqual(sourceList[i].Number, targetList[i].Number);
         }
     }
 
@@ -213,19 +213,19 @@ public class ObjCopyTests
             new() { Text = "ArrayItem2", Number = 20 }
         };
 
-        var destList = new List<SimpleItem>();
+        var targetList = new List<SimpleItem>();
 
         // Act
-        Obj.Copy(sourceArray, destList);
+        Obj.Copy(sourceArray, targetList);
 
         // Assert
-        Assert.AreEqual(2, destList.Count);
-        Assert.AreEqual("ArrayItem1", destList[0].Text);
-        Assert.AreEqual("ArrayItem2", destList[1].Text);
+        Assert.AreEqual(2, targetList.Count);
+        Assert.AreEqual("ArrayItem1", targetList[0].Text);
+        Assert.AreEqual("ArrayItem2", targetList[1].Text);
     }
 
     [TestMethod]
-    public void Copy_ThrowsInvalidOperationException_ForNonIListDestination()
+    public void Copy_ThrowsInvalidOperationException_ForNonIListTargetination()
     {
         // Arrange
         var sourceList = new List<SimpleItem>
@@ -233,11 +233,11 @@ public class ObjCopyTests
             new() { Text = "Test", Number = 1 }
         };
 
-        var destHashSet = new HashSet<SimpleItem>();
+        var targetHashSet = new HashSet<SimpleItem>();
 
         // Act & Assert
         Assert.ThrowsException<InvalidOperationException>(() =>
-            Obj.Copy(sourceList, destHashSet));
+            Obj.Copy(sourceList, targetHashSet));
     }
 
     [TestMethod]
@@ -245,10 +245,10 @@ public class ObjCopyTests
     {
         // Arrange
         List<SimpleItem> sourceList = null;
-        var destList = new List<SimpleItem>();
+        var targetList = new List<SimpleItem>();
 
         // Act & Assert
         Assert.ThrowsException<ArgumentNullException>(() =>
-            Obj.Copy(sourceList, destList));
+            Obj.Copy(sourceList, targetList));
     }
 }

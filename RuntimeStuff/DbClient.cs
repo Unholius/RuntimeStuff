@@ -174,7 +174,7 @@ namespace RuntimeStuff
         /// Retrieves a collection of query log entries in chronological order.
         /// </summary>
         /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
-        /// oldest to newest entry. Returns an empty collection if no logs are available.</returns>
+        /// oltarget to newest entry. Returns an empty collection if no logs are available.</returns>
         public IEnumerable<string> QueryLogs => this.queryLogs;
 
         /// <summary>
