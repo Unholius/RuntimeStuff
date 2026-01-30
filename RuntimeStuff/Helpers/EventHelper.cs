@@ -149,9 +149,9 @@ namespace RuntimeStuff.Helpers
             PropertyInfo targetProperty,
             EventInfo targetEvent,
             Func<TTarget, TTargetEventArgs, bool> canAcceptTargetEvent,
-            Func<TSourceProp, TTargetProp> sourceValueToTargetValueConverter = null,
-            Func<TTargetProp, TSourceProp> targetValueToSourceValueConverter = null,
-            Action<object, PropertyChangedEventArgs> onPropertyChanged = null)
+            Func<TSourceProp, TTargetProp> sourceValueToTargetValueConverter,
+            Func<TTargetProp, TSourceProp> targetValueToSourceValueConverter,
+            Action<object, PropertyChangedEventArgs> onPropertyChanged)
             where TSource : class
             where TTarget : class
             where TSourceEventArgs : EventArgs
@@ -429,21 +429,25 @@ namespace RuntimeStuff.Helpers
                 if (canAcceptSourceEvent != null && sender is TSrc src && args is TSrcArgs srcArgs && !canAcceptSourceEvent(src, srcArgs))
                     return;
 
-                if (source.Target == null || target.Target == null)
+                if (source.Target == null)
                 {
                     Dispose();
                     return;
                 }
 
-                var senderValue = sourcePropertyInfo.GetValue(sender);
-                var targetValue = targetPropertyInfo.GetValue(target.Target);
-                var convertedValue = sourceToTargetConverter != null
-                    ? sourceToTargetConverter((TSrcValue)senderValue)
-                    : senderValue;
-                if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue, (TTargetValue)convertedValue))
-                    return;
+                if (target.Target != null)
+                {
+                    var senderValue = sourcePropertyInfo.GetValue(sender);
+                    var targetValue = targetPropertyInfo.GetValue(target.Target);
+                    var convertedValue = sourceToTargetConverter != null
+                        ? sourceToTargetConverter((TSrcValue)senderValue)
+                        : senderValue;
+                    if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue, (TTargetValue)convertedValue))
+                        return;
 
-                targetPropertyInfo.SetValue(target.Target, convertedValue);
+                    targetPropertyInfo.SetValue(target.Target, convertedValue);
+                }
+
                 onPropertyChanged?.Invoke(target.Target, new PropertyChangedEventArgs(targetPropertyInfo.Name));
             }
         }

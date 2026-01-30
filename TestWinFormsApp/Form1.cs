@@ -36,29 +36,23 @@ namespace TestWinFormsApp
             var count2 = formCache.CachedMembersCount;
             sw.Stop();
             var ms2 = sw.ElapsedMilliseconds;
-            btnMemberCacheAllMembers.Bind(nameof(Button.Click), BtnClick);
-            textBox1.Bind(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, (box, args) => checkBox1.Checked);
-            m.Bind(x => x.Text, "PropertyChanged", textBox1, x => x.Text, nameof(TextBox.TextChanged));
-            propertyGrid1.Subscribe(m, propertyGrid1.Refresh);
-            m.Text = "123";
-            m.Bind(x => x.Text, M_PropertyChanged); //m.PropertyChanged += M_PropertyChanged;
+            //btnMemberCacheAllMembers.Bind(nameof(Button.Click), BtnClick);
+            //textBox1.Bind(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, () => checkBox1.Checked);
+            m.Bind("PropertyChanged", x => x.Text, textBox1, nameof(TextBox.TextChanged), x => x.Text, (s, e) => propertyGrid1.Refresh());
+            //propertyGrid1.Subscribe(m, propertyGrid1.Refresh);
+            //m.Text = "123";
             propertyGrid1.SelectedObject = m;
-            var oc = new ObservableCollection<object>();
-            oc.Bind(BindCollectionChangedToAction);
-            oc.Add(new object());
-            textBox1.Bind(x => x.Text, nameof(TextBox.TextChanged), checkBox1, x => x.Checked, nameof(CheckBox.CheckedChanged), s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
+            //var oc = new ObservableCollection<object>();
+            //oc.Bind(BindCollectionChangedToAction);
+            //oc.Add(new object());
+            //textBox1.Bind(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
 
             Obj.Set(dataGridView1, "DoubleBuffered", true);
-            m.Bind(x => x.IsFree, btnLoad, x => x.Enabled);
-            m.Bind(x => x.Number, (s, e) => MessageBox.Show(e.PropertyName));
-            webView21.Source = new Uri("https://wiki.yandex.ru/homepage/wiki/6006d9b92584/miuz-tamuz/history.md/");
+            //m.Bind(x => x.IsFree, btnLoad, x => x.Enabled);
+            //m.Bind(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
+            //webView21.Source = new Uri("https://wiki.yandex.ru/homepage/wiki/6006d9b92584/miuz-tamuz/history.md/");
 
-            m.Bind(x => x.Number, m, x => x.Number);
-        }
-
-        private void M_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            
+            //m.Bind(x => x.Number, m, x => x.Number);
         }
 
         private void BindCollectionChangedToAction(object sender, object args)
