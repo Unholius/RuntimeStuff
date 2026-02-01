@@ -90,55 +90,59 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Связывает свойства объекта-источника и объекта-приёмника,
-        /// подписываясь на указанные события обоих объектов и обеспечивая
-        /// двустороннюю синхронизацию значений.
+        /// Создаёт привязку между свойствами объекта-источника и объекта-приёмника
+        /// на основе указанных событий и правил синхронизации.
         /// </summary>
-        /// <typeparam name="TSource">
-        /// Тип объекта-источника.
-        /// </typeparam>
-        /// <typeparam name="TSourceProp">
-        /// Тип свойства-источника.
-        /// </typeparam>
-        /// <typeparam name="TTarget">
-        /// Тип объекта-приёмника.
-        /// </typeparam>
-        /// <typeparam name="TTargetProp">
-        /// Тип свойства-назначения.
-        /// </typeparam>
+        /// <typeparam name="TSource">Тип объекта-источника.</typeparam>
+        /// <typeparam name="TSourceProp">Тип свойства источника.</typeparam>
+        /// <typeparam name="TSourceEventArgs">Тип аргументов события источника.</typeparam>
+        /// <typeparam name="TTarget">Тип объекта-приёмника.</typeparam>
+        /// <typeparam name="TTargetProp">Тип свойства приёмника.</typeparam>
+        /// <typeparam name="TTargetEventArgs">Тип аргументов события приёмника.</typeparam>
         /// <param name="source">
-        /// Объект-источник, свойство которого участвует в связывании.
+        /// Объект-источник, изменения которого отслеживаются.
         /// </param>
         /// <param name="sourceProperty">
-        /// Выражение, указывающее связываемое свойство объекта-источника.
+        /// Метаданные свойства источника, участвующего в привязке.
         /// </param>
         /// <param name="sourceEvent">
-        /// Событие объекта-источника, при срабатывании которого выполняется обновление
-        /// связанного свойства.
+        /// Событие источника, инициирующее обновление свойства приёмника.
+        /// Может быть <c>null</c> для отключения обработки событий источника.
+        /// </param>
+        /// <param name="canAcceptSourceEvent">
+        /// Фильтр, определяющий, следует ли обрабатывать конкретное событие источника.
         /// </param>
         /// <param name="target">
-        /// Объект-приёмник, свойство которого участвует в связывании.
+        /// Объект-приёмник, свойство которого синхронизируется с источником.
         /// </param>
         /// <param name="targetProperty">
-        /// Выражение, указывающее связываемое свойство объекта-приёмника.
+        /// Метаданные свойства приёмника, участвующего в привязке.
         /// </param>
         /// <param name="targetEvent">
-        /// Событие объекта-приёмника, при срабатывании которого выполняется обновление
-        /// связанного свойства.
+        /// Событие приёмника, инициирующее обновление свойства источника.
+        /// Может быть <c>null</c> для односторонней привязки.
         /// </param>
-        /// <param name="bindingDirection">Параметр направления связи.</param>
-        /// <param name="sourceValueToTargetValueConverter">Конвертор значения свойства источника в тип свойства назначения.</param>
-        /// <param name="targetValueToSourceValueConverter">Конвертор значения свойства назначения в тип свойства источника.</param>
+        /// <param name="canAcceptTargetEvent">
+        /// Фильтр, определяющий, следует ли обрабатывать конкретное событие приёмника.
+        /// </param>
+        /// <param name="sourceValueToTargetValueConverter">
+        /// Конвертер значения свойства источника в значение свойства приёмника.
+        /// </param>
+        /// <param name="targetValueToSourceValueConverter">
+        /// Конвертер значения свойства приёмника в значение свойства источника.
+        /// </param>
+        /// <param name="onPropertyChanged">
+        /// Дополнительный колбэк, вызываемый после изменения свойства.
+        /// </param>
         /// <returns>
-        /// Объект <see cref="IDisposable"/>, управляющий жизненным циклом связывания
-        /// и позволяющий отписаться от событий.
+        /// Экземпляр <see cref="IDisposable"/>, представляющий созданную привязку
+        /// и позволяющий корректно освободить связанные ресурсы.
         /// </returns>
         /// <remarks>
-        /// Метод создаёт экземпляр <c>PropertiesBinding</c>, который инкапсулирует логику
-        /// синхронизации свойств, и регистрирует обработчики событий с использованием
-        /// <c>EventHelper.BindEventToAction</c>.
-        /// Ожидается, что переданные события соответствуют стандартному .NET-паттерну
-        /// и используют аргументы, производные от <see cref="EventArgs"/>.
+        /// Метод является базовой точкой создания привязок и используется
+        /// всеми высокоуровневыми перегрузками <c>Bind*</c>.
+        /// При наличии обоих событий формируется двусторонняя привязка,
+        /// при отсутствии события приёмника — односторонняя.
         /// </remarks>
         public static IDisposable BindProperties<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(
             TSource source,
@@ -272,10 +276,10 @@ namespace RuntimeStuff.Helpers
 
         private sealed class EventBinding<TSource, TEventArgs> : IDisposable
         {
-            private readonly EventInfo eventInfo;
-            private readonly object target;
             private readonly Action<TSource, TEventArgs> action;
             private readonly Func<TSource, TEventArgs, bool> canExecute;
+            private readonly EventInfo eventInfo;
+            private readonly object target;
             private bool disposed;
 
             public EventBinding(TSource target, EventInfo eventInfo, Action<TSource, TEventArgs> action, Func<TSource, TEventArgs, bool> canExecute)
@@ -316,18 +320,18 @@ namespace RuntimeStuff.Helpers
             where TSrcArgs : EventArgs
             where TTargetArgs : EventArgs
         {
-            private WeakReference target;
-            private EventInfo targetEvent;
-            private PropertyInfo targetPropertyInfo;
-            private Func<TSrcValue, TTargetValue> sourceToTargetConverter;
-            private Func<TTargetValue, TSrcValue> targetToSourceConverter;
-            private Func<TTarget, TTargetArgs, bool> canAcceptTargetEvent;
-            private Func<TSrc, TSrcArgs, bool> canAcceptSourceEvent;
+            private readonly Func<TSrc, TSrcArgs, bool> canAcceptSourceEvent;
+            private readonly Func<TTarget, TTargetArgs, bool> canAcceptTargetEvent;
+            private readonly Action<object, PropertyChangedEventArgs> onPropertyChanged;
             private bool disposed;
             private WeakReference source;
             private EventInfo sourceEvent;
             private PropertyInfo sourcePropertyInfo;
-            private Action<object, PropertyChangedEventArgs> onPropertyChanged;
+            private Func<TSrcValue, TTargetValue> sourceToTargetConverter;
+            private WeakReference target;
+            private EventInfo targetEvent;
+            private PropertyInfo targetPropertyInfo;
+            private Func<TTargetValue, TSrcValue> targetToSourceConverter;
 
             public PropertiesBinding(
                 object src,
@@ -395,32 +399,6 @@ namespace RuntimeStuff.Helpers
                 disposed = true;
             }
 
-            internal void OnTargetEvent(object sender, object args)
-            {
-                if (canAcceptTargetEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
-                    return;
-
-                if (canAcceptTargetEvent != null && sender is TTarget s && args is TTargetArgs a && !canAcceptTargetEvent(s, a))
-                    return;
-
-                if (source.Target == null || target.Target == null)
-                {
-                    Dispose();
-                    return;
-                }
-
-                var senderValue = targetPropertyInfo.GetValue(sender);
-                var targetValue = sourcePropertyInfo.GetValue(source.Target);
-                var convertedValue = targetToSourceConverter != null
-                    ? targetToSourceConverter((TTargetValue)senderValue)
-                    : senderValue;
-                if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue, (TSrcValue)convertedValue))
-                    return;
-
-                sourcePropertyInfo.SetValue(source.Target, convertedValue);
-                onPropertyChanged?.Invoke(source.Target, new PropertyChangedEventArgs(sourcePropertyInfo.Name));
-            }
-
             internal void OnSourceEvent(object sender, object args)
             {
                 if (canAcceptSourceEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
@@ -449,6 +427,32 @@ namespace RuntimeStuff.Helpers
                 }
 
                 onPropertyChanged?.Invoke(target.Target, new PropertyChangedEventArgs(targetPropertyInfo.Name));
+            }
+
+            internal void OnTargetEvent(object sender, object args)
+            {
+                if (canAcceptTargetEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
+                    return;
+
+                if (canAcceptTargetEvent != null && sender is TTarget s && args is TTargetArgs a && !canAcceptTargetEvent(s, a))
+                    return;
+
+                if (source.Target == null || target.Target == null)
+                {
+                    Dispose();
+                    return;
+                }
+
+                var senderValue = targetPropertyInfo.GetValue(sender);
+                var targetValue = sourcePropertyInfo.GetValue(source.Target);
+                var convertedValue = targetToSourceConverter != null
+                    ? targetToSourceConverter((TTargetValue)senderValue)
+                    : senderValue;
+                if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue, (TSrcValue)convertedValue))
+                    return;
+
+                sourcePropertyInfo.SetValue(source.Target, convertedValue);
+                onPropertyChanged?.Invoke(source.Target, new PropertyChangedEventArgs(sourcePropertyInfo.Name));
             }
         }
     }

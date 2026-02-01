@@ -1,7 +1,6 @@
 using RuntimeStuff;
 using RuntimeStuff.Extensions;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
@@ -36,23 +35,19 @@ namespace TestWinFormsApp
             var count2 = formCache.CachedMembersCount;
             sw.Stop();
             var ms2 = sw.ElapsedMilliseconds;
-            //btnMemberCacheAllMembers.Bind(nameof(Button.Click), BtnClick);
-            //textBox1.Bind(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, () => checkBox1.Checked);
+            btnMemberCacheAllMembers.Bind(nameof(Button.Click), BtnClick);
+            textBox1.Bind(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, () => checkBox1.Checked);
             m.Bind("PropertyChanged", x => x.Text, textBox1, nameof(TextBox.TextChanged), x => x.Text, (s, e) => propertyGrid1.Refresh());
-            //propertyGrid1.Subscribe(m, propertyGrid1.Refresh);
-            //m.Text = "123";
+            m.Text = "123";
             propertyGrid1.SelectedObject = m;
-            //var oc = new ObservableCollection<object>();
-            //oc.Bind(BindCollectionChangedToAction);
-            //oc.Add(new object());
-            //textBox1.Bind(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
+            var oc = new ObservableCollection<object>();
+            oc.Bind(BindCollectionChangedToAction);
+            textBox1.Bind(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
 
             Obj.Set(dataGridView1, "DoubleBuffered", true);
-            //m.Bind(x => x.IsFree, btnLoad, x => x.Enabled);
-            //m.Bind(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
-            //webView21.Source = new Uri("https://wiki.yandex.ru/homepage/wiki/6006d9b92584/miuz-tamuz/history.md/");
-
-            //m.Bind(x => x.Number, m, x => x.Number);
+            m.Bind(x => x.IsFree, btnLoad, x => x.Enabled);
+            m.Bind(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
+            m.Bind(x => x.Number, m, x => x.Number);
         }
 
         private void BindCollectionChangedToAction(object sender, object args)
@@ -63,7 +58,7 @@ namespace TestWinFormsApp
 
         private void TextBoxEnabledChanged(object sender, object e)
         {
-            MessageBox.Show("Changed!");
+            MessageBox.Show("Changed because is Checked!");
         }
 
         private void BtnClick(object sender, object e)
