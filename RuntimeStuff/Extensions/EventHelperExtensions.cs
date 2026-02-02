@@ -145,7 +145,129 @@ namespace RuntimeStuff.Extensions
             var targetProp = targetPropertySelector.GetPropertyInfo();
             var targetEvent = target.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
 
-            return EventHelper.BindProperties<TSource, TSourceProp, PropertyChangedEventArgs, TTarget, TTargetProp, PropertyChangedEventArgs>(source, srcProp, srcEvent, (s, e) => e.PropertyName == srcProp.Name, target, targetProp, targetEvent, (s, e) => e.PropertyName == targetProp.Name, sourcePropertyValueToTargetPropertyValueConverter, null, onPropertyChanged);
+            return EventHelper.BindProperties<TSource, TSourceProp, PropertyChangedEventArgs, TTarget, TTargetProp, PropertyChangedEventArgs>(source, srcProp, srcEvent, (s, e) => e.PropertyName == srcProp.Name, target, targetProp, targetEvent, (s, e) => e.PropertyName == targetProp.Name, sourcePropertyValueToTargetPropertyValueConverter, targetPropertyValueToSourcePropertyValueConverter, onPropertyChanged);
+        }
+
+        /// <summary>
+        /// Связывает свойство объекта-источника с свойством целевого объекта,
+        /// используя указанное событие целевого объекта для отслеживания изменений.
+        /// Поддерживается преобразование значений между типами свойств.
+        /// </summary>
+        /// <typeparam name="TSource">
+        /// Тип объекта-источника.
+        /// </typeparam>
+        /// <typeparam name="TSourceProp">
+        /// Тип свойства объекта-источника.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// Тип целевого объекта.
+        /// </typeparam>
+        /// <typeparam name="TTargetProp">
+        /// Тип свойства целевого объекта.
+        /// </typeparam>
+        /// <param name="source">
+        /// Объект-источник, реализующий <see cref="INotifyPropertyChanged"/>.
+        /// </param>
+        /// <param name="sourcePropertySelector">
+        /// Лямбда-выражение, указывающее связываемое свойство объекта-источника.
+        /// </param>
+        /// <param name="target">
+        /// Целевой объект.
+        /// </param>
+        /// <param name="onTargetEventName">
+        /// Имя события целевого объекта, при возникновении которого
+        /// выполняется синхронизация значения свойства целевого объекта
+        /// с объектом-источником.
+        /// </param>
+        /// <param name="targetPropertySelector">
+        /// Лямбда-выражение, указывающее связываемое свойство целевого объекта.
+        /// </param>
+        /// <param name="sourcePropertyValueToTargetPropertyValueConverter">
+        /// Функция преобразования значения свойства источника
+        /// в значение свойства целевого объекта.
+        /// </param>
+        /// <param name="targetPropertyValueToSourcePropertyValueConverter">
+        /// Функция преобразования значения свойства целевого объекта
+        /// в значение свойства источника.
+        /// </param>
+        /// <param name="onPropertyChanged">
+        /// Необязательный обработчик, вызываемый при синхронизации свойств.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий разорвать связь между свойствами.
+        /// </returns>
+        public static IDisposable BindProperties<TSource, TSourceProp, TTarget, TTargetProp>(
+            this TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            TTarget target,
+            string onTargetEventName,
+            Expression<Func<TTarget, TTargetProp>> targetPropertySelector,
+            Func<TSourceProp, TTargetProp> sourcePropertyValueToTargetPropertyValueConverter,
+            Func<TTargetProp, TSourceProp> targetPropertyValueToSourcePropertyValueConverter,
+            Action<object, PropertyChangedEventArgs> onPropertyChanged = null)
+            where TSource : class, INotifyPropertyChanged
+            where TTarget : class
+        {
+            var srcProp = sourcePropertySelector.GetPropertyInfo();
+            var srcEvent = source.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
+            var targetProp = targetPropertySelector.GetPropertyInfo();
+            var targetEvent = target.GetType().GetEvent(onTargetEventName);
+
+            return EventHelper.BindProperties<TSource, TSourceProp, PropertyChangedEventArgs, TTarget, TTargetProp, EventArgs>(source, srcProp, srcEvent, (s, e) => e.PropertyName == srcProp.Name, target, targetProp, targetEvent, (s, e) => true, sourcePropertyValueToTargetPropertyValueConverter, targetPropertyValueToSourcePropertyValueConverter, onPropertyChanged);
+        }
+
+        /// <summary>
+        /// Связывает свойства двух объектов одинакового типа,
+        /// используя указанное событие целевого объекта
+        /// для синхронизации значений.
+        /// </summary>
+        /// <typeparam name="TSource">
+        /// Тип объекта-источника.
+        /// </typeparam>
+        /// <typeparam name="TTarget">
+        /// Тип целевого объекта.
+        /// </typeparam>
+        /// <typeparam name="T">
+        /// Тип связываемых свойств.
+        /// </typeparam>
+        /// <param name="source">
+        /// Объект-источник, реализующий <see cref="INotifyPropertyChanged"/>.
+        /// </param>
+        /// <param name="sourcePropertySelector">
+        /// Лямбда-выражение, указывающее связываемое свойство объекта-источника.
+        /// </param>
+        /// <param name="target">
+        /// Целевой объект.
+        /// </param>
+        /// <param name="onTargetEventName">
+        /// Имя события целевого объекта, при возникновении которого
+        /// выполняется синхронизация значения свойства.
+        /// </param>
+        /// <param name="targetPropertySelector">
+        /// Лямбда-выражение, указывающее связываемое свойство целевого объекта.
+        /// </param>
+        /// <param name="onPropertyChanged">
+        /// Необязательный обработчик, вызываемый при изменении связанного свойства.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отменить связывание свойств.
+        /// </returns>
+        public static IDisposable BindProperties<TSource, TTarget, T>(
+            this TSource source,
+            Expression<Func<TSource, T>> sourcePropertySelector,
+            TTarget target,
+            string onTargetEventName,
+            Expression<Func<TTarget, T>> targetPropertySelector,
+            Action<object, PropertyChangedEventArgs> onPropertyChanged = null)
+            where TSource : class, INotifyPropertyChanged
+            where TTarget : class
+        {
+            var srcProp = sourcePropertySelector.GetPropertyInfo();
+            var srcEvent = source.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
+            var targetProp = targetPropertySelector.GetPropertyInfo();
+            var targetEvent = target.GetType().GetEvent(onTargetEventName);
+
+            return EventHelper.BindProperties<TSource, T, PropertyChangedEventArgs, TTarget, T, EventArgs>(source, srcProp, srcEvent, (s, e) => e.PropertyName == srcProp.Name, target, targetProp, targetEvent, (s, e) => true, null, null, onPropertyChanged);
         }
 
         /// <summary>
