@@ -35,19 +35,19 @@ namespace TestWinFormsApp
             var count2 = formCache.CachedMembersCount;
             sw.Stop();
             var ms2 = sw.ElapsedMilliseconds;
-            btnMemberCacheAllMembers.Bind(nameof(Button.Click), BtnClick);
-            textBox1.Bind(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, () => checkBox1.Checked);
-            m.Bind("PropertyChanged", x => x.Text, textBox1, nameof(TextBox.TextChanged), x => x.Text, (s, e) => propertyGrid1.Refresh());
+            btnMemberCacheAllMembers.BindEventToAction(nameof(Button.Click), BtnClick);
+            textBox1.BindEventToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, () => checkBox1.Checked);
+            m.BindPropertiesOnEvents("PropertyChanged", x => x.Text, textBox1, nameof(TextBox.TextChanged), x => x.Text, (s, e) => propertyGrid1.Refresh());
             m.Text = "123";
             propertyGrid1.SelectedObject = m;
             var oc = new ObservableCollection<object>();
-            oc.Bind(BindCollectionChangedToAction);
-            textBox1.Bind(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
+            oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
+            textBox1.BindToPropertyOnEvent(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
 
             Obj.Set(dataGridView1, "DoubleBuffered", true);
-            m.Bind(x => x.IsFree, btnLoad, x => x.Enabled);
-            m.Bind(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
-            m.Bind(x => x.Number, m, x => x.Number);
+            m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled);
+            m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
+            m.BindProperties(x => x.Number, m, x => x.Number);
         }
 
         private void BindCollectionChangedToAction(object sender, object args)
