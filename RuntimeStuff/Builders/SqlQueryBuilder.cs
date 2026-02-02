@@ -132,7 +132,7 @@ namespace RuntimeStuff.Builders
         public static string GetDeleteQuery<T>(SqlProviderOptions options)
             where T : class
         {
-            var mi = MemberCache<T>.Create();
+            var mi = MemberCache.Create(typeof(T));
             var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.ParamPrefix, options.NameSuffix));
             return query.ToString();
         }
@@ -148,7 +148,7 @@ namespace RuntimeStuff.Builders
             where T : class
         {
             var query = new StringBuilder("INSERT INTO ");
-            var mi = MemberCache<T>.Create();
+            var mi = MemberCache.Create(typeof(T));
             query
                 .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.NamePrefix, options.NameSuffix))
                 .Append(" (");
@@ -323,7 +323,7 @@ namespace RuntimeStuff.Builders
         /// <returns>System.String.</returns>
         public static string GetSelectQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] selectColumns)
         {
-            var mi = MemberCache<T>.Create();
+            var mi = MemberCache.Create(typeof(T));
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
             if (members.Length == 0)
             {
@@ -346,7 +346,7 @@ namespace RuntimeStuff.Builders
         /// <param name="options">The options.</param>
         /// <param name="selectColumns">The select columns.</param>
         /// <returns>System.String.</returns>
-        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns) => GetSelectQuery(options, MemberCache<T>.Create(), selectColumns.Select(x => x.GetMemberCache()).ToArray());
+        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns) => GetSelectQuery(options, MemberCache.Create(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
 
         /// <summary>
         /// Gets the select query.

@@ -176,7 +176,7 @@ namespace RuntimeStuff.Helpers
 
             var row = table.NewRow();
 
-            var typeCache = MemberCache<T>.Create();
+            var typeCache = MemberCache.Create(typeof(T));
 
             if (typeCache.IsBasic)
             {
