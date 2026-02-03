@@ -4,11 +4,11 @@
 
 namespace RuntimeStuff.Extensions
 {
-    using RuntimeStuff.Helpers;
     using System;
     using System.Collections.Specialized;
     using System.ComponentModel;
     using System.Linq.Expressions;
+    using RuntimeStuff.Helpers;
 
     /// <summary>
     /// Class EventHelperExtensions.
