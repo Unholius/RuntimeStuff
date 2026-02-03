@@ -1593,7 +1593,7 @@ namespace RuntimeStuff
             {
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                 id = this.ExecuteScalar<object>(query, this.GetParams(item));
-                var mi = MemberCache<T>.Create();
+                var mi = MemberCache.Create(item?.GetType() ?? typeof(T));
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Length == 1)
                 {
                     var pi = mi.PrimaryKeys[0];
@@ -1661,7 +1661,7 @@ namespace RuntimeStuff
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                 id = await this.ExecuteScalarAsync<object>(query, this.GetParams(item), dbTransaction, token)
                     .ConfigureAwait(this.ConfigureAwait);
-                var mi = MemberCache<T>.Create();
+                var mi = MemberCache.Create(item?.GetType() ?? typeof(T));
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Length == 1)
                 {
                     mi.PrimaryKeys[0].SetValue(
@@ -1698,7 +1698,7 @@ namespace RuntimeStuff
                         query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                     }
 
-                    var typeCache = MemberCache<T>.Create();
+                    var typeCache = MemberCache.Create(typeof(T));
                     var pk = typeCache.PrimaryKeys.FirstOrDefault();
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
@@ -1764,7 +1764,7 @@ namespace RuntimeStuff
                         query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                     }
 
-                    var typeCache = MemberCache<T>.Create();
+                    var typeCache = MemberCache.Create(typeof(T));
                     var pk = typeCache.PrimaryKeys.FirstOrDefault();
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
@@ -1978,10 +1978,10 @@ namespace RuntimeStuff
 
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
 
-            var cache = MemberCache<T>.Create();
+            var cache = MemberCache.Create(typeof(T));
             if (itemFactory == null)
             {
-                itemFactory = BuildItemFactory(cache, columnToPropertyMap);
+                itemFactory = BuildItemFactory<T>(cache, columnToPropertyMap);
             }
 
             this.BeginConnection();
@@ -2129,7 +2129,7 @@ namespace RuntimeStuff
                 returnTypeCache.ElementType);
             if (itemFactory == null)
             {
-                itemFactory = BuildItemFactory(returnTypeCache.ElementType, columnToPropertyMap);
+                itemFactory = BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
             }
 
             var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
@@ -2204,10 +2204,10 @@ namespace RuntimeStuff
 
             query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
 
-            var cache = MemberCache<T>.Create();
+            var cache = MemberCache.Create(typeof(T));
             if (itemFactory == null)
             {
-                itemFactory = BuildItemFactory(cache, columnToPropertyMap);
+                itemFactory = BuildItemFactory<T>(cache, columnToPropertyMap);
             }
 
             var cmd = this.CreateCommand(query, cmdParams);
@@ -3073,7 +3073,7 @@ namespace RuntimeStuff
                 using (dbTransaction ?? this.BeginTransaction())
                 {
                     var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
-                    var typeCache = MemberCache<T>.Create();
+                    var typeCache = MemberCache.Create(typeof(T));
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
@@ -3130,7 +3130,7 @@ namespace RuntimeStuff
                 using (dbTransaction ?? this.BeginTransaction())
                 {
                     var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
-                    var typeCache = MemberCache<T>.Create();
+                    var typeCache = MemberCache.Create(typeof(T));
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
@@ -3215,8 +3215,8 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="itemTypeCache">The item type cache.</param>
         /// <param name="columnToPropertyMap">The column to property map.</param>
-        /// <returns>Func&lt;System.Object[], System.String[], System.Object&gt;.</returns>
-        private static Func<object[], string[], object> BuildItemFactory(
+        /// <returns>Func&lt;System.Object[], System.String[], T&gt;.</returns>
+        private static Func<object[], string[], T> BuildItemFactory<T>(
             MemberCache itemTypeCache,
             IEnumerable<(string, string)> columnToPropertyMap)
         {
@@ -3226,68 +3226,7 @@ namespace RuntimeStuff
 
             if (ctorParams.Length == 0)
             {
-                return (values, names) => itemTypeCache.DefaultConstructor();
-            }
-
-            return (values, names) =>
-            {
-                if (ctorParams.Length > values.Length)
-                {
-                    throw new InvalidOperationException(
-                        $"Недостаточно значений для вызова конструктора типа {itemTypeCache.Type.FullName}.");
-                }
-
-                if (values.Length == 0)
-                {
-                    return itemTypeCache.DefaultConstructor();
-                }
-
-                var args = new object[ctorParams.Length];
-
-                var indexes = ctorParams
-                    .Select(p =>
-                        names.IndexOf(n =>
-                            p.Name.Equals(
-                                columnToPropertyMap?.FirstOrDefault(m => m.Item1 == n).Item2 ?? n,
-                                StringComparison.OrdinalIgnoreCase)))
-                    .ToArray();
-
-                if (indexes.All(i => i >= 0))
-                {
-                    for (var i = 0; i < indexes.Length; i++)
-                    {
-                        args[i] = ChangeType(values[indexes[i]], ctorParams[i].ParameterType);
-                    }
-                }
-                else
-                {
-                    for (var i = 0; i < ctorParams.Length; i++)
-                    {
-                        args[i] = ChangeType(values[i], ctorParams[i].ParameterType);
-                    }
-                }
-
-                return ctor?.Invoke(args);
-            };
-        }
-
-        /// <summary>
-        /// Builds the item factory.
-        /// </summary>
-        /// <param name="itemTypeCache">The item type cache.</param>
-        /// <param name="columnToPropertyMap">The column to property map.</param>
-        /// <returns>Func&lt;System.Object[], System.String[], T&gt;.</returns>
-        private static Func<object[], string[], T> BuildItemFactory<T>(
-            MemberCache<T> itemTypeCache,
-            IEnumerable<(string, string)> columnToPropertyMap)
-        {
-            var ctor = itemTypeCache.Constructors.FirstOrDefault(x => x.IsPublic) ??
-                       itemTypeCache.Constructors.FirstOrDefault();
-            var ctorParams = ctor?.GetParameters() ?? Array.Empty<ParameterInfo>();
-
-            if (ctorParams.Length == 0)
-            {
-                return (values, names) => itemTypeCache.DefaultConstructor();
+                return (values, names) => (T)itemTypeCache.DefaultConstructor();
             }
 
             return (values, names) =>
@@ -3631,7 +3570,7 @@ namespace RuntimeStuff
             Func<object[], string[], T> itemFactory,
             CancellationToken ct)
         {
-            var itemTypeCache = MemberCache<T>.Create();
+            var itemTypeCache = MemberCache.Create(typeof(T));
             var readerValues = new object[reader.FieldCount];
             var readerColumns = Enumerable.Range(0, reader.FieldCount)
                 .Select(reader.GetName)

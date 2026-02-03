@@ -25,10 +25,9 @@ namespace RuntimeStuff
     using System.Reflection;
     using System.Reflection.Emit;
     using System.Runtime.CompilerServices;
-    using RuntimeStuff.Extensions;
 
     /// <summary>
-    /// v.2025.12.24 (RS)<br />
+    /// v.2026.02.02 (RS) COPY-PASTE READY<br />
     /// Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     /// Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     /// Особенности:
@@ -353,7 +352,7 @@ namespace RuntimeStuff
             }
 
             typeConverters[typeof(TTo)] =
-                converter.ConvertFunc(arg => (TFrom)arg);
+                (arg) => converter((TFrom)arg);
         }
 
         /// <summary>
@@ -1507,8 +1506,7 @@ namespace RuntimeStuff
         /// <typeparam name="TTo">Целевой тип.</typeparam>
         /// <returns>Функция преобразования из <typeparamref name="TFrom" /> в <typeparamref name="TTo" />,
         /// либо <see langword="null" />, если конвертер не зарегистрирован.</returns>
-        public static Func<TFrom, TTo> GetCustomTypeConverter<TFrom, TTo>() => GetCustomTypeConverter(typeof(TFrom), typeof(TTo))
-                ?.ConvertFunc<TFrom, TTo>();
+        public static Func<TFrom, TTo> GetCustomTypeConverter<TFrom, TTo>() => (from) => (TTo)GetCustomTypeConverter(typeof(TFrom), typeof(TTo))(from);
 
         /// <summary>
         /// Возвращает пользовательский конвертер между двумя типами.

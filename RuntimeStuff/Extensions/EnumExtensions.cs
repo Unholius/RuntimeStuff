@@ -15,9 +15,6 @@
 namespace RuntimeStuff.Extensions
 {
     using System;
-    using System.ComponentModel;
-    using System.Globalization;
-    using System.Reflection;
 
     /// <summary>
     /// Предоставляет расширения для работы с перечислениями и компараторами строк в .NET.

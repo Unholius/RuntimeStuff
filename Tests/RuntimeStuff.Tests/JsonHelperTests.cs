@@ -4,7 +4,7 @@ using System.Collections;
 namespace RuntimeStuff.MSTests
 {
     [TestClass]
-    public class JsonSerializerHelperTests
+    public class JsonHelperTests
     {
         #region Примитивные типы
 
@@ -15,7 +15,7 @@ namespace RuntimeStuff.MSTests
             object obj = null;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(obj);
+            var result = JsonHelper.Serialize(obj);
 
             // Assert
             Assert.AreEqual("null", result);
@@ -28,7 +28,7 @@ namespace RuntimeStuff.MSTests
             var str = "test";
 
             // Act
-            var result = JsonSerializerHelper.Serialize(str);
+            var result = JsonHelper.Serialize(str);
 
             // Assert
             Assert.AreEqual("\"test\"", result);
@@ -41,7 +41,7 @@ namespace RuntimeStuff.MSTests
             var str = "test\"quotes\"and\nnewline";
 
             // Act
-            var result = JsonSerializerHelper.Serialize(str);
+            var result = JsonHelper.Serialize(str);
 
             // Assert
             Assert.AreEqual("\"test\\\"quotes\\\"and\\nnewline\"", result);
@@ -54,7 +54,7 @@ namespace RuntimeStuff.MSTests
             var value = true;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(value);
+            var result = JsonHelper.Serialize(value);
 
             // Assert
             Assert.AreEqual("true", result);
@@ -67,7 +67,7 @@ namespace RuntimeStuff.MSTests
             var value = false;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(value);
+            var result = JsonHelper.Serialize(value);
 
             // Assert
             Assert.AreEqual("false", result);
@@ -80,7 +80,7 @@ namespace RuntimeStuff.MSTests
             var value = 42;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(value);
+            var result = JsonHelper.Serialize(value);
 
             // Assert
             Assert.AreEqual("42", result);
@@ -93,7 +93,7 @@ namespace RuntimeStuff.MSTests
             var value = 3.14f;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(value);
+            var result = JsonHelper.Serialize(value);
 
             // Assert
             Assert.AreEqual("3.14", result);
@@ -106,7 +106,7 @@ namespace RuntimeStuff.MSTests
             var value = 123.456m;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(value);
+            var result = JsonHelper.Serialize(value);
 
             // Assert
             Assert.AreEqual("123.456", result);
@@ -126,10 +126,10 @@ namespace RuntimeStuff.MSTests
         public void Serialize_EnumDefault_ReturnsNumber()
         {
             // Arrange
-            var value = MSTests.JsonSerializerHelperTests.TestEnum.Second;
+            var value = MSTests.JsonHelperTests.TestEnum.Second;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(value);
+            var result = JsonHelper.Serialize(value);
 
             // Assert
             Assert.AreEqual("2", result);
@@ -139,10 +139,10 @@ namespace RuntimeStuff.MSTests
         public void Serialize_EnumAsStrings_ReturnsString()
         {
             // Arrange
-            var value = MSTests.JsonSerializerHelperTests.TestEnum.Second;
+            var value = MSTests.JsonHelperTests.TestEnum.Second;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(value, enumAsStrings: true);
+            var result = JsonHelper.Serialize(value, enumAsStrings: true);
 
             // Assert
             Assert.AreEqual("\"Second\"", result);
@@ -159,7 +159,7 @@ namespace RuntimeStuff.MSTests
             var date = new DateTime(2023, 5, 15, 10, 30, 45);
 
             // Act
-            var result = JsonSerializerHelper.Serialize(date);
+            var result = JsonHelper.Serialize(date);
 
             // Assert
             Assert.AreEqual("\"2023-05-15\"", result); // По умолчанию только дата
@@ -172,7 +172,7 @@ namespace RuntimeStuff.MSTests
             var date = new DateTime(2023, 5, 15, 10, 30, 45);
 
             // Act
-            var result = JsonSerializerHelper.Serialize(date, dateFormat: "yyyy-MM-dd HH:mm:ss");
+            var result = JsonHelper.Serialize(date, dateFormat: "yyyy-MM-dd HH:mm:ss");
 
             // Assert
             Assert.AreEqual("\"2023-05-15 10:30:45\"", result);
@@ -189,7 +189,7 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(date, additionalFormats: additionalFormats);
+            var result = JsonHelper.Serialize(date, additionalFormats: additionalFormats);
 
             // Assert
             Assert.AreEqual("\"15.05.2023\"", result);
@@ -202,7 +202,7 @@ namespace RuntimeStuff.MSTests
             var offset = new DateTimeOffset(2023, 5, 15, 10, 30, 45, TimeSpan.FromHours(3));
 
             // Act
-            var result = JsonSerializerHelper.Serialize(offset);
+            var result = JsonHelper.Serialize(offset);
 
             // Assert
             Assert.AreEqual("\"2023-05-15\"", result);
@@ -215,7 +215,7 @@ namespace RuntimeStuff.MSTests
             var timeSpan = new TimeSpan(1, 2, 30, 45);
 
             // Act
-            var result = JsonSerializerHelper.Serialize(timeSpan);
+            var result = JsonHelper.Serialize(timeSpan);
 
             // Assert
             Assert.AreEqual("\"1.02:30:45\"", result); // Стандартный формат TimeSpan
@@ -232,7 +232,7 @@ namespace RuntimeStuff.MSTests
             int[] array = { 1, 2, 3 };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(array);
+            var result = JsonHelper.Serialize(array);
 
             // Assert
             Assert.AreEqual("[1,2,3]", result);
@@ -245,7 +245,7 @@ namespace RuntimeStuff.MSTests
             var list = new List<string> { "a", "b", "c" };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(list);
+            var result = JsonHelper.Serialize(list);
 
             // Assert
             Assert.AreEqual("[\"a\",\"b\",\"c\"]", result);
@@ -258,7 +258,7 @@ namespace RuntimeStuff.MSTests
             var array = Array.Empty<int>();
 
             // Act
-            var result = JsonSerializerHelper.Serialize(array);
+            var result = JsonHelper.Serialize(array);
 
             // Assert
             Assert.AreEqual("[]", result);
@@ -276,7 +276,7 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(dict);
+            var result = JsonHelper.Serialize(dict);
 
             // Assert
             Assert.AreEqual("{\"key1\":\"value1\",\"key2\":123,\"key3\":true}", result);
@@ -294,7 +294,7 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(hashtable);
+            var result = JsonHelper.Serialize(hashtable);
 
             // Assert
             // Порядок в Hashtable не гарантирован, поэтому проверяем по частям
@@ -312,7 +312,7 @@ namespace RuntimeStuff.MSTests
             var dict = new Dictionary<string, object>();
 
             // Act
-            var result = JsonSerializerHelper.Serialize(dict);
+            var result = JsonHelper.Serialize(dict);
 
             // Assert
             Assert.AreEqual("{}", result);
@@ -334,7 +334,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_SimpleObject_ReturnsJsonObject()
         {
             // Arrange
-            var obj = new MSTests.JsonSerializerHelperTests.SimpleObject
+            var obj = new MSTests.JsonHelperTests.SimpleObject
             {
                 Name = "John",
                 Age = 30,
@@ -343,17 +343,38 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(obj, dateFormat: "yyyy-MM-dd");
+            var result = JsonHelper.Serialize(obj, dateFormat: "yyyy-MM-dd");
 
             // Assert
             Assert.AreEqual("{\"Name\":\"John\",\"Age\":30,\"IsActive\":true,\"BirthDate\":\"1993-05-15\"}", result);
+
+        }
+
+        const string json = "{\r\n  \"orderId\": 12345,\r\n  \"date\": \"2023-10-27\",\r\n  \"customer\": {\r\n    \"id\": \"C01\",\r\n    \"name\": \"Alice\"\r\n  },\r\n  \"items\": [\r\n    {\"prodId\": \"P01\", \"price\": 10.5},\r\n    {\"prodId\": \"P02\", \"price\": 20.0}\r\n  ]\r\n}\r\n";
+
+        [TestMethod]
+        public void Test_GetAttributes()
+        {
+            var attr = JsonHelper.GetAttributes(json, "customer", true);
+        }
+
+        [TestMethod]
+        public void Test_GetValues()
+        {
+            var attr = JsonHelper.GetValues(json, "prodId");
+        }
+
+        [TestMethod]
+        public void Test_GetContents()
+        {
+            var attr = JsonHelper.GetContents(json, "customer");
         }
 
         [TestMethod]
         public void Serialize_ObjectWithNullProperties_ReturnsJsonObjectWithNull()
         {
             // Arrange
-            var obj = new MSTests.JsonSerializerHelperTests.SimpleObject
+            var obj = new MSTests.JsonHelperTests.SimpleObject
             {
                 Name = null,
                 Age = 30,
@@ -362,7 +383,7 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(obj, dateFormat: "yyyy-MM-dd");
+            var result = JsonHelper.Serialize(obj, dateFormat: "yyyy-MM-dd");
 
             // Assert
             Assert.AreEqual("{\"Age\":30,\"IsActive\":true,\"BirthDate\":\"1993-05-15\"}", result);
@@ -370,17 +391,17 @@ namespace RuntimeStuff.MSTests
 
         private class ObjectWithEnum
         {
-            public MSTests.JsonSerializerHelperTests.TestEnum Status { get; set; }
+            public MSTests.JsonHelperTests.TestEnum Status { get; set; }
         }
 
         [TestMethod]
         public void Serialize_ObjectWithEnum_ReturnsJsonObjectWithEnumAsNumber()
         {
             // Arrange
-            var obj = new MSTests.JsonSerializerHelperTests.ObjectWithEnum { Status = MSTests.JsonSerializerHelperTests.TestEnum.Second };
+            var obj = new MSTests.JsonHelperTests.ObjectWithEnum { Status = MSTests.JsonHelperTests.TestEnum.Second };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(obj);
+            var result = JsonHelper.Serialize(obj);
 
             // Assert
             Assert.AreEqual("{\"Status\":2}", result);
@@ -390,10 +411,10 @@ namespace RuntimeStuff.MSTests
         public void Serialize_ObjectWithEnumAsString_ReturnsJsonObjectWithEnumAsString()
         {
             // Arrange
-            var obj = new MSTests.JsonSerializerHelperTests.ObjectWithEnum { Status = MSTests.JsonSerializerHelperTests.TestEnum.Second };
+            var obj = new MSTests.JsonHelperTests.ObjectWithEnum { Status = MSTests.JsonHelperTests.TestEnum.Second };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(obj, enumAsStrings: true);
+            var result = JsonHelper.Serialize(obj, enumAsStrings: true);
 
             // Assert
             Assert.AreEqual("{\"Status\":\"Second\"}", result);
@@ -402,17 +423,17 @@ namespace RuntimeStuff.MSTests
         private class NestedObject
         {
             public string? Name { get; set; }
-            public MSTests.JsonSerializerHelperTests.SimpleObject? Inner { get; set; }
+            public MSTests.JsonHelperTests.SimpleObject? Inner { get; set; }
         }
 
         [TestMethod]
         public void Serialize_NestedObject_ReturnsJsonObjectWithNestedObject()
         {
             // Arrange
-            var obj = new MSTests.JsonSerializerHelperTests.NestedObject
+            var obj = new MSTests.JsonHelperTests.NestedObject
             {
                 Name = "Outer",
-                Inner = new MSTests.JsonSerializerHelperTests.SimpleObject
+                Inner = new MSTests.JsonHelperTests.SimpleObject
                 {
                     Name = "Inner",
                     Age = 25,
@@ -422,7 +443,7 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(obj, dateFormat: "yyyy-MM-dd");
+            var result = JsonHelper.Serialize(obj, dateFormat: "yyyy-MM-dd");
 
             // Assert
             var expected = "{\"Name\":\"Outer\",\"Inner\":{\"Name\":\"Inner\",\"Age\":25,\"IsActive\":true,\"BirthDate\":\"1998-03-10\"}}";
@@ -445,7 +466,7 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(obj);
+            var result = JsonHelper.Serialize(obj);
 
             // Assert
             // Анонимные типы имеют рандомные имена свойств, но в данном случае они сохраняются
@@ -460,14 +481,14 @@ namespace RuntimeStuff.MSTests
             // Arrange
             var dict = new Dictionary<string, object>
             {
-                ["object"] = new MSTests.JsonSerializerHelperTests.SimpleObject { Name = "Test", Age = 42 },
+                ["object"] = new MSTests.JsonHelperTests.SimpleObject { Name = "Test", Age = 42 },
                 ["array"] = new[] { 1.120, 2.300, 3.666 },
                 ["nestedDict"] = new Dictionary<string, string> { ["key"] = "value" }
             };
             var tf = new Dictionary<Type, string>() { { typeof(double), ".0000" } };
 
             // Act
-            var result = JsonSerializerHelper.Serialize(dict, dateFormat: "yyyy-MM-dd", additionalFormats: tf);
+            var result = JsonHelper.Serialize(dict, dateFormat: "yyyy-MM-dd", additionalFormats: tf);
             
 
             // Assert
@@ -487,7 +508,7 @@ namespace RuntimeStuff.MSTests
             var str = "";
 
             // Act
-            var result = JsonSerializerHelper.Serialize(str);
+            var result = JsonHelper.Serialize(str);
 
             // Assert
             Assert.AreEqual("\"\"", result);
@@ -500,7 +521,7 @@ namespace RuntimeStuff.MSTests
             var zero = 0;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(zero);
+            var result = JsonHelper.Serialize(zero);
 
             // Assert
             Assert.AreEqual("0", result);
@@ -513,7 +534,7 @@ namespace RuntimeStuff.MSTests
             var minDate = DateTime.MinValue;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(minDate);
+            var result = JsonHelper.Serialize(minDate);
 
             // Assert
             Assert.AreEqual("\"0001-01-01\"", result);
@@ -526,7 +547,7 @@ namespace RuntimeStuff.MSTests
             var maxDate = DateTime.MaxValue;
 
             // Act
-            var result = JsonSerializerHelper.Serialize(maxDate);
+            var result = JsonHelper.Serialize(maxDate);
 
             // Assert
             Assert.AreEqual("\"9999-12-31\"", result);

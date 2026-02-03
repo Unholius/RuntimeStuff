@@ -259,7 +259,7 @@ namespace RuntimeStuff.Extensions
                 }
                 else
                 {
-                    body = Helpers.JsonSerializerHelper.Serialize(content, null, enumAsStrings, additionalFormats);
+                    body = Helpers.JsonHelper.Serialize(content, null, enumAsStrings, additionalFormats);
                     contentType = "application/json";
                 }
 

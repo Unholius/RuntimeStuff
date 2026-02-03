@@ -11,6 +11,7 @@ namespace RuntimeStuff
     using System.Threading;
 
     /// <summary>
+    /// v.2026.02.02 (RS) COPY-PASTE READY<br />
     /// Асинхронная потокобезопасная шина сообщений (Message Bus)
     /// с очередью и пулом рабочих потоков.
     /// </summary>
@@ -103,15 +104,24 @@ namespace RuntimeStuff
             new MessageBus(workerCount: Environment.ProcessorCount);
 
         /// <summary>
+        /// Глобальный экземпляр шины сообщений.
+        /// </summary>
+        /// <remarks>
+        /// По умолчанию количество рабочих потоков равно 1.
+        /// </remarks>
+        public static MessageBus Global { get; } =
+            new MessageBus(workerCount: 1);
+
+        /// <summary>
         /// Освобождает ресурсы и корректно завершает работу шины сообщений.
         /// </summary>
         /// <remarks>
         /// Метод:
         /// <list type="bullet">
-        /// <item><description>останавливает приём новых сообщений;</description></item>
-        /// <item><description>будит все рабочие потоки;</description></item>
-        /// <item><description>дожидается завершения обработки очереди;</description></item>
-        /// <item><description>освобождает системные ресурсы.</description></item>
+        /// <item><description>Останавливает приём новых сообщений;</description></item>
+        /// <item><description>Будит все рабочие потоки;</description></item>
+        /// <item><description>Дожидается завершения обработки очереди;</description></item>
+        /// <item><description>Освобождает системные ресурсы.</description></item>
         /// </list>
         ///
         /// После вызова <see cref="Dispose"/> публикация сообщений невозможна.
