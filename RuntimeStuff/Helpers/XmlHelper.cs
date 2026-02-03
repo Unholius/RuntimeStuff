@@ -8,6 +8,7 @@ namespace RuntimeStuff.Helpers
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using System.Xml;
     using System.Xml.Linq;
     using System.Xml.Serialization;
 
@@ -301,11 +302,13 @@ namespace RuntimeStuff.Helpers
         /// XmlSerializer.</param>
         /// <param name="includeNamespace">Включать пространство имен.</param>
         /// <param name="propertiesAsAttributes">Сериализовать простые свойства как атрибуты.</param>
+        /// <param name="writeIndent">Использовать форматирование строк.</param>
         /// <returns>Строка, содержащая XML-представление указанного объекта.</returns>
         public static string Serialize(
             object obj,
-            bool includeNamespace,
-            bool propertiesAsAttributes)
+            bool includeNamespace = false,
+            bool propertiesAsAttributes = true,
+            bool writeIndent = true)
         {
             if (obj == null)
                 throw new ArgumentNullException(nameof(obj));
@@ -351,7 +354,7 @@ namespace RuntimeStuff.Helpers
                 serializer.Serialize(writer, obj, namespaces);
             }
 
-            return xDoc.ToString();
+            return xDoc.ToString(writeIndent ? SaveOptions.None : SaveOptions.DisableFormatting);
         }
 
         private static bool IsSimpleType(Type type)
