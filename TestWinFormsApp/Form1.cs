@@ -45,7 +45,7 @@ namespace TestWinFormsApp
             textBox1.BindToPropertyOnEvent(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
 
             Obj.Set(dataGridView1, "DoubleBuffered", true);
-            m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled);
+            m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled, x => !x);
             m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
             m.BindProperties(x => x.Number, m, x => x.Number);
         }

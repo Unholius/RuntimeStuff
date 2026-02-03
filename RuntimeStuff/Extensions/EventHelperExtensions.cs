@@ -4,11 +4,11 @@
 
 namespace RuntimeStuff.Extensions
 {
+    using RuntimeStuff.Helpers;
     using System;
     using System.Collections.Specialized;
     using System.ComponentModel;
     using System.Linq.Expressions;
-    using RuntimeStuff.Helpers;
 
     /// <summary>
     /// Class EventHelperExtensions.
@@ -658,45 +658,6 @@ namespace RuntimeStuff.Extensions
             var targetProp = targetPropertySelector.GetPropertyInfo();
 
             return EventHelper.BindProperties<TSource, TSourceProp, PropertyChangedEventArgs, TTarget, TTargetProp, EventArgs>(source, srcProp, srcEvent, (s, e) => e.PropertyName == srcProp.Name, target, targetProp, null, null, sourcePropertyValueToTargetPropertyValueConverter, null, onPropertyChanged);
-        }
-
-        /// <summary>
-        /// Устанавливает двустороннюю привязку между свойствами источника
-        /// и приёмника, использующими <see cref="INotifyPropertyChanged"/>.
-        /// </summary>
-        /// <typeparam name="TSource">Тип объекта-источника.</typeparam>
-        /// <typeparam name="TTarget">Тип объекта-приёмника.</typeparam>
-        /// <typeparam name="T">Тип привязываемого свойства.</typeparam>
-        /// <param name="source">Объект-источник.</param>
-        /// <param name="sourcePropertySelector">Свойство источника.</param>
-        /// <param name="target">Объект-приёмник.</param>
-        /// <param name="targetPropertySelector">Свойство приёмника.</param>
-        /// <param name="valueConverter">Конвертер значения. Например, x => !x.</param>
-        /// <param name="onPropertyChanged">
-        /// Колбэк, вызываемый при синхронизации свойств.
-        /// </param>
-        /// <returns>
-        /// Объект <see cref="IDisposable"/>, позволяющий отменить привязку.
-        /// </returns>
-        /// <remarks>
-        /// Изменения любого из свойств автоматически синхронизируются
-        /// с противоположной стороной.
-        /// </remarks>
-        public static IDisposable BindToProperty<TSource, TTarget, T>(
-            this TSource source,
-            Expression<Func<TSource, T>> sourcePropertySelector,
-            TTarget target,
-            Expression<Func<TTarget, T>> targetPropertySelector,
-            Func<T, T> valueConverter,
-            Action<object, PropertyChangedEventArgs> onPropertyChanged = null)
-            where TSource : class, INotifyPropertyChanged
-            where TTarget : class
-        {
-            var srcProp = sourcePropertySelector.GetPropertyInfo();
-            var srcEvent = source.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
-            var targetProp = targetPropertySelector.GetPropertyInfo();
-
-            return EventHelper.BindProperties<TSource, T, PropertyChangedEventArgs, TTarget, T, EventArgs>(source, srcProp, srcEvent, (s, e) => e.PropertyName == srcProp.Name, target, targetProp, null, null, valueConverter, valueConverter, onPropertyChanged);
         }
 
         /// <summary>
