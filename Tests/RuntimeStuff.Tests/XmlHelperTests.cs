@@ -9,7 +9,8 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Test_01()
         {
-            var values = XmlHelper.GetValues(xml, "response");
+            var contents = XmlHelper.GetContents(xml, "response", x => x.Contains("a5d80190-9e02-4369-8f6e-41923da50c0e"));
+            var values = XmlHelper.GetValues(contents[0], "max-file-size-bytes");
         }
 
         [TestMethod]
@@ -21,7 +22,13 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Test_03()
         {
-            var values = XmlHelper.GetValues(xml, "max-file-size-bytes");
+            var values = XmlHelper.GetValues(xml, "max-file-size-bytes", "response", x => x.Contains("a5d80190-9e02-4369-8f6e-41923da50c0e"));
+        }
+
+        [TestMethod]
+        public void Test_04()
+        {
+            var values = XmlHelper.GetAttributes(xml, "response");
         }
     }
 }

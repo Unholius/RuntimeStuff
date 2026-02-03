@@ -104,6 +104,15 @@ namespace RuntimeStuff
             new MessageBus(workerCount: Environment.ProcessorCount);
 
         /// <summary>
+        /// Глобальный экземпляр шины сообщений.
+        /// </summary>
+        /// <remarks>
+        /// По умолчанию количество рабочих потоков равно 1.
+        /// </remarks>
+        public static MessageBus Global { get; } =
+            new MessageBus(workerCount: 1);
+
+        /// <summary>
         /// Освобождает ресурсы и корректно завершает работу шины сообщений.
         /// </summary>
         /// <remarks>
