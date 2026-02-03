@@ -39,6 +39,40 @@ namespace RuntimeStuff.Helpers
         /// <param name="json">
         /// Строка, содержащая JSON-документ.
         /// </param>
+        /// <param name="nodeNameSelector">
+        /// Имя узла, значения которого должны быть JSON-объектами.
+        /// </param>
+        /// <param name="searchInArrays">Искать в массивах.</param>
+        /// <returns>
+        /// Массив словарей, где каждый словарь содержит пары
+        /// «имя свойства — значение свойства».
+        /// Если данные некорректны или объекты не найдены,
+        /// возвращается пустой массив.
+        /// </returns>
+        public static Dictionary<string, string>[] GetAttributes(string json, Func<string, bool> nodeNameSelector, bool searchInArrays)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return Array.Empty<Dictionary<string, string>>();
+
+            try
+            {
+                return FindNodes(json, nodeNameSelector)
+                    .Where(x => searchInArrays ? IsObjectOrArray(x) : IsObject(x))
+                    .Select(ParseObject)
+                    .ToArray();
+            }
+            catch
+            {
+                return Array.Empty<Dictionary<string, string>>();
+            }
+        }
+
+        /// <summary>
+        /// Извлекает атрибуты всех JSON-объектов с указанным именем узла.
+        /// </summary>
+        /// <param name="json">
+        /// Строка, содержащая JSON-документ.
+        /// </param>
         /// <param name="nodeName">
         /// Имя узла, значения которого должны быть JSON-объектами.
         /// </param>
@@ -50,21 +84,34 @@ namespace RuntimeStuff.Helpers
         /// возвращается пустой массив.
         /// </returns>
         public static Dictionary<string, string>[] GetAttributes(string json, string nodeName, bool searchInArrays)
-        {
-            if (string.IsNullOrWhiteSpace(json))
-                return Array.Empty<Dictionary<string, string>>();
+            => GetAttributes(json, x => x == nodeName, searchInArrays);
 
-            try
-            {
-                return FindNodes(json, nodeName)
-                    .Where(x => searchInArrays ? IsObjectOrArray(x) : IsObject(x))
-                    .Select(ParseObject)
-                    .ToArray();
-            }
-            catch
-            {
-                return Array.Empty<Dictionary<string, string>>();
-            }
+        /// <summary>
+        /// Извлекает атрибуты JSON-объектов из предварительно
+        /// отфильтрованных JSON-фрагментов.
+        /// </summary>
+        /// <param name="json">
+        /// Строка, содержащая JSON-документ.
+        /// </param>
+        /// <param name="attributesNodeNameSelector">
+        /// Имя узла, содержащего JSON-объекты,
+        /// атрибуты которых необходимо извлечь.
+        /// </param>
+        /// <param name="contentNodeNameSelector">
+        /// Имя узлов, используемых как источник JSON-фрагментов.
+        /// </param>
+        /// <param name="contentFilter">
+        /// Фильтр, применяемый к JSON-содержимому узлов
+        /// <paramref name="contentNodeNameSelector"/>.
+        /// </param>
+        /// <param name="searchInArrays">Искать в массивах.</param>
+        /// <returns>
+        /// Массив словарей атрибутов найденных JSON-объектов.
+        /// </returns>
+        public static Dictionary<string, string>[] GetAttributes(string json, Func<string, bool> attributesNodeNameSelector, Func<string, bool> contentNodeNameSelector, Func<string, bool> contentFilter, bool searchInArrays)
+        {
+            var contents = GetContents(json, contentNodeNameSelector, contentFilter);
+            return contents.SelectMany(x => GetAttributes(x, attributesNodeNameSelector, searchInArrays)).ToArray();
         }
 
         /// <summary>
@@ -90,9 +137,41 @@ namespace RuntimeStuff.Helpers
         /// Массив словарей атрибутов найденных JSON-объектов.
         /// </returns>
         public static Dictionary<string, string>[] GetAttributes(string json, string attributesNodeName, string contentNodeName, Func<string, bool> contentFilter, bool searchInArrays)
+            => GetAttributes(json, x => x == attributesNodeName, x => x == contentNodeName, contentFilter, searchInArrays);
+
+        /// <summary>
+        /// Извлекает строковое содержимое узлов с указанным именем.
+        /// </summary>
+        /// <param name="json">
+        /// Строка, содержащая JSON-документ.
+        /// </param>
+        /// <param name="nodeNameSelector">
+        /// Имя узлов, содержимое которых необходимо получить.
+        /// </param>
+        /// <param name="contentFilter">
+        /// Необязательный фильтр для JSON-фрагментов.
+        /// </param>
+        /// <returns>
+        /// Массив строк с JSON-представлением найденных узлов.
+        /// </returns>
+        public static string[] GetContents(
+                    string json,
+                    Func<string, bool> nodeNameSelector,
+                    Func<string, bool> contentFilter = null)
         {
-            var contents = GetContents(json, contentNodeName, contentFilter);
-            return contents.SelectMany(x => GetAttributes(x, attributesNodeName, searchInArrays)).ToArray();
+            if (string.IsNullOrWhiteSpace(json))
+                return Array.Empty<string>();
+
+            try
+            {
+                return FindNodes(json, nodeNameSelector)
+                    .Where(x => contentFilter == null || contentFilter(x))
+                    .ToArray();
+            }
+            catch
+            {
+                return Array.Empty<string>();
+            }
         }
 
         /// <summary>
@@ -114,14 +193,33 @@ namespace RuntimeStuff.Helpers
                     string json,
                     string nodeName,
                     Func<string, bool> contentFilter = null)
+            => GetContents(json, x => x == nodeName, contentFilter);
+
+        /// <summary>
+        /// Извлекает значения простых JSON-узлов
+        /// (строки, числа, логические значения).
+        /// </summary>
+        /// <param name="json">
+        /// Строка, содержащая JSON-документ.
+        /// </param>
+        /// <param name="nodeNameSelector">
+        /// Имя узлов, значения которых необходимо извлечь.
+        /// </param>
+        /// <param name="searchInArrays">Искать в массивах.</param>
+        /// <returns>
+        /// Массив строковых значений найденных узлов.
+        /// Объекты и массивы игнорируются.
+        /// </returns>
+        public static string[] GetValues(string json, Func<string, bool> nodeNameSelector, bool searchInArrays = true)
         {
             if (string.IsNullOrWhiteSpace(json))
                 return Array.Empty<string>();
 
             try
             {
-                return FindNodes(json, nodeName)
-                    .Where(x => contentFilter == null || contentFilter(x))
+                return FindNodes(json, nodeNameSelector)
+                    .Where(v => searchInArrays ? !IsObjectOrArray(v) : IsObject(v))
+                    .Select(Unwrap)
                     .ToArray();
             }
             catch
@@ -146,21 +244,31 @@ namespace RuntimeStuff.Helpers
         /// Объекты и массивы игнорируются.
         /// </returns>
         public static string[] GetValues(string json, string nodeName, bool searchInArrays = true)
-        {
-            if (string.IsNullOrWhiteSpace(json))
-                return Array.Empty<string>();
+            => GetValues(json, x => x == nodeName, searchInArrays);
 
-            try
-            {
-                return FindNodes(json, nodeName)
-                    .Where(v => searchInArrays ? !IsObjectOrArray(v) : IsObject(v))
-                    .Select(Unwrap)
-                    .ToArray();
-            }
-            catch
-            {
-                return Array.Empty<string>();
-            }
+        /// <summary>
+        /// Извлекает значения узлов из предварительно
+        /// отфильтрованных JSON-фрагментов.
+        /// </summary>
+        /// <param name="json">
+        /// Строка, содержащая JSON-документ.
+        /// </param>
+        /// <param name="valueNodeNameSelctor">
+        /// Имя узлов, значения которых необходимо получить.
+        /// </param>
+        /// <param name="contentNodeNameSelector">
+        /// Имя узлов, используемых как источник JSON-фрагментов.
+        /// </param>
+        /// <param name="contentFilter">
+        /// Фильтр для JSON-содержимого.
+        /// </param>
+        /// <returns>
+        /// Массив строковых значений найденных узлов.
+        /// </returns>
+        public static string[] GetValues(string json, Func<string, bool> valueNodeNameSelctor, Func<string, bool> contentNodeNameSelector, Func<string, bool> contentFilter)
+        {
+            var contents = GetContents(json, contentNodeNameSelector, contentFilter);
+            return contents.SelectMany(x => GetValues(x, valueNodeNameSelctor)).ToArray();
         }
 
         /// <summary>
@@ -183,10 +291,7 @@ namespace RuntimeStuff.Helpers
         /// Массив строковых значений найденных узлов.
         /// </returns>
         public static string[] GetValues(string json, string valueNodeName, string contentNodeName, Func<string, bool> contentFilter)
-        {
-            var contents = GetContents(json, contentNodeName, contentFilter);
-            return contents.SelectMany(x => GetValues(x, valueNodeName)).ToArray();
-        }
+            => GetValues(json, x => x == valueNodeName, x => x == contentNodeName, contentFilter);
 
         /// <summary>
         /// Сериализует указанный объект в JSON-строку.
@@ -316,20 +421,20 @@ namespace RuntimeStuff.Helpers
             return sb.ToString();
         }
 
-        private static IEnumerable<string> FindNodes(string json, string name)
+        private static IEnumerable<string> FindNodes(string json, Func<string, bool> nameSelector)
         {
-            if (string.IsNullOrEmpty(name))
+            if (nameSelector == null)
                 yield return json;
 
             foreach (Match match in PropertyRegex.Matches(json))
             {
-                if (match.Groups["name"].Value == name)
+                if (nameSelector(match.Groups["name"].Value))
                     yield return match.Groups["value"].Value;
 
                 var value = match.Groups["value"].Value;
                 if (IsObjectOrArray(value))
                 {
-                    foreach (var nested in FindNodes(value, name))
+                    foreach (var nested in FindNodes(value, nameSelector))
                         yield return nested;
                 }
             }
