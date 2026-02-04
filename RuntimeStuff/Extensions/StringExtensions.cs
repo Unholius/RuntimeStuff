@@ -75,11 +75,11 @@ namespace RuntimeStuff.Extensions
         /// <b>не гарантирует</b> синтаксическую корректность XML.
         /// Проверяются следующие условия:
         /// <list type="bullet">
-        /// <item><description>строка не равна <c>null</c> и не пуста;</description></item>
-        /// <item><description>после обрезки пробельных символов строка начинается с символа '&lt;';</description></item>
-        /// <item><description>минимальная допустимая длина XML (&lt;a/&gt;);</description></item>
-        /// <item><description>исключаются HTML-комментарии и объявления DOCTYPE без корневого элемента;</description></item>
-        /// <item><description>наличие закрывающего символа '&gt;'.</description></item>
+        /// <item><description>Строка не равна <c>null</c> и не пуста;</description></item>
+        /// <item><description>После обрезки пробельных символов строка начинается с символа '&lt;';</description></item>
+        /// <item><description>Минимальная допустимая длина XML (&lt;a/&gt;);</description></item>
+        /// <item><description>Исключаются HTML-комментарии и объявления DOCTYPE без корневого элемента;</description></item>
+        /// <item><description>Наличие закрывающего символа '&gt;'.</description></item>
         /// </list>
         /// Для полной проверки корректности XML рекомендуется использовать
         /// <see cref="System.Xml.XmlReader"/> или <see cref="System.Xml.Linq.XDocument"/>.
@@ -102,9 +102,9 @@ namespace RuntimeStuff.Extensions
         /// <b>не гарантирует</b> синтаксическую корректность JSON.
         /// Проверяются следующие условия:
         /// <list type="bullet">
-        /// <item><description>строка не равна <c>null</c> и не пуста;</description></item>
-        /// <item><description>после обрезки пробельных символов длина строки не менее 2 символов;</description></item>
-        /// <item><description>строка начинается с символа '{' и заканчивается '}', либо начинается с '[' и заканчивается ']'.</description></item>
+        /// <item><description>Строка не равна <c>null</c> и не пуста;</description></item>
+        /// <item><description>После обрезки пробельных символов длина строки не менее 2 символов;</description></item>
+        /// <item><description>Строка начинается с символа '{' и заканчивается '}', либо начинается с '[' и заканчивается ']'.</description></item>
         /// </list>
         /// Метод не проверяет корректность структуры, экранирование строк,
         /// соответствие стандарту JSON и вложенность элементов.

@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff
+namespace RuntimeStuff.Collections
 {
     using System;
     using System.Collections.Generic;
@@ -253,7 +253,7 @@ namespace RuntimeStuff
             Subscribe(item);
         }
 
-        private static void OnItemPropertyChanged(ObservableCollectionEx<T> collection, PropertyChangedEventArgs args)
+        private static void OnItemPropertyChanged(ObservableCollectionEx<T> collection)
         {
             if (collection.SuppressNotifyCollectionChange)
                 return;
@@ -282,7 +282,7 @@ namespace RuntimeStuff
             if (!(item is INotifyPropertyChanged inpc))
                 return;
 
-            weakEventManager.AddWeakEventListener(inpc, (s, e) => OnItemPropertyChanged(this, e));
+            weakEventManager.AddWeakEventListener(inpc, (s, e) => OnItemPropertyChanged(this));
         }
 
         /// <summary>

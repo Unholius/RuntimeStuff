@@ -2,14 +2,12 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Helpers.Tests
-{
-    using Microsoft.VisualStudio.TestTools.UnitTesting;
-    using System;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Xml.Serialization;
+using System.Xml.Serialization;
+using RuntimeStuff.Helpers;
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 
+namespace RuntimeStuff.MSTests
+{
     [TestClass]
     public class XmlHelperTests
     {
@@ -18,7 +16,7 @@ namespace RuntimeStuff.Helpers.Tests
         [XmlRoot("TestModel")]
         public class TestModel
         {
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public int Value { get; set; }
             public List<string> Items { get; set; } = new List<string>();
         }
@@ -26,10 +24,10 @@ namespace RuntimeStuff.Helpers.Tests
         [XmlRoot("TestModel")]
         public class TestModelRecursive
         {
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public int Value { get; set; }
             public List<string> Items { get; set; } = new List<string>();
-            public TestModelRecursive Child { get; set; }
+            public TestModelRecursive? Child { get; set; }
         }
 
         [XmlRoot("SimpleModel")]
@@ -37,7 +35,7 @@ namespace RuntimeStuff.Helpers.Tests
         {
             [XmlAttribute("id")]
             public int Id { get; set; }
-            public string Description { get; set; }
+            public string? Description { get; set; }
         }
 
         #endregion

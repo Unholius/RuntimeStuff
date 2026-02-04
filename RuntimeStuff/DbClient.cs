@@ -27,6 +27,7 @@ namespace RuntimeStuff
     using System.Threading;
     using System.Threading.Tasks;
     using RuntimeStuff.Builders;
+    using RuntimeStuff.Collections;
     using RuntimeStuff.Extensions;
     using RuntimeStuff.Helpers;
     using RuntimeStuff.Options;
@@ -2347,7 +2348,7 @@ namespace RuntimeStuff
                 query,
                 this.Options,
                 typeof(TFrom));
-            return this.ToDataTables(query, cmdParam).FirstOrDefault();
+            return this.ToDataTables(query, cmdParam, valueConverter).FirstOrDefault();
         }
 
         /// <summary>

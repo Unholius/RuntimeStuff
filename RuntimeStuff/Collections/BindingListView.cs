@@ -11,7 +11,8 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+
+namespace RuntimeStuff.Collections
 {
     using System;
     using System.Collections;
@@ -55,7 +56,7 @@ namespace RuntimeStuff
     /// рекомендуется использовать с типами, обладающими публичными свойствами, по которым возможна сортировка и
     /// фильтрация.</remarks>
     [DebuggerDisplay("Count = {Count} TotalCount = {TotalCount}")]
-    public class BindingListView<T> : PropertyObserver, IBindingListView, INotifyCollectionChanged, IEnumerable<T>
+    public class BindingListView<T> : ObservableObjectEx, IBindingListView, INotifyCollectionChanged, IEnumerable<T>
         where T : class
     {
         private readonly object syncRoot = new object();

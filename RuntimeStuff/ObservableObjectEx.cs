@@ -6,7 +6,7 @@
 // Last Modified By : RS
 // Last Modified On : 01-07-2026
 // ***********************************************************************
-// <copyright file="PropertyObserver.cs" company="Rudnev Sergey">
+// <copyright file="ObservableObjectEx.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 // <summary></summary>
@@ -37,7 +37,7 @@ namespace RuntimeStuff
     /// remove =&gt; _notifier.PropertyChanged -= value;
     /// }
     /// </code></remarks>
-    public abstract class PropertyObserver : INotifyPropertyChanged, INotifyPropertyChanging, IDisposable
+    public abstract class ObservableObjectEx : INotifyPropertyChanged, INotifyPropertyChanging, IDisposable
     {
         /// <summary>
         /// Сопоставление вложенных объектов (<see cref="INotifyPropertyChanged" />) с их обработчиками
@@ -50,14 +50,14 @@ namespace RuntimeStuff
         private bool disposed;
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="PropertyObserver"/> class.
+        /// Finalizes an instance of the <see cref="ObservableObjectEx"/> class.
         /// Освобождает ресурсы, используемые экземпляром класса PropertyChangeNotifier перед его удалением сборщиком
         /// мусора.
         /// </summary>
         /// <remarks>Этот финализатор вызывается автоматически при удалении объекта сборщиком мусора, если
         /// метод Dispose не был вызван явно. Обычно не требуется вызывать этот метод напрямую в пользовательском
         /// коде.</remarks>
-        ~PropertyObserver()
+        ~ObservableObjectEx()
         {
             this.Dispose(false);
         }

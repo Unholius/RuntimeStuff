@@ -1,16 +1,7 @@
-﻿// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 01-06-2026
-//
-// Last Modified By : RS
-// Last Modified On : 01-07-2026
-// ***********************************************************************
-// <copyright file="SqlQueryBuilder.cs" company="Rudnev Sergey">
+﻿// <copyright file="SqlQueryBuilder.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
+
 namespace RuntimeStuff.Builders
 {
     using System;
@@ -24,50 +15,38 @@ namespace RuntimeStuff.Builders
     using RuntimeStuff.Options;
 
     /// <summary>
-    /// Class SqlQueryBuilder.
+    /// Статический класс для генерации SQL-запросов (SELECT, INSERT, UPDATE, DELETE, JOIN, WHERE и т.д.).
+    /// Поддерживает различные провайдеры SQL через <see cref="SqlProviderOptions"/>.
     /// </summary>
     public static class SqlQueryBuilder
     {
         /// <summary>
-        /// The empty parameters.
-        /// </summary>
-        private static readonly IReadOnlyDictionary<string, object> EmptyParams = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>());
-
-        /// <summary>
-        /// Enum JoinType.
+        /// Тип соединения для SQL JOIN.
         /// </summary>
         public enum JoinType
         {
-            /// <summary>
-            /// The inner
-            /// </summary>
+            /// <summary>INNER JOIN</summary>
             Inner,
 
-            /// <summary>
-            /// The left
-            /// </summary>
+            /// <summary>LEFT JOIN</summary>
             Left,
 
-            /// <summary>
-            /// The right
-            /// </summary>
+            /// <summary>RIGHT JOIN</summary>
             Right,
 
-            /// <summary>
-            /// The full
-            /// </summary>
+            /// <summary>FULL JOIN</summary>
             Full,
         }
 
         /// <summary>
-        /// Adds the limit offset clause to query.
+        /// Добавляет в SQL-запрос ограничения на количество строк и смещение (LIMIT/OFFSET).
         /// </summary>
-        /// <param name="fetchRows">The fetch rows.</param>
-        /// <param name="offsetRows">The offset rows.</param>
-        /// <param name="query">The query.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="entityType">Type of the entity.</param>
-        /// <returns>System.String.</returns>
+        /// <param name="fetchRows">Количество строк для выборки.</param>
+        /// <param name="offsetRows">Количество строк для пропуска (смещение).</param>
+        /// <param name="query">Исходный SQL-запрос.</param>
+        /// <param name="options">Параметры SQL-провайдера.</param>
+        /// <param name="entityType">Тип сущности для генерации ORDER BY (если его нет).</param>
+        /// <returns>SQL-запрос с добавленным LIMIT/OFFSET.</returns>
         public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null)
         {
             if (fetchRows < 0 || offsetRows < 0)
@@ -100,12 +79,12 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the aggregate select clause.
+        /// Генерирует SELECT-запрос с агрегатными функциями (SUM, COUNT, AVG и т.д.).
         /// </summary>
-        /// <typeparam name="TFrom">The type of the t from.</typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="columnSelectors">The column selectors.</param>
-        /// <returns>System.String.</returns>
+        /// <typeparam name="TFrom">Тип сущности для выборки.</typeparam>
+        /// <param name="options">Параметры SQL-провайдера.</param>
+        /// <param name="columnSelectors">Список колонок и агрегатных функций.</param>
+        /// <returns>SQL-запрос SELECT с агрегатными функциями.</returns>
         public static string GetAggSelectClause<TFrom>(SqlProviderOptions options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
             where TFrom : class
         {
@@ -124,11 +103,11 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the delete query.
+        /// Генерирует SQL-запрос DELETE для указанной сущности.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="options">The options.</param>
-        /// <returns>System.String.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="options">Параметры SQL-провайдера.</param>
+        /// <returns>SQL-запрос DELETE.</returns>
         public static string GetDeleteQuery<T>(SqlProviderOptions options)
             where T : class
         {
@@ -138,12 +117,12 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the insert query.
+        /// Генерирует SQL-запрос INSERT для указанной сущности и колонок.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="insertColumns">The insert columns.</param>
-        /// <returns>System.String.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="options">Параметры SQL-провайдера.</param>
+        /// <param name="insertColumns">Колонки для вставки. Если не указаны, вставляются все публичные свойства с сеттером.</param>
+        /// <returns>SQL-запрос INSERT.</returns>
         public static string GetInsertQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] insertColumns)
             where T : class
         {
@@ -197,17 +176,15 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the join clause.
+        /// Генерирует SQL-клаузу JOIN между двумя сущностями.
         /// </summary>
-        /// <param name="from">From.</param>
-        /// <param name="joinOn">The join on.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="joinType">Type of the join.</param>
-        /// <returns>System.String.</returns>
-        /// <exception cref="System.ArgumentNullException">from.</exception>
-        /// <exception cref="System.ArgumentNullException">joinOn.</exception>
-        /// <exception cref="System.InvalidOperationException">Foreign key between {from.Name} and {joinOn.Name} not found.</exception>
-        /// <exception cref="System.InvalidOperationException">Failed to determine join columns.</exception>
+        /// <param name="from">Тип основной сущности.</param>
+        /// <param name="joinOn">Тип сущности для соединения.</param>
+        /// <param name="options">Параметры SQL-провайдера.</param>
+        /// <param name="joinType">Тип соединения (INNER, LEFT, RIGHT, FULL).</param>
+        /// <returns>SQL-клауза JOIN.</returns>
+        /// <exception cref="ArgumentNullException">Если один из типов равен null.</exception>
+        /// <exception cref="InvalidOperationException">Если не удалось определить колонки для соединения.</exception>
         public static string GetJoinClause(Type from, Type joinOn, SqlProviderOptions options, JoinType joinType = JoinType.Inner)
         {
             if (from == null)
@@ -226,10 +203,9 @@ namespace RuntimeStuff.Builders
             var parentTable = parentCache.TableName;
             var childTable = childrenCache.TableName;
 
-            string parentColumn = null;
-            string childColumn = null;
+            string parentColumn;
+            string childColumn;
 
-            // Попробуем найти FK в children → parent
             var fkInChildren = childrenCache.GetForeignKey(from);
             if (fkInChildren != null)
             {
@@ -238,11 +214,9 @@ namespace RuntimeStuff.Builders
             }
             else
             {
-                // Если FK в children не найден, ищем FK в parent → children
                 var fkInParent = parentCache.GetForeignKey(joinOn);
                 if (fkInParent != null)
                 {
-                    // FK в parent: столбцы меняем местами, чтобы parent остался FROM
                     parentColumn = fkInParent.ColumnName;
                     childColumn = childrenCache.PrimaryKeys.FirstOrDefault()?.ColumnName;
                 }
@@ -265,12 +239,15 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the order by.
+        /// Генерирует SQL-клауза ORDER BY для указанной сущности.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="orderBy">The order by.</param>
-        /// <returns>System.String.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="options">Параметры SQL-провайдера (например, префикс/суффикс имен колонок).</param>
+        /// <param name="orderBy">
+        /// Кортежи, где первый элемент — выражение для выбора свойства сущности,
+        /// второй — направление сортировки: <c>true</c> для ASC, <c>false</c> для DESC.
+        /// </param>
+        /// <returns>Строка SQL-клаузы ORDER BY, либо пустая строка, если параметр <paramref name="orderBy"/> равен <c>null</c> или пуст.</returns>
         public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
             if (orderBy == null)
@@ -283,11 +260,16 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the order by.
+        /// Генерирует SQL-клауза ORDER BY для указанных колонок с их направлением сортировки.
         /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="orderBy">The order by.</param>
-        /// <returns>System.String.</returns>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен.</param>
+        /// <param name="orderBy">
+        /// Массив кортежей, где первый элемент — объект <see cref="MemberCache"/> для колонки,
+        /// второй элемент — направление сортировки: <c>true</c> для ASC, <c>false</c> для DESC.
+        /// </param>
+        /// <returns>
+        /// Строка SQL-клаузы ORDER BY. Если массив <paramref name="orderBy"/> пуст или равен <c>null</c>, возвращается пустая строка.
+        /// </returns>
         public static string GetOrderBy(SqlProviderOptions options, params (MemberCache, bool)[] orderBy)
         {
             if (orderBy == null || orderBy.Length == 0)
@@ -315,12 +297,15 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the select query.
+        /// Генерирует SQL-запрос SELECT для указанной сущности с выборкой конкретных колонок.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="selectColumns">The select columns.</param>
-        /// <returns>System.String.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="selectColumns">
+        /// Массив выражений для выбора свойств сущности, которые будут включены в SELECT.
+        /// Если массив пустой или <c>null</c>, выбираются все колонки и первичные ключи.
+        /// </param>
+        /// <returns>Строка SQL-запроса SELECT.</returns>
         public static string GetSelectQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] selectColumns)
         {
             var mi = MemberCache.Create(typeof(T));
@@ -339,22 +324,27 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the select query.
+        /// Генерирует SQL-запрос SELECT для указанной сущности с выборкой конкретных колонок.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <typeparam name="TProp">The type of the t property.</typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="selectColumns">The select columns.</param>
-        /// <returns>System.String.</returns>
-        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns) => GetSelectQuery(options, MemberCache.Create(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <typeparam name="TProp">Тип свойств для выборки.</typeparam>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="selectColumns">
+        /// Массив выражений для выбора свойств сущности, которые будут включены в SELECT.
+        /// </param>
+        /// <returns>Строка SQL-запроса SELECT.</returns>
+        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns)
+            => GetSelectQuery(options, MemberCache.Create(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
 
         /// <summary>
-        /// Gets the select query.
+        /// Генерирует SQL-запрос SELECT для указанного типа сущности с выборкой конкретных колонок.
         /// </summary>
-        /// <param name="options">The options.</param>
-        /// <param name="typeInfo">The type information.</param>
-        /// <param name="selectColumns">The select columns.</param>
-        /// <returns>System.String.</returns>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="typeInfo">Метаданные сущности в виде <see cref="MemberCache"/>.</param>
+        /// <param name="selectColumns">
+        /// Массив колонок для выборки. Если массив пустой, выбираются все колонки сущности.
+        /// </param>
+        /// <returns>Строка SQL-запроса SELECT.</returns>
         public static string GetSelectQuery(SqlProviderOptions options, MemberCache typeInfo, params MemberCache[] selectColumns)
         {
             if (selectColumns.Length == 0)
@@ -384,12 +374,15 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the update query.
+        /// Генерирует SQL-запрос UPDATE для указанной сущности с обновлением конкретных колонок.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="updateColumns">The update columns.</param>
-        /// <returns>System.String.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="updateColumns">
+        /// Массив выражений для выбора свойств сущности, которые будут обновлены.
+        /// Если массив пустой, обновляются все публичные свойства с доступным сеттером, кроме первичных ключей.
+        /// </param>
+        /// <returns>Строка SQL-запроса UPDATE с указанием колонок и параметров для их значений.</returns>
         public static string GetUpdateQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] updateColumns)
             where T : class
         {
@@ -438,17 +431,19 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the where clause.
+        /// Генерирует SQL-клауза WHERE на основе выражения для указанной сущности.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="whereExpression">The where expression.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="whereExpression">Лямбда-выражение для фильтрации строк (например, x => x.Id == 5).</param>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="useParams">Если <c>true</c>, значения будут подставлены как параметры, иначе как литералы SQL.</param>
+        /// <param name="cmdParams">
+        /// Словарь параметров, которые нужно будет передать вместе с SQL-запросом.
+        /// Ключ — имя параметра, значение — его значение.
+        /// </param>
+        /// <returns>Строка SQL-клаузы WHERE.</returns>
         public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
         {
-            cmdParams = EmptyParams;
             var dic = new Dictionary<string, object>();
             var whereClause = whereExpression == null ? string.Empty : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();
             cmdParams = dic;
@@ -456,12 +451,15 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the where clause.
+        /// Генерирует SQL-клауза WHERE для указанной сущности на основе её первичных ключей.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="options">The options.</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="cmdParams">
+        /// Словарь параметров, которые нужно будет передать вместе с SQL-запросом.
+        /// Ключ — имя параметра, значение — его значение.
+        /// </param>
+        /// <returns>Строка SQL-клаузы WHERE для первичных ключей или публичных свойств, если первичные ключи отсутствуют.</returns>
         public static string GetWhereClause<T>(SqlProviderOptions options, out Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(typeof(T));
@@ -475,12 +473,15 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the where clause.
+        /// Генерирует SQL-клауза WHERE для указанного набора колонок.
         /// </summary>
-        /// <param name="whereProperties">The where properties.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
+        /// <param name="whereProperties">Массив колонок (MemberCache), по которым строится фильтр.</param>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="cmdParams">
+        /// Словарь параметров, которые нужно будет передать вместе с SQL-запросом.
+        /// Ключ — имя параметра, значение — его значение (инициализируется <c>null</c>).
+        /// </param>
+        /// <returns>Строка SQL-клаузы WHERE для указанных колонок.</returns>
         public static string GetWhereClause(MemberCache[] whereProperties, SqlProviderOptions options, out Dictionary<string, object> cmdParams)
         {
             cmdParams = new Dictionary<string, object>();
@@ -509,12 +510,6 @@ namespace RuntimeStuff.Builders
             return whereClause.ToString();
         }
 
-        /// <summary>
-        /// Gets the SQL operator.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>System.String.</returns>
-        /// <exception cref="System.NotSupportedException">Operator '{type}' not supported.</exception>
         private static string GetSqlOperator(ExpressionType type)
         {
             switch (type)
@@ -548,11 +543,6 @@ namespace RuntimeStuff.Builders
             }
         }
 
-        /// <summary>
-        /// Gets the value.
-        /// </summary>
-        /// <param name="me">Me.</param>
-        /// <returns>System.Object.</returns>
         private static object GetValue(MemberExpression me)
         {
             var lambda = Expression.Lambda<Func<object>>(
@@ -560,15 +550,6 @@ namespace RuntimeStuff.Builders
             return lambda.Compile().Invoke();
         }
 
-        /// <summary>
-        /// Visits the specified exp.
-        /// </summary>
-        /// <param name="exp">The exp.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
-        /// <exception cref="System.NotSupportedException">Expression '{exp.NodeType}' is not supported.</exception>
         private static string Visit(Expression exp, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             switch (exp)
@@ -590,14 +571,6 @@ namespace RuntimeStuff.Builders
             }
         }
 
-        /// <summary>
-        /// Visits the binary.
-        /// </summary>
-        /// <param name="be">The be.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
         private static string VisitBinary(BinaryExpression be, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             var left = Visit(be.Left, options, useParams, cmdParams);
@@ -632,22 +605,8 @@ namespace RuntimeStuff.Builders
             return $"({left} {op} {right})";
         }
 
-        /// <summary>
-        /// Visits the constant.
-        /// </summary>
-        /// <param name="ce">The ce.</param>
-        /// <param name="options">The options.</param>
-        /// <returns>System.String.</returns>
         private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options) => options.ToSqlLiteral(ce.Value);
 
-        /// <summary>
-        /// Visits the member.
-        /// </summary>
-        /// <param name="me">Me.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
         private static string VisitMember(MemberExpression me, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(me.Member);
@@ -661,15 +620,6 @@ namespace RuntimeStuff.Builders
             return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value);
         }
 
-        /// <summary>
-        /// Visits the unary.
-        /// </summary>
-        /// <param name="ue">The ue.</param>
-        /// <param name="options">The options.</param>
-        /// <param name="useParams">if set to <c>true</c> [use parameters].</param>
-        /// <param name="cmdParams">The command parameters.</param>
-        /// <returns>System.String.</returns>
-        /// <exception cref="System.NotSupportedException">Unary '{ue.NodeType}' not supported.</exception>
         private static string VisitUnary(UnaryExpression ue, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             switch (ue.NodeType)

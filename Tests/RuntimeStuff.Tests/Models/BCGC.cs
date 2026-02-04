@@ -5,12 +5,12 @@
         /// <summary>
         /// Некорректный (исходный) код.
         /// </summary>
-        public string BadCode { get; set; }
+        public string? BadCode { get; set; }
 
         /// <summary>
         /// Корректный код, на который должен быть заменён некорректный.
         /// </summary>
-        public string GoodCode { get; set; }
+        public string? GoodCode { get; set; }
 
         /// <summary>
         /// Сообщение об ошибке, возникшей при проверке или обработке кодов.
@@ -18,6 +18,6 @@
         /// <remarks>
         /// Свойство заполняется в процессе валидации и доступно только для чтения извне.
         /// </remarks>
-        public string Error { get; private set; }
+        public string? Error { get; private set; }
     }
 }

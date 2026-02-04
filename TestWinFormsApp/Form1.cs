@@ -12,7 +12,7 @@ namespace TestWinFormsApp
         public Form1()
         {
             InitializeComponent();
-            
+
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -48,6 +48,14 @@ namespace TestWinFormsApp
             m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled, x => !x);
             m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
             m.BindProperties(x => x.Number, m, x => x.Number);
+            MessageBus.Global.Subscribe<string>(OnMessage);
+        }
+
+        private void OnMessage(string message)
+        {
+            btnOpenForm2.Text = message;
+            btnOpenForm2.Refresh();
+            Application.DoEvents();
         }
 
         private void BindCollectionChangedToAction(object sender, object args)
@@ -90,9 +98,16 @@ namespace TestWinFormsApp
         {
             btnLoad.Enabled = true;
         }
+
+        private void btnOpenForm2_Click(object sender, EventArgs e)
+        {
+            btnOpenForm2.Text = "Open Form 2";
+            var f2 = new Form2();
+            f2.Show();
+        }
     }
 
-    public class Model : PropertyObserver
+    public class Model : ObservableObjectEx
     {
         public string Text
         {

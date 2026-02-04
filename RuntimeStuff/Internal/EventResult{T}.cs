@@ -11,7 +11,7 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+namespace RuntimeStuff.Internal
 {
     using System;
 
@@ -19,7 +19,7 @@ namespace RuntimeStuff
     /// Информация о произошедшем событии.
     /// </summary>
     /// <typeparam name="T">Type.</typeparam>
-    public sealed class EventResult<T>
+    internal sealed class EventResult<T> : IEventResult<T>
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="EventResult{T}"/> class.

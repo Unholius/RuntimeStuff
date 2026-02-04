@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff
+namespace RuntimeStuff.Collections
 {
     using System;
     using System.Collections;

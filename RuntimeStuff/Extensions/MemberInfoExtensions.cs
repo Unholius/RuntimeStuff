@@ -16,7 +16,7 @@ namespace RuntimeStuff.Extensions
     using System.Reflection;
 
     /// <summary>
-    /// Class MemberInfoExtensions.
+    /// Расширения для <see cref="MemberInfo"/>.
     /// </summary>
     public static class MemberInfoExtensions
     {

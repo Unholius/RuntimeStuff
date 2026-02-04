@@ -1178,7 +1178,7 @@ Bob,40,Chicago;
 
         public class ImportFileData : INotifyPropertyChanged
         {
-            string key;
+            string? key;
             public string Key
             {
                 get => key;
@@ -1194,7 +1194,7 @@ Bob,40,Chicago;
                 }
             }
 
-            object valueField;
+            object? valueField;
             public object Value
             {
                 get => valueField;
@@ -1209,7 +1209,7 @@ Bob,40,Chicago;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
                 }
             }
-            string error;
+            string? error;
             public string Error
             {
                 get => error;
@@ -1238,7 +1238,7 @@ Bob,40,Chicago;
         #region Test Models
         public class TestModel
         {
-            public string Name { get; set; }
+            public string? Name { get; set; }
             public int Age { get; set; }
             public double Salary { get; set; }
             public DateTime BirthDate { get; set; }
@@ -1246,8 +1246,8 @@ Bob,40,Chicago;
 
         public class SimpleModel
         {
-            public string Property1 { get; set; }
-            public string Property2 { get; set; }
+            public string? Property1 { get; set; }
+            public string? Property2 { get; set; }
         }
         #endregion
 

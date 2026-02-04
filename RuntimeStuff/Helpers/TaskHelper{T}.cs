@@ -17,7 +17,7 @@ namespace RuntimeStuff.Helpers
     using System.Collections.Concurrent;
     using System.Threading;
     using System.Threading.Tasks;
-    using RuntimeStuff;
+    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Статический класс для асинхронного ожидания событий по идентификатору
@@ -31,8 +31,8 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Хранилище ожидающих задач по идентификатору события.
         /// </summary>
-        private static readonly ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>> Waiters
-            = new ConcurrentDictionary<object, TaskCompletionSource<EventResult<T>>>();
+        private static readonly ConcurrentDictionary<object, TaskCompletionSource<IEventResult<T>>> Waiters
+            = new ConcurrentDictionary<object, TaskCompletionSource<IEventResult<T>>>();
 
         /// <summary>
         /// Асинхронно ожидает событие с указанным идентификатором, пока не будет использовано <see cref="TryComplete" /> или истечет время ожидания.
@@ -44,14 +44,14 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="System.NullReferenceException">eventId.</exception>
         /// <remarks>Если ожидание по указанному идентификатору уже существует,
         /// будет возвращена существующая задача.</remarks>
-        public static Task<EventResult<T>> Wait(object eventId, int maxMillisecondsToWait = 5000)
+        public static Task<IEventResult<T>> Wait(object eventId, int maxMillisecondsToWait = 5000)
         {
             if (eventId == null)
             {
                 throw new ArgumentNullException(nameof(eventId));
             }
 
-            var tcs = new TaskCompletionSource<EventResult<T>>(
+            var tcs = new TaskCompletionSource<IEventResult<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
             if (!Waiters.TryAdd(eventId, tcs))
@@ -82,14 +82,14 @@ namespace RuntimeStuff.Helpers
         /// <returns>Задача, завершающаяся объектом <see cref="EventResult{T}" /> с указанным статусом или статусом таймаута.</returns>
         /// <exception cref="System.NullReferenceException">eventId.</exception>
         /// <remarks>Если ожидание с указанным идентификатором уже существует, возвращается существующая задача.</remarks>
-        public static Task<EventResult<T>> Wait(object eventId, T timeoutStatus, int maxMillisecondsToWait)
+        public static Task<IEventResult<T>> Wait(object eventId, T timeoutStatus, int maxMillisecondsToWait)
         {
             if (eventId == null)
             {
                 throw new ArgumentNullException(nameof(eventId));
             }
 
-            var tcs = new TaskCompletionSource<EventResult<T>>(
+            var tcs = new TaskCompletionSource<IEventResult<T>>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
 
             if (!Waiters.TryAdd(eventId, tcs))

@@ -39,6 +39,8 @@
             dataGridView1 = new DataGridView();
             btnLoad = new Button();
             tabPage3 = new TabPage();
+            flowLayoutPanel2 = new FlowLayoutPanel();
+            btnOpenForm2 = new Button();
             tabPage4 = new TabPage();
             webView21 = new Microsoft.Web.WebView2.WinForms.WebView2();
             tabControl1.SuspendLayout();
@@ -46,6 +48,8 @@
             flowLayoutPanel1.SuspendLayout();
             tabPage2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
+            tabPage3.SuspendLayout();
+            flowLayoutPanel2.SuspendLayout();
             tabPage4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)webView21).BeginInit();
             SuspendLayout();
@@ -128,7 +132,7 @@
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
             tabPage2.Padding = new Padding(3);
-            tabPage2.Size = new Size(792, 759);
+            tabPage2.Size = new Size(792, 427);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "tabPage2";
             tabPage2.UseVisualStyleBackColor = true;
@@ -139,7 +143,7 @@
             dataGridView1.Dock = DockStyle.Fill;
             dataGridView1.Location = new Point(3, 26);
             dataGridView1.Name = "dataGridView1";
-            dataGridView1.Size = new Size(786, 730);
+            dataGridView1.Size = new Size(786, 398);
             dataGridView1.TabIndex = 0;
             dataGridView1.Click += dataGridView1_Click;
             // 
@@ -156,13 +160,34 @@
             // 
             // tabPage3
             // 
+            tabPage3.Controls.Add(flowLayoutPanel2);
             tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
             tabPage3.Padding = new Padding(3);
-            tabPage3.Size = new Size(792, 759);
+            tabPage3.Size = new Size(792, 427);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "tabPage3";
             tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // flowLayoutPanel2
+            // 
+            flowLayoutPanel2.Controls.Add(btnOpenForm2);
+            flowLayoutPanel2.Dock = DockStyle.Fill;
+            flowLayoutPanel2.Location = new Point(3, 3);
+            flowLayoutPanel2.Name = "flowLayoutPanel2";
+            flowLayoutPanel2.Size = new Size(786, 421);
+            flowLayoutPanel2.TabIndex = 0;
+            // 
+            // btnOpenForm2
+            // 
+            btnOpenForm2.AutoSize = true;
+            btnOpenForm2.Location = new Point(3, 3);
+            btnOpenForm2.Name = "btnOpenForm2";
+            btnOpenForm2.Size = new Size(96, 25);
+            btnOpenForm2.TabIndex = 0;
+            btnOpenForm2.Text = "Open Form 2";
+            btnOpenForm2.UseVisualStyleBackColor = true;
+            btnOpenForm2.Click += btnOpenForm2_Click;
             // 
             // tabPage4
             // 
@@ -170,7 +195,7 @@
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name = "tabPage4";
             tabPage4.Padding = new Padding(3);
-            tabPage4.Size = new Size(792, 759);
+            tabPage4.Size = new Size(792, 427);
             tabPage4.TabIndex = 3;
             tabPage4.Text = "tabPage4";
             tabPage4.UseVisualStyleBackColor = true;
@@ -183,7 +208,7 @@
             webView21.Dock = DockStyle.Fill;
             webView21.Location = new Point(3, 3);
             webView21.Name = "webView21";
-            webView21.Size = new Size(786, 753);
+            webView21.Size = new Size(786, 421);
             webView21.TabIndex = 0;
             webView21.ZoomFactor = 1D;
             // 
@@ -202,6 +227,9 @@
             flowLayoutPanel1.PerformLayout();
             tabPage2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
+            tabPage3.ResumeLayout(false);
+            flowLayoutPanel2.ResumeLayout(false);
+            flowLayoutPanel2.PerformLayout();
             tabPage4.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)webView21).EndInit();
             ResumeLayout(false);
@@ -222,5 +250,7 @@
         private TabPage tabPage3;
         private TabPage tabPage4;
         private Microsoft.Web.WebView2.WinForms.WebView2 webView21;
+        private FlowLayoutPanel flowLayoutPanel2;
+        private Button btnOpenForm2;
     }
 }

@@ -48,7 +48,7 @@ namespace RuntimeStuff.MSTests
         }
     }
 
-    internal class PropClass1 : PropertyObserver
+    internal class PropClass1 : ObservableObjectEx
     {
         public bool IsBusy
         {

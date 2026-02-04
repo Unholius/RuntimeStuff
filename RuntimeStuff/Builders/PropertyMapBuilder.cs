@@ -1,16 +1,7 @@
-﻿// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 01-06-2026
-//
-// Last Modified By : RS
-// Last Modified On : 01-07-2026
-// ***********************************************************************
-// <copyright file="PropertyMapBuilder.cs" company="Rudnev Sergey">
+﻿// <copyright file="PropertyMapBuilder.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
+
 namespace RuntimeStuff.Builders
 {
     using System;
@@ -19,27 +10,30 @@ namespace RuntimeStuff.Builders
     using RuntimeStuff.Internal;
 
     /// <summary>
-    /// Class PropertyMapBuilder. This class cannot be inherited.
+    /// Fluent-builder для настройки сопоставления свойства сущности
+    /// с колонкой таблицы базы данных.
     /// </summary>
-    /// <typeparam name="T">Type.</typeparam>
-    /// <typeparam name="TProperty">The type of the t property.</typeparam>
+    /// <typeparam name="T">
+    /// Тип сущности.
+    /// </typeparam>
+    /// <typeparam name="TProperty">
+    /// Тип свойства сущности.
+    /// </typeparam>
     public sealed class PropertyMapBuilder<T, TProperty>
     {
-        /// <summary>
-        /// The property mapping.
-        /// </summary>
         private readonly PropertyMapping propertyMapping;
-
-        /// <summary>
-        /// The entity map builder.
-        /// </summary>
         private readonly EntityMapBuilder<T> entityMapBuilder;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="PropertyMapBuilder{T, TProperty}" /> class.
+        /// Initializes a new instance of the <see cref="PropertyMapBuilder{T, TProperty}"/> class.
+        /// Инициализирует новый экземпляр билдера сопоставления свойства.
         /// </summary>
-        /// <param name="entityMapBuilder">The entity map builder.</param>
-        /// <param name="propertyInfo">The property information.</param>
+        /// <param name="entityMapBuilder">
+        /// Билдер сопоставления сущности.
+        /// </param>
+        /// <param name="propertyInfo">
+        /// Информация о свойстве, для которого настраивается сопоставление.
+        /// </param>
         internal PropertyMapBuilder(EntityMapBuilder<T> entityMapBuilder, PropertyInfo propertyInfo)
         {
             this.entityMapBuilder = entityMapBuilder;
@@ -47,11 +41,17 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Determines whether the specified column name has column.
+        /// Задаёт имя колонки таблицы, с которой сопоставляется свойство.
         /// </summary>
-        /// <param name="columnName">Name of the column.</param>
-        /// <returns>PropertyMapBuilder&lt;T, TProperty&gt;.</returns>
-        /// <exception cref="System.ArgumentException">columnName.</exception>
+        /// <param name="columnName">
+        /// Имя колонки в таблице базы данных.
+        /// </param>
+        /// <returns>
+        /// Текущий экземпляр билдера для цепочного вызова.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если <paramref name="columnName"/> пуст или содержит только пробелы.
+        /// </exception>
         public PropertyMapBuilder<T, TProperty> HasColumn(string columnName)
         {
             if (string.IsNullOrWhiteSpace(columnName))
@@ -65,10 +65,14 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Determines whether the specified alias has alias.
+        /// Задаёт псевдоним (alias) колонки.
         /// </summary>
-        /// <param name="alias">The alias.</param>
-        /// <returns>PropertyMapBuilder&lt;T, TProperty&gt;.</returns>
+        /// <param name="alias">
+        /// Псевдоним колонки, используемый, например, в SQL-запросах.
+        /// </param>
+        /// <returns>
+        /// Текущий экземпляр билдера для цепочного вызова.
+        /// </returns>
         public PropertyMapBuilder<T, TProperty> HasAlias(string alias)
         {
             this.propertyMapping.Alias = alias;
@@ -77,14 +81,27 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Properties the specified selector.
+        /// Настраивает сопоставление другого свойства сущности.
         /// </summary>
-        /// <typeparam name="TNewProperty">The type of the t new property.</typeparam>
-        /// <param name="selector">The selector.</param>
-        /// <param name="columnName">Name of the column.</param>
-        /// <param name="alias">The alias.</param>
-        /// <returns>PropertyMapBuilder&lt;T, TNewProperty&gt;.</returns>
-        public PropertyMapBuilder<T, TNewProperty> Property<TNewProperty>(Expression<Func<T, TNewProperty>> selector, string columnName, string alias = null)
+        /// <typeparam name="TNewProperty">
+        /// Тип нового свойства.
+        /// </typeparam>
+        /// <param name="selector">
+        /// Выражение, указывающее на свойство сущности.
+        /// </param>
+        /// <param name="columnName">
+        /// Имя колонки таблицы.
+        /// </param>
+        /// <param name="alias">
+        /// Псевдоним колонки (необязательно).
+        /// </param>
+        /// <returns>
+        /// Билдер сопоставления нового свойства.
+        /// </returns>
+        public PropertyMapBuilder<T, TNewProperty> Property<TNewProperty>(
+            Expression<Func<T, TNewProperty>> selector,
+            string columnName,
+            string alias = null)
         {
             var property = EntityMapBuilder<T>.GetProperty(selector);
             var pb = new PropertyMapBuilder<T, TNewProperty>(this.entityMapBuilder, property);
@@ -94,19 +111,30 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Tables the specified table name.
+        /// Переходит к настройке сопоставления другой сущности (таблицы).
         /// </summary>
-        /// <typeparam name="TTable">The type of the t table.</typeparam>
-        /// <param name="tableName">Name of the table.</param>
-        /// <returns>EntityMapBuilder&lt;TTable&gt;.</returns>
+        /// <typeparam name="TTable">
+        /// Тип сущности таблицы.
+        /// </typeparam>
+        /// <param name="tableName">
+        /// Имя таблицы.
+        /// </param>
+        /// <returns>
+        /// Билдер сопоставления сущности таблицы.
+        /// </returns>
         public EntityMapBuilder<TTable> Table<TTable>(string tableName)
-            where TTable : class => new EntityMapBuilder<TTable>(this.entityMapBuilder.Map, tableName);
+            where TTable : class
+            => new EntityMapBuilder<TTable>(this.entityMapBuilder.Map, tableName);
 
         /// <summary>
-        /// Maps the name of the column.
+        /// Привязывает имя колонки к указанному свойству.
         /// </summary>
-        /// <param name="property">The property.</param>
-        /// <param name="columnName">Name of the column.</param>
+        /// <param name="property">
+        /// Свойство сущности.
+        /// </param>
+        /// <param name="columnName">
+        /// Имя колонки.
+        /// </param>
         internal void MapColumnName(PropertyInfo property, string columnName)
         {
             var propMapping = this.GetOrAdd(property);
@@ -114,10 +142,14 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Maps the alias.
+        /// Привязывает псевдоним к указанному свойству.
         /// </summary>
-        /// <param name="property">The property.</param>
-        /// <param name="alias">The alias.</param>
+        /// <param name="property">
+        /// Свойство сущности.
+        /// </param>
+        /// <param name="alias">
+        /// Псевдоним колонки.
+        /// </param>
         internal void MapAlias(PropertyInfo property, string alias)
         {
             var propMapping = this.GetOrAdd(property);
@@ -125,10 +157,15 @@ namespace RuntimeStuff.Builders
         }
 
         /// <summary>
-        /// Gets the or add.
+        /// Возвращает существующее сопоставление свойства
+        /// либо создаёт новое при его отсутствии.
         /// </summary>
-        /// <param name="property">The property.</param>
-        /// <returns>PropertyMapping.</returns>
+        /// <param name="property">
+        /// Свойство сущности.
+        /// </param>
+        /// <returns>
+        /// Экземпляр <see cref="PropertyMapping"/>.
+        /// </returns>
         private PropertyMapping GetOrAdd(PropertyInfo property)
         {
             if (!this.entityMapBuilder.EntityMapping.PropertyColumns.TryGetValue(property, out var propMapping))

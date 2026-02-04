@@ -19,20 +19,18 @@ namespace RuntimeStuff.Builders
     using System.Text;
 
     /// <summary>
-    /// Вспомогательный класс для преобразования linq-выражений в строковое представление фильтра.
+    /// Класс для преобразования выражений LINQ в строковые SQL-подобные фильтры.
+    /// Используется внутри <see cref="StringFilterBuilder"/> для конвертации Expression в текстовое представление.
     /// </summary>
     internal class FilterExpressionStringBuilder : ExpressionVisitor
     {
-        /// <summary>
-        /// The sb.
-        /// </summary>
         private readonly StringBuilder sb = new StringBuilder();
 
         /// <summary>
-        /// Преобразует выражение в строку фильтра.
+        /// Преобразует <see cref="Expression"/> в строковое представление фильтра.
         /// </summary>
-        /// <param name="expr">Выражение (обычно лямбда-предикат).</param>
-        /// <returns>Строковое представление выражения в виде фильтра.</returns>
+        /// <param name="expr">Выражение для конвертации.</param>
+        /// <returns>Строковое представление фильтра.</returns>
         public static string ConvertExpression(Expression expr)
         {
             var visitor = new FilterExpressionStringBuilder();
@@ -40,11 +38,7 @@ namespace RuntimeStuff.Builders
             return visitor.sb.ToString();
         }
 
-        /// <summary>
-        /// Visits the children of the <see cref="T:System.Linq.Expressions.BinaryExpression"></see>.
-        /// </summary>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        /// <inheritdoc/>
         protected override Expression VisitBinary(BinaryExpression node)
         {
             this.sb.Append("(");
@@ -72,34 +66,21 @@ namespace RuntimeStuff.Builders
             return node;
         }
 
-        /// <summary>
-        /// Visits the <see cref="T:System.Linq.Expressions.ConstantExpression"></see>.
-        /// </summary>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        /// <inheritdoc/>
         protected override Expression VisitConstant(ConstantExpression node)
         {
             this.AppendConstant(node.Value);
             return node;
         }
 
-        /// <summary>
-        /// Visits the children of the <see cref="T:System.Linq.Expressions.Expression`1"></see>.
-        /// </summary>
-        /// <typeparam name="T">The type of the delegate.</typeparam>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        /// <inheritdoc/>
         protected override Expression VisitLambda<T>(Expression<T> node)
         {
             this.Visit(node.Body);
             return node;
         }
 
-        /// <summary>
-        /// Visits the children of the <see cref="T:System.Linq.Expressions.MemberExpression"></see>.
-        /// </summary>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
+        /// <inheritdoc/>
         protected override Expression VisitMember(MemberExpression node)
         {
             if (node.Expression != null && node.Expression.NodeType == ExpressionType.Parameter)
@@ -113,12 +94,7 @@ namespace RuntimeStuff.Builders
             return node;
         }
 
-        /// <summary>
-        /// Visits the children of the <see cref="T:System.Linq.Expressions.MethodCallExpression"></see>.
-        /// </summary>
-        /// <param name="node">The expression to visit.</param>
-        /// <returns>The modified expression, if it or any subexpression was modified; otherwise, returns the original expression.</returns>
-        /// <exception cref="System.NotSupportedException">Method call {node.Method.Name} not supported.</exception>
+        /// <inheritdoc/>
         protected override Expression VisitMethodCall(MethodCallExpression node)
         {
             if (node.Method.Name == "Contains" &&
@@ -156,10 +132,6 @@ namespace RuntimeStuff.Builders
             throw new NotSupportedException($"Method call {node.Method.Name} not supported.");
         }
 
-        /// <summary>
-        /// Добавляет константу в строковое представление, корректно форматируя её в зависимости от типа.
-        /// </summary>
-        /// <param name="value">Значение константы.</param>
         private void AppendConstant(object value)
         {
             if (value == null)

@@ -25,6 +25,7 @@ namespace RuntimeStuff.Extensions
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Text;
+    using RuntimeStuff.Collections;
     using RuntimeStuff.Helpers;
 
     /// <summary>
@@ -40,6 +41,34 @@ namespace RuntimeStuff.Extensions
     /// Передача null в качестве аргументов может вызвать исключения; подробности см. в документации к каждому методу.</remarks>
     public static class EnumerableExtensions
     {
+        /// <summary>
+        /// Преобразует последовательность в <see cref="DefaultDictionary{TKey, TValue}"/>,
+        /// используя указанную функцию выбора ключа.
+        /// </summary>
+        /// <typeparam name="TSource">
+        /// Тип элементов исходной последовательности.
+        /// </typeparam>
+        /// <typeparam name="TKey">
+        /// Тип ключа.
+        /// </typeparam>
+        /// <param name="source">
+        /// Исходная последовательность.
+        /// </param>
+        /// <param name="keySelector">
+        /// Функция выбора ключа из элемента.
+        /// </param>
+        /// <returns>
+        /// Экземпляр <see cref="DefaultDictionary{TKey, TValue}"/>,
+        /// содержащий элементы последовательности.
+        /// </returns>
+        public static DefaultDictionary<TKey, TSource> ToDefaultDictionary<TSource, TKey>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TKey> keySelector)
+        {
+            var dd = new DefaultDictionary<TKey, TSource>(source.ToDictionary(keySelector));
+            return dd;
+        }
+
         /// <summary>
         /// Добавляет набор элементов в коллекцию <see cref="ObservableCollection{T}"/>.
         /// </summary>

@@ -6,8 +6,8 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class WeakEventManagerTests
     {
-        private TestPublisher _publisher;
-        private TestSubscriber _subscriber;
+        private TestPublisher? _publisher;
+        private TestSubscriber? _subscriber;
 
         private void Setup()
         {

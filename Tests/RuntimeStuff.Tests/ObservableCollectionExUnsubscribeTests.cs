@@ -1,5 +1,6 @@
 ﻿using System.Collections.Specialized;
 using System.ComponentModel;
+using RuntimeStuff.Collections;
 
 namespace RuntimeStuff.MSTests
 {
@@ -8,9 +9,9 @@ namespace RuntimeStuff.MSTests
     {
         private class TestItem : INotifyPropertyChanged
         {
-            private string _name;
+            private string? _name;
 
-            public string Name
+            public string? Name
             {
                 get => _name;
                 set

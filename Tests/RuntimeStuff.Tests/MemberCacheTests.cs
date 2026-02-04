@@ -868,10 +868,10 @@ namespace RuntimeStuff.MSTests
 
         public class TestAccessModifiersClass
         {
-            public string PublicPropPublicGetPublicSet { get; set; }
-            public string PublicPropPublicGetPrivateSet { get; private set; }
-            public string PublicPropPrivateGetPublicSet { private get; set; }
-            private string PrivatePropPublicGetPublicSet { get; set; }
+            public string? PublicPropPublicGetPublicSet { get; set; }
+            public string? PublicPropPublicGetPrivateSet { get; private set; }
+            public string? PublicPropPrivateGetPublicSet { private get; set; }
+            private string? PrivatePropPublicGetPublicSet { get; set; }
         }
 
         [TestMethod]
