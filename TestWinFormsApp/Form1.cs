@@ -53,9 +53,15 @@ namespace TestWinFormsApp
 
         private void OnMessage(string message)
         {
-            btnOpenForm2.Text = message;
-            btnOpenForm2.Refresh();
-            Application.DoEvents();
+            if (InvokeRequired)
+            {
+                BeginInvoke(() =>
+                {
+                    btnOpenForm2.Text = message;
+                    btnOpenForm2.Refresh();
+                    Application.DoEvents();
+                });
+            }
         }
 
         private void BindCollectionChangedToAction(object sender, object args)
@@ -103,7 +109,7 @@ namespace TestWinFormsApp
         {
             btnOpenForm2.Text = "Open Form 2";
             var f2 = new Form2();
-            f2.Show();
+            f2.ShowDialog();
         }
     }
 

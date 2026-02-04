@@ -184,6 +184,35 @@ namespace RuntimeStuff
             }
         }
 
+        public void Subscribe<T>(Action<T> handler, SynchronizationContext context)
+        {
+            if (handler == null)
+                throw new ArgumentNullException(nameof(handler));
+
+            if (context == null)
+            {
+                Subscribe(handler);
+                return;
+            }
+
+            Action<T> wrapped = message =>
+            {
+                context.Post(
+ state =>
+ {
+     var data = (Tuple<Action<T>, T>)state;
+     data.Item1(data.Item2);
+ },
+                    Tuple.Create(handler, message));
+            };
+
+            var list = handlers.GetOrAdd(typeof(T), arg => new List<Delegate>());
+            lock (list)
+            {
+                list.Add(wrapped);
+            }
+        }
+
         /// <summary>
         /// Отписывает обработчик от сообщений указанного типа.
         /// </summary>
