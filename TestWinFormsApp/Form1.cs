@@ -4,9 +4,11 @@ using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.Runtime.Versioning;
 
 namespace TestWinFormsApp
 {
+    [SupportedOSPlatform("windows")]
     public partial class Form1 : Form
     {
         public Form1()
@@ -45,23 +47,15 @@ namespace TestWinFormsApp
             textBox1.BindToPropertyOnEvent(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
 
             Obj.Set(dataGridView1, "DoubleBuffered", true);
-            m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled, x => !x);
+            _ = m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled, x => !x);
             m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
             m.BindProperties(x => x.Number, m, x => x.Number);
-            MessageBus.Global.Subscribe<string>(OnMessage);
+            MessageBus.SingleThreaded["my_form"].Subscribe<string>(OnMessage, SynchronizationContext.Current, s => s == "123");
         }
 
         private void OnMessage(string message)
         {
-            if (InvokeRequired)
-            {
-                BeginInvoke(() =>
-                {
-                    btnOpenForm2.Text = message;
-                    btnOpenForm2.Refresh();
-                    Application.DoEvents();
-                });
-            }
+            btnOpenForm2.Text = message;
         }
 
         private void BindCollectionChangedToAction(object sender, object args)

@@ -20,7 +20,7 @@ namespace TestWinFormsApp
 
         private void btnSendMessageToForm1_Click(object sender, EventArgs e)
         {
-            MessageBus.Global.Publish("Hello from Form 2!");
+            MessageBus.SingleThreaded["my_form"].Publish("123");
         }
     }
 }
