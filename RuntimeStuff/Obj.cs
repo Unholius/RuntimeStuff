@@ -27,7 +27,7 @@ namespace RuntimeStuff
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// v.2026.02.02 (RS) COPY-PASTE READY<br />
+    /// v.2026.02.05 (RS) COPY-PASTE READY<br />
     /// Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     /// Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     /// Особенности:
@@ -41,15 +41,6 @@ namespace RuntimeStuff
     /// Поддерживает работу как со ссылочными, так и со значимыми типами свойств (boxing выполняется
     /// автоматически).
     /// </item></list>
-    /// Пример:
-    /// <code>
-    /// var getter = PropertyHelper.Getter&lt;Person&gt;("Name");
-    /// var setter = PropertyHelper.Setter&lt;Person&gt;("Name");
-    /// var p = new Person { Name = "Alice" };
-    /// Console.WriteLine(getter(p)); // Alice
-    /// setter(p, "Bob");
-    /// Console.WriteLine(getter(p)); // Bob
-    /// </code>
     /// </summary>
     public static class Obj
     {
@@ -1324,7 +1315,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает значение поля или свойства объекта по имени члена.
+        /// Возвращает значение поля или свойства объекта по имени члена.<br/>
+        /// Если указанный член не найден, метод пытается интерпретировать имя как путь к вложенному члену, разделённому точками, слэшами или обратными слэшами, например, "Address.Street.Name" или "Address/Street/Name".<br/>
+        /// Для максимальной производительности рекомендуется использовать кэширование делегатов доступа к членам, например, с помощью метода <see cref="GetMemberGetter(Type, string)"/>.<br/>
+        /// Если член не найден или объект равен <see langword="null" />, возвращается <see langword="null" />.<br/>
+        /// Если указано, возвращаемое значение приводится к заданному типу.
         /// </summary>
         /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
         /// <param name="memberName">Имя поля или свойства.</param>
@@ -1343,6 +1338,12 @@ namespace RuntimeStuff
             var getter = GetMemberGetter(instance.GetType(), memberName);
             if (getter == null)
             {
+                var path = memberName.Split('.', '/', '\\');
+                if (path.Length > 1)
+                {
+                    return Get(instance, path, convertToType);
+                }
+
                 return null;
             }
 
@@ -1353,8 +1354,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает значение вложенного поля или свойства объекта
-        /// по указанному пути к члену.
+        /// Получает значение вложенного поля или свойства объекта по указанному пути к члену.
         /// </summary>
         /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
         /// <param name="pathToMemberName">Последовательность имён членов, описывающая путь
@@ -1390,17 +1390,24 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Gets the specified instance.
+        /// Возвращает значение поля или свойства объекта по имени члена, приведённое к указанному типу.
+        /// Если указанный член не найден, метод пытается интерпретировать имя как путь к вложенному члену, разделённому точками, слэшами или обратными слэшами, например, "Address.Street.Name" или "Address/Street/Name".<br/>
+        /// Для максимальной производительности рекомендуется использовать кэширование делегатов доступа к членам, например, с помощью метода <see cref="GetMemberGetter(Type, string)"/>.<br/>
+        /// Если член не найден или объект равен <see langword="null" />, возвращается <see langword="null" />.<br/>
+        /// Если указано, возвращаемое значение приводится к заданному типу.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="instance">The instance.</param>
-        /// <param name="pathToMemberName">Name of the path to member.</param>
-        /// <returns>T.</returns>
+        /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
+        /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
+        /// <param name="pathToMemberName">Путь к полю или свойству.</param>
+        /// <returns>Значение поля или свойства, приведённое к типу <typeparamref name="T" />.</returns>
         public static T Get<T>(object instance, IEnumerable<string> pathToMemberName) => (T)Get(instance, pathToMemberName, typeof(T));
 
         /// <summary>
-        /// Возвращает значение поля или свойства объекта по имени члена,
-        /// приведённое к указанному типу.
+        /// Возвращает значение поля или свойства объекта по имени члена, приведённое к указанному типу.
+        /// Если указанный член не найден, метод пытается интерпретировать имя как путь к вложенному члену, разделённому точками, слэшами или обратными слэшами, например, "Address.Street.Name" или "Address/Street/Name".<br/>
+        /// Для максимальной производительности рекомендуется использовать кэширование делегатов доступа к членам, например, с помощью метода <see cref="GetMemberGetter(Type, string)"/>.<br/>
+        /// Если член не найден или объект равен <see langword="null" />, возвращается <see langword="null" />.<br/>
+        /// Если указано, возвращаемое значение приводится к заданному типу.
         /// </summary>
         /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
         /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
@@ -1575,12 +1582,50 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Gets the field information from get accessor.
+        /// Пытается определить поле, связанное с аксессором get-свойства.
         /// </summary>
-        /// <param name="accessor">The accessor.</param>
-        /// <returns>FieldInfo.</returns>
-        /// <exception cref="System.ArgumentNullException">accessor.</exception>
-        /// <exception cref="System.ArgumentException">Method has no declaring type - accessor.</exception>
+        /// <param name="accessor">
+        /// Метод-аксессор свойства (обычно метод с именем вида <c>get_PropertyName</c>).
+        /// </param>
+        /// <returns>
+        /// Экземпляр <see cref="FieldInfo"/>, соответствующий полю,
+        /// используемому данным свойством, либо <see langword="null"/>,
+        /// если поле не удалось определить.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Генерируется, если <paramref name="accessor"/> равен <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Генерируется, если метод не имеет объявляющего типа
+        /// или не является get-аксессором свойства.
+        /// </exception>
+        /// <remarks>
+        /// Метод выполняет поиск поля в несколько этапов:
+        /// <list type="number">
+        /// <item>
+        /// <description>
+        /// Поиск автоматически сгенерированного backing-поля автосвойства
+        /// (шаблон <c>&lt;PropertyName&gt;k__BackingField</c>) в объявляющем типе.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Поиск такого же backing-поля в базовых типах.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Анализ IL-кода get-аксессора для определения используемого поля.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Поиск поля по распространённым шаблонам именования
+        /// (например, <c>_propertyName</c>, <c>propertyName</c> и т.п.).
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </remarks>
         public static FieldInfo GetFieldInfoFromGetAccessor(MethodInfo accessor)
         {
             if (accessor == null)
@@ -2440,7 +2485,9 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Устанавливает значение поля или свойства объекта по имени члена.
+        /// Устанавливает значение поля или свойства объекта по имени члена.<br/>
+        /// Если в имени присутствует путь к вложенному члену (например, "Address.Street"), метод рекурсивно обрабатывает каждый уровень вложенности.<br/>
+        /// Для максимальной производительности рекомендуется использовать полученные делегаты сеттеров напрямую <see cref="GetMemberSetter(MemberInfo)"/> <see cref="GetMemberSetter{T}(string, out Type)"/>, так как этот метод выполняет поиск члена и преобразование типов при каждом вызове.
         /// </summary>
         /// <param name="instance">Экземпляр объекта, в котором требуется установить значение.</param>
         /// <param name="memberName">Имя поля или свойства.</param>
@@ -2458,6 +2505,9 @@ namespace RuntimeStuff
             var setter = GetMemberSetter(instance.GetType(), memberName, out var memberType);
             if (setter == null)
             {
+                var path = memberName.Split('.', '/', '\\');
+                if (path.Length > 1)
+                    return Set(instance, path, value);
                 return false;
             }
 
@@ -2528,6 +2578,9 @@ namespace RuntimeStuff
         /// <item>
         /// <description><see cref="FieldInfo.FieldType"/> — если передан объект <see cref="FieldInfo"/>.</description>
         /// </item>
+        /// <item>
+        /// <description><see cref="MethodInfo.ReturnType"/> — если передан объект <see cref="MethodInfo"/>.</description>
+        /// </item>
         /// </list>
         /// <para>
         /// Возвращает <c>null</c>, если <paramref name="memberInfo"/> равен <c>null</c>
@@ -2548,6 +2601,9 @@ namespace RuntimeStuff
 
                 case FieldInfo fi:
                     return fi.FieldType;
+
+                case MethodInfo mi:
+                    return mi.ReturnType;
 
                 default:
                     return null;
