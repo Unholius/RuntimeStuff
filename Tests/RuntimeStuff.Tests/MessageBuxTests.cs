@@ -2,11 +2,12 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-using System.Diagnostics;
-
 namespace RuntimeStuff.MSTests
 {
+    using System.Diagnostics;
+#if DEBUG
     [TestClass]
+#endif
     public class MessageBusTests
     {
         #region Тесты конструктора

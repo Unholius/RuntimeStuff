@@ -33,6 +33,28 @@ namespace RuntimeStuff.Helpers
     public static class StringHelper
     {
         /// <summary>
+        /// Определяет алгоритм нечеткого сравнения строк.
+        /// </summary>
+        public enum FuzzyCompareMethod
+        {
+            /// <summary>
+            /// Алгоритм Левенштейна.
+            /// Основан на подсчёте минимального количества операций
+            /// (вставка, удаление, замена), необходимых для преобразования
+            /// одной строки в другую.
+            /// </summary>
+            Levenshtein,
+
+            /// <summary>
+            /// Алгоритм Жаро–Винклера.
+            /// Учитывает количество совпадающих символов, перестановки
+            /// и общий префикс строк, что делает его более подходящим
+            /// для сравнения коротких строк и имён.
+            /// </summary>
+            JaroWinkler,
+        }
+
+        /// <summary>
         /// Gets whitespace chars.
         /// Набор пробельных символов, используемых при разборе строк.
         /// Включает пробел, перевод строки, табуляция, пустой символ.
@@ -1002,6 +1024,205 @@ namespace RuntimeStuff.Helpers
 
                 return Convert.ToBase64String(output.ToArray());
             }
+        }
+
+        /// <summary>
+        /// Возвращает строку из заданного списка, наиболее похожую на входную строку,
+        /// используя указанный метод нечеткого сравнения.
+        /// </summary>
+        /// <param name="input">Входная строка для сравнения.</param>
+        /// <param name="predefinedStrings">Массив строк, с которыми выполняется сравнение.</param>
+        /// <param name="compareMethod">Метод нечеткого сравнения строк.</param>
+        /// <param name="caseSensitive">Определяет, учитывается ли регистр символов.</param>
+        /// <param name="distanceThreshold">
+        /// Порог допустимого расстояния. Если минимальное расстояние превышает это значение,
+        /// будет возвращено <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// Наиболее похожая строка из массива или <c>null</c>, если подходящая строка не найдена.
+        /// </returns>
+        public static string GetClosestMatch(string input, string[] predefinedStrings, FuzzyCompareMethod compareMethod, bool caseSensitive = false, double distanceThreshold = int.MaxValue)
+        {
+            return GetClosestMatch(input, predefinedStrings, compareMethod, out _, caseSensitive, distanceThreshold);
+        }
+
+        /// <summary>
+        /// Возвращает строку из заданного списка, наиболее похожую на входную строку,
+        /// и дополнительно возвращает минимальное найденное расстояние.
+        /// </summary>
+        /// <param name="input">Входная строка для сравнения.</param>
+        /// <param name="predefinedStrings">Массив строк, с которыми выполняется сравнение.</param>
+        /// <param name="compareMethod">Метод нечеткого сравнения строк.</param>
+        /// <param name="minDistance">Минимальное расстояние между входной строкой и найденным совпадением.</param>
+        /// <param name="caseSensitive">Определяет, учитывается ли регистр символов.</param>
+        /// <param name="distanceThreshold">
+        /// Порог допустимого расстояния. Если минимальное расстояние превышает это значение,
+        /// будет возвращено <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// Наиболее похожая строка из массива или <c>null</c>, если подходящая строка не найдена.
+        /// </returns>
+        public static string GetClosestMatch(string input, string[] predefinedStrings, FuzzyCompareMethod compareMethod, out double minDistance, bool caseSensitive = false, double distanceThreshold = int.MaxValue)
+        {
+            string closestMatch = null;
+            minDistance = int.MaxValue;
+            foreach (var str in predefinedStrings)
+            {
+                double distance = int.MaxValue;
+                switch (compareMethod)
+                {
+                    case FuzzyCompareMethod.Levenshtein:
+                        distance = LevenshteinDistance(input, str, caseSensitive);
+                        break;
+
+                    case FuzzyCompareMethod.JaroWinkler:
+                        distance = JaroWinklerDistance(input, str, caseSensitive);
+                        break;
+                }
+
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestMatch = str;
+                }
+            }
+
+            return minDistance <= distanceThreshold ? closestMatch : null;
+        }
+
+        private static int FindMinimum(params int[] p)
+        {
+            if (p == null) return int.MinValue;
+            var min = int.MaxValue;
+            for (var i = 0; i < p.Length; i++)
+            {
+                if (min > p[i]) min = p[i];
+            }
+
+            return min;
+        }
+
+        private static int GetPrefixLength(string s1, string s2, int maxPrefixLength = 4)
+        {
+            var n = Math.Min(Math.Min(s1.Length, s2.Length), maxPrefixLength);
+
+            for (var i = 0; i < n; i++)
+            {
+                if (s1[i] != s2[i])
+                    return i;
+            }
+
+            return n;
+        }
+
+        private static double JaroDistance(string s1, string s2)
+        {
+            if (s1 == s2)
+                return 1.0;
+
+            var s1Len = s1.Length;
+            var s2Len = s2.Length;
+
+            var matchDistance = (Math.Max(s1Len, s2Len) / 2) - 1;
+
+            var s1Matches = new bool[s1Len];
+            var s2Matches = new bool[s2Len];
+
+            var matches = 0;
+            var transpositions = 0.0;
+
+            for (var i = 0; i < s1Len; i++)
+            {
+                var start = Math.Max(0, i - matchDistance);
+                var end = Math.Min(s2Len - 1, i + matchDistance);
+
+                for (var j = start; j <= end; j++)
+                {
+                    if (s2Matches[j]) continue;
+                    if (s1[i] != s2[j]) continue;
+                    s1Matches[i] = true;
+                    s2Matches[j] = true;
+                    matches++;
+                    break;
+                }
+            }
+
+            if (matches == 0)
+                return 0.0;
+
+            var k = 0;
+            for (var i = 0; i < s1Len; i++)
+            {
+                if (!s1Matches[i]) continue;
+                while (!s2Matches[k]) k++;
+                if (s1[i] != s2[k])
+                    transpositions++;
+                k++;
+            }
+
+            transpositions /= 2.0;
+
+            return ((matches / (double)s1Len) +
+                    (matches / (double)s2Len) +
+                    ((matches - transpositions) / matches)) / 3.0;
+        }
+
+        private static double JaroWinklerDistance(this string s1, string s2, bool caseSensitive = false)
+        {
+            if (!caseSensitive)
+            {
+                s1 = s1.ToLower();
+                s2 = s2.ToLower();
+            }
+
+            var jaroDistance = JaroDistance(s1, s2);
+
+            var prefixLength = GetPrefixLength(s1, s2);
+            const double scalingFactor = 0.1;
+
+            return jaroDistance + (prefixLength * scalingFactor * (1 - jaroDistance));
+        }
+
+        private static int LevenshteinDistance(string input, string comparedTo, bool caseSensitive = false)
+        {
+            if (string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(comparedTo)) return -1;
+            if (!caseSensitive)
+            {
+                input = input.ToLower();
+                comparedTo = comparedTo.ToLower();
+            }
+
+            var matrix = new int[input.Length + 1, comparedTo.Length + 1];
+
+            for (var i = 0; i <= matrix.GetUpperBound(0); i++) matrix[i, 0] = i;
+            for (var i = 0; i <= matrix.GetUpperBound(1); i++) matrix[0, i] = i;
+
+            for (var i = 1; i <= matrix.GetUpperBound(0); i++)
+            {
+                var si = input[i - 1];
+                for (var j = 1; j <= matrix.GetUpperBound(1); j++)
+                {
+                    var tj = comparedTo[j - 1];
+                    var cost = (si == tj) ? 0 : 1;
+
+                    var above = matrix[i - 1, j];
+                    var left = matrix[i, j - 1];
+                    var diag = matrix[i - 1, j - 1];
+                    var cell = FindMinimum(above + 1, left + 1, diag + cost);
+
+                    if (i > 1 && j > 1)
+                    {
+                        var trans = matrix[i - 2, j - 2] + 1;
+                        if (input[i - 2] != comparedTo[j - 1]) trans++;
+                        if (input[i - 1] != comparedTo[j - 2]) trans++;
+                        if (cell > trans) cell = trans;
+                    }
+
+                    matrix[i, j] = cell;
+                }
+            }
+
+            return matrix[matrix.GetUpperBound(0), matrix.GetUpperBound(1)];
         }
 
         /// <summary>
