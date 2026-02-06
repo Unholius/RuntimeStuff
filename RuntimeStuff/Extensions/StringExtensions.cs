@@ -15,6 +15,7 @@
 namespace RuntimeStuff.Extensions
 {
     using System;
+    using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
     using System.IO.Compression;
@@ -33,6 +34,54 @@ namespace RuntimeStuff.Extensions
     /// строку, а возвращают новую строку с применёнными изменениями.</remarks>
     public static class StringExtensions
     {
+        /// <summary>
+        /// Разбивает входную строку на список объектов указанного типа,
+        /// используя разделители колонок и строк по умолчанию.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, в который будут маппиться данные строк.
+        /// </typeparam>
+        /// <param name="s">
+        /// Исходная строка, содержащая данные.
+        /// </param>
+        /// <param name="propertyMap">
+        /// Массив имён свойств типа <typeparamref name="T"/>,
+        /// определяющий порядок маппинга колонок.
+        /// Если не задан, используются все публичные базовые свойства.
+        /// </param>
+        /// <returns>
+        /// Список объектов типа <typeparamref name="T"/>,
+        /// заполненных данными из строки.
+        /// </returns>
+        public static List<T> SplitToList<T>(this string s, params string[] propertyMap) => StringHelper.SplitToList<T>(s, propertyMap);
+
+        /// <summary>
+        /// Разбивает входную строку на список объектов указанного типа
+        /// с возможностью указать собственные разделители колонок и строк.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, в который будут маппиться данные строк.
+        /// </typeparam>
+        /// <param name="s">
+        /// Исходная строка, содержащая данные.
+        /// </param>
+        /// <param name="propertyMap">
+        /// Массив имён свойств типа <typeparamref name="T"/>,
+        /// определяющий порядок маппинга колонок.
+        /// Если не задан или пуст, используются все публичные базовые свойства.
+        /// </param>
+        /// <param name="columnSeparators">
+        /// Массив разделителей колонок.
+        /// </param>
+        /// <param name="lineSeparators">
+        /// Массив разделителей строк.
+        /// </param>
+        /// <returns>
+        /// Список объектов типа <typeparamref name="T"/>,
+        /// заполненных данными из строки.
+        /// </returns>
+        public static List<T> SplitToList<T>(this string s, string[] propertyMap, string[] columnSeparators, string[] lineSeparators) => StringHelper.SplitToList<T>(s, propertyMap, columnSeparators, lineSeparators);
+
         /// <summary>
         /// Преобразует строку в строку Base64 с использованием кодировки UTF-8.
         /// </summary>
