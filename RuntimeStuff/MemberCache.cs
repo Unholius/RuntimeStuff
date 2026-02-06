@@ -66,6 +66,8 @@ namespace RuntimeStuff
         private MemberCache[] tables;
         private FieldInfo propertyBackingField;
         private bool? propertyBackingFieldExists;
+        private Func<object[], object> ctorDelegate;
+        private object[] defaultArgs;
 
         private string xmlAttr;
 
@@ -1191,10 +1193,10 @@ namespace RuntimeStuff
                     return TypeCache.GetOrAdd(t, x => new MemberCache(x, null));
 
                 default:
-                {
-                    var declaringTypeCache = TypeCache.GetOrAdd(memberInfo.DeclaringType ?? throw new InvalidOperationException(), x => new MemberCache(x, null));
-                    return declaringTypeCache[memberInfo];
-                }
+                    {
+                        var declaringTypeCache = TypeCache.GetOrAdd(memberInfo.DeclaringType ?? throw new InvalidOperationException(), x => new MemberCache(x, null));
+                        return declaringTypeCache[memberInfo];
+                    }
             }
         }
 
@@ -1907,12 +1909,54 @@ namespace RuntimeStuff
         public override bool IsDefined(Type attributeType, bool inherit) => MemberInfo.IsDefined(attributeType, inherit);
 
         /// <summary>
-        /// Устанавливает значение члена для указанного экземпляра.
+        /// Устанавливает значение члена для указанного экземпляра.<br/>
+        /// Если конвертер значений не указан, то используется <see cref="Obj.ChangeType(object, Type, IFormatProvider)"/>.
         /// </summary>
         /// <param name="source">Экземпляр объекта.</param>
         /// <param name="value">Значение для установки.</param>
         /// <param name="valueConverter">Конвертер значения (необязательный).</param>
         public virtual void SetValue(object source, object value, Func<object, object> valueConverter = null) => Setter(source, valueConverter == null ? Obj.ChangeType(value, Type) : valueConverter(value));
+
+        /// <summary>
+        /// Создаёт экземпляр объекта указанного типа,
+        /// используя переданные аргументы конструктора.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип создаваемого объекта.
+        /// </typeparam>
+        /// <param name="ctorArgs">
+        /// Аргументы конструктора.
+        /// Если не указаны, используются значения по умолчанию.
+        /// </param>
+        /// <returns>
+        /// Экземпляр объекта типа <typeparamref name="T"/>.
+        /// </returns>
+        public T CreateInstance<T>(params object[] ctorArgs) => (T)CreateInstance(ctorArgs);
+
+        /// <summary>
+        /// Создаёт экземпляр объекта,
+        /// используя конструктор по умолчанию или первый доступный конструктор.
+        /// </summary>
+        /// <param name="ctorDefaultArgs">
+        /// Аргументы конструктора.
+        /// Если не заданы, параметры конструктора инициализируются
+        /// значениями по умолчанию (default для value-type и null для reference-type).
+        /// </param>
+        /// <returns>
+        /// Созданный экземпляр объекта.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если у типа отсутствуют доступные конструкторы.
+        /// </exception>
+        public object CreateInstance(params object[] ctorDefaultArgs)
+        {
+            EnsureCtorCached();
+
+            if (ctorDefaultArgs == null || ctorDefaultArgs.Length == 0)
+                ctorDefaultArgs = defaultArgs;
+
+            return ctorDelegate(ctorDefaultArgs);
+        }
 
         /// <summary>
         /// Преобразует экземпляр объекта в словарь имен и значений свойств.
@@ -2015,6 +2059,50 @@ namespace RuntimeStuff
             }
 
             return true;
+        }
+
+        private void EnsureCtorCached()
+        {
+            if (ctorDelegate != null)
+                return;
+
+            // если есть дефолтный конструктор без параметров
+            if (DefaultConstructor != null)
+            {
+                ctorDelegate = _ => DefaultConstructor();
+                defaultArgs = Array.Empty<object>();
+                return;
+            }
+
+            var ctor = Constructors.FirstOrDefault(x => x.IsPublic);
+            if (ctor == null)
+                throw new InvalidOperationException("Public constructor not found");
+
+            var parameters = ctor.GetParameters();
+
+            // кеш аргументов по умолчанию
+            defaultArgs = parameters
+                .Select(p => p.ParameterType.IsValueType
+                    ? Activator.CreateInstance(p.ParameterType)
+                    : null)
+                .ToArray();
+
+            // компилируем делегат
+            var argsParam = Expression.Parameter(typeof(object[]), "args");
+
+            var ctorArgsExpr = parameters
+                .Select((p, i) =>
+                    Expression.Convert(
+                        Expression.ArrayIndex(argsParam, Expression.Constant(i)),
+                        p.ParameterType))
+                .ToArray();
+
+            var newExpr = Expression.New(ctor, ctorArgsExpr);
+            var body = Expression.Convert(newExpr, typeof(object));
+
+            ctorDelegate = Expression
+                .Lambda<Func<object[], object>>(body, argsParam)
+                .Compile();
         }
 
         /// <summary>

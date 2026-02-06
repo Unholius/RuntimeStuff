@@ -20,7 +20,6 @@ namespace RuntimeStuff.Helpers
     using System.IO.Compression;
     using System.Linq;
     using System.Text;
-    using RuntimeStuff.Extensions;
 
     /// <summary>
     /// Предоставляет набор статических методов для работы со строками и токенами, включая удаление суффикса, замену и
@@ -32,6 +31,10 @@ namespace RuntimeStuff.Helpers
     /// создания экземпляра класса. Класс потокобезопасен при условии корректного использования входных данных.</remarks>
     public static class StringHelper
     {
+        private static string[] columnSeparators = new string[] { "\t", ";", "|" };
+
+        private static string[] lineSeparators = new string[] { Environment.NewLine, "\r", "\n" };
+
         /// <summary>
         /// Определяет алгоритм нечеткого сравнения строк.
         /// </summary>
@@ -79,104 +82,6 @@ namespace RuntimeStuff.Helpers
             '\u2060', // Word Joiner
             '\uFEFF', // BOM (Zero Width No-Break Space)
         };
-
-        /// <summary>
-        /// Проверяет, является ли строка потенциально корректным XML-фрагментом.
-        /// </summary>
-        /// <param name="s">
-        /// Проверяемая строка.
-        /// </param>
-        /// <returns>
-        /// <c>true</c>, если строка по базовым синтаксическим признакам может быть XML;
-        /// <c>false</c> — если строка пуста, состоит из пробельных символов
-        /// или явно не соответствует формату XML.
-        /// </returns>
-        /// <remarks>
-        /// Метод выполняет только быструю предварительную проверку и
-        /// <b>не гарантирует</b> синтаксическую корректность XML.
-        /// Проверяются следующие условия:
-        /// <list type="bullet">
-        /// <item><description>строка не равна <c>null</c> и не пуста;</description></item>
-        /// <item><description>после обрезки пробельных символов строка начинается с символа '&lt;';</description></item>
-        /// <item><description>минимальная допустимая длина XML (&lt;a/&gt;);</description></item>
-        /// <item><description>исключаются HTML-комментарии и объявления DOCTYPE без корневого элемента;</description></item>
-        /// <item><description>наличие закрывающего символа '&gt;'.</description></item>
-        /// </list>
-        /// Для полной проверки корректности XML рекомендуется использовать
-        /// <see cref="System.Xml.XmlReader"/> или <see cref="System.Xml.Linq.XDocument"/>.
-        /// </remarks>
-        public static bool IsXml(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s))
-                return false;
-
-            s = s.TrimWhiteChars();
-
-            // XML всегда начинается с '<'
-            if (s[0] != '<')
-                return false;
-
-            // Минимальная длина: <a/>
-            if (s.Length < 4)
-                return false;
-
-            // Явно отсекаем HTML-комментарии и DOCTYPE без корневого элемента
-            if (s.StartsWith("<!--", StringComparison.Ordinal) ||
-                s.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            // Проверка наличия закрывающего '>'
-            var close = s.IndexOf('>');
-            if (close < 0)
-                return false;
-
-            return true;
-        }
-
-        /// <summary>
-        /// Проверяет, является ли строка потенциально корректным JSON-фрагментом.
-        /// </summary>
-        /// <param name="s">
-        /// Проверяемая строка.
-        /// </param>
-        /// <returns>
-        /// <c>true</c>, если строка по базовым синтаксическим признакам может быть JSON;
-        /// <c>false</c> — если строка пуста, состоит из пробельных символов
-        /// или явно не соответствует формату JSON.
-        /// </returns>
-        /// <remarks>
-        /// Метод выполняет только быструю эвристическую проверку и
-        /// <b>не гарантирует</b> синтаксическую корректность JSON.
-        /// Проверяются следующие условия:
-        /// <list type="bullet">
-        /// <item><description>строка не равна <c>null</c> и не пуста;</description></item>
-        /// <item><description>после обрезки пробельных символов длина строки не менее 2 символов;</description></item>
-        /// <item><description>строка начинается с символа '{' и заканчивается '}', либо начинается с '[' и заканчивается ']'.</description></item>
-        /// </list>
-        /// Метод не проверяет корректность структуры, экранирование строк,
-        /// соответствие стандарту JSON и вложенность элементов.
-        /// Для полноценной проверки рекомендуется использовать сторонние JSON-парсеры.
-        /// </remarks>
-        public static bool IsJson(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s))
-                return false;
-
-            s = s.TrimWhiteChars();
-
-            // JSON всегда начинается с { или [
-            if (s.Length < 2)
-                return false;
-
-            var first = s[0];
-            var last = s[s.Length - 1];
-
-            if (!((first == '{' && last == '}') ||
-                  (first == '[' && last == ']')))
-                return false;
-
-            return true;
-        }
 
         /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
@@ -327,6 +232,70 @@ namespace RuntimeStuff.Helpers
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Возвращает строку из заданного списка, наиболее похожую на входную строку,
+        /// используя указанный метод нечеткого сравнения.
+        /// </summary>
+        /// <param name="input">Входная строка для сравнения.</param>
+        /// <param name="predefinedStrings">Массив строк, с которыми выполняется сравнение.</param>
+        /// <param name="compareMethod">Метод нечеткого сравнения строк.</param>
+        /// <param name="caseSensitive">Определяет, учитывается ли регистр символов.</param>
+        /// <param name="distanceThreshold">
+        /// Порог допустимого расстояния. Если минимальное расстояние превышает это значение,
+        /// будет возвращено <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// Наиболее похожая строка из массива или <c>null</c>, если подходящая строка не найдена.
+        /// </returns>
+        public static string GetClosestMatch(string input, string[] predefinedStrings, FuzzyCompareMethod compareMethod, bool caseSensitive = false, double distanceThreshold = int.MaxValue)
+        {
+            return GetClosestMatch(input, predefinedStrings, compareMethod, out _, caseSensitive, distanceThreshold);
+        }
+
+        /// <summary>
+        /// Возвращает строку из заданного списка, наиболее похожую на входную строку,
+        /// и дополнительно возвращает минимальное найденное расстояние.
+        /// </summary>
+        /// <param name="input">Входная строка для сравнения.</param>
+        /// <param name="predefinedStrings">Массив строк, с которыми выполняется сравнение.</param>
+        /// <param name="compareMethod">Метод нечеткого сравнения строк.</param>
+        /// <param name="minDistance">Минимальное расстояние между входной строкой и найденным совпадением.</param>
+        /// <param name="caseSensitive">Определяет, учитывается ли регистр символов.</param>
+        /// <param name="distanceThreshold">
+        /// Порог допустимого расстояния. Если минимальное расстояние превышает это значение,
+        /// будет возвращено <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// Наиболее похожая строка из массива или <c>null</c>, если подходящая строка не найдена.
+        /// </returns>
+        public static string GetClosestMatch(string input, string[] predefinedStrings, FuzzyCompareMethod compareMethod, out double minDistance, bool caseSensitive = false, double distanceThreshold = int.MaxValue)
+        {
+            string closestMatch = null;
+            minDistance = int.MaxValue;
+            foreach (var str in predefinedStrings)
+            {
+                double distance = int.MaxValue;
+                switch (compareMethod)
+                {
+                    case FuzzyCompareMethod.Levenshtein:
+                        distance = LevenshteinDistance(input, str, caseSensitive);
+                        break;
+
+                    case FuzzyCompareMethod.JaroWinkler:
+                        distance = JaroWinklerDistance(input, str, caseSensitive);
+                        break;
+                }
+
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    closestMatch = str;
+                }
+            }
+
+            return minDistance <= distanceThreshold ? closestMatch : null;
         }
 
         /// <summary>
@@ -637,10 +606,108 @@ namespace RuntimeStuff.Helpers
 
             if (notMatchedAsTokens)
             {
-                TokenizeNotMatched(result, notMatchedTokenSetTag, notMatchedContentTransformer);
+                GetNotMatchedTokens(result, notMatchedTokenSetTag, notMatchedContentTransformer);
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Проверяет, является ли строка потенциально корректным JSON-фрагментом.
+        /// </summary>
+        /// <param name="s">
+        /// Проверяемая строка.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если строка по базовым синтаксическим признакам может быть JSON;
+        /// <c>false</c> — если строка пуста, состоит из пробельных символов
+        /// или явно не соответствует формату JSON.
+        /// </returns>
+        /// <remarks>
+        /// Метод выполняет только быструю эвристическую проверку и
+        /// <b>не гарантирует</b> синтаксическую корректность JSON.
+        /// Проверяются следующие условия:
+        /// <list type="bullet">
+        /// <item><description>строка не равна <c>null</c> и не пуста;</description></item>
+        /// <item><description>после обрезки пробельных символов длина строки не менее 2 символов;</description></item>
+        /// <item><description>строка начинается с символа '{' и заканчивается '}', либо начинается с '[' и заканчивается ']'.</description></item>
+        /// </list>
+        /// Метод не проверяет корректность структуры, экранирование строк,
+        /// соответствие стандарту JSON и вложенность элементов.
+        /// Для полноценной проверки рекомендуется использовать сторонние JSON-парсеры.
+        /// </remarks>
+        public static bool IsJson(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return false;
+
+            s = TrimWhiteChars(s);
+
+            // JSON всегда начинается с { или [
+            if (s.Length < 2)
+                return false;
+
+            var first = s[0];
+            var last = s[s.Length - 1];
+
+            if (!((first == '{' && last == '}') ||
+                  (first == '[' && last == ']')))
+                return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Проверяет, является ли строка потенциально корректным XML-фрагментом.
+        /// </summary>
+        /// <param name="s">
+        /// Проверяемая строка.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если строка по базовым синтаксическим признакам может быть XML;
+        /// <c>false</c> — если строка пуста, состоит из пробельных символов
+        /// или явно не соответствует формату XML.
+        /// </returns>
+        /// <remarks>
+        /// Метод выполняет только быструю предварительную проверку и
+        /// <b>не гарантирует</b> синтаксическую корректность XML.
+        /// Проверяются следующие условия:
+        /// <list type="bullet">
+        /// <item><description>строка не равна <c>null</c> и не пуста;</description></item>
+        /// <item><description>после обрезки пробельных символов строка начинается с символа '&lt;';</description></item>
+        /// <item><description>минимальная допустимая длина XML (&lt;a/&gt;);</description></item>
+        /// <item><description>исключаются HTML-комментарии и объявления DOCTYPE без корневого элемента;</description></item>
+        /// <item><description>наличие закрывающего символа '&gt;'.</description></item>
+        /// </list>
+        /// Для полной проверки корректности XML рекомендуется использовать
+        /// <see cref="System.Xml.XmlReader"/> или <see cref="System.Xml.Linq.XDocument"/>.
+        /// </remarks>
+        public static bool IsXml(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+                return false;
+
+            s = TrimWhiteChars(s);
+
+            // XML всегда начинается с '<'
+            if (s[0] != '<')
+                return false;
+
+            // Минимальная длина: <a/>
+            if (s.Length < 4)
+                return false;
+
+            // Явно отсекаем HTML-комментарии и DOCTYPE без корневого элемента
+            if (s.StartsWith("<!--", StringComparison.Ordinal) ||
+                s.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            // Проверка наличия закрывающего '>'
+            var close = s.IndexOf('>');
+            if (close < 0)
+                return false;
+
+            return true;
         }
 
         /// <summary>
@@ -850,12 +917,100 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Tokenizes the not matched.
+        /// Разбивает входную строку на список объектов указанного типа,
+        /// используя разделители колонок и строк по умолчанию.
         /// </summary>
-        /// <param name="tokens">The tokens.</param>
-        /// <param name="setTag">The set tag.</param>
-        /// <param name="transformer">Обработчик свойства Content.</param>
-        public static void TokenizeNotMatched(IEnumerable<Token> tokens, Func<Token, object> setTag, Func<Token, string> transformer)
+        /// <typeparam name="T">
+        /// Тип объекта, в который будут маппиться данные строк.
+        /// </typeparam>
+        /// <param name="s">
+        /// Исходная строка, содержащая данные.
+        /// </param>
+        /// <param name="propertyMap">
+        /// Массив имён свойств типа <typeparamref name="T"/>,
+        /// определяющий порядок маппинга колонок.
+        /// Если не задан, используются все публичные базовые свойства.
+        /// </param>
+        /// <returns>
+        /// Список объектов типа <typeparamref name="T"/>,
+        /// заполненных данными из строки.
+        /// </returns>
+        public static List<T> SplitToList<T>(string s, params string[] propertyMap)
+        {
+            return SplitToList<T>(s, propertyMap, columnSeparators, lineSeparators);
+        }
+
+        /// <summary>
+        /// Разбивает входную строку на список объектов указанного типа
+        /// с возможностью указать собственные разделители колонок и строк.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип объекта, в который будут маппиться данные строк.
+        /// </typeparam>
+        /// <param name="s">
+        /// Исходная строка, содержащая данные.
+        /// </param>
+        /// <param name="propertyMap">
+        /// Массив имён свойств типа <typeparamref name="T"/>,
+        /// определяющий порядок маппинга колонок.
+        /// Если не задан или пуст, используются все публичные базовые свойства.
+        /// </param>
+        /// <param name="columnSeparators">
+        /// Массив разделителей колонок.
+        /// </param>
+        /// <param name="lineSeparators">
+        /// Массив разделителей строк.
+        /// </param>
+        /// <returns>
+        /// Список объектов типа <typeparamref name="T"/>,
+        /// заполненных данными из строки.
+        /// </returns>
+        public static List<T> SplitToList<T>(string s, string[] propertyMap, string[] columnSeparators, string[] lineSeparators)
+        {
+            var result = new List<T>();
+
+            var typeCache = MemberCache.Create(typeof(T));
+            var lines = SplitBy(s, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
+            var props = propertyMap?.Any() == true ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicBasicProperties.ToArray();
+            foreach (var line in lines)
+            {
+                var columns = SplitBy(line, StringSplitOptions.None, columnSeparators);
+                if (!columns.Any())
+                    continue;
+                var item = (T)typeCache.CreateInstance();
+                for (int i = 0; i < columns.Length; i++)
+                {
+                    if (i >= props.Length) continue;
+                    props[i].SetValue(item, columns[i]);
+                }
+
+                result.Add(item);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Находит участки исходного текста, не покрытые ни одним токеном,
+        /// и добавляет для них специальные «незамапленные» (plain) токены.
+        /// </summary>
+        /// <param name="tokens">
+        /// Коллекция токенов, для которых необходимо найти непокрытые участки текста.
+        /// </param>
+        /// <param name="setTag">
+        /// Делегат, используемый для установки тега создаваемым токенам.
+        /// </param>
+        /// <param name="transformer">
+        /// Делегат для преобразования текстового содержимого токена.
+        /// </param>
+        /// <remarks>
+        /// Метод рекурсивно обрабатывает дерево токенов.
+        /// Для каждого уровня анализируются разрывы между соседними токенами
+        /// и границы родительского текста. Если обнаруживается участок,
+        /// не принадлежащий ни одному токену, создаётся новый токен
+        /// и вставляется в соответствующее место.
+        /// </remarks>
+        public static void GetNotMatchedTokens(IEnumerable<Token> tokens, Func<Token, object> setTag, Func<Token, string> transformer)
         {
             if (tokens == null)
             {
@@ -869,7 +1024,7 @@ namespace RuntimeStuff.Helpers
                 {
                     if (t.Children.Any())
                     {
-                        TokenizeNotMatched(t.Children, setTag, transformer);
+                        GetNotMatchedTokens(t.Children, setTag, transformer);
                     }
 
                     if (t.SourceStart > 0 && t.Previous == null)
@@ -896,7 +1051,7 @@ namespace RuntimeStuff.Helpers
                 {
                     if (t.Children.Any())
                     {
-                        TokenizeNotMatched(t.Children, setTag, transformer);
+                        GetNotMatchedTokens(t.Children, setTag, transformer);
                     }
 
                     if (t.SourceStart - t.Parent.ParentStart > 1 && t.Previous == null)
@@ -1024,70 +1179,6 @@ namespace RuntimeStuff.Helpers
 
                 return Convert.ToBase64String(output.ToArray());
             }
-        }
-
-        /// <summary>
-        /// Возвращает строку из заданного списка, наиболее похожую на входную строку,
-        /// используя указанный метод нечеткого сравнения.
-        /// </summary>
-        /// <param name="input">Входная строка для сравнения.</param>
-        /// <param name="predefinedStrings">Массив строк, с которыми выполняется сравнение.</param>
-        /// <param name="compareMethod">Метод нечеткого сравнения строк.</param>
-        /// <param name="caseSensitive">Определяет, учитывается ли регистр символов.</param>
-        /// <param name="distanceThreshold">
-        /// Порог допустимого расстояния. Если минимальное расстояние превышает это значение,
-        /// будет возвращено <c>null</c>.
-        /// </param>
-        /// <returns>
-        /// Наиболее похожая строка из массива или <c>null</c>, если подходящая строка не найдена.
-        /// </returns>
-        public static string GetClosestMatch(string input, string[] predefinedStrings, FuzzyCompareMethod compareMethod, bool caseSensitive = false, double distanceThreshold = int.MaxValue)
-        {
-            return GetClosestMatch(input, predefinedStrings, compareMethod, out _, caseSensitive, distanceThreshold);
-        }
-
-        /// <summary>
-        /// Возвращает строку из заданного списка, наиболее похожую на входную строку,
-        /// и дополнительно возвращает минимальное найденное расстояние.
-        /// </summary>
-        /// <param name="input">Входная строка для сравнения.</param>
-        /// <param name="predefinedStrings">Массив строк, с которыми выполняется сравнение.</param>
-        /// <param name="compareMethod">Метод нечеткого сравнения строк.</param>
-        /// <param name="minDistance">Минимальное расстояние между входной строкой и найденным совпадением.</param>
-        /// <param name="caseSensitive">Определяет, учитывается ли регистр символов.</param>
-        /// <param name="distanceThreshold">
-        /// Порог допустимого расстояния. Если минимальное расстояние превышает это значение,
-        /// будет возвращено <c>null</c>.
-        /// </param>
-        /// <returns>
-        /// Наиболее похожая строка из массива или <c>null</c>, если подходящая строка не найдена.
-        /// </returns>
-        public static string GetClosestMatch(string input, string[] predefinedStrings, FuzzyCompareMethod compareMethod, out double minDistance, bool caseSensitive = false, double distanceThreshold = int.MaxValue)
-        {
-            string closestMatch = null;
-            minDistance = int.MaxValue;
-            foreach (var str in predefinedStrings)
-            {
-                double distance = int.MaxValue;
-                switch (compareMethod)
-                {
-                    case FuzzyCompareMethod.Levenshtein:
-                        distance = LevenshteinDistance(input, str, caseSensitive);
-                        break;
-
-                    case FuzzyCompareMethod.JaroWinkler:
-                        distance = JaroWinklerDistance(input, str, caseSensitive);
-                        break;
-                }
-
-                if (distance < minDistance)
-                {
-                    minDistance = distance;
-                    closestMatch = str;
-                }
-            }
-
-            return minDistance <= distanceThreshold ? closestMatch : null;
         }
 
         private static int FindMinimum(params int[] p)

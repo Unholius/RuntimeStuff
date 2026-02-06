@@ -821,6 +821,31 @@ namespace RuntimeStuff.MSTests
             PropInfo(mc);
         }
 
+        [TestMethod]
+        public void CreateInstance_Test_01()
+        {
+            var mc = MemberCache.Create(typeof(TestClass));
+            var x = mc.CreateInstance();
+            Assert.IsTrue(x is TestClass);
+        }
+
+        [TestMethod]
+        public void CreateInstance_Test_02()
+        {
+            var mc = MemberCache.Create(typeof(KeyValuePair<string, string>));
+            var x = mc.CreateInstance();
+            Assert.IsTrue(x is KeyValuePair<string, string>);
+        }
+
+        [TestMethod]
+        public void CreateInstance_Test_03()
+        {
+            var mc = MemberCache.Create(typeof(KeyValuePair<string, string>));
+            var x = mc.CreateInstance<KeyValuePair<string, string>>("1", "2");
+            Assert.AreEqual("1", x.Key);
+            Assert.AreEqual("2", x.Value);
+        }
+
         private void PropInfo(PropertyInfo _)
         {
         }
