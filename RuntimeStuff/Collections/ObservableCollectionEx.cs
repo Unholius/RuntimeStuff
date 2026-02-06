@@ -117,6 +117,59 @@ namespace RuntimeStuff.Collections
         }
 
         /// <summary>
+        /// Удаляет из коллекции все элементы, удовлетворяющие заданному условию,
+        /// с единым уведомлением об изменении коллекции.
+        /// </summary>
+        /// <param name="predicate">
+        /// Предикат, определяющий условие удаления элемента.
+        /// Если возвращает <c>true</c>, элемент будет удалён.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="predicate"/> равен <c>null</c>.
+        /// </exception>
+        public void RemoveRangeWhere(Predicate<T> predicate)
+        {
+            if (predicate == null)
+                throw new ArgumentNullException(nameof(predicate));
+
+            if (Items.Count == 0)
+                return;
+
+            // Собираем элементы для удаления один раз
+            List<T> toRemove = null;
+
+            foreach (var item in this.GetEnumerator())
+            {
+                if (predicate(item))
+                {
+                    toRemove ??= new List<T>();
+                    toRemove.Add(item);
+                }
+            }
+
+            if (toRemove == null || toRemove.Count == 0)
+                return;
+
+            var oldSuppress = SuppressNotifyCollectionChange;
+            SuppressNotifyCollectionChange = true;
+
+            try
+            {
+                foreach (var item in toRemove)
+                {
+                    Unsubscribe(item);
+                    Items.Remove(item);
+                }
+            }
+            finally
+            {
+                SuppressNotifyCollectionChange = oldSuppress;
+            }
+
+            RaiseReset();
+        }
+
+        /// <summary>
         /// Удаляет все элементы из коллекции,
         /// предварительно корректно освобождая связанные ресурсы.
         /// </summary>

@@ -42,6 +42,42 @@ namespace RuntimeStuff.Extensions
     public static class EnumerableExtensions
     {
         /// <summary>
+        /// Удаляет из коллекции все элементы, удовлетворяющие заданному условию.
+        /// </summary>
+        /// <typeparam name="T">
+        /// Тип элементов коллекции.
+        /// </typeparam>
+        /// <param name="collection">
+        /// Коллекция, из которой необходимо удалить элементы.
+        /// </param>
+        /// <param name="predicate">
+        /// Предикат, определяющий условие удаления элемента.
+        /// Если предикат возвращает <c>true</c>, элемент будет удалён.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="collection"/> или <paramref name="predicate"/> равны <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Удаление производится с конца коллекции к началу, что позволяет безопасно
+        /// изменять коллекцию в процессе обхода и избегать пропуска элементов.
+        /// Метод работает с любыми реализациями <see cref="IList{T}"/>, поддерживающими
+        /// удаление элементов по индексу.
+        /// </remarks>
+        public static void RemoveWhere<T>(this IList<T> collection, Predicate<T> predicate)
+        {
+            if (collection == null) throw new ArgumentNullException(nameof(collection));
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+
+            for (int i = collection.Count - 1; i >= 0; i--)
+            {
+                if (predicate(collection[i]))
+                {
+                    collection.RemoveAt(i);
+                }
+            }
+        }
+
+        /// <summary>
         /// Преобразует последовательность в <see cref="DefaultDictionary{TKey, TValue}"/>,
         /// используя указанную функцию выбора ключа.
         /// </summary>
