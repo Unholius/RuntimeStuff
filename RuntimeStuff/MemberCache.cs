@@ -1915,7 +1915,17 @@ namespace RuntimeStuff
         /// <param name="source">Экземпляр объекта.</param>
         /// <param name="value">Значение для установки.</param>
         /// <param name="valueConverter">Конвертер значения (необязательный).</param>
-        public virtual void SetValue(object source, object value, Func<object, object> valueConverter = null) => Setter(source, valueConverter == null ? Obj.ChangeType(value, Type) : valueConverter(value));
+        public virtual void SetValue(object source, object value, Func<object, object> valueConverter = null)
+        {
+            if (IsField && DeclaringType.IsValueType)
+            {
+                AsFieldInfo().SetValueDirect(__makeref(source), value);
+            }
+            else
+            {
+                Setter(source, valueConverter == null ? Obj.ChangeType(value, Type) : valueConverter(value));
+            }
+        }
 
         /// <summary>
         /// Создаёт экземпляр объекта указанного типа,

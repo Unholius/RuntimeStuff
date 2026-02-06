@@ -649,17 +649,17 @@ namespace RuntimeStuff
         /// <typeparam name="TSource">Тип исходного объекта, из которого копируются значения. Должен быть ссылочным типом.</typeparam>
         /// <typeparam name="TTarget">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
         /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
-        /// <param name="targetination">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
+        /// <param name="target">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
         /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
         /// свойства исходного объекта.</param>
         /// <exception cref="System.ArgumentNullException">source.</exception>
         /// <exception cref="System.ArgumentNullException">targetination.</exception>
         /// <exception cref="System.InvalidOperationException">Targetination collection is not IList and cannot add new items.</exception>
-        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="targetination" />
+        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="target" />
         /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
         /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
         /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
-        public static void Copy<TSource, TTarget>(TSource source, TTarget targetination, params string[] memberNames)
+        public static void Copy<TSource, TTarget>(TSource source, TTarget target, params string[] memberNames)
             where TSource : class
             where TTarget : class
         {
@@ -668,9 +668,9 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(source));
             }
 
-            if (targetination == null || typeof(TTarget) == typeof(string))
+            if (target == null || typeof(TTarget) == typeof(string))
             {
-                throw new ArgumentNullException(nameof(targetination));
+                throw new ArgumentNullException(nameof(target));
             }
 
             if (memberNames == null || memberNames.Length == 0)
@@ -681,11 +681,11 @@ namespace RuntimeStuff
             var sourceTypeCache = MemberCache.Create(source.GetType());
             if (sourceTypeCache.IsCollection)
                 sourceTypeCache = MemberCache.Create(sourceTypeCache.ElementType);
-            var targetTypeCache = MemberCache.Create(targetination.GetType());
+            var targetTypeCache = MemberCache.Create(target.GetType());
             if (targetTypeCache.IsCollection)
                 targetTypeCache = MemberCache.Create(targetTypeCache.ElementType);
 
-            if (source is IEnumerable srcList && !(source is string) && targetination is IEnumerable dstList && !(targetination is string))
+            if (source is IEnumerable srcList && !(source is string) && target is IEnumerable dstList && !(target is string))
             {
                 var srcEnumerator = srcList.GetEnumerator();
                 var dstEnumerator = dstList.GetEnumerator();
@@ -737,7 +737,7 @@ namespace RuntimeStuff
                     if (set == null)
                         continue;
                     var value = get(source);
-                    set(targetination, value);
+                    set(target, value);
                 }
             }
         }
@@ -2032,20 +2032,20 @@ namespace RuntimeStuff
         /// </summary>
         /// <typeparam name="TKey">Тип ключа словаря.</typeparam>
         /// <typeparam name="TValue">Тип значения словаря.</typeparam>
-        /// <param name="dic">Словарь, в котором выполняется поиск или добавление.</param>
+        /// <param name="dictionary">Словарь, в котором выполняется поиск или добавление.</param>
         /// <param name="key">Ключ для поиска или добавления значения.</param>
         /// <param name="valueFactory">Функция, создающая значение, если ключ отсутствует.</param>
         /// <returns>Значение, соответствующее ключу.</returns>
-        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="dic" /> равен <c>null</c>.</exception>
-        public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dic, TKey key, Func<TValue> valueFactory)
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="dictionary" /> равен <c>null</c>.</exception>
+        public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, Func<TValue> valueFactory)
         {
-            if (dic.TryGetValue(key, out var val))
+            if (dictionary.TryGetValue(key, out var val))
             {
                 return val;
             }
 
             val = valueFactory();
-            dic[key] = val;
+            dictionary[key] = val;
             return val;
         }
 
@@ -2215,7 +2215,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <typeparam name="TKey">Тип ключа.</typeparam>
         /// <typeparam name="TValue">Тип значения.</typeparam>
-        /// <param name="dic">Коллекция пар ключ-значение.</param>
+        /// <param name="dictionary">Коллекция пар ключ-значение.</param>
         /// <param name="key">Ключ для поиска.</param>
         /// <param name="comparer">Компаратор для сравнения ключей.
         /// Если <c>null</c>, используется стандартное сравнение по <see cref="EqualityComparer{TKey}.Default" />.</param>
@@ -2227,26 +2227,26 @@ namespace RuntimeStuff
         /// для быстрого поиска.
         /// </description></item></list></remarks>
         public static TValue GetValueOrDefault<TKey, TValue>(
-            this IEnumerable<KeyValuePair<TKey, TValue>> dic,
+            this IEnumerable<KeyValuePair<TKey, TValue>> dictionary,
             TKey key,
             IComparer<TKey> comparer = null)
         {
-            if (dic == null)
+            if (dictionary == null)
             {
-                throw new ArgumentNullException(nameof(dic));
+                throw new ArgumentNullException(nameof(dictionary));
             }
 
             // 1. Компаратор не задан — стандартное сравнение
             if (comparer == null)
             {
-                return dic
+                return dictionary
                     .Where(x => EqualityComparer<TKey>.Default.Equals(x.Key, key))
                     .Select(x => x.Value)
                     .FirstOrDefault();
             }
 
             // 2. Компаратор задан
-            return dic
+            return dictionary
                 .Where(kv => comparer.Compare(kv.Key, key) == 0)
                 .Select(kv => kv.Value)
                 .FirstOrDefault();

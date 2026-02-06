@@ -972,19 +972,23 @@ namespace RuntimeStuff.Helpers
             var typeCache = MemberCache.Create(typeof(T));
             var lines = SplitBy(s, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
             var props = propertyMap?.Any() == true ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicBasicProperties.ToArray();
+            if (props.Length == 0)
+                props = propertyMap?.Any() == true ? typeCache.Fields.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicFields.ToArray();
+            if (props.Length == 0)
+                throw new InvalidOperationException($"Не найдено публичных свойств или полей в типе {typeof(T).FullName}");
             foreach (var line in lines)
             {
                 var columns = SplitBy(line, StringSplitOptions.None, columnSeparators);
                 if (!columns.Any())
                     continue;
-                var item = (T)typeCache.CreateInstance();
+                var item = typeCache.CreateInstance();
                 for (int i = 0; i < columns.Length; i++)
                 {
                     if (i >= props.Length) continue;
                     props[i].SetValue(item, columns[i]);
                 }
 
-                result.Add(item);
+                result.Add((T)item);
             }
 
             return result;
