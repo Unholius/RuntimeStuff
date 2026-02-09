@@ -99,11 +99,9 @@ namespace RuntimeStuff.Collections
 
             var oldSuppress = SuppressNotifyCollectionChange;
             SuppressNotifyCollectionChange = true;
-
+            var removed = false;
             try
             {
-                var removed = false;
-
                 for (int i = Items.Count - 1; i >= 0; i--)
                 {
                     var item = Items[i];
@@ -114,13 +112,12 @@ namespace RuntimeStuff.Collections
                     Items.RemoveAt(i);
                     removed = true;
                 }
-
-                if (removed)
-                    RaiseReset();
             }
             finally
             {
                 SuppressNotifyCollectionChange = oldSuppress;
+                if (removed)
+                    RaiseReset();
             }
         }
 
@@ -167,10 +164,9 @@ namespace RuntimeStuff.Collections
             finally
             {
                 SuppressNotifyCollectionChange = oldSuppress;
+                if (removed)
+                    RaiseReset();
             }
-
-            if (removed)
-                RaiseReset();
         }
 
         /// <summary>
