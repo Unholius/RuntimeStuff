@@ -1679,6 +1679,26 @@ namespace RuntimeStuff
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="list">Коллекция объектов для вставки.</param>
+        /// <param name="tableName">Имя таблицы в которую вставлять строки.</param>
+        /// <param name="dbTransaction">Внешняя транзакция. Если не указана — создаётся новая.</param>
+        /// <param name="insertColumns">Колонки, участвующие во вставке.</param>
+        /// <returns>Количество вставленных записей.</returns>
+        public int InsertRange<T>(
+            IEnumerable<T> list,
+            string tableName,
+            IDbTransaction dbTransaction = null,
+            params Expression<Func<T, object>>[] insertColumns)
+            where T : class
+        {
+            Options.Map.Table<T>(tableName);
+            return InsertRange(list, dbTransaction, insertColumns);
+        }
+
+        /// <summary>
+        /// Вставляет коллекцию объектов в базу данных в рамках одной транзакции.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="list">Коллекция объектов для вставки.</param>
         /// <param name="dbTransaction">Внешняя транзакция. Если не указана — создаётся новая.</param>
         /// <param name="insertColumns">Колонки, участвующие во вставке.</param>
         /// <returns>Количество вставленных записей.</returns>
@@ -1734,6 +1754,30 @@ namespace RuntimeStuff
             {
                 this.CloseConnection();
             }
+        }
+
+        /// <summary>
+        /// Асинхронно вставляет коллекцию объектов в базу данных
+        /// в рамках одной транзакции.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="list">Коллекция объектов.</param>
+        /// <param name="tableName">Имя таблицы в которую вставлять строки.</param>
+        /// <param name="insertColumns">Колонки, участвующие во вставке.</param>
+        /// <param name="dbTransaction">Внешняя транзакция.</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <returns>Количество вставленных записей.</returns>
+        /// <exception cref="System.NullReferenceException">dbCmd.</exception>
+        public Task<int> InsertRangeAsync<T>(
+            IEnumerable<T> list,
+            string tableName,
+            Expression<Func<T, object>>[] insertColumns = null,
+            IDbTransaction dbTransaction = null,
+            CancellationToken token = default)
+            where T : class
+        {
+            Options.Map.Table<T>(tableName);
+            return InsertRangeAsync<T>(list, insertColumns, dbTransaction, token);
         }
 
         /// <summary>
