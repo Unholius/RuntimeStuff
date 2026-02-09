@@ -98,7 +98,7 @@ namespace RuntimeStuff.Options
         /// Gets or sets the map.
         /// </summary>
         /// <value>The map.</value>
-        public EntityMap Map { get; set; }
+        public EntityMap Map { get; set; } = new EntityMap();
 
         /// <summary>
         /// Gets or sets the name prefix.

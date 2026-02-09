@@ -138,6 +138,14 @@ namespace RuntimeStuff.Builders
                 insertCols = mi.ColumnProperties.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
             }
 
+            if (insertCols.Length == 0)
+            {
+                insertCols = mi.PublicBasicProperties.Select(x => x.Name).ToArray();
+            }
+
+            if (insertCols.Length == 0)
+                throw new NotSupportedException("Не указаны колонки для генерации INSERT запроса!");
+
             for (var i = 0; i < insertCols.Length; i++)
             {
                 var col = insertCols[i];

@@ -146,6 +146,23 @@ CREATE TABLE student_courses (
         }
 
         [TestMethod]
+        public void DbClient_InsertRange_Test_01()
+        {
+            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+            var rows = new List<(int IntValue, string TextValue)>
+            {
+                new () { IntValue = 111, TextValue = "1" },
+                new () { IntValue = 2222, TextValue = "22" },
+                new () { IntValue = 33333, TextValue = "333" },
+            };
+
+            var rows2 = rows.Select(x => new { int_value = x.IntValue, text_value = x.TextValue }).ToList();
+
+            db.EnableLogging = true;
+            var ids = db.InsertRange(rows2, "test_table");
+        }
+
+        [TestMethod]
         public void DbClient_Test_02()
         {
             using var db = DbClient.Create<SqliteConnection>(_connectionString);

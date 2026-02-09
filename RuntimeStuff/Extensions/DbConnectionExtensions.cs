@@ -30,119 +30,6 @@ namespace RuntimeStuff.Extensions
     public static class DbConnectionExtensions
     {
         /// <summary>
-        /// Добавляет параметр сервера базы данных в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="serverName">Имя или адрес сервера базы данных.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection Server(this IDbConnection con, string serverName)
-        {
-            return Param(con, SqlProviderOptions.GetInstance(con).ServerParameterName, serverName);
-        }
-
-        /// <summary>
-        /// Добавляет параметр имени базы данных в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="database">Имя базы данных.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection Database(this IDbConnection con, string database)
-        {
-            return Param(con, SqlProviderOptions.GetInstance(con).DatabaseParameterName, database);
-        }
-
-        /// <summary>
-        /// Добавляет параметр имени пользователя в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="userName">Имя пользователя базы данных.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection User(this IDbConnection con, string userName)
-        {
-            return Param(con, SqlProviderOptions.GetInstance(con).UserParameterName, userName);
-        }
-
-        /// <summary>
-        /// Добавляет параметр пароля пользователя в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="password">Пароль пользователя базы данных.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection Password(this IDbConnection con, string password)
-        {
-            return Param(con, SqlProviderOptions.GetInstance(con).PasswordParameterName, password);
-        }
-
-        /// <summary>
-        /// Добавляет параметр доверия сертификату сервера в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="value">
-        /// Значение параметра доверия сертификату сервера
-        /// (обычно <c>true</c> или <c>false</c>).
-        /// </param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection TrustCertificate(this IDbConnection con, bool value)
-        {
-            return Param(con, SqlProviderOptions.GetInstance(con).TrustServerCertificateParameterName, value);
-        }
-
-        /// <summary>
-        /// Добавляет параметр интегрированной безопасности (Windows-аутентификация)
-        /// в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="value">
-        /// Значение параметра интегрированной безопасности
-        /// (обычно <c>true</c> или <c>false</c>).
-        /// </param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection IntegratedSecurity(this IDbConnection con, bool value)
-        {
-            return Param(con, SqlProviderOptions.GetInstance(con).IntegratedSecurityParameterName, value);
-        }
-
-        /// <summary>
-        /// Добавляет параметр тайм-аута подключения в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="timeoutSeconds">Тайм-аут подключения в секундах.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection Timeout(this IDbConnection con, int timeoutSeconds)
-        {
-            return Param(con, SqlProviderOptions.GetInstance(con).ConnectTimeoutParameterName, timeoutSeconds);
-        }
-
-        /// <summary>
-        /// Добавляет параметр имени приложения в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="appName">Имя приложения, устанавливающего соединение.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection ApplicationName(this IDbConnection con, string appName)
-        {
-            return Param(con, SqlProviderOptions.GetInstance(con).ApplicationNameParameterName, appName);
-        }
-
-        /// <summary>
-        /// Добавляет параметр в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="paramName">Имя параметра.</param>
-        /// <param name="paramValue">Значение параметра.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection Param(this IDbConnection con, string paramName, object paramValue)
-        {
-            if (string.IsNullOrEmpty(paramName) || paramValue == null)
-            {
-                return con;
-            }
-
-            con.ConnectionString += $"{paramName}={paramValue};";
-            return con;
-        }
-
-        /// <summary>
         /// Выполняет указанную агрегирующую функцию для колонок.
         /// </summary>
         /// <typeparam name="TFrom">Тип сущности.</typeparam>
@@ -189,6 +76,17 @@ namespace RuntimeStuff.Extensions
         /// <returns>Задача, возвращающая словарь с результатами агрегации.</returns>
         public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
             where TFrom : class => connection.AsDbClient().AggAsync(whereExpression, token, columnSelectors);
+
+        /// <summary>
+        /// Добавляет параметр имени приложения в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="appName">Имя приложения, устанавливающего соединение.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection ApplicationName(this IDbConnection con, string appName)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).ApplicationNameParameterName, appName);
+        }
 
         /// <summary>
         /// Создает типизированный клиент базы данных для указанного подключения.
@@ -338,6 +236,17 @@ namespace RuntimeStuff.Extensions
         /// <param name="commandTimeOut">Таймаут команды в секундах.</param>
         /// <returns>Созданная команда.</returns>
         public static DbCommand CreateCommand(this IDbConnection connection, string query, object cmdParams, IDbTransaction dbTransaction = null, int commandTimeOut = 30) => connection.AsDbClient().CreateCommand(query, cmdParams, dbTransaction, commandTimeOut);
+
+        /// <summary>
+        /// Добавляет параметр имени базы данных в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Database(this IDbConnection con, string database)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).DatabaseParameterName, database);
+        }
 
         /// <summary>
         /// Удаляет записи из таблицы по указанному условию.
@@ -765,9 +674,36 @@ namespace RuntimeStuff.Extensions
         /// <param name="list">Коллекция сущностей для вставки.</param>
         /// <param name="dbTransaction">Транзакция (опционально).</param>
         /// <param name="insertColumns">Колонки для вставки (опционально).</param>
-        /// <returns>Количество вставленных записей.</returns>
-        public static int InsertRange<T>(this IDbConnection connection, IEnumerable<T> list, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] insertColumns)
+        /// <returns>ID вставленных записей.</returns>
+        public static object[] InsertRange<T>(this IDbConnection connection, IEnumerable<T> list, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] insertColumns)
             where T : class => connection.AsDbClient().InsertRange(list, dbTransaction, insertColumns);
+
+        /// <summary>
+        /// Вставляет коллекцию сущностей в таблицу.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="list">Коллекция сущностей для вставки.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="dbTransaction">Транзакция (опционально).</param>
+        /// <param name="insertColumns">Колонки для вставки (опционально).</param>
+        /// <returns>ID вставленных записей.</returns>
+        public static object[] InsertRange<T>(this IDbConnection connection, IEnumerable<T> list, string tableName, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] insertColumns)
+            where T : class => connection.AsDbClient().InsertRange(list, tableName, dbTransaction, insertColumns);
+
+        /// <summary>
+        /// Асинхронно вставляет коллекцию сущностей в таблицу.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="list">Коллекция сущностей для вставки.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="insertColumns">Колонки для вставки (опционально).</param>
+        /// <param name="dbTransaction">Транзакция (опционально).</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <returns>Задача, возвращающая ID вставленных записей.</returns>
+        public static Task<object[]> InsertRangeAsync<T>(this IDbConnection connection, IEnumerable<T> list, string tableName, Expression<Func<T, object>>[] insertColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
+            where T : class => connection.AsDbClient().InsertRangeAsync(list, tableName, insertColumns, dbTransaction, token);
 
         /// <summary>
         /// Асинхронно вставляет коллекцию сущностей в таблицу.
@@ -778,9 +714,24 @@ namespace RuntimeStuff.Extensions
         /// <param name="insertColumns">Колонки для вставки (опционально).</param>
         /// <param name="dbTransaction">Транзакция (опционально).</param>
         /// <param name="token">Токен отмены.</param>
-        /// <returns>Задача, возвращающая количество вставленных записей.</returns>
-        public static Task<int> InsertRangeAsync<T>(this IDbConnection connection, IEnumerable<T> list, Expression<Func<T, object>>[] insertColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
+        /// <returns>Задача, возвращающая ID вставленных записей.</returns>
+        public static Task<object[]> InsertRangeAsync<T>(this IDbConnection connection, IEnumerable<T> list, Expression<Func<T, object>>[] insertColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
             where T : class => connection.AsDbClient().InsertRangeAsync(list, insertColumns, dbTransaction, token);
+
+        /// <summary>
+        /// Добавляет параметр интегрированной безопасности (Windows-аутентификация)
+        /// в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="value">
+        /// Значение параметра интегрированной безопасности
+        /// (обычно <c>true</c> или <c>false</c>).
+        /// </param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection IntegratedSecurity(this IDbConnection con, bool value)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).IntegratedSecurityParameterName, value);
+        }
 
         /// <summary>
         /// Возвращает максимальное значение для указанной колонки.
@@ -881,37 +832,6 @@ namespace RuntimeStuff.Extensions
         /// <returns>IDbConnection.</returns>
         /// <exception cref="System.ArgumentNullException">connection.</exception>
         /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
-        public static bool TryOpen(this IDbConnection connection) => connection.TryOpen(out _);
-
-        /// <summary>
-        /// Открыть соединение.
-        /// </summary>
-        /// <param name="connection">The connection.</param>
-        /// <param name="exception">Исключение при попытке установить соединение.</param>
-        /// <returns>IDbConnection.</returns>
-        /// <exception cref="System.ArgumentNullException">connection.</exception>
-        /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
-        public static bool TryOpen(this IDbConnection connection, out Exception exception)
-        {
-            exception = null;
-            try
-            {
-                return Open(connection) == ConnectionState.Open;
-            }
-            catch (Exception ex)
-            {
-                exception = ex;
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Открыть соединение.
-        /// </summary>
-        /// <param name="connection">The connection.</param>
-        /// <returns>IDbConnection.</returns>
-        /// <exception cref="System.ArgumentNullException">connection.</exception>
-        /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
         public static ConnectionState Open(this IDbConnection connection)
         {
             if (connection == null)
@@ -937,6 +857,35 @@ namespace RuntimeStuff.Extensions
             }
 
             return connection.State;
+        }
+
+        /// <summary>
+        /// Добавляет параметр в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="paramName">Имя параметра.</param>
+        /// <param name="paramValue">Значение параметра.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Param(this IDbConnection con, string paramName, object paramValue)
+        {
+            if (string.IsNullOrEmpty(paramName) || paramValue == null)
+            {
+                return con;
+            }
+
+            con.ConnectionString += $"{paramName}={paramValue};";
+            return con;
+        }
+
+        /// <summary>
+        /// Добавляет параметр пароля пользователя в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="password">Пароль пользователя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Password(this IDbConnection con, string password)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).PasswordParameterName, password);
         }
 
         /// <summary>
@@ -996,6 +945,17 @@ namespace RuntimeStuff.Extensions
             where TList : ICollection<T>, IList, new() => connection.AsDbClient().QueryAsync<TList, T>(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, ct);
 
         /// <summary>
+        /// Добавляет параметр сервера базы данных в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="serverName">Имя или адрес сервера базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Server(this IDbConnection con, string serverName)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).ServerParameterName, serverName);
+        }
+
+        /// <summary>
         /// Возвращает сумму значений для указанной колонки.
         /// </summary>
         /// <typeparam name="TFrom">Тип сущности.</typeparam>
@@ -1040,6 +1000,17 @@ namespace RuntimeStuff.Extensions
         /// <returns>Задача, возвращающая сумму значений.</returns>
         public static Task<object> SumAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, Expression<Func<TFrom, object>> columnSelector = null, CancellationToken token = default)
             where TFrom : class => connection.AsDbClient().SumAsync(whereExpression, columnSelector, token);
+
+        /// <summary>
+        /// Добавляет параметр тайм-аута подключения в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="timeoutSeconds">Тайм-аут подключения в секундах.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Timeout(this IDbConnection con, int timeoutSeconds)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).ConnectTimeoutParameterName, timeoutSeconds);
+        }
 
         /// <summary>
         /// Преобразует результат запроса в DataTable.
@@ -1277,6 +1248,51 @@ namespace RuntimeStuff.Extensions
             params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToListAsync(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, ct, orderByExpression);
 
         /// <summary>
+        /// Добавляет параметр доверия сертификату сервера в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="value">
+        /// Значение параметра доверия сертификату сервера
+        /// (обычно <c>true</c> или <c>false</c>).
+        /// </param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection TrustCertificate(this IDbConnection con, bool value)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).TrustServerCertificateParameterName, value);
+        }
+
+        /// <summary>
+        /// Открыть соединение.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <returns>IDbConnection.</returns>
+        /// <exception cref="System.ArgumentNullException">connection.</exception>
+        /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
+        public static bool TryOpen(this IDbConnection connection) => connection.TryOpen(out _);
+
+        /// <summary>
+        /// Открыть соединение.
+        /// </summary>
+        /// <param name="connection">The connection.</param>
+        /// <param name="exception">Исключение при попытке установить соединение.</param>
+        /// <returns>IDbConnection.</returns>
+        /// <exception cref="System.ArgumentNullException">connection.</exception>
+        /// <exception cref="System.InvalidOperationException">Не удалось открыть соединение с базой данных.</exception>
+        public static bool TryOpen(this IDbConnection connection, out Exception exception)
+        {
+            exception = null;
+            try
+            {
+                return Open(connection) == ConnectionState.Open;
+            }
+            catch (Exception ex)
+            {
+                exception = ex;
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Обновляет указанную сущность в таблице.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
@@ -1294,10 +1310,35 @@ namespace RuntimeStuff.Extensions
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="item">Сущность для обновления.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="dbTransaction">Транзакция (опционально).</param>
+        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
+        /// <returns>Количество обновленных записей.</returns>
+        public static int Update<T>(this IDbConnection connection, T item, string tableName, IDbTransaction dbTransaction, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => connection.AsDbClient().Update(item, tableName, dbTransaction, updateColumns);
+
+        /// <summary>
+        /// Обновляет указанную сущность в таблице.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="item">Сущность для обновления.</param>
         /// <param name="updateColumns">Колонки для обновления (опционально).</param>
         /// <returns>Количество обновленных записей.</returns>
         public static int Update<T>(this IDbConnection connection, T item, params Expression<Func<T, object>>[] updateColumns)
-            where T : class => connection.AsDbClient().Update(item, null, updateColumns);
+            where T : class => connection.AsDbClient().Update(item, null, null, null, updateColumns);
+
+        /// <summary>
+        /// Обновляет указанную сущность в таблице.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="item">Сущность для обновления.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
+        /// <returns>Количество обновленных записей.</returns>
+        public static int Update<T>(this IDbConnection connection, T item, string tableName, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => connection.AsDbClient().Update(item, tableName, null, updateColumns);
 
         /// <summary>
         /// Обновляет сущность в таблице с указанным условием WHERE.
@@ -1313,6 +1354,20 @@ namespace RuntimeStuff.Extensions
             where T : class => connection.AsDbClient().Update(item, whereExpression, dbTransaction, updateColumns);
 
         /// <summary>
+        /// Обновляет сущность в таблице с указанным условием WHERE.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="item">Сущность для обновления.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="whereExpression">Условие WHERE.</param>
+        /// <param name="dbTransaction">Транзакция (опционально).</param>
+        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
+        /// <returns>Количество обновленных записей.</returns>
+        public static int Update<T>(this IDbConnection connection, T item, string tableName, Expression<Func<T, bool>> whereExpression, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => connection.AsDbClient().Update(item, tableName, whereExpression, dbTransaction, updateColumns);
+
+        /// <summary>
         /// Асинхронно обновляет указанную сущность в таблице.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
@@ -1326,6 +1381,20 @@ namespace RuntimeStuff.Extensions
             where T : class => connection.AsDbClient().UpdateAsync(item, updateColumns, dbTransaction, token);
 
         /// <summary>
+        /// Асинхронно обновляет указанную сущность в таблице.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="item">Сущность для обновления.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
+        /// <param name="dbTransaction">Транзакция (опционально).</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <returns>Задача, возвращающая количество обновленных записей.</returns>
+        public static Task<int> UpdateAsync<T>(this IDbConnection connection, T item, string tableName, Expression<Func<T, object>>[] updateColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
+            where T : class => connection.AsDbClient().UpdateAsync(item, tableName, null, updateColumns, dbTransaction, token);
+
+        /// <summary>
         /// Асинхронно обновляет сущность в таблице с указанным условием WHERE.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
@@ -1337,7 +1406,22 @@ namespace RuntimeStuff.Extensions
         /// <param name="token">Токен отмены.</param>
         /// <returns>Задача, возвращающая количество обновленных записей.</returns>
         public static Task<int> UpdateAsync<T>(this IDbConnection connection, T item, Expression<Func<T, bool>> whereExpression, Expression<Func<T, object>>[] updateColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
-            where T : class => connection.AsDbClient().UpdateAsync(item, whereExpression, updateColumns, dbTransaction, token);
+            where T : class => connection.AsDbClient().UpdateAsync(item, null, whereExpression, updateColumns, dbTransaction, token);
+
+        /// <summary>
+        /// Асинхронно обновляет сущность в таблице с указанным условием WHERE.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="item">Сущность для обновления.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="whereExpression">Условие WHERE.</param>
+        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
+        /// <param name="dbTransaction">Транзакция (опционально).</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <returns>Задача, возвращающая количество обновленных записей.</returns>
+        public static Task<int> UpdateAsync<T>(this IDbConnection connection, T item, string tableName, Expression<Func<T, bool>> whereExpression, Expression<Func<T, object>>[] updateColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
+            where T : class => connection.AsDbClient().UpdateAsync(item, tableName, whereExpression, updateColumns, dbTransaction, token);
 
         /// <summary>
         /// Обновляет коллекцию сущностей в таблице.
@@ -1350,6 +1434,19 @@ namespace RuntimeStuff.Extensions
         /// <returns>Количество обновленных записей.</returns>
         public static int UpdateRange<T>(this IDbConnection connection, IEnumerable<T> list, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] updateColumns)
             where T : class => connection.AsDbClient().UpdateRange(list, dbTransaction, updateColumns);
+
+        /// <summary>
+        /// Обновляет коллекцию сущностей в таблице.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="list">Коллекция сущностей для обновления.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="dbTransaction">Транзакция (опционально).</param>
+        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
+        /// <returns>Количество обновленных записей.</returns>
+        public static int UpdateRange<T>(this IDbConnection connection, IEnumerable<T> list, string tableName, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => connection.AsDbClient().UpdateRange(list, tableName, dbTransaction, updateColumns);
 
         /// <summary>
         /// Асинхронно обновляет коллекцию сущностей в таблице.
@@ -1368,5 +1465,36 @@ namespace RuntimeStuff.Extensions
             IDbTransaction dbTransaction = null,
             CancellationToken token = default)
             where T : class => connection.AsDbClient().UpdateRangeAsync(list, updateColumns, dbTransaction, token);
+
+        /// <summary>
+        /// Асинхронно обновляет коллекцию сущностей в таблице.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="list">Коллекция сущностей для обновления.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
+        /// <param name="dbTransaction">Транзакция (опционально).</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <returns>Задача, возвращающая количество обновленных записей.</returns>
+        public static Task<int> UpdateRangeAsync<T>(
+            this IDbConnection connection,
+            IEnumerable<T> list,
+            string tableName,
+            Expression<Func<T, object>>[] updateColumns = null,
+            IDbTransaction dbTransaction = null,
+            CancellationToken token = default)
+            where T : class => connection.AsDbClient().UpdateRangeAsync(list, tableName, updateColumns, dbTransaction, token);
+
+        /// <summary>
+        /// Добавляет параметр имени пользователя в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="userName">Имя пользователя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection User(this IDbConnection con, string userName)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).UserParameterName, userName);
+        }
     }
 }

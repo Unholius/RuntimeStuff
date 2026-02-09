@@ -1682,8 +1682,8 @@ namespace RuntimeStuff
         /// <param name="tableName">Имя таблицы в которую вставлять строки.</param>
         /// <param name="dbTransaction">Внешняя транзакция. Если не указана — создаётся новая.</param>
         /// <param name="insertColumns">Колонки, участвующие во вставке.</param>
-        /// <returns>Количество вставленных записей.</returns>
-        public int InsertRange<T>(
+        /// <returns>ID вставленных записей.</returns>
+        public object[] InsertRange<T>(
             IEnumerable<T> list,
             string tableName,
             IDbTransaction dbTransaction = null,
@@ -1701,8 +1701,8 @@ namespace RuntimeStuff
         /// <param name="list">Коллекция объектов для вставки.</param>
         /// <param name="dbTransaction">Внешняя транзакция. Если не указана — создаётся новая.</param>
         /// <param name="insertColumns">Колонки, участвующие во вставке.</param>
-        /// <returns>Количество вставленных записей.</returns>
-        public int InsertRange<T>(
+        /// <returns>ID вставленных записей.</returns>
+        public object[] InsertRange<T>(
             IEnumerable<T> list,
             IDbTransaction dbTransaction = null,
             params Expression<Func<T, object>>[] insertColumns)
@@ -1710,7 +1710,7 @@ namespace RuntimeStuff
         {
             try
             {
-                var count = 0;
+                var ids = new List<object>();
                 using (dbTransaction ?? this.BeginTransaction())
                 {
                     var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
@@ -1729,21 +1729,20 @@ namespace RuntimeStuff
                             typeCache.ToDictionary(item, queryParams);
                             SetParameterCollection(cmd, queryParams);
                             var id = cmd.ExecuteScalar();
+                            ids.Add(id);
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
                             if (pk != null && id != null)
                             {
                                 pk.SetValue(item, ChangeType(id, pk.PropertyType));
                             }
-
-                            count++;
                         }
                     }
 
                     this.EndTransaction();
                 }
 
-                return count;
+                return ids.ToArray();
             }
             catch (Exception ex)
             {
@@ -1768,7 +1767,7 @@ namespace RuntimeStuff
         /// <param name="token">Токен отмены.</param>
         /// <returns>Количество вставленных записей.</returns>
         /// <exception cref="System.NullReferenceException">dbCmd.</exception>
-        public Task<int> InsertRangeAsync<T>(
+        public Task<object[]> InsertRangeAsync<T>(
             IEnumerable<T> list,
             string tableName,
             Expression<Func<T, object>>[] insertColumns = null,
@@ -1791,7 +1790,7 @@ namespace RuntimeStuff
         /// <param name="token">Токен отмены.</param>
         /// <returns>Количество вставленных записей.</returns>
         /// <exception cref="System.NullReferenceException">dbCmd.</exception>
-        public async Task<int> InsertRangeAsync<T>(
+        public async Task<object[]> InsertRangeAsync<T>(
             IEnumerable<T> list,
             Expression<Func<T, object>>[] insertColumns = null,
             IDbTransaction dbTransaction = null,
@@ -1800,7 +1799,7 @@ namespace RuntimeStuff
         {
             try
             {
-                var count = 0;
+                var ids = new List<object>();
                 using (dbTransaction ?? this.BeginTransaction())
                 {
                     var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
@@ -1825,21 +1824,20 @@ namespace RuntimeStuff
                             SetParameterCollection(cmd, queryParams);
 
                             var id = await dbCmd.ExecuteScalarAsync(token).ConfigureAwait(this.ConfigureAwait);
+                            ids.Add(id);
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
                             if (pk != null && id != null)
                             {
                                 pk.SetValue(item, ChangeType(id, pk.PropertyType));
                             }
-
-                            count++;
                         }
                     }
 
                     this.EndTransaction();
                 }
 
-                return count;
+                return ids.ToArray();
             }
             catch (Exception ex)
             {
@@ -2994,7 +2992,7 @@ namespace RuntimeStuff
             T item,
             IDbTransaction dbTransaction,
             params Expression<Func<T, object>>[] updateColumns)
-            where T : class => this.Update(item, null, dbTransaction, updateColumns);
+            where T : class => this.Update(item, null, null, dbTransaction, updateColumns);
 
         /// <summary>
         /// Обновляет запись в базе данных на основе значений свойств объекта.
@@ -3006,7 +3004,39 @@ namespace RuntimeStuff
         /// за исключением первичных ключей.</param>
         /// <returns>Количество строк, затронутых операцией обновления.</returns>
         public int Update<T>(T item, params Expression<Func<T, object>>[] updateColumns)
-            where T : class => this.Update(item, null, null, updateColumns);
+            where T : class => this.Update(item, null, null, null, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущая транзакция или соединение.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public int Update<T>(
+            T item,
+            string tableName,
+            IDbTransaction dbTransaction,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.Update(item, tableName, null, dbTransaction, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public int Update<T>(T item, string tableName, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.Update(item, tableName, null, null, updateColumns);
 
         /// <summary>
         /// Обновляет записи в базе данных на основе указанного условия.
@@ -3028,6 +3058,34 @@ namespace RuntimeStuff
             params Expression<Func<T, object>>[] updateColumns)
             where T : class
         {
+            return this.Update<T>(item, null, whereExpression, dbTransaction, updateColumns);
+        }
+
+        /// <summary>
+        /// Обновляет записи в базе данных на основе указанного условия.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий значения для обновления колонок.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="whereExpression">Лямбда-выражение, определяющее условие <c>WHERE</c>.
+        /// Если указано, первичный ключ объекта не используется.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущее соединение или транзакция.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public int Update<T>(
+            T item,
+            string tableName,
+            Expression<Func<T, bool>> whereExpression,
+            IDbTransaction dbTransaction = null,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class
+        {
+            if (!string.IsNullOrWhiteSpace(tableName))
+                Options.Map.Table<T>(tableName);
+
             var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
             var cmdParams = this.GetParams(item);
             query += " " + (whereExpression != null
@@ -3058,6 +3116,7 @@ namespace RuntimeStuff
             where T : class => this.UpdateAsync(
                 item,
                 null,
+                null,
                 updateColumns ?? Array.Empty<Expression<Func<T, object>>>(),
                 dbTransaction,
                 token);
@@ -3067,6 +3126,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <typeparam name="T">Тип объекта, который будет обновлен.</typeparam>
         /// <param name="item">Объект, содержащий обновленные значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
         /// <param name="whereExpression">Условие для фильтрации записей для обновления. Может быть null, если условие не
         /// требуется.</param>
         /// <param name="updateColumns">Массив столбцов для обновления. Если null, обновляются все столбцы объекта.</param>
@@ -3078,12 +3138,15 @@ namespace RuntimeStuff
         /// которые были обновлены.</remarks>
         public Task<int> UpdateAsync<T>(
             T item,
+            string tableName,
             Expression<Func<T, bool>> whereExpression,
             Expression<Func<T, object>>[] updateColumns = null,
             IDbTransaction dbTransaction = null,
             CancellationToken token = default)
             where T : class
         {
+            if (!string.IsNullOrWhiteSpace(tableName))
+                Options.Map.Table<T>(tableName);
             var cmdParams = this.GetParams(item);
             var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
             query += " " + (whereExpression != null
@@ -3091,6 +3154,30 @@ namespace RuntimeStuff
                 : SqlQueryBuilder.GetWhereClause<T>(this.Options, out _));
 
             return this.ExecuteNonQueryAsync(query, cmdParams, dbTransaction, token);
+        }
+
+        /// <summary>
+        /// Обновляет несколько записей в базе данных в рамках одной транзакции.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта, который будет обновлен.</typeparam>
+        /// <param name="list">Список объектов, содержащих обновленные значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="dbTransaction">Транзакция, в рамках которой будет выполнено обновление. Если null, создается новая
+        /// транзакция.</param>
+        /// <param name="updateColumns">Массив столбцов для обновления. Если null, обновляются все столбцы объекта.</param>
+        /// <returns>Количество обновленных строк в базе данных.</returns>
+        /// <exception cref="Exception">Вызывается в случае ошибки при выполнении операции обновления.</exception>
+        /// <remarks>Этот метод обновляет несколько записей в базе данных, используя переданный список объектов.
+        /// Каждый объект в списке обрабатывается и обновляется в базе данных в рамках одной транзакции.
+        /// При возникновении ошибки транзакция откатывается, а исключение обрабатывается и повторно выбрасывается.</remarks>
+        public int UpdateRange<T>(
+            IEnumerable<T> list,
+            string tableName,
+            IDbTransaction dbTransaction = null,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class
+        {
+            return UpdateRange<T>(list, dbTransaction, updateColumns);
         }
 
         /// <summary>
@@ -3146,6 +3233,33 @@ namespace RuntimeStuff
             {
                 this.CloseConnection();
             }
+        }
+
+        /// <summary>
+        /// Асинхронно обновляет несколько записей в базе данных в рамках одной транзакции.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта, который будет обновлен.</typeparam>
+        /// <param name="list">Список объектов, содержащих обновленные значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="updateColumns">Массив столбцов для обновления. Если null, обновляются все столбцы объекта.</param>
+        /// <param name="dbTransaction">Транзакция, в рамках которой будет выполнено обновление. Если null, создается новая
+        /// транзакция.</param>
+        /// <param name="token">Токен отмены асинхронной операции. Используется для отмены выполнения запроса.</param>
+        /// <returns>Задача, которая возвращает количество обновленных строк в базе данных.</returns>
+        /// <exception cref="System.NullReferenceException">dbCmd.</exception>
+        /// <remarks>Этот метод асинхронно обновляет несколько записей в базе данных, используя переданный список объектов.
+        /// Каждый объект в списке обрабатывается и обновляется в базе данных в рамках одной транзакции.
+        /// При возникновении ошибки транзакция откатывается, а исключение обрабатывается и повторно выбрасывается.</remarks>
+        public Task<int> UpdateRangeAsync<T>(
+            IEnumerable<T> list,
+            string tableName,
+            Expression<Func<T, object>>[] updateColumns = null,
+            IDbTransaction dbTransaction = null,
+            CancellationToken token = default)
+            where T : class
+        {
+            Options.Map.Table<T>(tableName);
+            return UpdateRangeAsync(list, updateColumns, dbTransaction, token);
         }
 
         /// <summary>
