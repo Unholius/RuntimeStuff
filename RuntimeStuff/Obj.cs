@@ -1,16 +1,6 @@
-﻿// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 01-06-2026
-//
-// Last Modified By : RS
-// Last Modified On : 01-07-2026
-// ***********************************************************************
-// <copyright file="Obj.cs" company="Rudnev Sergey">
+﻿// <copyright file="Obj.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
 
 namespace RuntimeStuff
 {
@@ -27,7 +17,7 @@ namespace RuntimeStuff
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// v.2026.02.05 (RS) COPY-PASTE READY<br />
+    /// v.2026.02.08 (RS) COPY-PASTE READY<br />
     /// Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     /// Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     /// Особенности:

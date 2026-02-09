@@ -40,7 +40,7 @@ namespace RuntimeStuff.Collections
         public ObservableCollectionEx(IEnumerable<T> collection)
             : base(collection)
         {
-            SubscribeAll(collection);
+            SubscribeAll(this);
         }
 
         /// <summary>
@@ -102,63 +102,66 @@ namespace RuntimeStuff.Collections
 
             try
             {
-                foreach (var item in list)
+                var removed = false;
+
+                for (int i = Items.Count - 1; i >= 0; i--)
                 {
+                    var item = Items[i];
+                    if (!list.Contains(item))
+                        continue;
+
                     Unsubscribe(item);
-                    Items.Remove(item);
+                    Items.RemoveAt(i);
+                    removed = true;
                 }
+
+                if (removed)
+                    RaiseReset();
             }
             finally
             {
                 SuppressNotifyCollectionChange = oldSuppress;
             }
-
-            RaiseReset();
         }
 
         /// <summary>
-        /// Удаляет из коллекции все элементы, удовлетворяющие заданному условию,
-        /// с единым уведомлением об изменении коллекции.
+        /// Удаляет из коллекции все элементы, удовлетворяющие заданному условию.
         /// </summary>
-        /// <param name="predicate">
-        /// Предикат, определяющий условие удаления элемента.
-        /// Если возвращает <c>true</c>, элемент будет удалён.
+        /// <param name="filter">
+        /// Предикат, определяющий, какие элементы должны быть удалены из коллекции.
+        /// Элемент удаляется, если функция возвращает <c>true</c>.
         /// </param>
         /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="predicate"/> равен <c>null</c>.
+        /// Выбрасывается, если параметр <paramref name="filter"/> равен <c>null</c>.
         /// </exception>
-        public void RemoveRangeWhere(Predicate<T> predicate)
+        /// <remarks>
+        /// Метод выполняет удаление элементов в обратном порядке, чтобы избежать
+        /// проблем с изменением индексов во время итерации.
+        /// На время выполнения операции уведомления об изменениях коллекции
+        /// подавляются, после чего вызывается единое уведомление о сбросе состояния
+        /// коллекции (<see cref="RaiseReset"/>).
+        /// </remarks>
+        public void RemoveRange(Func<T, bool> filter)
         {
-            if (predicate == null)
-                throw new ArgumentNullException(nameof(predicate));
-
-            if (Items.Count == 0)
-                return;
-
-            // Собираем элементы для удаления один раз
-            List<T> toRemove = null;
-
-            foreach (var item in this.GetEnumerator())
-            {
-                if (predicate(item))
-                {
-                    toRemove ??= new List<T>();
-                    toRemove.Add(item);
-                }
-            }
-
-            if (toRemove == null || toRemove.Count == 0)
-                return;
+            if (filter == null)
+                throw new ArgumentNullException(nameof(filter));
 
             var oldSuppress = SuppressNotifyCollectionChange;
             SuppressNotifyCollectionChange = true;
 
+            var removed = false;
+
             try
             {
-                foreach (var item in toRemove)
+                for (int i = Items.Count - 1; i >= 0; i--)
                 {
+                    var item = Items[i];
+                    if (!filter(item))
+                        continue;
+
                     Unsubscribe(item);
-                    Items.Remove(item);
+                    Items.RemoveAt(i);
+                    removed = true;
                 }
             }
             finally
@@ -166,7 +169,8 @@ namespace RuntimeStuff.Collections
                 SuppressNotifyCollectionChange = oldSuppress;
             }
 
-            RaiseReset();
+            if (removed)
+                RaiseReset();
         }
 
         /// <summary>
