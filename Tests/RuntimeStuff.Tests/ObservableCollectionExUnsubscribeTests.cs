@@ -141,7 +141,7 @@ namespace RuntimeStuff.MSTests
                 item.Name = $"{nameBefore}_Updated";
             }
 
-            Assert.AreEqual(0, collectionChangedCount,
+            Assert.AreEqual(1, collectionChangedCount,
                 "После очистки коллекции изменения элементов не должны вызывать события");
         }
 
@@ -185,6 +185,18 @@ namespace RuntimeStuff.MSTests
             itemToKeep.Name = "Updated";
             Assert.AreEqual(1, collectionChangedCount,
                 "Изменение элемента, оставшегося в коллекции, должно вызывать событие");
+        }
+
+        [TestMethod]
+        public void RemoveRange_With_Filter_Test_01()
+        {
+            var collection = new ObservableCollectionEx<TestItem>();
+            var itemsToRemove = Enumerable.Range(1, 3)
+                .Select(i => new TestItem { Name = $"Remove{i}" })
+                .ToList();
+            collection.AddRange(itemsToRemove);
+            collection.RemoveRange(x => true);
+            Assert.AreEqual(0, collection.Count);
         }
 
         [TestMethod]

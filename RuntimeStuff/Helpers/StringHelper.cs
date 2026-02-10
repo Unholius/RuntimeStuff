@@ -31,10 +31,6 @@ namespace RuntimeStuff.Helpers
     /// создания экземпляра класса. Класс потокобезопасен при условии корректного использования входных данных.</remarks>
     public static class StringHelper
     {
-        private static string[] columnSeparators = new string[] { "\t", ";", "|" };
-
-        private static string[] lineSeparators = new string[] { Environment.NewLine, "\r", "\n" };
-
         /// <summary>
         /// Определяет алгоритм нечеткого сравнения строк.
         /// </summary>
@@ -56,6 +52,21 @@ namespace RuntimeStuff.Helpers
             /// </summary>
             JaroWinkler,
         }
+
+        /// <summary>
+        /// Разделители для колонок. ("\t", ";", "|").
+        /// </summary>
+        public static string[] DefaultColumnSeparators { get; } = new string[] { "\t", ";", "|" };
+
+        /// <summary>
+        /// Разделители для колонок. (" ", "\t", ";", "|").
+        /// </summary>
+        public static string[] DefaultColumnSeparatorsAndSpace { get; } = new string[] { " ", "\t", ";", "|" };
+
+        /// <summary>
+        /// Разделители для строк. (Environment.NewLine, "\r", "\n").
+        /// </summary>
+        public static string[] DefaultLineSeparators { get; } = new string[] { Environment.NewLine, "\r", "\n" };
 
         /// <summary>
         /// Gets whitespace chars.
@@ -296,6 +307,91 @@ namespace RuntimeStuff.Helpers
             }
 
             return minDistance <= distanceThreshold ? closestMatch : null;
+        }
+
+        /// <summary>
+        /// Находит участки исходного текста, не покрытые ни одним токеном,
+        /// и добавляет для них специальные «незамапленные» (plain) токены.
+        /// </summary>
+        /// <param name="tokens">
+        /// Коллекция токенов, для которых необходимо найти непокрытые участки текста.
+        /// </param>
+        /// <param name="setTag">
+        /// Делегат, используемый для установки тега создаваемым токенам.
+        /// </param>
+        /// <param name="transformer">
+        /// Делегат для преобразования текстового содержимого токена.
+        /// </param>
+        /// <remarks>
+        /// Метод рекурсивно обрабатывает дерево токенов.
+        /// Для каждого уровня анализируются разрывы между соседними токенами
+        /// и границы родительского текста. Если обнаруживается участок,
+        /// не принадлежащий ни одному токену, создаётся новый токен
+        /// и вставляется в соответствующее место.
+        /// </remarks>
+        public static void GetNotMatchedTokens(IEnumerable<Token> tokens, Func<Token, object> setTag, Func<Token, string> transformer)
+        {
+            if (tokens == null)
+            {
+                return;
+            }
+
+            var tokensArray = tokens.ToList();
+            foreach (var t in tokensArray)
+            {
+                if (t.Parent == null)
+                {
+                    if (t.Children.Any())
+                    {
+                        GetNotMatchedTokens(t.Children, setTag, transformer);
+                    }
+
+                    if (t.SourceStart > 0 && t.Previous == null)
+                    {
+                        var plainToken = new Token(t.Source, 0, t.SourceStart - 1, setTag, transformer);
+                        t.InsertBefore(plainToken);
+                        continue;
+                    }
+
+                    if (t.Previous != null && t.SourceStart - t.Previous.SourceEnd > 1)
+                    {
+                        var plainToken = new Token(t.Source, t.Previous.SourceEnd + 1, t.SourceStart - 1, setTag, transformer);
+                        t.InsertBefore(plainToken);
+                        continue;
+                    }
+
+                    if (t.Next == null && t.SourceEnd < t.Source.Length - 1)
+                    {
+                        var plainToken = new Token(t.Source, t.SourceEnd + 1, t.Source.Length - 1, setTag, transformer);
+                        t.InsertAfter(plainToken);
+                    }
+                }
+                else
+                {
+                    if (t.Children.Any())
+                    {
+                        GetNotMatchedTokens(t.Children, setTag, transformer);
+                    }
+
+                    if (t.SourceStart - t.Parent.ParentStart > 1 && t.Previous == null)
+                    {
+                        var plainToken = new Token(t.Parent.Body, t.Parent.Prefix.Length, t.ParentStart - 1, setTag, transformer);
+                        t.InsertBefore(plainToken);
+                    }
+
+                    if (t.Previous != null && !t.Previous.IsNotMatched && t.ParentStart - t.Previous.ParentEnd > 1)
+                    {
+                        var plainToken = new Token(t.Parent.Body, t.Previous.ParentEnd + 1, t.ParentStart - 1, setTag, transformer);
+                        t.InsertBefore(plainToken);
+                    }
+
+                    if (t.Next == null && t.Parent.ParentEnd - t.SourceEnd > 1)
+                    {
+                        var plainToken = new Token(t.Parent.Body, t.ParentEnd + 1, t.Parent.Body.Length - t.Parent.Suffix.Length - 1, setTag, transformer);
+                        t.InsertAfter(plainToken);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -937,7 +1033,7 @@ namespace RuntimeStuff.Helpers
         /// </returns>
         public static List<T> SplitToList<T>(string s, params string[] propertyMap)
         {
-            return SplitToList<T>(s, propertyMap, columnSeparators, lineSeparators);
+            return SplitToList<T>(s, propertyMap, DefaultColumnSeparators, DefaultLineSeparators);
         }
 
         /// <summary>
@@ -969,6 +1065,12 @@ namespace RuntimeStuff.Helpers
         {
             var result = new List<T>();
 
+            if (columnSeparators == null)
+                columnSeparators = StringHelper.DefaultColumnSeparators;
+
+            if (lineSeparators == null)
+                lineSeparators = StringHelper.DefaultLineSeparators;
+
             var typeCache = MemberCache.Create(typeof(T));
             var lines = SplitBy(s, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
             var props = propertyMap?.Any() == true ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicBasicProperties.ToArray();
@@ -992,91 +1094,6 @@ namespace RuntimeStuff.Helpers
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Находит участки исходного текста, не покрытые ни одним токеном,
-        /// и добавляет для них специальные «незамапленные» (plain) токены.
-        /// </summary>
-        /// <param name="tokens">
-        /// Коллекция токенов, для которых необходимо найти непокрытые участки текста.
-        /// </param>
-        /// <param name="setTag">
-        /// Делегат, используемый для установки тега создаваемым токенам.
-        /// </param>
-        /// <param name="transformer">
-        /// Делегат для преобразования текстового содержимого токена.
-        /// </param>
-        /// <remarks>
-        /// Метод рекурсивно обрабатывает дерево токенов.
-        /// Для каждого уровня анализируются разрывы между соседними токенами
-        /// и границы родительского текста. Если обнаруживается участок,
-        /// не принадлежащий ни одному токену, создаётся новый токен
-        /// и вставляется в соответствующее место.
-        /// </remarks>
-        public static void GetNotMatchedTokens(IEnumerable<Token> tokens, Func<Token, object> setTag, Func<Token, string> transformer)
-        {
-            if (tokens == null)
-            {
-                return;
-            }
-
-            var tokensArray = tokens.ToList();
-            foreach (var t in tokensArray)
-            {
-                if (t.Parent == null)
-                {
-                    if (t.Children.Any())
-                    {
-                        GetNotMatchedTokens(t.Children, setTag, transformer);
-                    }
-
-                    if (t.SourceStart > 0 && t.Previous == null)
-                    {
-                        var plainToken = new Token(t.Source, 0, t.SourceStart - 1, setTag, transformer);
-                        t.InsertBefore(plainToken);
-                        continue;
-                    }
-
-                    if (t.Previous != null && t.SourceStart - t.Previous.SourceEnd > 1)
-                    {
-                        var plainToken = new Token(t.Source, t.Previous.SourceEnd + 1, t.SourceStart - 1, setTag, transformer);
-                        t.InsertBefore(plainToken);
-                        continue;
-                    }
-
-                    if (t.Next == null && t.SourceEnd < t.Source.Length - 1)
-                    {
-                        var plainToken = new Token(t.Source, t.SourceEnd + 1, t.Source.Length - 1, setTag, transformer);
-                        t.InsertAfter(plainToken);
-                    }
-                }
-                else
-                {
-                    if (t.Children.Any())
-                    {
-                        GetNotMatchedTokens(t.Children, setTag, transformer);
-                    }
-
-                    if (t.SourceStart - t.Parent.ParentStart > 1 && t.Previous == null)
-                    {
-                        var plainToken = new Token(t.Parent.Body, t.Parent.Prefix.Length, t.ParentStart - 1, setTag, transformer);
-                        t.InsertBefore(plainToken);
-                    }
-
-                    if (t.Previous != null && !t.Previous.IsNotMatched && t.ParentStart - t.Previous.ParentEnd > 1)
-                    {
-                        var plainToken = new Token(t.Parent.Body, t.Previous.ParentEnd + 1, t.ParentStart - 1, setTag, transformer);
-                        t.InsertBefore(plainToken);
-                    }
-
-                    if (t.Next == null && t.Parent.ParentEnd - t.SourceEnd > 1)
-                    {
-                        var plainToken = new Token(t.Parent.Body, t.ParentEnd + 1, t.Parent.Body.Length - t.Parent.Suffix.Length - 1, setTag, transformer);
-                        t.InsertAfter(plainToken);
-                    }
-                }
-            }
         }
 
         /// <summary>

@@ -83,6 +83,27 @@ namespace RuntimeStuff.Collections
         }
 
         /// <summary>
+        /// Удаление элемента с отпиской от <see cref="INotifyPropertyChanged"/>.
+        /// </summary>
+        /// <param name="item">Элемент для удаления.</param>
+        /// <returns>Результат удаления.</returns>
+        public new bool Remove(T item)
+        {
+            Unsubscribe(item);
+            return base.Remove(item);
+        }
+
+        /// <summary>
+        /// Удаление элемента из позиции с отпиской от <see cref="INotifyPropertyChanged"/>.
+        /// </summary>
+        /// <param name="index">Индекс элемента в списке.</param>
+        public new void RemoveAt(int index)
+        {
+            Unsubscribe(this[index]);
+            base.RemoveAt(index);
+        }
+
+        /// <summary>
         /// Удаляет несколько элементов из коллекции с единым уведомлением.
         /// Снимает подписку на события <see cref="INotifyPropertyChanged"/> удаляемых элементов.
         /// </summary>
@@ -170,6 +191,14 @@ namespace RuntimeStuff.Collections
         }
 
         /// <summary>
+        /// <inheritdoc/>
+        /// </summary>
+        public new void Clear()
+        {
+            ClearItems();
+        }
+
+        /// <summary>
         /// Удаляет все элементы из коллекции,
         /// предварительно корректно освобождая связанные ресурсы.
         /// </summary>
@@ -195,7 +224,18 @@ namespace RuntimeStuff.Collections
             finally
             {
                 SuppressNotifyCollectionChange = oldSuppress;
+                RaiseReset();
             }
+        }
+
+        /// <summary>
+        /// Вставка элемента с подпиской <see cref="INotifyPropertyChanged"/>.
+        /// </summary>
+        /// <param name="index">Индекс вставки.</param>
+        /// <param name="item">Новый элемент.</param>
+        protected new void Insert(int index, T item)
+        {
+            InsertItem(index, item);
         }
 
         /// <summary>
