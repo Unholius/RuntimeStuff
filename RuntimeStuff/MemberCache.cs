@@ -1174,6 +1174,17 @@ namespace RuntimeStuff
         /// <summary>
         /// Создает или получает из кэша экземпляр MemberCache для указанного MemberInfo.
         /// </summary>
+        /// <typeparam name="T">Тип.</typeparam>
+        /// <returns>Кэшированная информация о типе.</returns>
+        /// <exception cref="InvalidOperationException">Выбрасывается, если DeclaringType равен null.</exception>
+        public static MemberCache Create<T>()
+        {
+            return Create(typeof(T));
+        }
+
+        /// <summary>
+        /// Создает или получает из кэша экземпляр MemberCache для указанного MemberInfo.
+        /// </summary>
         /// <param name="memberInfo">Информация о члене типа.</param>
         /// <returns>Кэшированная информация о члене.</returns>
         /// <exception cref="InvalidOperationException">Выбрасывается, если DeclaringType равен null.</exception>
