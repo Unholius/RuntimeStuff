@@ -401,47 +401,33 @@ namespace RuntimeStuff
         /// <summary>
         /// Получает среднее значение для указанного столбца.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется среднее значение.</typeparam>
-        /// <typeparam name="T">Тип, в который будет преобразовано среднее значение.</typeparam>
-        /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено среднее значение.</param>
-        /// <returns>Среднее значение для указанного столбца, преобразованное в тип <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод использует SQL-функцию AVG для получения среднего значения в столбце, а затем преобразует результат в
-        /// тип <typeparamref name="T" />.</remarks>
-        public T Avg<TFrom, T>(Expression<Func<TFrom, object>> columnSelector)
-            where TFrom : class
-        {
-            var total = this.Avg(columnSelector);
-            return ChangeType<T>(total);
-        }
-
-        /// <summary>
-        /// Получает среднее значение для указанного столбца.
-        /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется среднее значение.</typeparam>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
+        /// <typeparam name="T">Тип данных.</typeparam>
         /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено среднее значение.</param>
         /// <param name="whereExpression">The where expression.</param>
         /// <returns>Среднее значение для указанного столбца.</returns>
         /// <remarks>Этот метод использует SQL-функцию AVG для получения среднего значения в столбце.</remarks>
-        public object Avg<TFrom>(
-            Expression<Func<TFrom, object>> columnSelector,
+        public T Avg<TFrom, T>(
+            Expression<Func<TFrom, T>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null)
-            where TFrom : class => this.Agg("AVG", whereExpression, columnSelector).Values.FirstOrDefault();
+            where TFrom : class => ChangeType<T>(this.Agg("AVG", whereExpression, columnSelector.ConvertExpression()).Values.FirstOrDefault());
 
         /// <summary>
         /// Асинхронно получает среднее значение для указанного столбца.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется среднее значение.</typeparam>
-        /// <param name="whereExpression">The where expression.</param>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
+        /// <typeparam name="T">Тип данных.</typeparam>
         /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено среднее значение.</param>
+        /// <param name="whereExpression">The where expression.</param>
         /// <param name="token">Токен отмены асинхронной операции.</param>
         /// <returns>Задача, которая возвращает среднее значение для указанного столбца.</returns>
         /// <remarks>Этот метод асинхронно использует SQL-функцию AVG для получения среднего значения в столбце.</remarks>
-        public async Task<object> AvgAsync<TFrom>(
+        public async Task<T> AvgAsync<TFrom, T>(
+            Expression<Func<TFrom, T>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
             CancellationToken token = default)
-            where TFrom : class => (await this.AggAsync("AVG", whereExpression, token, columnSelector)
-                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault();
+            where TFrom : class => ChangeType<T>((await this.AggAsync("AVG", whereExpression, token, columnSelector.ConvertExpression())
+                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
 
         /// <summary>
         /// Инициирует начало транзакции с заданным уровнем изоляции.
@@ -470,10 +456,10 @@ namespace RuntimeStuff
         /// <returns>Общее количество строк в результате запроса.</returns>
         /// <remarks>Этот метод выполняет подсчет количества строк в запросе, оборачивая его в подзапрос с использованием SQL-функции
         /// COUNT.</remarks>
-        public object Count(IDbCommand cmd)
+        public long Count(IDbCommand cmd)
         {
             cmd.CommandText = $"SELECT COUNT(*) FROM ({cmd.CommandText}) AS CountTable";
-            return this.ExecuteScalar(cmd);
+            return ChangeType<long>(this.ExecuteScalar(cmd));
         }
 
         /// <summary>
@@ -482,28 +468,28 @@ namespace RuntimeStuff
         /// <param name="query">The query.</param>
         /// <returns>Общее количество строк в указанной колонке.</returns>
         /// <remarks>Этот метод выполняет агрегацию данных с использованием SQL-функции COUNT для конкретной колонки в сущности.</remarks>
-        public object Count(string query)
+        public long Count(string query)
         {
             query = $"SELECT COUNT(*) FROM ({query}) AS CountTable";
-            return this.ExecuteScalar(query);
+            return ChangeType<long>(this.ExecuteScalar(query));
         }
 
         /// <summary>
         /// Получает количество строк для данных в сущности с указанной колонкой.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых будет подсчитано количество строк.</typeparam>
-        /// <param name="whereExpression">The where expression.</param>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
         /// <param name="columnSelector">Выражение для выбора колонки для подсчета.</param>
+        /// <param name="whereExpression">The where expression.</param>
         /// <returns>Общее количество строк в указанной колонке, приведенное к типу.</returns>
         /// <remarks>Этот метод выполняет агрегацию данных с использованием SQL-функции COUNT для конкретной колонки в сущности и
         /// преобразует результат в тип.</remarks>
-        public object Count<TFrom>(
-            Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null)
+        public long Count<TFrom>(
+            Expression<Func<TFrom, object>> columnSelector,
+            Expression<Func<TFrom, bool>> whereExpression = null)
             where TFrom : class
         {
-            var total = this.Agg("count", whereExpression, columnSelector).Values.FirstOrDefault();
-            return total;
+            var total = this.Agg("count", whereExpression, columnSelector.ConvertExpression()).Values.FirstOrDefault();
+            return ChangeType<long>(total);
         }
 
         /// <summary>
@@ -512,30 +498,11 @@ namespace RuntimeStuff
         /// <typeparam name="TFrom">The type of the t from.</typeparam>
         /// <param name="whereExpression">The where expression.</param>
         /// <returns>System.Object.</returns>
-        public object Count<TFrom>(Expression<Func<TFrom, bool>> whereExpression)
+        public long Count<TFrom>(Expression<Func<TFrom, bool>> whereExpression = null)
             where TFrom : class
         {
             var total = this.Agg("count", whereExpression).Values.FirstOrDefault();
-            return total;
-        }
-
-        /// <summary>
-        /// Получает количество строк для данных в сущности с указанной колонкой.
-        /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых будет подсчитано количество строк.</typeparam>
-        /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
-        /// <param name="whereExpression">The where expression.</param>
-        /// <param name="columnSelector">Выражение для выбора колонки для подсчета.</param>
-        /// <returns>Общее количество строк в указанной колонке, приведенное к типу <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод выполняет агрегацию данных с использованием SQL-функции COUNT для конкретной колонки в сущности и
-        /// преобразует результат в тип <typeparamref name="T" />.</remarks>
-        public T Count<TFrom, T>(
-            Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null)
-            where TFrom : class
-        {
-            var total = this.Count(whereExpression, columnSelector);
-            return ChangeType<T>(total);
+            return ChangeType<long>(total);
         }
 
         /// <summary>
@@ -568,41 +535,32 @@ namespace RuntimeStuff
         /// <summary>
         /// Асинхронно получает количество строк для данных в сущности с указанной колонкой.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых будет подсчитано количество строк.</typeparam>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
         /// <param name="whereExpression">The where expression.</param>
-        /// <param name="columnSelector">Выражение для выбора колонки для подсчета.</param>
         /// <param name="token">Токен отмены операции.</param>
         /// <returns>Задача, которая возвращает общее количество строк в указанной колонке.</returns>
         /// <remarks>Этот метод выполняет асинхронный подсчет строк для конкретной колонки с использованием SQL-функции COUNT.</remarks>
-        public async Task<object> CountAsync<TFrom>(
+        public async Task<long> CountAsync<TFrom>(
             Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
             CancellationToken token = default)
-            where TFrom : class => (await this.AggAsync("count", whereExpression, token, columnSelector)
-                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault();
+            where TFrom : class => ChangeType<long>((await this.AggAsync("count", whereExpression, token, null)
+                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
 
         /// <summary>
-        /// Асинхронно получает количество строк для данных в сущности с указанной колонкой и преобразует результат в тип
-        /// <typeparamref name="T" />.
+        /// Асинхронно получает количество строк для данных в сущности с указанной колонкой.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых будет подсчитано количество строк.</typeparam>
-        /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
-        /// <param name="whereExpression">The where expression.</param>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
         /// <param name="columnSelector">Выражение для выбора колонки для подсчета.</param>
+        /// <param name="whereExpression">The where expression.</param>
         /// <param name="token">Токен отмены операции.</param>
-        /// <returns>Задача, которая возвращает количество строк в указанной колонке, приведенное к типу <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод выполняет асинхронный подсчет строк для конкретной колонки с использованием SQL-функции COUNT и
-        /// преобразует результат в тип <typeparamref name="T" />.</remarks>
-        public async Task<T> CountAsync<TFrom, T>(
+        /// <returns>Задача, которая возвращает общее количество строк в указанной колонке.</returns>
+        /// <remarks>Этот метод выполняет асинхронный подсчет строк для конкретной колонки с использованием SQL-функции COUNT.</remarks>
+        public async Task<long> CountAsync<TFrom>(
+            Expression<Func<TFrom, object>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
             CancellationToken token = default)
-            where TFrom : class
-        {
-            var total = await this.CountAsync(whereExpression, columnSelector, token)
-                .ConfigureAwait(this.ConfigureAwait);
-            return ChangeType<T>(total);
-        }
+            where TFrom : class => ChangeType<long>((await this.AggAsync("count", whereExpression, token, columnSelector)
+                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
 
         /// <summary>
         /// Создаёт и настраивает команду для выполнения SQL-запроса.
@@ -1308,7 +1266,7 @@ namespace RuntimeStuff
                 throw new ArgumentOutOfRangeException(nameof(pageSize));
             }
 
-            var total = this.Count<TFrom, long>();
+            var total = this.Count<TFrom>();
             var pagesCount = (int)Math.Ceiling(total / (double)pageSize);
 
             var pages = new Dictionary<int, (int offset, int count)>(pagesCount);
@@ -1344,7 +1302,7 @@ namespace RuntimeStuff
                 throw new ArgumentOutOfRangeException(nameof(pageSize));
             }
 
-            var total = await this.CountAsync<TFrom, long>(token: token).ConfigureAwait(this.ConfigureAwait);
+            var total = await this.CountAsync<TFrom>(token: token).ConfigureAwait(this.ConfigureAwait);
             var pagesCount = (int)Math.Ceiling(total / (double)pageSize);
 
             var pages = new Dictionary<int, (int offset, int count)>(pagesCount);
@@ -1853,138 +1811,64 @@ namespace RuntimeStuff
         /// <summary>
         /// Получает максимальное значение для указанного столбца.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется максимальное значение.</typeparam>
-        /// <typeparam name="T">Тип, в который будет преобразовано максимальное значение.</typeparam>
-        /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено максимальное значение.</param>
-        /// <returns>Максимальное значение для указанного столбца, преобразованное в тип <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод использует SQL-функцию MAX для получения максимального значения в столбце, а затем преобразует результат
-        /// в тип <typeparamref name="T" />.</remarks>
-        public T Max<TFrom, T>(Expression<Func<TFrom, object>> columnSelector)
-            where TFrom : class
-        {
-            var total = this.Max(columnSelector);
-            return ChangeType<T>(total);
-        }
-
-        /// <summary>
-        /// Получает максимальное значение для указанного столбца.
-        /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется максимальное значение.</typeparam>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
+        /// <typeparam name="T">Тип данных.</typeparam>
         /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено максимальное значение.</param>
         /// <param name="whereExpression">The where expression.</param>
         /// <returns>Максимальное значение для указанного столбца.</returns>
         /// <remarks>Этот метод использует SQL-функцию MAX для получения максимального значения в столбце.</remarks>
-        public object Max<TFrom>(
-            Expression<Func<TFrom, object>> columnSelector,
+        public T Max<TFrom, T>(
+            Expression<Func<TFrom, T>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null)
-            where TFrom : class => this.Agg("MAX", whereExpression, columnSelector).Values.FirstOrDefault();
+            where TFrom : class => ChangeType<T>(this.Agg("MAX", whereExpression, columnSelector.ConvertExpression()).Values.FirstOrDefault());
 
         /// <summary>
         /// Асинхронно получает максимальное значение для указанного столбца.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется максимальное значение.</typeparam>
-        /// <typeparam name="T">Тип, в который будет преобразовано максимальное значение.</typeparam>
-        /// <param name="whereExpression">The where expression.</param>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
+        /// <typeparam name="T">Тип данных.</typeparam>
         /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено максимальное значение.</param>
-        /// <param name="token">Токен отмены асинхронной операции.</param>
-        /// <returns>Задача, которая возвращает максимальное значение для указанного столбца, преобразованное в тип
-        /// <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод асинхронно использует SQL-функцию MAX для получения максимального значения и преобразует результат в тип
-        /// <typeparamref name="T" />.</remarks>
-        public async Task<T> MaxAsync<TFrom, T>(
-            Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
-            CancellationToken token = default)
-            where TFrom : class
-        {
-            var total = await this.MaxAsync(whereExpression, columnSelector, token)
-                .ConfigureAwait(this.ConfigureAwait);
-            return ChangeType<T>(total);
-        }
-
-        /// <summary>
-        /// Асинхронно получает максимальное значение для указанного столбца.
-        /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется максимальное значение.</typeparam>
         /// <param name="whereExpression">The where expression.</param>
-        /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено максимальное значение.</param>
         /// <param name="token">Токен отмены асинхронной операции.</param>
         /// <returns>Задача, которая возвращает максимальное значение для указанного столбца.</returns>
         /// <remarks>Этот метод асинхронно использует SQL-функцию MAX для получения максимального значения в столбце.</remarks>
-        public async Task<object> MaxAsync<TFrom>(
+        public async Task<T> MaxAsync<TFrom, T>(
+            Expression<Func<TFrom, T>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
             CancellationToken token = default)
-            where TFrom : class => (await this.AggAsync("MAX", whereExpression, token, columnSelector)
-                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault();
-
-        /// <summary>
-        /// Получает минимальное значение для указанного столбца.
-        /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется минимальное значение.</typeparam>
-        /// <typeparam name="T">Тип, в который будет преобразовано минимальное значение.</typeparam>
-        /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено минимальное значение.</param>
-        /// <returns>Минимальное значение для указанного столбца, преобразованное в тип <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод использует SQL-функцию MIN для получения минимального значения в столбце, а затем преобразует результат
-        /// в тип <typeparamref name="T" />.</remarks>
-        public T Min<TFrom, T>(Expression<Func<TFrom, object>> columnSelector)
             where TFrom : class
-        {
-            var total = this.Min(columnSelector);
-            return ChangeType<T>(total);
-        }
+                => ChangeType<T>((await this.AggAsync("MAX", whereExpression, token, columnSelector.ConvertExpression()).ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
 
         /// <summary>
         /// Получает минимальное значение для указанного столбца.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется минимальное значение.</typeparam>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
+        /// <typeparam name="T">Тип данных.</typeparam>
         /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено минимальное значение.</param>
         /// <param name="whereExpression">The where expression.</param>
         /// <returns>Минимальное значение для указанного столбца.</returns>
         /// <remarks>Этот метод использует SQL-функцию MIN для получения минимального значения в столбце.</remarks>
-        public object Min<TFrom>(
-            Expression<Func<TFrom, object>> columnSelector,
+        public T Min<TFrom, T>(
+            Expression<Func<TFrom, T>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null)
-            where TFrom : class => this.Agg("MIN", whereExpression, columnSelector).Values.FirstOrDefault();
+            where TFrom : class => ChangeType<T>(this.Agg("MIN", whereExpression, columnSelector.ConvertExpression()).Values.FirstOrDefault());
 
         /// <summary>
         /// Асинхронно получает минимальное значение для указанного столбца.
         /// </summary>
         /// <typeparam name="TFrom">Тип данных, для которых вычисляется минимальное значение.</typeparam>
-        /// <typeparam name="T">Тип, в который будет преобразовано минимальное значение.</typeparam>
-        /// <param name="whereExpression">The where expression.</param>
+        /// <typeparam name="T">Тип данных.</typeparam>
         /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено минимальное значение.</param>
-        /// <param name="token">Токен отмены асинхронной операции.</param>
-        /// <returns>Задача, которая возвращает минимальное значение для указанного столбца, преобразованное в тип
-        /// <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод асинхронно использует SQL-функцию MIN для получения минимального значения и преобразует результат в тип
-        /// <typeparamref name="T" />.</remarks>
-        public async Task<T> MinAsync<TFrom, T>(
-            Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
-            CancellationToken token = default)
-            where TFrom : class
-        {
-            var total = await this.MinAsync(whereExpression, columnSelector, token)
-                .ConfigureAwait(this.ConfigureAwait);
-            return ChangeType<T>(total);
-        }
-
-        /// <summary>
-        /// Асинхронно получает минимальное значение для указанного столбца.
-        /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется минимальное значение.</typeparam>
         /// <param name="whereExpression">The where expression.</param>
-        /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислено минимальное значение.</param>
         /// <param name="token">Токен отмены асинхронной операции.</param>
         /// <returns>Задача, которая возвращает минимальное значение для указанного столбца.</returns>
         /// <remarks>Этот метод асинхронно использует SQL-функцию MIN для получения минимального значения в столбце.</remarks>
-        public async Task<object> MinAsync<TFrom>(
+        public async Task<T> MinAsync<TFrom, T>(
+            Expression<Func<TFrom, T>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
             CancellationToken token = default)
-            where TFrom : class => (await this.AggAsync("MIN", whereExpression, token, columnSelector)
-                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault();
+            where TFrom : class => ChangeType<T>((await this.AggAsync("MIN", whereExpression, token, columnSelector.ConvertExpression())
+                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов.
@@ -2294,69 +2178,33 @@ namespace RuntimeStuff
         /// <summary>
         /// Получает сумму для указанного столбца.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется сумма.</typeparam>
-        /// <typeparam name="T">Тип, в который будет преобразована сумма.</typeparam>
-        /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислена сумма.</param>
-        /// <returns>Сумма для указанного столбца, преобразованная в тип <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод использует SQL-функцию SUM для получения суммы значений в столбце, а затем преобразует результат в тип
-        /// <typeparamref name="T" />.</remarks>
-        public T Sum<TFrom, T>(Expression<Func<TFrom, object>> columnSelector)
-            where TFrom : class
-        {
-            var total = this.Sum(columnSelector);
-            return ChangeType<T>(total);
-        }
-
-        /// <summary>
-        /// Получает сумму для указанного столбца.
-        /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется сумма.</typeparam>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
+        /// <typeparam name="T">Тип данных.</typeparam>
         /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислена сумма.</param>
         /// <param name="whereExpression">The where expression.</param>
         /// <returns>Сумма для указанного столбца.</returns>
         /// <remarks>Этот метод использует SQL-функцию SUM для получения суммы значений в столбце.</remarks>
-        public object Sum<TFrom>(
-            Expression<Func<TFrom, object>> columnSelector,
+        public T Sum<TFrom, T>(
+            Expression<Func<TFrom, T>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null)
-            where TFrom : class => this.Agg("SUM", whereExpression, columnSelector).Values.FirstOrDefault();
+            where TFrom : class => ChangeType<T>(this.Agg("SUM", whereExpression, columnSelector.ConvertExpression()).Values.FirstOrDefault());
 
         /// <summary>
         /// Асинхронно получает сумму для указанного столбца.
         /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется сумма.</typeparam>
-        /// <typeparam name="T">Тип, в который будет преобразована сумма.</typeparam>
-        /// <param name="whereExpression">The where expression.</param>
+        /// <typeparam name="TFrom">Тип сущности.</typeparam>
+        /// <typeparam name="T">Тип данных.</typeparam>
         /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислена сумма.</param>
-        /// <param name="token">Токен отмены асинхронной операции.</param>
-        /// <returns>Задача, которая возвращает сумму для указанного столбца, преобразованную в тип <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод асинхронно использует SQL-функцию SUM для получения суммы значений в столбце и преобразует результат в
-        /// тип <typeparamref name="T" />.</remarks>
-        public async Task<T> SumAsync<TFrom, T>(
-            Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
-            CancellationToken token = default)
-            where TFrom : class
-        {
-            var total = await this.SumAsync(whereExpression, columnSelector, token)
-                .ConfigureAwait(this.ConfigureAwait);
-            return ChangeType<T>(total);
-        }
-
-        /// <summary>
-        /// Асинхронно получает сумму для указанного столбца.
-        /// </summary>
-        /// <typeparam name="TFrom">Тип данных, для которых вычисляется сумма.</typeparam>
         /// <param name="whereExpression">The where expression.</param>
-        /// <param name="columnSelector">Выражение для выбора столбца, для которого будет вычислена сумма.</param>
         /// <param name="token">Токен отмены асинхронной операции.</param>
         /// <returns>Задача, которая возвращает сумму для указанного столбца.</returns>
         /// <remarks>Этот метод асинхронно использует SQL-функцию SUM для получения суммы значений в столбце.</remarks>
-        public async Task<object> SumAsync<TFrom>(
+        public async Task<T> SumAsync<TFrom, T>(
+            Expression<Func<TFrom, T>> columnSelector,
             Expression<Func<TFrom, bool>> whereExpression = null,
-            Expression<Func<TFrom, object>> columnSelector = null,
             CancellationToken token = default)
-            where TFrom : class => (await this.AggAsync("SUM", whereExpression, token, columnSelector)
-                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault();
+            where TFrom : class => ChangeType<T>((await this.AggAsync("SUM", whereExpression, token, columnSelector.ConvertExpression())
+                .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает результат в виде <see cref="DataTable" />.
@@ -3463,6 +3311,8 @@ namespace RuntimeStuff
             {
                 var colIndex = i;
                 var colName = reader.GetName(i);
+                if (string.IsNullOrWhiteSpace(colName))
+                    colName = $"Column{i}";
 
                 if (customMapDic.Count > 0 && customMapDic.TryGetValue(colName, out var mappedColumn))
                 {

@@ -94,8 +94,9 @@ namespace RuntimeStuff.Builders
                                 ", ",
                                 columnSelectors.Select(c =>
                               {
-                                  var colName = $"{options.NamePrefix}{options.Map?.ResolveColumnName(c.column?.GetPropertyInfo(), null, null) ?? c.column?.GetMemberCache()?.ColumnName ?? "*"}{options.NameSuffix}".Replace("\"*\"", "*");
-                                  return $"{c.aggFunction}({colName})";
+                                  var col = c.column?.GetMemberCache()?.ColumnName;
+                                  var colName = $"{options.NamePrefix}{options.Map?.ResolveColumnName(c.column?.GetPropertyInfo(), null, null) ?? col ?? "*"}{options.NameSuffix}".Replace("\"*\"", "*");
+                                  return $"{c.aggFunction}({colName}) {(string.IsNullOrWhiteSpace(col) ? string.Empty : col + c.aggFunction)}";
                               }))
                       + $" FROM {options.NamePrefix}{options.Map?.ResolveTableName(typeof(TFrom), null, null) ?? typeof(TFrom).GetMemberCache().TableName}{options.NameSuffix}");
 

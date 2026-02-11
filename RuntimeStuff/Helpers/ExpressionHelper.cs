@@ -32,56 +32,124 @@ namespace RuntimeStuff.Helpers
     public static class ExpressionHelper
     {
         /// <summary>
-        /// Пытается вычислить значение указанного выражения <paramref name="member" />.
-        /// Поддерживает распространённые формы выражений (binary, method call, unary, member и т.д.).
-        /// В некоторых случаях, когда прямое вычисление невозможно, метод возвращает специальные
-        /// значения для булевых выражений.
+        /// Преобразует выражение <see cref="Expression{TDelegate}"/> из типа
+        /// <typeparamref name="T2"/> → <typeparamref name="TR2"/>
+        /// в выражение типа <typeparamref name="T1"/> → <typeparamref name="TR1"/>.
         /// </summary>
-        /// <param name="member">Выражение, значение которого требуется получить.</param>
-        /// <returns>Полученное значение как <see cref="object" />, или <c>null</c>, если значение не может быть определено.
-        /// Для некоторых булевых member-выражений метод может возвращать <c>true</c> или <c>false</c>,
-        /// когда непосредственная компиляция выражения не удалась.</returns>
-        public static object GetValue(Expression member)
+        /// <typeparam name="T1">Тип входного параметра результирующего выражения.</typeparam>
+        /// <typeparam name="TR1">Тип результата результирующего выражения.</typeparam>
+        /// <typeparam name="T2">Тип входного параметра исходного выражения.</typeparam>
+        /// <typeparam name="TR2">Тип результата исходного выражения.</typeparam>
+        /// <param name="expression">
+        /// Исходное выражение, принимающее параметр типа <typeparamref name="T2"/>
+        /// и возвращающее значение типа <typeparamref name="TR2"/>.
+        /// </param>
+        /// <param name="argConverter">
+        /// Выражение-конвертер входного параметра, преобразующее
+        /// <typeparamref name="T1"/> в <typeparamref name="T2"/>.
+        /// Используется для адаптации аргумента результирующего выражения
+        /// к типу, ожидаемому исходным выражением.
+        /// </param>
+        /// <param name="resultConverter">
+        /// Выражение-конвертер результата, преобразующее
+        /// <typeparamref name="TR2"/> в <typeparamref name="TR1"/>.
+        /// Используется для адаптации результата исходного выражения
+        /// к типу результирующего выражения.
+        /// </param>
+        /// <returns>
+        /// Новое выражение типа <see cref="Expression{Func}"/>,
+        /// принимающее параметр типа <typeparamref name="T1"/>
+        /// и возвращающее значение типа <typeparamref name="TR1"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="expression"/>,
+        /// <paramref name="argConverter"/> или <paramref name="resultConverter"/> равны <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод выполняет композицию трёх выражений:
+        /// <list type="number">
+        /// <item>
+        /// Преобразует входной параметр <typeparamref name="T1"/> в <typeparamref name="T2"/>
+        /// с помощью <paramref name="argConverter"/>.
+        /// </item>
+        /// <item>
+        /// Передаёт преобразованный аргумент в исходное выражение <paramref name="expression"/>.
+        /// </item>
+        /// <item>
+        /// Преобразует результат <typeparamref name="TR2"/> в <typeparamref name="TR1"/>
+        /// с помощью <paramref name="resultConverter"/>.
+        /// </item>
+        /// </list>
+        /// Внутри используется замена параметров в дереве выражения.
+        /// </remarks>
+        public static Expression<Func<T1, TR1>> ConvertExpression<T1, TR1, T2, TR2>(
+                Expression<Func<T2, TR2>> expression,
+                Expression<Func<T1, T2>> argConverter,
+                Expression<Func<TR2, TR1>> resultConverter)
         {
-            try
-            {
-                if (member is BinaryExpression be)
-                {
-                    member = be.Right;
-                }
+            if (expression == null)
+                throw new ArgumentNullException(nameof(expression));
+            if (argConverter == null)
+                throw new ArgumentNullException(nameof(argConverter));
+            if (resultConverter == null)
+                throw new ArgumentNullException(nameof(resultConverter));
 
-                if (member is MethodCallExpression mce)
-                {
-                    member = mce.Arguments[1];
-                }
+            // Новый параметр итогового выражения
+            var newParameter = Expression.Parameter(typeof(T1), "p");
 
-                if (member is UnaryExpression ue)
-                {
-                    return ue.NodeType == ExpressionType.Not ? false : (bool?)null;
-                }
+            // Подставляем newParameter в argConverter
+            var convertedArgument = ReplaceParameter(
+                argConverter,
+                argConverter.Parameters[0],
+                newParameter);
 
-                try
-                {
-                    var objectMember = Expression.Convert(member, typeof(object));
-                    var getterLambda = Expression.Lambda<Func<object>>(objectMember);
-                    var getter = getterLambda.Compile();
-                    var value = getter();
-                    return value;
-                }
-                catch (Exception)
-                {
-                    if (member is MemberExpression me)
-                    {
-                        var p = GetPropertyInfo(me);
-                        return p?.PropertyType == typeof(bool) ? true : (bool?)null;
-                    }
+            // Подставляем convertedArgument в исходное выражение
+            var newBody = ReplaceParameter(
+                expression,
+                expression.Parameters[0],
+                convertedArgument);
 
-                    throw;
-                }
-            }
-            catch
+            // Подставляем newBody в resultConverter
+            var finalBody = ReplaceParameter(
+                resultConverter,
+                resultConverter.Parameters[0],
+                newBody);
+
+            return Expression.Lambda<Func<T1, TR1>>(finalBody, newParameter);
+        }
+
+        /// <summary>
+        /// Возвращает кэш сведений о члене, представленном в заданном выражении.
+        /// </summary>
+        /// <param name="expr">Выражение, содержащее ссылку на член, для которого требуется получить кэш сведений. Не должно быть равно
+        /// null.</param>
+        /// <returns>Объект MemberCache, содержащий сведения о члене, извлечённом из выражения.</returns>
+        public static MemberCache GetMemberCache(Expression expr) => MemberCache.Create(GetMemberInfo(expr));
+
+        /// <summary>
+        /// Извлекает <see cref="MemberInfo" /> из различных типов узлов выражения.
+        /// Поддерживаемые типы узлов: <see cref="LambdaExpression" />, <see cref="BinaryExpression" />,.
+        /// <see cref="MemberExpression" />, <see cref="UnaryExpression" />, <see cref="MethodCallExpression" />,
+        /// <see cref="ConditionalExpression" />.
+        /// </summary>
+        /// <param name="expr">Анализируемое выражение.</param>
+        /// <returns>Разрешённый <see cref="MemberInfo" />, либо <c>null</c>, если член не удалось определить.</returns>
+        public static MemberInfo GetMemberInfo(Expression expr)
+        {
+            if (expr == null)
             {
                 return null;
+            }
+
+            switch (expr)
+            {
+                case LambdaExpression le: return GetMemberInfoFromLambda(le);
+                case BinaryExpression be: return GetMemberInfo(be.Left);
+                case MemberExpression me: return me.Member;
+                case UnaryExpression ue: return GetMemberInfo(ue.Operand);
+                case MethodCallExpression mc: return GetMemberInfoFromMethodCall(mc);
+                case ConditionalExpression ce: return GetMemberInfo(ce.IfTrue) ?? GetMemberInfo(ce.IfFalse);
+                default: return null;
             }
         }
 
@@ -140,33 +208,6 @@ namespace RuntimeStuff.Helpers
                 return pi;
 
             throw new ArgumentException(@"Expression must be a property access expression.", nameof(propertySelector));
-        }
-
-        /// <summary>
-        /// Извлекает <see cref="MemberInfo" /> из различных типов узлов выражения.
-        /// Поддерживаемые типы узлов: <see cref="LambdaExpression" />, <see cref="BinaryExpression" />,.
-        /// <see cref="MemberExpression" />, <see cref="UnaryExpression" />, <see cref="MethodCallExpression" />,
-        /// <see cref="ConditionalExpression" />.
-        /// </summary>
-        /// <param name="expr">Анализируемое выражение.</param>
-        /// <returns>Разрешённый <see cref="MemberInfo" />, либо <c>null</c>, если член не удалось определить.</returns>
-        public static MemberInfo GetMemberInfo(Expression expr)
-        {
-            if (expr == null)
-            {
-                return null;
-            }
-
-            switch (expr)
-            {
-                case LambdaExpression le: return GetMemberInfoFromLambda(le);
-                case BinaryExpression be: return GetMemberInfo(be.Left);
-                case MemberExpression me: return me.Member;
-                case UnaryExpression ue: return GetMemberInfo(ue.Operand);
-                case MethodCallExpression mc: return GetMemberInfoFromMethodCall(mc);
-                case ConditionalExpression ce: return GetMemberInfo(ce.IfTrue) ?? GetMemberInfo(ce.IfFalse);
-                default: return null;
-            }
         }
 
         /// <summary>
@@ -230,14 +271,6 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Возвращает кэш сведений о члене, представленном в заданном выражении.
-        /// </summary>
-        /// <param name="expr">Выражение, содержащее ссылку на член, для которого требуется получить кэш сведений. Не должно быть равно
-        /// null.</param>
-        /// <returns>Объект MemberCache, содержащий сведения о члене, извлечённом из выражения.</returns>
-        public static MemberCache GetMemberCache(Expression expr) => MemberCache.Create(GetMemberInfo(expr));
-
-        /// <summary>
         /// Возвращает имя свойства, представленного указанным выражением.
         /// </summary>
         /// <param name="expr">Выражение, определяющее свойство, имя которого требуется получить.
@@ -247,6 +280,60 @@ namespace RuntimeStuff.Helpers
         /// например, в сценариях привязки данных или проверки значений.
         /// Если переданное выражение не представляет доступ к свойству, метод возвращает null.</remarks>
         public static string GetPropertyName(Expression expr) => GetPropertyInfo(expr)?.Name;
+
+        /// <summary>
+        /// Пытается вычислить значение указанного выражения <paramref name="member" />.
+        /// Поддерживает распространённые формы выражений (binary, method call, unary, member и т.д.).
+        /// В некоторых случаях, когда прямое вычисление невозможно, метод возвращает специальные
+        /// значения для булевых выражений.
+        /// </summary>
+        /// <param name="member">Выражение, значение которого требуется получить.</param>
+        /// <returns>Полученное значение как <see cref="object" />, или <c>null</c>, если значение не может быть определено.
+        /// Для некоторых булевых member-выражений метод может возвращать <c>true</c> или <c>false</c>,
+        /// когда непосредственная компиляция выражения не удалась.</returns>
+        public static object GetValue(Expression member)
+        {
+            try
+            {
+                if (member is BinaryExpression be)
+                {
+                    member = be.Right;
+                }
+
+                if (member is MethodCallExpression mce)
+                {
+                    member = mce.Arguments[1];
+                }
+
+                if (member is UnaryExpression ue)
+                {
+                    return ue.NodeType == ExpressionType.Not ? false : (bool?)null;
+                }
+
+                try
+                {
+                    var objectMember = Expression.Convert(member, typeof(object));
+                    var getterLambda = Expression.Lambda<Func<object>>(objectMember);
+                    var getter = getterLambda.Compile();
+                    var value = getter();
+                    return value;
+                }
+                catch (Exception)
+                {
+                    if (member is MemberExpression me)
+                    {
+                        var p = GetPropertyInfo(me);
+                        return p?.PropertyType == typeof(bool) ? true : (bool?)null;
+                    }
+
+                    throw;
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
 
         /// <summary>
         /// Вспомогательный метод для извлечения <see cref="MemberInfo" /> из <see cref="LambdaExpression" />.
@@ -276,6 +363,29 @@ namespace RuntimeStuff.Helpers
         {
             var pi = GetMemberInfo(mce.Arguments[0]);
             return pi;
+        }
+
+        private static Expression ReplaceParameter(LambdaExpression lambda, ParameterExpression source, Expression target)
+        {
+            return new ParameterReplaceVisitor(source, target)
+                .Visit(lambda.Body);
+        }
+
+        private sealed class ParameterReplaceVisitor : ExpressionVisitor
+        {
+            private readonly ParameterExpression source;
+            private readonly Expression target;
+
+            public ParameterReplaceVisitor(ParameterExpression source, Expression target)
+            {
+                this.source = source;
+                this.target = target;
+            }
+
+            protected override Expression VisitParameter(ParameterExpression node)
+            {
+                return node == source ? target : base.VisitParameter(node);
+            }
         }
     }
 }

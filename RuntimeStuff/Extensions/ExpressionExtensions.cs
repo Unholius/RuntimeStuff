@@ -13,6 +13,7 @@
 // ***********************************************************************
 namespace RuntimeStuff.Extensions
 {
+    using System;
     using System.Linq.Expressions;
     using System.Reflection;
     using RuntimeStuff.Helpers;
@@ -28,6 +29,89 @@ namespace RuntimeStuff.Extensions
     /// являются статическими и потокобезопасны.</remarks>
     public static class ExpressionExtensions
     {
+        /// <summary>
+        /// Преобразует выражение <see cref="Expression{TDelegate}"/> из типа
+        /// <typeparamref name="T2"/> → <typeparamref name="TR2"/>
+        /// в выражение типа <typeparamref name="T1"/> → <typeparamref name="TR1"/>.
+        /// </summary>
+        /// <typeparam name="T1">Тип входного параметра результирующего выражения.</typeparam>
+        /// <typeparam name="TR1">Тип результата результирующего выражения.</typeparam>
+        /// <typeparam name="T2">Тип входного параметра исходного выражения.</typeparam>
+        /// <typeparam name="TR2">Тип результата исходного выражения.</typeparam>
+        /// <param name="expression">
+        /// Исходное выражение, принимающее параметр типа <typeparamref name="T2"/>
+        /// и возвращающее значение типа <typeparamref name="TR2"/>.
+        /// </param>
+        /// <param name="argConverter">
+        /// Выражение-конвертер входного параметра, преобразующее
+        /// <typeparamref name="T1"/> в <typeparamref name="T2"/>.
+        /// Используется для адаптации аргумента результирующего выражения
+        /// к типу, ожидаемому исходным выражением.
+        /// </param>
+        /// <param name="resultConverter">
+        /// Выражение-конвертер результата, преобразующее
+        /// <typeparamref name="TR2"/> в <typeparamref name="TR1"/>.
+        /// Используется для адаптации результата исходного выражения
+        /// к типу результирующего выражения.
+        /// </param>
+        /// <returns>
+        /// Новое выражение типа <see cref="Expression{Func}"/>,
+        /// принимающее параметр типа <typeparamref name="T1"/>
+        /// и возвращающее значение типа <typeparamref name="TR1"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="expression"/>,
+        /// <paramref name="argConverter"/> или <paramref name="resultConverter"/> равны <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод выполняет композицию трёх выражений:
+        /// <list type="number">
+        /// <item>
+        /// Преобразует входной параметр <typeparamref name="T1"/> в <typeparamref name="T2"/>
+        /// с помощью <paramref name="argConverter"/>.
+        /// </item>
+        /// <item>
+        /// Передаёт преобразованный аргумент в исходное выражение <paramref name="expression"/>.
+        /// </item>
+        /// <item>
+        /// Преобразует результат <typeparamref name="TR2"/> в <typeparamref name="TR1"/>
+        /// с помощью <paramref name="resultConverter"/>.
+        /// </item>
+        /// </list>
+        /// Внутри используется замена параметров в дереве выражения.
+        /// </remarks>
+        public static Expression<Func<T1, TR1>> ConvertExpression<T1, TR1, T2, TR2>(
+                this Expression<Func<T2, TR2>> expression,
+                Expression<Func<T1, T2>> argConverter,
+                Expression<Func<TR2, TR1>> resultConverter) => ExpressionHelper.ConvertExpression(expression, argConverter, resultConverter);
+
+        /// <summary>
+        /// Преобразует выражение <see cref="Expression{Func}"/>, возвращающее значение типа
+        /// <typeparamref name="TR2"/>, в выражение, возвращающее <see cref="object"/>.
+        /// </summary>
+        /// <typeparam name="T1">Тип входного параметра выражения.</typeparam>
+        /// <typeparam name="TR2">Тип результата исходного выражения.</typeparam>
+        /// <param name="expression">
+        /// Исходное выражение, принимающее параметр типа <typeparamref name="T1"/>
+        /// и возвращающее значение типа <typeparamref name="TR2"/>.
+        /// </param>
+        /// <returns>
+        /// Новое выражение типа <see cref="Expression{Func}"/>,
+        /// принимающее параметр типа <typeparamref name="T1"/>
+        /// и возвращающее результат, приведённый к типу <see cref="object"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="expression"/> равно <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод выполняет обёртку исходного выражения, сохраняя входной параметр,
+        /// но приводя его результат к типу <see cref="object"/>.
+        /// Может быть полезен при формировании универсальных выражений,
+        /// например, для динамической сортировки или построения метаданных.
+        /// </remarks>
+        public static Expression<Func<T1, object>> ConvertExpression<T1, TR2>(this Expression<Func<T1, TR2>> expression)
+            => ExpressionHelper.ConvertExpression<T1, object, T1, TR2>(expression, argConverter => argConverter, resultConverter => resultConverter);
+
         /// <summary>
         /// Пытается вычислить значение указанного выражения <paramref name="member" />.
         /// Поддерживает распространённые формы выражений (binary, method call, unary, member и т.д.).
