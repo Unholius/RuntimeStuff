@@ -26,7 +26,6 @@ namespace RuntimeStuff
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
-    using RuntimeStuff.Builders;
     using RuntimeStuff.Collections;
     using RuntimeStuff.Extensions;
     using RuntimeStuff.Helpers;
@@ -318,11 +317,11 @@ namespace RuntimeStuff
             where TFrom : class
         {
             var result = new Dictionary<string, object>(IgnoreCaseComparer);
-            var query = SqlQueryBuilder.GetAggSelectClause(this.Options, columnSelectors);
+            var query = SqlQueryHelper.GetAggSelectClause(this.Options, columnSelectors);
 
             if (whereExpression != null)
             {
-                query += " " + SqlQueryBuilder.GetWhereClause(whereExpression, this.Options, false, out _);
+                query += " " + SqlQueryHelper.GetWhereClause(whereExpression, this.Options, false, out _);
             }
 
             var table = this.ToDataTable(query);
@@ -376,11 +375,11 @@ namespace RuntimeStuff
             where TFrom : class
         {
             var result = new Dictionary<string, object>(IgnoreCaseComparer);
-            var query = SqlQueryBuilder.GetAggSelectClause(this.Options, columnSelectors);
+            var query = SqlQueryHelper.GetAggSelectClause(this.Options, columnSelectors);
 
             if (whereExpression != null)
             {
-                query += " " + SqlQueryBuilder.GetWhereClause(whereExpression, this.Options, false, out _);
+                query += " " + SqlQueryHelper.GetWhereClause(whereExpression, this.Options, false, out _);
             }
 
             var table = await this.ToDataTableAsync(query, token: token).ConfigureAwait(this.ConfigureAwait);
@@ -651,7 +650,7 @@ namespace RuntimeStuff
         public int Delete<T>(Expression<Func<T, bool>> whereExpression)
             where T : class
         {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
                     whereExpression,
                     this.Options,
                     true,
@@ -669,8 +668,8 @@ namespace RuntimeStuff
         public int Delete<T>(T item)
             where T : class
         {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " +
-                         SqlQueryBuilder.GetWhereClause<T>(this.Options, out _)).Trim();
+            var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " +
+                         SqlQueryHelper.GetWhereClause<T>(this.Options, out _)).Trim();
             return this.ExecuteNonQuery(query, this.GetParams(item));
         }
 
@@ -685,8 +684,8 @@ namespace RuntimeStuff
         public Task<int> DeleteAsync<T>(T item, IDbTransaction dbTransaction = null, CancellationToken token = default)
             where T : class
         {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " +
-                         SqlQueryBuilder.GetWhereClause<T>(this.Options, out _)).Trim();
+            var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " +
+                         SqlQueryHelper.GetWhereClause<T>(this.Options, out _)).Trim();
             return this.ExecuteNonQueryAsync(query, this.GetParams(item), dbTransaction, token);
         }
 
@@ -704,7 +703,7 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where T : class
         {
-            var query = (SqlQueryBuilder.GetDeleteQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
                     whereExpression,
                     this.Options,
                     true,
@@ -884,8 +883,8 @@ namespace RuntimeStuff
             Expression<Func<T, TProp>> propertySelector,
             Expression<Func<T, bool>> whereExpression)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(this.Options, propertySelector) + " " +
-                         SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryHelper.GetSelectQuery(this.Options, propertySelector) + " " +
+                         SqlQueryHelper.GetWhereClause(
                              whereExpression,
                              this.Options,
                              true,
@@ -984,8 +983,8 @@ namespace RuntimeStuff
             Expression<Func<T, bool>> whereExpression,
             CancellationToken token = default)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(this.Options, propertySelector) + " " +
-                         SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryHelper.GetSelectQuery(this.Options, propertySelector) + " " +
+                         SqlQueryHelper.GetWhereClause(
                              whereExpression,
                              this.Options,
                              true,
@@ -1543,7 +1542,7 @@ namespace RuntimeStuff
             where T : class
         {
             object id = null;
-            var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
+            var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
             if (string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
             {
                 this.ExecuteNonQuery(query, this.GetParams(item), dbTransaction);
@@ -1609,7 +1608,7 @@ namespace RuntimeStuff
             where T : class
         {
             object id = null;
-            var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
+            var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
             if (string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
             {
                 await this.ExecuteNonQueryAsync(query, this.GetParams(item), dbTransaction, token)
@@ -1671,7 +1670,7 @@ namespace RuntimeStuff
                 var ids = new List<object>();
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
+                    var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
                     if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
                     {
                         query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
@@ -1760,7 +1759,7 @@ namespace RuntimeStuff
                 var ids = new List<object>();
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    var query = SqlQueryBuilder.GetInsertQuery(this.Options, insertColumns);
+                    var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
                     if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
                     {
                         query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
@@ -1900,10 +1899,10 @@ namespace RuntimeStuff
         {
             if (string.IsNullOrEmpty(query))
             {
-                query = SqlQueryBuilder.GetSelectQuery<T>(this.Options);
+                query = SqlQueryHelper.GetSelectQuery<T>(this.Options);
             }
 
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
 
             var cache = MemberCache.Create(typeof(T));
             if (itemFactory == null)
@@ -2045,10 +2044,10 @@ namespace RuntimeStuff
             var returnTypeCache = MemberCache.Create(returnType);
             if (string.IsNullOrEmpty(query))
             {
-                query = SqlQueryBuilder.GetSelectQuery(this.Options, returnTypeCache.ElementType);
+                query = SqlQueryHelper.GetSelectQuery(this.Options, returnTypeCache.ElementType);
             }
 
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
                 query,
@@ -2126,10 +2125,10 @@ namespace RuntimeStuff
         {
             if (string.IsNullOrEmpty(query))
             {
-                query = SqlQueryBuilder.GetSelectQuery<T>(this.Options);
+                query = SqlQueryHelper.GetSelectQuery<T>(this.Options);
             }
 
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
 
             var cache = MemberCache.Create(typeof(T));
             if (itemFactory == null)
@@ -2226,13 +2225,13 @@ namespace RuntimeStuff
             Func<string, object, DataColumn, object> valueConverter = null,
             params Expression<Func<TFrom, object>>[] columnSelectors)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(this.Options, columnSelectors) + " " +
-                         SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryHelper.GetSelectQuery(this.Options, columnSelectors) + " " +
+                         SqlQueryHelper.GetWhereClause(
                              whereExpression,
                              this.Options,
                              true,
                              out var cmdParam)).Trim();
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
                 query,
@@ -2276,13 +2275,13 @@ namespace RuntimeStuff
             int offsetRows = 0,
             params Expression<Func<TFrom, object>>[] columnSelectors)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(this.Options, columnSelectors) + " " +
-                         SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryHelper.GetSelectQuery(this.Options, columnSelectors) + " " +
+                         SqlQueryHelper.GetWhereClause(
                              whereExpression,
                              this.Options,
                              true,
                              out var cmdParam)).Trim();
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
                 query,
@@ -2414,9 +2413,8 @@ namespace RuntimeStuff
         /// <param name="columnMap">Отображение столбцов запроса в имена свойств объектов.</param>
         /// <returns>Задача, которая возвращает массив <see cref="DataTable" />, содержащий результаты выполнения запроса.</returns>
         /// <remarks>
-        ///     Этот метод выполняет SQL-запрос асинхронно и возвращает результаты в виде массива <see cref="DataTable" />. Если
-        ///     запрос
-        ///     возвращает несколько наборов данных, они будут разделены в разные таблицы.
+        ///     Этот метод выполняет SQL-запрос асинхронно и возвращает результаты в виде массива <see cref="DataTable" />.
+        ///     Если запрос возвращает несколько наборов данных, они будут разделены в разные таблицы.
         /// </remarks>
         public async Task<DataTable[]> ToDataTablesAsync(
             string query,
@@ -2554,17 +2552,17 @@ namespace RuntimeStuff
             int offsetRows = 0,
             Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(
+            var query = (SqlQueryHelper.GetSelectQuery(
                              this.Options,
                              typeof(TFrom).GetMemberCache(),
                              keySelector.GetMemberCache(),
                              valueSelector.GetMemberCache()) + " " +
-                         SqlQueryBuilder.GetWhereClause(
+                         SqlQueryHelper.GetWhereClause(
                              whereExpression,
                              this.Options,
                              true,
                              out var cmdParam)).Trim();
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
                 query,
@@ -2639,17 +2637,17 @@ namespace RuntimeStuff
             int offsetRows = 0,
             Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery(
+            var query = (SqlQueryHelper.GetSelectQuery(
                              this.Options,
                              typeof(TFrom).GetMemberCache(),
                              keySelector.GetMemberCache(),
                              valueSelector.GetMemberCache()) + " " +
-                         SqlQueryBuilder.GetWhereClause(
+                         SqlQueryHelper.GetWhereClause(
                              whereExpression,
                              this.Options,
                              true,
                              out var cmdParam)).Trim();
-            query = SqlQueryBuilder.AddLimitOffsetClauseToQuery(
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
                 fetchRows,
                 offsetRows,
                 query,
@@ -2727,12 +2725,12 @@ namespace RuntimeStuff
             Func<object[], string[], T> itemFactory = null,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
                              whereExpression,
                              this.Options,
                              true,
                              out var cmdParam) +
-                         " " + SqlQueryBuilder.GetOrderBy(this.Options, orderByExpression)).Trim();
+                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
 
             return this.ToList(
                 query,
@@ -2806,12 +2804,12 @@ namespace RuntimeStuff
             CancellationToken ct = default,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryBuilder.GetSelectQuery<T>(this.Options) + " " + SqlQueryBuilder.GetWhereClause(
+            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
                              whereExpression,
                              this.Options,
                              true,
                              out var cmdParam) +
-                         " " + SqlQueryBuilder.GetOrderBy(this.Options, orderByExpression)).Trim();
+                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
 
             return this.ToListAsync(
                 query,
@@ -2934,11 +2932,11 @@ namespace RuntimeStuff
             if (!string.IsNullOrWhiteSpace(tableName))
                 Options.Map.Table<T>(tableName);
 
-            var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
+            var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
             var cmdParams = this.GetParams(item);
             query += " " + (whereExpression != null
-                ? SqlQueryBuilder.GetWhereClause(whereExpression, this.Options, true, out cmdParams)
-                : SqlQueryBuilder.GetWhereClause<T>(this.Options, out _));
+                ? SqlQueryHelper.GetWhereClause(whereExpression, this.Options, true, out cmdParams)
+                : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
 
             return this.ExecuteNonQuery(query, cmdParams, dbTransaction);
         }
@@ -2996,10 +2994,10 @@ namespace RuntimeStuff
             if (!string.IsNullOrWhiteSpace(tableName))
                 Options.Map.Table<T>(tableName);
             var cmdParams = this.GetParams(item);
-            var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
+            var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
             query += " " + (whereExpression != null
-                ? SqlQueryBuilder.GetWhereClause(whereExpression, this.Options, true, out cmdParams)
-                : SqlQueryBuilder.GetWhereClause<T>(this.Options, out _));
+                ? SqlQueryHelper.GetWhereClause(whereExpression, this.Options, true, out cmdParams)
+                : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
 
             return this.ExecuteNonQueryAsync(query, cmdParams, dbTransaction, token);
         }
@@ -3052,7 +3050,7 @@ namespace RuntimeStuff
                 var count = 0;
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
+                    var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
                     var typeCache = MemberCache.Create(typeof(T));
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
@@ -3136,7 +3134,7 @@ namespace RuntimeStuff
                 var count = 0;
                 using (dbTransaction ?? this.BeginTransaction())
                 {
-                    var query = SqlQueryBuilder.GetUpdateQuery(this.Options, updateColumns);
+                    var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
                     var typeCache = MemberCache.Create(typeof(T));
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))

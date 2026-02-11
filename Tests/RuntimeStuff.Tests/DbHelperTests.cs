@@ -295,5 +295,18 @@ CREATE TABLE student_courses (
                 "END", new {productCode = "R2093-AN595SM", companyId = 1 });
 
         }
+
+
+        [TestMethod]
+        public void Get_Max()
+        {
+            var con = new SqlConnection()
+               .Server("serv40")
+               .Database("Tamuz")
+               .Timeout(2)
+               .IntegratedSecurity(true);
+            var maxPrice = con.Max<DTO.SQLite.TestTable, long?>(x => x.Id, w => w.Id.In(1, 2, 3));
+        }
+
     }
 }

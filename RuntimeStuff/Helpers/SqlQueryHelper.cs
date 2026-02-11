@@ -1,24 +1,23 @@
-﻿// <copyright file="SqlQueryBuilder.cs" company="Rudnev Sergey">
+﻿// <copyright file="SqlQueryHelper.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Builders
+namespace RuntimeStuff.Helpers
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Text;
     using RuntimeStuff.Extensions;
-    using RuntimeStuff.Helpers;
     using RuntimeStuff.Options;
 
     /// <summary>
     /// Статический класс для генерации SQL-запросов (SELECT, INSERT, UPDATE, DELETE, JOIN, WHERE и т.д.).
     /// Поддерживает различные провайдеры SQL через <see cref="SqlProviderOptions"/>.
     /// </summary>
-    public static class SqlQueryBuilder
+    public static class SqlQueryHelper
     {
         /// <summary>
         /// Тип соединения для SQL JOIN.
@@ -66,7 +65,7 @@ namespace RuntimeStuff.Builders
                 clause.Append(" ORDER BY ");
                 _ = clause.Append(string.Join(
                     ", ",
-                    mi.PrimaryKeys.Length > 0 ? mi.PrimaryKeys.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix)) : mi.ColumnProperties.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? (options.NamePrefix + x.ColumnName + options.NameSuffix))));
+                    mi.PrimaryKeys.Length > 0 ? mi.PrimaryKeys.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix) : mi.ColumnProperties.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix)));
                 clause.Append(" ");
             }
 
@@ -552,13 +551,6 @@ namespace RuntimeStuff.Builders
             }
         }
 
-        private static object GetValue(MemberExpression me)
-        {
-            var lambda = Expression.Lambda<Func<object>>(
-                Expression.Convert(me, typeof(object)));
-            return lambda.Compile().Invoke();
-        }
-
         private static string Visit(Expression exp, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
             switch (exp)
@@ -575,9 +567,43 @@ namespace RuntimeStuff.Builders
                 case UnaryExpression ue:
                     return VisitUnary(ue, options, useParams, cmdParams);
 
+                case MethodCallExpression mce when mce.Arguments.Count == 2 && mce.Arguments[0] is MemberExpression:
+                    return VisitMethodCall(mce, options, useParams, cmdParams);
+
                 default:
                     throw new NotSupportedException($"Expression '{exp.NodeType}' is not supported.");
             }
+        }
+
+        private static string VisitMethodCall(MethodCallExpression mce, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
+        {
+            switch (mce.Method.Name.ToLower())
+            {
+                case "in" when mce.Arguments[0] is MemberExpression me && mce.Arguments[1] is NewArrayExpression ae:
+                    var member = VisitMember(me, options, useParams, cmdParams);
+                    var vals = (ExpressionHelper.GetValue(ae) as IEnumerable).Cast<object>().ToArray();
+                    if (useParams)
+                    {
+                        var sb = new StringBuilder($"{member} IN (");
+                        foreach (var val in vals)
+                        {
+                            var paramName = mce.Method.Name + "_" + (cmdParams.Count + 1);
+                            cmdParams[paramName] = val;
+                            sb.Append($"{options.ParamPrefix}{paramName}, ");
+                        }
+
+                        sb.Remove(sb.Length - 2, 2);
+                        sb.Append(")");
+                        return sb.ToString();
+                    }
+                    else
+                    {
+                        var inclause = $"{member} IN ({string.Join(", ", vals.Select(x => options.ToSqlLiteral(x)))})";
+                        return inclause;
+                    }
+            }
+
+            throw new NotImplementedException();
         }
 
         private static string VisitBinary(BinaryExpression be, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
@@ -599,7 +625,7 @@ namespace RuntimeStuff.Builders
 
                     if (ue.Operand is MemberExpression me2)
                     {
-                        cmdParams[paramName] = GetValue(me2);
+                        cmdParams[paramName] = ExpressionHelper.GetValue(me2);
                     }
                 }
 
@@ -607,7 +633,7 @@ namespace RuntimeStuff.Builders
                 {
                     var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
                     right = options.ParamPrefix + paramName;
-                    cmdParams[paramName] = GetValue(rme);
+                    cmdParams[paramName] = ExpressionHelper.GetValue(rme);
                 }
             }
 
@@ -624,7 +650,7 @@ namespace RuntimeStuff.Builders
                 return options.NamePrefix + (options.Map?.ResolveColumnName(mi, options.NamePrefix, options.NameSuffix) ?? mi.ColumnName) + options.NameSuffix;
             }
 
-            var value = GetValue(me);
+            var value = ExpressionHelper.GetValue(me);
             var paramName = (mi.ColumnName ?? mi.Name) + "_" + (cmdParams.Count + 1);
             return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value);
         }
