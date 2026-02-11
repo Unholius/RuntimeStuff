@@ -3,6 +3,7 @@ using System.Data.SqlClient;
 using RuntimeStuff.Extensions;
 using System.Data;
 using RuntimeStuff.MSTests.Models;
+using RuntimeStuff.Data;
 
 namespace RuntimeStuff.MSTests
 {
@@ -305,7 +306,8 @@ CREATE TABLE student_courses (
                .Database("Tamuz")
                .Timeout(2)
                .IntegratedSecurity(true);
-            var maxPrice = con.Max<DTO.SQLite.TestTable, long?>(x => x.Id, w => w.Id.In(1, 2, 3));
+            DbConnectionResolver.DefaultConnection = () => con;
+            var maxPrice = DTO.SQLite.TestTable.SelectOne(w => w.Id.In(1, 2, 3));
         }
 
     }

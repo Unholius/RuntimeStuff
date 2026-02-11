@@ -62,6 +62,12 @@ namespace RuntimeStuff
             this.Dispose(false);
         }
 
+        public object this[string propertyName]
+        {
+            get { return Get(propertyName); }
+            set { Set(value); }
+        }
+
         /// <summary>
         /// Событие <see cref="PropertyChanged" /> для внешних подписчиков.
         /// </summary>

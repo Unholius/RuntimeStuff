@@ -1,6 +1,8 @@
-﻿namespace RuntimeStuff.MSTests.DTO.SQLite
+﻿using RuntimeStuff.Data;
+
+namespace RuntimeStuff.MSTests.DTO.SQLite
 {
-    public sealed class TestTable
+    public sealed class TestTable : DbEntity<TestTable>
     {
         public long Id { get; set; }
         public long IntValue { get; set; }
