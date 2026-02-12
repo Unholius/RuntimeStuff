@@ -10,12 +10,16 @@ namespace RuntimeStuff
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
+#if DEBUG
     using System.Diagnostics;
+#endif
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Runtime.CompilerServices;
+#if DEBUG
     using RuntimeStuff.Collections;
+#endif
 
     /// <summary>
     /// Предоставляет кэшированную информацию о членах типа (класса, структуры, интерфейса) и их метаданных.
@@ -33,10 +37,12 @@ namespace RuntimeStuff
         /// </summary>
         protected static readonly ConcurrentDictionary<Type, MemberCache> TypeCache = new ConcurrentDictionary<Type, MemberCache>();
 
+#if DEBUG
         /// <summary>
         /// Логгер.
         /// </summary>
         protected static readonly ConcurrentLogBuffer<string> Logger = new ConcurrentLogBuffer<string>(10_000);
+#endif
 
         private static readonly MemberTypes[] DefaultMemberTypes =
         {
@@ -91,8 +97,10 @@ namespace RuntimeStuff
 
         private MemberCache(MemberInfo memberInfo, MemberCache parent)
         {
+#if DEBUG
             var sw = new Stopwatch();
             sw.Start();
+#endif
             if (memberInfo == null)
             {
                 throw new ArgumentNullException(nameof(memberInfo));
@@ -312,9 +320,10 @@ namespace RuntimeStuff
                     }
                 }
             }
-
+#if DEBUG
             sw.Stop();
             Logger.Add(memberInfo.Name + $"; {sw.ElapsedMilliseconds}");
+#endif
         }
 
         /// <summary>
@@ -1955,14 +1964,14 @@ namespace RuntimeStuff
 
         /// <summary>
         /// Устанавливает значение члена для указанного экземпляра.<br/>
-        /// Если конвертер значений не указан, то используется <see cref="Obj.ChangeType(object, Type, IFormatProvider)"/>.
+        /// Если конвертер значений не указан, то используется <see cref="Obj.ChangeType(object,System.Type,IFormatProvider)"/>.
         /// </summary>
         /// <param name="source">Экземпляр объекта.</param>
         /// <param name="value">Значение для установки.</param>
         /// <param name="valueConverter">Конвертер значения (необязательный).</param>
         public virtual void SetValue(object source, object value, Func<object, object> valueConverter = null)
         {
-            if (IsField && DeclaringType.IsValueType)
+            if (IsField && DeclaringType?.IsValueType == true)
             {
                 AsFieldInfo().SetValueDirect(__makeref(source), value);
             }
@@ -2129,10 +2138,7 @@ namespace RuntimeStuff
                 return;
             }
 
-            var ctor = Constructors.FirstOrDefault(x => x.IsPublic);
-            if (ctor == null)
-                throw new InvalidOperationException("Public constructor not found");
-
+            var ctor = Constructors.FirstOrDefault(x => x.IsPublic) ?? throw new InvalidOperationException("Public constructor not found");
             var parameters = ctor.GetParameters();
 
             // кеш аргументов по умолчанию
@@ -2150,7 +2156,7 @@ namespace RuntimeStuff
                     Expression.Convert(
                         Expression.ArrayIndex(argsParam, Expression.Constant(i)),
                         p.ParameterType))
-                .ToArray();
+                .ToArray<Expression>();
 
             var newExpr = Expression.New(ctor, ctorArgsExpr);
             var body = Expression.Convert(newExpr, typeof(object));

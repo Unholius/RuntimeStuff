@@ -647,7 +647,7 @@ namespace RuntimeStuff.Helpers
             var mi = MemberCache.Create(me.Member);
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
             {
-                return options.NamePrefix + (options.Map?.ResolveColumnName(mi, options.NamePrefix, options.NameSuffix) ?? mi.ColumnName) + options.NameSuffix;
+                return options.NamePrefix + (options.Map?.ResolveColumnName(mi, null, null) ?? mi.ColumnName) + options.NameSuffix;
             }
 
             var value = ExpressionHelper.GetValue(me);

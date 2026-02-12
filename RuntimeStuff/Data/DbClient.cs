@@ -278,7 +278,7 @@ namespace RuntimeStuff.Data
             var typeCache = MemberCache.Create<T>();
             for (var i = 0; i < typeCache.PrimaryKeys.Length; i++)
             {
-                parameters[typeCache.PrimaryKeys[i].Name] = id[i];
+                parameters[typeCache.PrimaryKeys[i].Name] = i < id.Length && id[i] != null ? id[i] : typeCache.PrimaryKeys[i].Getter(item);
             }
 
             return parameters;
@@ -1075,20 +1075,70 @@ namespace RuntimeStuff.Data
             }
         }
 
+        /// <summary>
+        /// Выполняет выборку записи по ключу и заполняет переданный экземпляр сущности
+        /// полученными данными.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">
+        /// Экземпляр сущности, который будет заполнен значениями из базы данных.
+        /// </param>
+        /// <param name="id">
+        /// Значения ключа (первичного или составного), используемые в условии WHERE.
+        /// </param>
+        /// <remarks>
+        /// Формирует SELECT-запрос на основе конфигурации сопоставления сущности
+        /// и добавляет условие WHERE по ключевым полям.
+        /// Полученные данные проецируются в переданный экземпляр <paramref name="item"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Может быть выброшено, если <paramref name="item"/> равен <c>null</c>.
+        /// </exception>
         public void Fill<T>(T item, params object[] id)
         {
             var query = SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " +
                         SqlQueryHelper.GetWhereClause<T>(this.Options, out _);
+
             var pCmdParams = GetKeyParams(item, id);
-            Query<List<T>, T>(query, pCmdParams, itemFactory: (objects, strings) => item);
+
+            Query<List<T>, T>(
+                query,
+                pCmdParams,
+                itemFactory: (objects, strings) => item);
         }
 
+        /// <summary>
+        /// Асинхронно выполняет выборку записи по ключу и заполняет переданный
+        /// экземпляр сущности полученными данными.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">
+        /// Экземпляр сущности, который будет заполнен значениями из базы данных.
+        /// </param>
+        /// <param name="id">
+        /// Значения ключа (первичного или составного), используемые в условии WHERE.
+        /// </param>
+        /// <returns>
+        /// Задача, представляющая асинхронную операцию заполнения сущности.
+        /// </returns>
+        /// <remarks>
+        /// Формирует SELECT-запрос и WHERE-условие аналогично методу <see cref="Fill{T}(T, object[])"/>,
+        /// но выполняет запрос асинхронно.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Может быть выброшено, если <paramref name="item"/> равен <c>null</c>.
+        /// </exception>
         public Task FillAsync<T>(T item, params object[] id)
         {
             var query = SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " +
                         SqlQueryHelper.GetWhereClause<T>(this.Options, out _);
+
             var pCmdParams = GetKeyParams(item, id);
-            return QueryAsync<List<T>, T>(query, pCmdParams, itemFactory: (objects, strings) => item);
+
+            return QueryAsync<List<T>, T>(
+                query,
+                pCmdParams,
+                itemFactory: (objects, strings) => item);
         }
 
         /// <summary>
@@ -3068,6 +3118,8 @@ namespace RuntimeStuff.Data
             params Expression<Func<T, object>>[] updateColumns)
             where T : class
         {
+            if (!string.IsNullOrWhiteSpace(tableName))
+                Options.Map.Table<T>(tableName);
             return UpdateRange<T>(list, dbTransaction, updateColumns);
         }
 

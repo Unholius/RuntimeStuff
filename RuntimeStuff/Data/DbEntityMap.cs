@@ -13,13 +13,13 @@
 // ***********************************************************************
 namespace RuntimeStuff.Data
 {
-    using RuntimeStuff.Builders;
-    using RuntimeStuff.Helpers;
-    using RuntimeStuff.Internal;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using RuntimeStuff.Builders;
+    using RuntimeStuff.Helpers;
+    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Class EntityMap.
@@ -32,43 +32,95 @@ namespace RuntimeStuff.Data
         internal Dictionary<Type, TypeMappingInfo> TypeMap { get; } = new Dictionary<Type, TypeMappingInfo>();
 
         /// <summary>
-        /// Автоматически настраивает имя таблицы и колонок
+        /// Автоматически сопоставляет таблицу и колонки сущности <typeparamref name="T"/>
         /// в формате <c>snake_case</c>.
         /// </summary>
-        /// <remarks>
-        /// Имя таблицы формируется из имени типа сущности.
-        /// Имена колонок формируются из имён свойств сущности.
-        /// </remarks>
-        /// <returns>Текущий экземпляр билдера для продолжения конфигурации.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
         public DbEntityMap MapToSnakeCase<T>()
             where T : class
         {
             return AutoMap<T>(StringHelper.ToSnakeCase);
         }
 
+        /// <summary>
+        /// Автоматически сопоставляет таблицу и колонки сущности <typeparamref name="T"/>
+        /// в формате <c>PascalCase / CamelCase</c>.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
         public DbEntityMap MapToCamelCase<T>()
             where T : class
         {
             return AutoMap<T>(StringHelper.ToCamelCase);
         }
 
+        /// <summary>
+        /// Автоматически сопоставляет таблицу и колонки сущности <typeparamref name="T"/>
+        /// в формате <c>kebab-case</c>.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
         public DbEntityMap MapToKebabCase<T>()
             where T : class
         {
             return AutoMap<T>(StringHelper.ToKebabCase);
         }
 
+        /// <summary>
+        /// Автоматически сопоставляет таблицу и колонки сущности <typeparamref name="T"/>
+        /// с помощью заданного делегата преобразования имён.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="nameMapper">
+        /// Делегат для преобразования имён таблиц и колонок.
+        /// Например, <c>StringHelper.ToSnakeCase</c>, <c>StringHelper.ToCamelCase</c>.
+        /// </param>
+        /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
+        /// <remarks>
+        /// Создаёт объект <see cref="TypeMappingInfo"/> для типа <typeparamref name="T"/> и
+        /// добавляет его в словарь <c>TypeMap</c>.
+        /// Для каждого свойства создаётся <see cref="PropertyMappingInfo"/> с преобразованным именем колонки.
+        /// </remarks>
         public DbEntityMap AutoMap<T>(Func<string, string> nameMapper)
-            where T : class
         {
-            var tmi = new TypeMappingInfo(typeof(T));
-            TypeMap[typeof(T)] = tmi;
-            tmi.TableName = nameMapper(typeof(T).Name);
-            foreach (var p in Obj.GetProperties<T>())
+            return AutoMap(nameMapper, typeof(T));
+        }
+
+        /// <summary>
+        /// Автоматически сопоставляет таблицу и колонки сущности
+        /// с помощью заданного делегата преобразования имён.
+        /// </summary>
+        /// <param name="nameMapper">
+        /// Делегат для преобразования имён таблиц и колонок.
+        /// Например, <c>StringHelper.ToSnakeCase</c>, <c>StringHelper.ToCamelCase</c>.
+        /// </param>
+        /// <param name="entityTypes">Типы сущностей.</param>
+        /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
+        /// <remarks>
+        /// Создаёт объект <see cref="TypeMappingInfo"/> для указанных типов и
+        /// добавляет его в словарь <c>TypeMap</c>.
+        /// Для каждого свойства создаётся <see cref="PropertyMappingInfo"/> с преобразованным именем колонки.
+        /// </remarks>
+        public DbEntityMap AutoMap(Func<string, string> nameMapper, params Type[] entityTypes)
+        {
+            foreach (var entityType in entityTypes)
             {
-                var pmi = new PropertyMappingInfo(p);
-                pmi.ColumnName = nameMapper(p.Name);
-                tmi.PropertyMap[p] = pmi;
+                var tmi = new TypeMappingInfo(entityType);
+                TypeMap[entityType] = tmi;
+
+                // Преобразуем имя таблицы
+                tmi.TableName = nameMapper(entityType.Name);
+
+                // Преобразуем имена колонок для каждого свойства
+                foreach (var p in Obj.GetProperties(entityType))
+                {
+                    var pmi = new PropertyMappingInfo(p)
+                    {
+                        ColumnName = nameMapper(p.Name),
+                    };
+                    tmi.PropertyMap[p] = pmi;
+                }
             }
 
             return this;
@@ -81,12 +133,7 @@ namespace RuntimeStuff.Data
         /// <returns>IEnumerable&lt;System.ValueTuple&lt;System.String, System.String&gt;&gt;.</returns>
         public IEnumerable<(string ColumnName, string PropertyName)> GetColumnToPropertyMap(Type type)
         {
-            if (type == null)
-            {
-                return Array.Empty<(string, string)>();
-            }
-
-            if (!this.TypeMap.TryGetValue(type, out var typeMapping))
+            if (type == null || !this.TypeMap.TryGetValue(type, out var typeMapping))
             {
                 return Array.Empty<(string, string)>();
             }

@@ -25,6 +25,8 @@ namespace RuntimeStuff.MSTests
                 ;
             // Создаем тестовые таблицы
             CreateTestTables();
+            DbContext.DefaultConnection = () => new SqliteConnection(_connectionString);
+            DbContext.GlobalMap = map;
         }
 
         [TestMethod]
@@ -38,10 +40,9 @@ namespace RuntimeStuff.MSTests
             var i = new DTO.SQLite.TestTable() { TextValue = "123" };
             DbEntity<TestTable>.Map = map;
             var db = DbClient.Create<SqliteConnection>(_connectionString, map);
-            DbConnectionResolver.DefaultConnection = () => db.Connection;
             var id = db.Insert(i, x => x.TextValue);
             i = new TestTable();
-            db.Fill(i, id);
+            i.Load(id);
             Assert.AreEqual("123", i.TextValue);
             Assert.AreEqual(id, i.Id);
             Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
@@ -67,7 +68,7 @@ CREATE TABLE test_table (
 
     boolean_value   INTEGER CHECK (boolean_value IN (0, 1)),
     date_value      TEXT,        -- ISO8601: YYYY-MM-DD
-    date_time_value  TEXT,        -- ISO8601: YYYY-MM-DD HH:MM:SS
+    date_time_value  TEXT,       -- ISO8601: YYYY-MM-DD HH:MM:SS
     time_value      TEXT,        -- HH:MM:SS
 
     decimal_value   NUMERIC(10,2),
@@ -318,13 +319,7 @@ CREATE TABLE student_courses (
         [TestMethod]
         public void Get_Max()
         {
-            var con = new SqlConnection()
-               .Server("serv40")
-               .Database("Tamuz")
-               .Timeout(2)
-               .IntegratedSecurity(true);
-            DbConnectionResolver.DefaultConnection = () => con;
-            var maxPrice = DTO.SQLite.TestTable.SelectOne(w => w.Id.In(1, 2, 3));
+            var x = TestTable.SelectOne(w => w.Id.In(1, 2, 3));
         }
 
     }
