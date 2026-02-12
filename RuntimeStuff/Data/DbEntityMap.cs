@@ -1,16 +1,7 @@
-﻿// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 01-06-2026
-//
-// Last Modified By : RS
-// Last Modified On : 01-07-2026
-// ***********************************************************************
-// <copyright file="DbEntityMap.cs" company="Rudnev Sergey">
+﻿// <copyright file="DbEntityMap.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
+
 namespace RuntimeStuff.Data
 {
     using System;
@@ -22,18 +13,31 @@ namespace RuntimeStuff.Data
     using RuntimeStuff.Internal;
 
     /// <summary>
-    /// Class EntityMap.
+    /// Представляет конфигурацию сопоставления CLR-типов (сущностей)
+    /// с объектами базы данных (таблицами, схемами и колонками).
     /// </summary>
+    /// <remarks>
+    /// Класс хранит информацию о соответствии типов, их свойств и имен таблиц/колонок.
+    /// Позволяет выполнять автоматическое сопоставление на основе стратегии преобразования имён,
+    /// а также получать обратные соответствия (колонка → свойство и наоборот).
+    /// </remarks>
     public class DbEntityMap
     {
         /// <summary>
-        /// Gets the entity mapping.
+        /// Хранилище сопоставлений типов сущностей с их метаданными отображения.
         /// </summary>
+        /// <remarks>
+        /// Ключ словаря — CLR-тип сущности (<see cref="Type"/>),
+        /// значение — объект <see cref="TypeMappingInfo"/>, содержащий информацию
+        /// о таблице, схеме и сопоставлении свойств с колонками.
+        /// Используется для быстрого разрешения соответствий при построении запросов
+        /// и выполнении операций маппинга.
+        /// </remarks>
         internal Dictionary<Type, TypeMappingInfo> TypeMap { get; } = new Dictionary<Type, TypeMappingInfo>();
 
         /// <summary>
-        /// Автоматически сопоставляет таблицу и колонки сущности <typeparamref name="T"/>
-        /// в формате <c>snake_case</c>.
+        /// Выполняет автоматическое сопоставление типа <typeparamref name="T"/>
+        /// с преобразованием имён таблицы и колонок в формат <c>snake_case</c>.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
@@ -44,8 +48,8 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Автоматически сопоставляет таблицу и колонки сущности <typeparamref name="T"/>
-        /// в формате <c>PascalCase / CamelCase</c>.
+        /// Выполняет автоматическое сопоставление типа <typeparamref name="T"/>
+        /// с преобразованием имён таблицы и колонок в формат <c>camelCase</c>.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
@@ -56,8 +60,8 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Автоматически сопоставляет таблицу и колонки сущности <typeparamref name="T"/>
-        /// в формате <c>kebab-case</c>.
+        /// Выполняет автоматическое сопоставление типа <typeparamref name="T"/>
+        /// с преобразованием имён таблицы и колонок в формат <c>kebab-case</c>.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
@@ -68,40 +72,28 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Автоматически сопоставляет таблицу и колонки сущности <typeparamref name="T"/>
-        /// с помощью заданного делегата преобразования имён.
+        /// Выполняет автоматическое сопоставление типа <typeparamref name="T"/>
+        /// с использованием пользовательской функции преобразования имён.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="nameMapper">
-        /// Делегат для преобразования имён таблиц и колонок.
-        /// Например, <c>StringHelper.ToSnakeCase</c>, <c>StringHelper.ToCamelCase</c>.
+        /// Функция преобразования имени типа и свойств в имя таблицы и колонок.
         /// </param>
         /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
-        /// <remarks>
-        /// Создаёт объект <see cref="TypeMappingInfo"/> для типа <typeparamref name="T"/> и
-        /// добавляет его в словарь <c>TypeMap</c>.
-        /// Для каждого свойства создаётся <see cref="PropertyMappingInfo"/> с преобразованным именем колонки.
-        /// </remarks>
         public DbEntityMap AutoMap<T>(Func<string, string> nameMapper)
         {
             return AutoMap(nameMapper, typeof(T));
         }
 
         /// <summary>
-        /// Автоматически сопоставляет таблицу и колонки сущности
-        /// с помощью заданного делегата преобразования имён.
+        /// Выполняет автоматическое сопоставление указанных типов
+        /// с использованием пользовательской функции преобразования имён.
         /// </summary>
         /// <param name="nameMapper">
-        /// Делегат для преобразования имён таблиц и колонок.
-        /// Например, <c>StringHelper.ToSnakeCase</c>, <c>StringHelper.ToCamelCase</c>.
+        /// Функция преобразования имени типа и свойств в имя таблицы и колонок.
         /// </param>
-        /// <param name="entityTypes">Типы сущностей.</param>
+        /// <param name="entityTypes">Массив типов сущностей для сопоставления.</param>
         /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
-        /// <remarks>
-        /// Создаёт объект <see cref="TypeMappingInfo"/> для указанных типов и
-        /// добавляет его в словарь <c>TypeMap</c>.
-        /// Для каждого свойства создаётся <see cref="PropertyMappingInfo"/> с преобразованным именем колонки.
-        /// </remarks>
         public DbEntityMap AutoMap(Func<string, string> nameMapper, params Type[] entityTypes)
         {
             foreach (var entityType in entityTypes)
@@ -109,10 +101,8 @@ namespace RuntimeStuff.Data
                 var tmi = new TypeMappingInfo(entityType);
                 TypeMap[entityType] = tmi;
 
-                // Преобразуем имя таблицы
                 tmi.TableName = nameMapper(entityType.Name);
 
-                // Преобразуем имена колонок для каждого свойства
                 foreach (var p in Obj.GetProperties(entityType))
                 {
                     var pmi = new PropertyMappingInfo(p)
@@ -127,10 +117,14 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Gets the column to property map.
+        /// Возвращает сопоставление колонок и свойств для указанного типа
+        /// в формате (ИмяКолонки, ИмяСвойства).
         /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>IEnumerable&lt;System.ValueTuple&lt;System.String, System.String&gt;&gt;.</returns>
+        /// <param name="type">Тип сущности.</param>
+        /// <returns>
+        /// Последовательность кортежей (ColumnName, PropertyName).
+        /// Если тип не найден — возвращается пустая последовательность.
+        /// </returns>
         public IEnumerable<(string ColumnName, string PropertyName)> GetColumnToPropertyMap(Type type)
         {
             if (type == null || !this.TypeMap.TryGetValue(type, out var typeMapping))
@@ -142,10 +136,14 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Gets the property to column map.
+        /// Возвращает сопоставление свойств и колонок для указанного типа
+        /// в формате (ИмяСвойства, ИмяКолонки).
         /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>IEnumerable&lt;System.ValueTuple&lt;System.String, System.String&gt;&gt;.</returns>
+        /// <param name="type">Тип сущности.</param>
+        /// <returns>
+        /// Последовательность кортежей (PropertyName, ColumnName).
+        /// Если тип не найден — возвращается пустая последовательность.
+        /// </returns>
         public IEnumerable<(string PropertyName, string ColumnName)> GetPropertyToColumnMap(Type type)
         {
             if (type == null)
@@ -162,12 +160,15 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Resolves the name of the column.
+        /// Определяет имя колонки, соответствующей указанному свойству,
+        /// с учётом заданного префикса и суффикса.
         /// </summary>
-        /// <param name="property">The property.</param>
-        /// <param name="namePrefix">The name prefix.</param>
-        /// <param name="nameSuffix">The name suffix.</param>
-        /// <returns>System.String.</returns>
+        /// <param name="property">Информация о свойстве.</param>
+        /// <param name="namePrefix">Префикс имени.</param>
+        /// <param name="nameSuffix">Суффикс имени.</param>
+        /// <returns>
+        /// Полное имя колонки или <c>null</c>, если сопоставление не найдено.
+        /// </returns>
         public string ResolveColumnName(PropertyInfo property, string namePrefix, string nameSuffix)
         {
             if (property?.DeclaringType == null)
@@ -184,11 +185,13 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Resolves the property.
+        /// Определяет свойство типа, соответствующее указанному имени колонки.
         /// </summary>
-        /// <param name="type">The type.</param>
-        /// <param name="columnName">Name of the column.</param>
-        /// <returns>PropertyInfo.</returns>
+        /// <param name="type">Тип сущности.</param>
+        /// <param name="columnName">Имя колонки.</param>
+        /// <returns>
+        /// Объект <see cref="PropertyInfo"/>, если найдено соответствие; иначе <c>null</c>.
+        /// </returns>
         public PropertyInfo ResolveProperty(Type type, string columnName)
         {
             if (type == null)
@@ -205,12 +208,15 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Resolves the name of the schema.
+        /// Определяет имя схемы для указанного типа
+        /// с учётом заданного префикса и суффикса.
         /// </summary>
-        /// <param name="type">The type.</param>
-        /// <param name="namePrefix">The name prefix.</param>
-        /// <param name="nameSuffix">The name suffix.</param>
-        /// <returns>System.String.</returns>
+        /// <param name="type">Тип сущности.</param>
+        /// <param name="namePrefix">Префикс имени.</param>
+        /// <param name="nameSuffix">Суффикс имени.</param>
+        /// <returns>
+        /// Полное имя схемы или <c>null</c>, если тип не сопоставлен.
+        /// </returns>
         public string ResolveSchemaName(Type type, string namePrefix, string nameSuffix)
         {
             if (type == null)
@@ -222,12 +228,15 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Resolves the name of the table.
+        /// Определяет имя таблицы для указанного типа
+        /// с учётом заданного префикса и суффикса.
         /// </summary>
-        /// <param name="type">The type.</param>
-        /// <param name="namePrefix">The name prefix.</param>
-        /// <param name="nameSuffix">The name suffix.</param>
-        /// <returns>System.String.</returns>
+        /// <param name="type">Тип сущности.</param>
+        /// <param name="namePrefix">Префикс имени.</param>
+        /// <param name="nameSuffix">Суффикс имени.</param>
+        /// <returns>
+        /// Полное имя таблицы или <c>null</c>, если тип не сопоставлен.
+        /// </returns>
         public string ResolveTableName(Type type, string namePrefix, string nameSuffix)
         {
             if (type == null)
@@ -239,10 +248,12 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Resolves the type.
+        /// Определяет тип сущности по имени таблицы.
         /// </summary>
-        /// <param name="tableName">Name of the table.</param>
-        /// <returns>Type.</returns>
+        /// <param name="tableName">Имя таблицы.</param>
+        /// <returns>
+        /// Тип сущности, соответствующий таблице, либо <c>null</c>, если соответствие не найдено.
+        /// </returns>
         public Type ResolveType(string tableName)
         {
             if (string.IsNullOrWhiteSpace(tableName))
@@ -254,19 +265,20 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Tables this instance.
+        /// Возвращает построитель сопоставления для типа <typeparamref name="T"/>.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <returns>EntityMapBuilder&lt;T&gt;.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <returns>Экземпляр <see cref="EntityMapBuilder{T}"/>.</returns>
         public EntityMapBuilder<T> Table<T>()
             where T : class => new EntityMapBuilder<T>(this, this.GetOrAdd(typeof(T)));
 
         /// <summary>
-        /// Tables the specified table name.
+        /// Возвращает построитель сопоставления для типа <typeparamref name="T"/>
+        /// с явной установкой имени таблицы.
         /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="tableName">Name of the table.</param>
-        /// <returns>EntityMapBuilder&lt;T&gt;.</returns>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="tableName">Имя таблицы.</param>
+        /// <returns>Экземпляр <see cref="EntityMapBuilder{T}"/>.</returns>
         public EntityMapBuilder<T> Table<T>(string tableName)
             where T : class
         {
@@ -276,11 +288,6 @@ namespace RuntimeStuff.Data
             return builder;
         }
 
-        /// <summary>
-        /// Gets the or add.
-        /// </summary>
-        /// <param name="type">The type.</param>
-        /// <returns>EntityMapping.</returns>
         private TypeMappingInfo GetOrAdd(Type type)
         {
             if (!this.TypeMap.TryGetValue(type, out var typeProps))
