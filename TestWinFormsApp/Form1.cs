@@ -17,7 +17,7 @@ namespace TestWinFormsApp
 
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
             var sw = new Stopwatch();
             sw.Start();
@@ -50,7 +50,8 @@ namespace TestWinFormsApp
             _ = m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled, x => !x);
             m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
             m.BindProperties(x => x.Number, m, x => x.Number);
-            MessageBus.SingleThreaded["my_form"].Subscribe<string>(OnMessage, SynchronizationContext.Current, s => s == "123");
+            MessageBus.SingleThreaded.Subscribe<string>(OnMessage, SynchronizationContext.Current);
+            await MessageBus.SingleThreaded.StartServer(12345);
         }
 
         private void OnMessage(string message)
@@ -99,8 +100,9 @@ namespace TestWinFormsApp
             btnLoad.Enabled = true;
         }
 
-        private void btnOpenForm2_Click(object sender, EventArgs e)
+        private async void btnOpenForm2_Click(object sender, EventArgs e)
         {
+            await MessageBus.PublishAsync(new Uri("http://localhost:12345/"), "Hello Form2!");
             btnOpenForm2.Text = "Open Form 2";
             var f2 = new Form2();
             f2.ShowDialog();

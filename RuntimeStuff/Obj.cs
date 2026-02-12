@@ -2160,36 +2160,40 @@ namespace RuntimeStuff
                 return cachedType;
             }
 
-            Type foundType = null;
-            var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            var foundType = Type.GetType(typeOrInterfaceName, throwOnError: false);
 
-            foreach (var assembly in loadedAssemblies)
+            if (foundType == null)
             {
-                try
-                {
-                    var type = assembly.GetTypes()
-                        .FirstOrDefault(t =>
-                            string.Equals(t.FullName, typeOrInterfaceName, StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(t.Name, typeOrInterfaceName, StringComparison.OrdinalIgnoreCase));
+                var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 
-                    if (type != null)
+                foreach (var assembly in loadedAssemblies)
+                {
+                    try
                     {
-                        foundType = type;
-                        break;
+                        var type = assembly.GetTypes()
+                            .FirstOrDefault(t =>
+                                string.Equals(t.FullName, typeOrInterfaceName, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(t.Name, typeOrInterfaceName, StringComparison.OrdinalIgnoreCase));
+
+                        if (type != null)
+                        {
+                            foundType = type;
+                            break;
+                        }
                     }
-                }
-                catch (ReflectionTypeLoadException ex)
-                {
-                    var type = ex.Types
-                        .FirstOrDefault(t =>
-                            t != null &&
-                            (string.Equals(t.FullName, typeOrInterfaceName, StringComparison.OrdinalIgnoreCase) ||
-                             string.Equals(t.Name, typeOrInterfaceName, StringComparison.OrdinalIgnoreCase)));
-
-                    if (type != null)
+                    catch (ReflectionTypeLoadException ex)
                     {
-                        foundType = type;
-                        break;
+                        var type = ex.Types
+                            .FirstOrDefault(t =>
+                                t != null &&
+                                (string.Equals(t.FullName, typeOrInterfaceName, StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(t.Name, typeOrInterfaceName, StringComparison.OrdinalIgnoreCase)));
+
+                        if (type != null)
+                        {
+                            foundType = type;
+                            break;
+                        }
                     }
                 }
             }
@@ -2455,6 +2459,11 @@ namespace RuntimeStuff
             if (type.IsInterface)
             {
                 type = GetDefaultImplementation(type);
+            }
+
+            if (type == typeof(string))
+            {
+                return null;
             }
 
             var ctor = FindConstructor(type, args) ?? throw new InvalidOperationException($"No constructor found for type {type}");

@@ -5,9 +5,7 @@
 namespace RuntimeStuff.MSTests
 {
     using System.Diagnostics;
-#if DEBUG
     [TestClass]
-#endif
     public class MessageBusTests
     {
         #region Тесты конструктора

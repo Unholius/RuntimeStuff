@@ -20,7 +20,7 @@ namespace RuntimeStuff
     /// а также ожидать сообщения с возможностью фильтрации, таймаута и отмены.
     /// Потокобезопасен для публикации и подписки.
     /// </remarks>
-    public sealed class MessageBus : IDisposable
+    public sealed partial class MessageBus : IDisposable
     {
         private static readonly ConcurrentDictionary<string, MessageBus> Channels = new ConcurrentDictionary<string, MessageBus>();
         private readonly ConcurrentDictionary<Type, List<Delegate>> handlers = new ConcurrentDictionary<Type, List<Delegate>>();
@@ -101,6 +101,16 @@ namespace RuntimeStuff
         public void Dispose()
         {
             if (disposed) return; // безопасный повторный вызов
+
+            StopAllServers();
+            serverCts.Dispose();
+
+            // Останавливаем обработку очереди
+            lock (RetryLock)
+            {
+                retryTimer?.Dispose();
+            }
+
             disposed = true;
             running = false;
 

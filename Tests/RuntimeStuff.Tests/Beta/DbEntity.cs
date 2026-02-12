@@ -12,7 +12,7 @@ namespace RuntimeStuff.Data
     /// Базовый абстрактный класс для сущностей базы данных с поддержкой CRUD-операций.
     /// </summary>
     /// <typeparam name="T">Тип сущности, наследуемый от класса.</typeparam>
-    public abstract class DbEntity<T> : DbEntityBase
+    public sealed class DbEntity<T> : DbEntityBase
         where T : class
     {
         /// <summary>
@@ -22,7 +22,7 @@ namespace RuntimeStuff.Data
         /// <remarks>
         /// При создании экземпляра инициализируется кэш членов через <see cref="MemberCache"/>.
         /// </remarks>
-        protected DbEntity()
+        public DbEntity()
         {
             MemberCache.Create<T>();
         }
@@ -38,14 +38,9 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
-        /// Выбирает одну сущность из базы данных, удовлетворяющую условию.
+        /// Gets the type of the entity associated with this instance.
         /// </summary>
-        /// <param name="whereExpression">Выражение фильтрации.</param>
-        /// <returns>Первый объект типа <typeparamref name="T"/>, соответствующий условию.</returns>
-        public static T SelectOne(Expression<Func<T, bool>> whereExpression)
-        {
-            return GetClient().First<T>(whereExpression);
-        }
+        public Type EntityType => typeof(T);
 
         /// <summary>
         /// Выбирает все сущности из базы данных, удовлетворяющие условию.
@@ -54,7 +49,17 @@ namespace RuntimeStuff.Data
         /// <returns>Коллекция объектов типа <typeparamref name="T"/>.</returns>
         public static IEnumerable<T> Select(Expression<Func<T, bool>> whereExpression)
         {
-            return GetClient().ToList<T>(whereExpression);
+            return GetClient().ToList(whereExpression);
+        }
+
+        /// <summary>
+        /// Выбирает одну сущность из базы данных, удовлетворяющую условию.
+        /// </summary>
+        /// <param name="whereExpression">Выражение фильтрации.</param>
+        /// <returns>Первый объект типа <typeparamref name="T"/>, соответствующий условию.</returns>
+        public static T SelectOne(Expression<Func<T, bool>> whereExpression)
+        {
+            return GetClient().First(whereExpression);
         }
 
         /// <summary>
@@ -66,18 +71,18 @@ namespace RuntimeStuff.Data
         /// </remarks>
         public void Load(params object[] id)
         {
-            GetClient().Fill<T>(this as T, id);
+            GetClient().Fill(this as T, id);
         }
 
         /// <summary>
         /// Сохраняет текущий экземпляр сущности в базу данных.
         /// </summary>
         /// <remarks>
-        /// Использует <see cref="RuntimeStuff.Data.DbClient.Update{T}(T, System.Linq.Expressions.Expression{System.Func{T, object}}[])"/> для обновления данных.
+        /// Использует <see cref="DbClient.Update{T}(T, System.Linq.Expressions.Expression{System.Func{T, object}}[])"/> для обновления данных.
         /// </remarks>
         public void Save()
         {
-            GetClient().Update<T>(this as T);
+            GetClient().Update(this as T);
         }
 
         /// <summary>

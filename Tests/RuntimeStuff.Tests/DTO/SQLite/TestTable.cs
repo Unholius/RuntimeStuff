@@ -2,7 +2,7 @@
 
 namespace RuntimeStuff.MSTests.DTO.SQLite
 {
-    public sealed class TestTable : DbEntity<TestTable>
+    public sealed class TestTable
     {
         public long Id { get; set; }
         public long IntValue { get; set; }

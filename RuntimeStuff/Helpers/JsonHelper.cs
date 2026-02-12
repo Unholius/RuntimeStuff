@@ -218,7 +218,7 @@ namespace RuntimeStuff.Helpers
             try
             {
                 return FindNodes(json, nodeNameSelector)
-                    .Where(v => searchInArrays ? !IsObjectOrArray(v) : IsObject(v))
+                    .Where(v => !searchInArrays || !IsObjectOrArray(v))
                     .Select(Unwrap)
                     .ToArray();
             }
@@ -569,6 +569,9 @@ namespace RuntimeStuff.Helpers
         {
             switch (obj)
             {
+                case Type t:
+                    return Quote(t.FullName);
+
                 case string s:
                     return Quote(EscapeString(s));
 

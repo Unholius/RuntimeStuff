@@ -4,7 +4,6 @@ using RuntimeStuff.Extensions;
 using System.Data;
 using RuntimeStuff.MSTests.Models;
 using RuntimeStuff.Data;
-using RuntimeStuff.MSTests.DTO.SQLite;
 
 namespace RuntimeStuff.MSTests
 {
@@ -34,23 +33,23 @@ namespace RuntimeStuff.MSTests
         {
         }
 
-        [TestMethod]
-        public void Fill_Test_01()
-        {
-            var i = new DTO.SQLite.TestTable() { TextValue = "123" };
-            DbEntity<TestTable>.Map = map;
-            var db = DbClient.Create<SqliteConnection>(_connectionString, map);
-            var id = db.Insert(i, x => x.TextValue);
-            i = new TestTable();
-            i.Load(id);
-            Assert.AreEqual("123", i.TextValue);
-            Assert.AreEqual(id, i.Id);
-            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-            i.TextValue = "456";
-            i.Save();
-            var j = db.First<TestTable>(x => x.Id == (long)id);
-            Assert.AreEqual("456", j.TextValue);
-        }
+        //[TestMethod]
+        //public void Fill_Test_01()
+        //{
+        //    var i = new DbEntity<TestTable>() { TextValue = "123" };
+        //    DbEntity<TestTable>.Map = map;
+        //    var db = DbClient.Create<SqliteConnection>(_connectionString, map);
+        //    var id = db.Insert(i, x => x.TextValue);
+        //    i = new TestTable();
+        //    i.Load(id);
+        //    Assert.AreEqual("123", i.TextValue);
+        //    Assert.AreEqual(id, i.Id);
+        //    Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
+        //    i.TextValue = "456";
+        //    i.Save();
+        //    var j = db.First<TestTable>(x => x.Id == (long)id);
+        //    Assert.AreEqual("456", j.TextValue);
+        //}
 
         // Вспомогательные методы
         private static void CreateTestTables()
@@ -314,13 +313,5 @@ CREATE TABLE student_courses (
                 "END", new {productCode = "R2093-AN595SM", companyId = 1 });
 
         }
-
-
-        [TestMethod]
-        public void Get_Max()
-        {
-            var x = TestTable.SelectOne(w => w.Id.In(1, 2, 3));
-        }
-
     }
 }

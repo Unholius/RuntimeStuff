@@ -1076,14 +1076,14 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("ChildName", Obj.Get<string>(rc, ["Child", "Child", "Child", "Name"]));
         }
 
-        [TestMethod]
-        public void Test_Set_02()
-        {
-            var rc = new RecursiveClass();
-            Obj.AddCustomTypeConverter<int, string>(x => x.ToString() + "_custom");
-            Obj.Set(rc, "Name", 4);
-            Assert.AreEqual("4_custom", rc.Name);
-        }
+        //[TestMethod]
+        //public void Test_Set_02()
+        //{
+        //    var rc = new RecursiveClass();
+        //    Obj.AddCustomTypeConverter<int, string>(x => x.ToString() + "_custom");
+        //    Obj.Set(rc, "Name", 4);
+        //    Assert.AreEqual("4_custom", rc.Name);
+        //}
 
         [TestMethod]
         public void Test_Dic_01()

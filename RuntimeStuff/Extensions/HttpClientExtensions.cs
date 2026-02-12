@@ -211,7 +211,7 @@ namespace RuntimeStuff.Extensions
             bool ensureSuccessStatusCode,
             CancellationToken token = default)
         {
-            Uri uri = null;
+            Uri uri;
             if (string.IsNullOrWhiteSpace(requestUri))
             {
                 uri = client.BaseAddress ?? throw new InvalidOperationException("BaseAddress is not set.");
@@ -266,8 +266,9 @@ namespace RuntimeStuff.Extensions
                 httpContent = new StringContent(body, Encoding.UTF8, contentType);
             }
 
-            using (var request = new HttpRequestMessage(method, uri) { Content = httpContent })
+            using (var request = new HttpRequestMessage(method, uri))
             {
+                request.Content = httpContent;
                 using (var response = await client.SendAsync(request, token).ConfigureAwait(false))
                 {
                     if (ensureSuccessStatusCode)
