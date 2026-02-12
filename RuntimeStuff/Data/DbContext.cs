@@ -1,4 +1,4 @@
-﻿// <copyright file="DbConnectionResolver.cs" company="Rudnev Sergey">
+﻿// <copyright file="DbContext.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
@@ -17,7 +17,7 @@ namespace RuntimeStuff.Data
     /// Поддерживает как глобальное подключение по умолчанию,
     /// так и подключение, специфичное для конкретной сущности.
     /// </remarks>
-    public abstract class DbConnectionResolver
+    public abstract class DbContext
     {
         /// <summary>
         /// Получает или задаёт фабрику подключения по умолчанию.
@@ -45,7 +45,7 @@ namespace RuntimeStuff.Data
         /// Используется для хранения метаданных mapping-конфигурации
         /// (таблицы, схемы, колонки и т.д.).
         /// </remarks>
-        public static DbEntityMap GlobalMap { get; internal set; } = new DbEntityMap();
+        public static DbEntityMap GlobalMap { get; set; } = new DbEntityMap();
 
         /// <summary>
         /// Получает или задаёт текущий экземпляр резолвера подключений.
@@ -54,7 +54,7 @@ namespace RuntimeStuff.Data
         /// Позволяет централизованно заменить стратегию разрешения
         /// подключений в приложении.
         /// </remarks>
-        public static DbConnectionResolver Instance { get; set; }
+        public static DbContext Instance { get; set; }
 
         /// <summary>
         /// Разрешает подключение к базе данных для указанного типа сущности.

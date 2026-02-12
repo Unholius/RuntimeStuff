@@ -36,6 +36,7 @@ namespace RuntimeStuff.Data
         /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
         /// Создаёт новый экземпляр клиента с автоматически созданным соединением.
         /// </summary>
+        /// <param name="map">Глобальная карта сопоставлений.</param>
         public DbClient(DbEntityMap map = null)
             : base(new T(), map)
         {
@@ -80,6 +81,7 @@ namespace RuntimeStuff.Data
         /// </summary>
         /// <param name="connectionString">Строка подключения.</param>
         /// <returns>Экземпляр <see cref="DbClient{T}" />.</returns>
+        /// <param name="map">Глобальная карта сопоставлений.</param>
         public static DbClient<T> Create(string connectionString, DbEntityMap map = null)
         {
             var con = new T { ConnectionString = connectionString };

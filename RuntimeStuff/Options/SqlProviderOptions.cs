@@ -13,10 +13,10 @@
 // ***********************************************************************
 namespace RuntimeStuff.Options
 {
-    using RuntimeStuff.Data;
     using System;
     using System.Data;
     using System.Globalization;
+    using RuntimeStuff.Data;
 
     /// <summary>
     /// Class SqlProviderOptions. This class cannot be inherited.
