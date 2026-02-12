@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Internal
+namespace RuntimeStuff.Data
 {
     using System;
     using System.Reflection;
@@ -24,7 +24,7 @@ namespace RuntimeStuff.Internal
         /// </exception>
         public PropertyMappingInfo(PropertyInfo property)
         {
-            this.Property = property ?? throw new ArgumentNullException(nameof(property));
+            Property = property ?? throw new ArgumentNullException(nameof(property));
         }
 
         /// <summary>

@@ -7,7 +7,7 @@ namespace RuntimeStuff.Builders
     using System;
     using System.Linq.Expressions;
     using System.Reflection;
-    using RuntimeStuff.Internal;
+    using RuntimeStuff.Data;
 
     /// <summary>
     /// Fluent-builder для настройки сопоставления свойства сущности

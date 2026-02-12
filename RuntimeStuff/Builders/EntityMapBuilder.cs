@@ -9,7 +9,6 @@ namespace RuntimeStuff.Builders
     using System.Reflection;
     using RuntimeStuff.Data;
     using RuntimeStuff.Helpers;
-    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Предоставляет fluent-интерфейс для конфигурации сопоставления

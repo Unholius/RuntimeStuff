@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Internal
+namespace RuntimeStuff.Data
 {
     using System;
     using System.Collections.Generic;
@@ -25,8 +25,8 @@ namespace RuntimeStuff.Internal
         /// </exception>
         internal TypeMappingInfo(Type entityType)
         {
-            this.EntityType = entityType ?? throw new ArgumentNullException(nameof(entityType));
-            this.PropertyMap = new Dictionary<PropertyInfo, PropertyMappingInfo>();
+            EntityType = entityType ?? throw new ArgumentNullException(nameof(entityType));
+            PropertyMap = new Dictionary<PropertyInfo, PropertyMappingInfo>();
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace RuntimeStuff.Internal
         /// значением — объект <see cref="PropertyMappingInfo"/>, описывающий
         /// параметры сопоставления с колонкой.
         /// </remarks>
-        public IDictionary<PropertyInfo, PropertyMappingInfo> PropertyColumns => this.PropertyMap;
+        public IDictionary<PropertyInfo, PropertyMappingInfo> PropertyColumns => PropertyMap;
 
         /// <summary>
         /// Получает или задаёт имя схемы базы данных,
