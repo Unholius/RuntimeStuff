@@ -12,7 +12,7 @@
 // <summary></summary>
 // ***********************************************************************
 
-namespace RuntimeStuff
+namespace RuntimeStuff.Data
 {
     using System.Collections.Concurrent;
     using System.Data;

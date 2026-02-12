@@ -22,6 +22,7 @@ namespace RuntimeStuff.Extensions
     using System.Linq.Expressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using RuntimeStuff.Data;
     using RuntimeStuff.Options;
 
     /// <summary>

@@ -11,7 +11,7 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+namespace RuntimeStuff.Data
 {
     using System;
     using System.Collections.Generic;
@@ -23,7 +23,7 @@ namespace RuntimeStuff
     /// <summary>
     /// Class EntityMap.
     /// </summary>
-    public class EntityMap
+    public class DbEntityMap
     {
         /// <summary>
         /// Gets the entity mapping.

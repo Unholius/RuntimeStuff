@@ -11,7 +11,7 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+namespace RuntimeStuff.Data
 {
     using System;
     using System.Collections;
@@ -26,6 +26,7 @@ namespace RuntimeStuff
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using RuntimeStuff;
     using RuntimeStuff.Collections;
     using RuntimeStuff.Extensions;
     using RuntimeStuff.Helpers;
@@ -1357,6 +1358,18 @@ namespace RuntimeStuff
             return pagesCount;
         }
 
+        public IReadOnlyDictionary<string, object> GetKeyParams<T>(T item, params object[] id)
+        {
+            var parameters = new Dictionary<string, object>();
+            var typeCache = MemberCache.Create<T>();
+            for (var i = 0; i < typeCache.PrimaryKeys.Length; i++)
+            {
+                parameters[typeCache.PrimaryKeys[i].Name] = id[i];
+            }
+
+            return parameters;
+        }
+
         /// <summary>
         /// Получает параметры для запроса на основе переданного объекта.
         /// </summary>
@@ -1868,6 +1881,14 @@ namespace RuntimeStuff
             CancellationToken token = default)
             where TFrom : class => ChangeType<T>((await this.AggAsync("MIN", whereExpression, token, columnSelector.ConvertExpression())
                 .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
+
+        public void Fill<T>(T item, params object[] id)
+        {
+            var query = SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " +
+                        SqlQueryHelper.GetWhereClause<T>(this.Options, out _);
+            var pCmdParams = GetKeyParams(item, id);
+            Query<List<T>, T>(query, pCmdParams, itemFactory: (objects, strings) => item);
+        }
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов.

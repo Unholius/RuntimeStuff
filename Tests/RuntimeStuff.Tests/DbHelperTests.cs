@@ -4,13 +4,14 @@ using RuntimeStuff.Extensions;
 using System.Data;
 using RuntimeStuff.MSTests.Models;
 using RuntimeStuff.Data;
+using RuntimeStuff.MSTests.DTO.SQLite;
 
 namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public partial class DbHelperIntegrationTests
     {
-        private static EntityMap? map;
+        private static DbEntityMap? map;
         private static string? _connectionString;
 
         [ClassInitialize]
@@ -18,7 +19,7 @@ namespace RuntimeStuff.MSTests
         {
             // Получаем строку подключения из конфигурации тестов
             _connectionString = "Data Source=.\\Databases\\sqlte_test.db";
-            map = new EntityMap();
+            map = new DbEntityMap();
             map
                 .Table<DTO.SQLite.TestTable>("test_table")
                 .Property(x => x.IntValue, "int_value")
@@ -32,6 +33,17 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Dumb_Test()
         {
+        }
+
+        [TestMethod]
+        public void Fill_Test_01()
+        {
+            var i = new DTO.SQLite.TestTable() { TextValue = "123" };
+            var db = DbClient.Create<SqliteConnection>(_connectionString);
+            var id = db.Insert(i);
+            i = new TestTable();
+            db.Options.Map = map;
+            db.Fill(i, id);
         }
 
         // Вспомогательные методы

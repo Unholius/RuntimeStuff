@@ -13,6 +13,7 @@
 // ***********************************************************************
 namespace RuntimeStuff.Options
 {
+    using RuntimeStuff.Data;
     using System;
     using System.Data;
     using System.Globalization;
@@ -98,7 +99,7 @@ namespace RuntimeStuff.Options
         /// Gets or sets the map.
         /// </summary>
         /// <value>The map.</value>
-        public EntityMap Map { get; set; } = new EntityMap();
+        public DbEntityMap Map { get; set; } = new DbEntityMap();
 
         /// <summary>
         /// Gets or sets the name prefix.

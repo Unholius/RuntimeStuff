@@ -16,7 +16,7 @@ namespace RuntimeStuff.Builders
     using System;
     using System.Linq.Expressions;
     using System.Reflection;
-    using RuntimeStuff;
+    using RuntimeStuff.Data;
     using RuntimeStuff.Internal;
 
     /// <summary>
@@ -30,7 +30,7 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <param name="map">The map.</param>
         /// <param name="tableName">Name of the table.</param>
-        internal EntityMapBuilder(EntityMap map, string tableName)
+        internal EntityMapBuilder(DbEntityMap map, string tableName)
             : this(map, new EntityMapping(typeof(T)))
         {
             this.Table(tableName);
@@ -41,7 +41,7 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <param name="map">The map.</param>
         /// <param name="mapping">The mapping.</param>
-        internal EntityMapBuilder(EntityMap map, EntityMapping mapping)
+        internal EntityMapBuilder(DbEntityMap map, EntityMapping mapping)
         {
             this.Map = map;
             this.EntityMapping = mapping;
@@ -56,7 +56,7 @@ namespace RuntimeStuff.Builders
         /// <summary>
         /// Gets the map.
         /// </summary>
-        internal EntityMap Map { get; }
+        internal DbEntityMap Map { get; }
 
         /// <summary>
         /// Gets the property.

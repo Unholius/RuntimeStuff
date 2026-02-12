@@ -14,17 +14,31 @@ namespace RuntimeStuff.Data
         where T : class
     {
         private static ConcurrentDictionary<IDbConnection, DbClient> clientCache = new ConcurrentDictionary<IDbConnection, DbClient>();
+        private MemberCache cache;
+        private static readonly MessageBus notifier = new MessageBus(1);
+
+        public DbEntity()
+        {
+            cache = MemberCache.Create<T>();
+        }
 
         public static T SelectOne(Expression<Func<T, bool>> whereExpression)
         {
-            var db = GetClient();
-            return db.First<T>(whereExpression);
+            return GetClient().First<T>(whereExpression);
         }
 
-        public static IEnumerable<T> Where(Expression<Func<T, bool>> whereExpression)
+        public static IEnumerable<T> Select(Expression<Func<T, bool>> whereExpression)
         {
-            var db = GetClient();
-            return db.ToList<T>(whereExpression);
+            return GetClient().ToList<T>(whereExpression);
+        }
+
+        public void Load(params object[] id)
+        {
+           
+        }
+
+        public void Save()
+        {
         }
 
         private static DbClient GetClient()

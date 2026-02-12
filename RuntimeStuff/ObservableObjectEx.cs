@@ -64,8 +64,8 @@ namespace RuntimeStuff
 
         public object this[string propertyName]
         {
-            get { return Get(propertyName); }
-            set { Set(value); }
+            get => Get(propertyName);
+            set => Set(value);
         }
 
         /// <summary>
@@ -174,7 +174,7 @@ namespace RuntimeStuff
         /// (например, в базовых классах моделей представления).
         /// Значения кэшируются во внутреннем хранилище и инициализируются лениво.
         /// </remarks>
-        public T Get<T>([CallerMemberName] string propertyName = null)
+        public virtual T Get<T>([CallerMemberName] string propertyName = null)
         {
             return (T)values.GetOrAdd(propertyName, x => default(T));
         }
@@ -196,7 +196,7 @@ namespace RuntimeStuff
         /// (например, в базовых классах моделей представления).
         /// Значения кэшируются во внутреннем хранилище и инициализируются лениво.
         /// </remarks>
-        public object Get([CallerMemberName] string propertyName = null)
+        public virtual object Get([CallerMemberName] string propertyName = null)
         {
             return values.GetOrAdd(propertyName, x => null);
         }
@@ -247,7 +247,7 @@ namespace RuntimeStuff
         /// <param name="onChanged">Действие после изменения свойства.</param>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
-        public bool Set<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
+        public virtual bool Set<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
         {
             if (Equals(field, value))
             {
@@ -271,7 +271,7 @@ namespace RuntimeStuff
         /// <param name="onChanged">Действие после изменения свойства.</param>
         /// <param name="propertyName">Имя свойства. Если не задано, используется имя вызывающего члена.</param>
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
-        public bool Set<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
+        public virtual bool Set<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
         {
             if (Equals(field, value))
             {
@@ -305,7 +305,7 @@ namespace RuntimeStuff
         /// Предназначен для использования в реализациях шаблона
         /// <see cref="INotifyPropertyChanged"/>.
         /// </remarks>
-        public void Set<T>(T value, [CallerMemberName] string propertyName = null)
+        public virtual void Set<T>(T value, [CallerMemberName] string propertyName = null)
         {
             values[propertyName] = value;
             OnPropertyChanged(propertyName);
