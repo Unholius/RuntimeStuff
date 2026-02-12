@@ -67,22 +67,27 @@ namespace RuntimeStuff.Data
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
         /// </summary>
-        public DbClient()
+        /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
+        public DbClient(DbEntityMap map = null)
         {
             this.ValueConverter = (fieldName, fieldValue, propInfo, item) =>
                 ChangeType(fieldValue is string s ? s.Trim() : fieldValue, propInfo.PropertyType);
+
+            this.Options.Map = map;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
         /// </summary>
         /// <param name="con">The con.</param>
+        /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
         /// <exception cref="System.ArgumentNullException">con.</exception>
-        public DbClient(IDbConnection con)
-            : this()
+        public DbClient(IDbConnection con, DbEntityMap map = null)
+            : this(map)
         {
             this.Connection = con ?? throw new ArgumentNullException(nameof(con));
             this.Options = SqlProviderOptions.GetInstance(con.GetType().Name);
+            this.Options.Map = map;
         }
 
         /// <summary>
@@ -172,13 +177,6 @@ namespace RuntimeStuff.Data
         public bool EnableLogging { get; set; }
 
         /// <summary>
-        /// Retrieves a collection of query log entries in chronological order.
-        /// </summary>
-        /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
-        /// oltarget to newest entry. Returns an empty collection if no logs are available.</returns>
-        public IEnumerable<string> QueryLogs => this.queryLogs;
-
-        /// <summary>
         /// Gets a value indicating whether признак того, что экземпляр <see cref="DbClient" /> был освобождён.
         /// </summary>
         /// <value><c>true</c> if this instance is disposed; otherwise, <c>false</c>.</value>
@@ -222,6 +220,13 @@ namespace RuntimeStuff.Data
         }
 
         /// <summary>
+        /// Retrieves a collection of query log entries in chronological order.
+        /// </summary>
+        /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
+        /// oltarget to newest entry. Returns an empty collection if no logs are available.</returns>
+        public IEnumerable<string> QueryLogs => this.queryLogs;
+
+        /// <summary>
         /// Gets or sets функция преобразования значений, полученных из БД, в значения свойств объектов.
         /// </summary>
         /// <value>The value converter.</value>
@@ -233,11 +238,12 @@ namespace RuntimeStuff.Data
         /// <typeparam name="T">Тип соединения с базой данных, реализующий <see cref="IDbConnection" />
         /// и имеющий публичный конструктор без параметров.</typeparam>
         /// <param name="connectionString">Строка подключения к базе данных.</param>
+        /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
         /// <returns>Экземпляр <see cref="DbClient{T}" />.</returns>
-        public static DbClient<T> Create<T>(string connectionString)
+        public static DbClient<T> Create<T>(string connectionString, DbEntityMap map = null)
             where T : IDbConnection, new()
         {
-            var dbClient = DbClient<T>.Create(connectionString);
+            var dbClient = DbClient<T>.Create(connectionString, map);
             return dbClient;
         }
 
@@ -258,6 +264,25 @@ namespace RuntimeStuff.Data
         /// </summary>
         /// <returns>Новый экземпляр <see cref="DbClient" />.</returns>
         public static DbClient Create() => new DbClient();
+
+        /// <summary>
+        /// Получить словарь ключевых параметров для типа {T}.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Экземпляр сущности.</param>
+        /// <param name="id">Значения ключевых полей.</param>
+        /// <returns>Словарь ключевых параметров.</returns>
+        public static IReadOnlyDictionary<string, object> GetKeyParams<T>(T item, params object[] id)
+        {
+            var parameters = new Dictionary<string, object>();
+            var typeCache = MemberCache.Create<T>();
+            for (var i = 0; i < typeCache.PrimaryKeys.Length; i++)
+            {
+                parameters[typeCache.PrimaryKeys[i].Name] = id[i];
+            }
+
+            return parameters;
+        }
 
         /// <summary>
         /// Устанавливает коллекцию параметров для команды.
@@ -589,12 +614,15 @@ namespace RuntimeStuff.Data
 
             if (cmdParams != null)
             {
-                var cmdParamsCache = cmdParams.GetType().GetMemberCache();
-                foreach (var arrProp in cmdParamsCache.PublicBasicEnumerableProperties)
+                if (!(cmdParams is IEnumerable<KeyValuePair<string, object>>))
                 {
-                    var arr = (arrProp.Getter(cmdParams) as IEnumerable)?.Cast<object>();
-                    if (arr != null)
-                        cmd.CommandText = cmd.CommandText.Replace("@" + arrProp.Name, string.Join(", ", arr.Select((x, i) => $"@{arrProp.Name}_{i}")));
+                    var cmdParamsCache = cmdParams.GetType().GetMemberCache();
+                    foreach (var arrProp in cmdParamsCache.PublicBasicEnumerableProperties)
+                    {
+                        var arr = (arrProp.Getter(cmdParams) as IEnumerable)?.Cast<object>();
+                        if (arr != null)
+                            cmd.CommandText = cmd.CommandText.Replace("@" + arrProp.Name, string.Join(", ", arr.Select((x, i) => $"@{arrProp.Name}_{i}")));
+                    }
                 }
 
                 foreach (var cp in parameters)
@@ -1047,6 +1075,22 @@ namespace RuntimeStuff.Data
             }
         }
 
+        public void Fill<T>(T item, params object[] id)
+        {
+            var query = SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " +
+                        SqlQueryHelper.GetWhereClause<T>(this.Options, out _);
+            var pCmdParams = GetKeyParams(item, id);
+            Query<List<T>, T>(query, pCmdParams, itemFactory: (objects, strings) => item);
+        }
+
+        public Task FillAsync<T>(T item, params object[] id)
+        {
+            var query = SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " +
+                        SqlQueryHelper.GetWhereClause<T>(this.Options, out _);
+            var pCmdParams = GetKeyParams(item, id);
+            return QueryAsync<List<T>, T>(query, pCmdParams, itemFactory: (objects, strings) => item);
+        }
+
         /// <summary>
         /// Возвращает первый элемент из результата запроса (или <c>null</c>, если результат пуст).
         /// </summary>
@@ -1356,18 +1400,6 @@ namespace RuntimeStuff.Data
             var rowsCount = Convert.ToInt32(numbers.Values.FirstOrDefault());
             var pagesCount = (int)Math.Ceiling((double)rowsCount / pageSize);
             return pagesCount;
-        }
-
-        public IReadOnlyDictionary<string, object> GetKeyParams<T>(T item, params object[] id)
-        {
-            var parameters = new Dictionary<string, object>();
-            var typeCache = MemberCache.Create<T>();
-            for (var i = 0; i < typeCache.PrimaryKeys.Length; i++)
-            {
-                parameters[typeCache.PrimaryKeys[i].Name] = id[i];
-            }
-
-            return parameters;
         }
 
         /// <summary>
@@ -1881,14 +1913,6 @@ namespace RuntimeStuff.Data
             CancellationToken token = default)
             where TFrom : class => ChangeType<T>((await this.AggAsync("MIN", whereExpression, token, columnSelector.ConvertExpression())
                 .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
-
-        public void Fill<T>(T item, params object[] id)
-        {
-            var query = SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " +
-                        SqlQueryHelper.GetWhereClause<T>(this.Options, out _);
-            var pCmdParams = GetKeyParams(item, id);
-            Query<List<T>, T>(query, pCmdParams, itemFactory: (objects, strings) => item);
-        }
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов.
@@ -3672,7 +3696,8 @@ namespace RuntimeStuff.Data
 
                         if (raw == null || raw == DBNull.Value)
                         {
-                            kv.Value.Setter(item, null);
+                            if (kv.Value.IsNullable)
+                                kv.Value.Setter(item, null);
                             continue;
                         }
 

@@ -6,19 +6,20 @@
 // Last Modified By : RS
 // Last Modified On : 01-07-2026
 // ***********************************************************************
-// <copyright file="EntityMap.cs" company="Rudnev Sergey">
+// <copyright file="DbEntityMap.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
 namespace RuntimeStuff.Data
 {
+    using RuntimeStuff.Builders;
+    using RuntimeStuff.Helpers;
+    using RuntimeStuff.Internal;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using RuntimeStuff.Builders;
-    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Class EntityMap.
@@ -28,7 +29,50 @@ namespace RuntimeStuff.Data
         /// <summary>
         /// Gets the entity mapping.
         /// </summary>
-        internal Dictionary<Type, EntityMapping> EntityMapping { get; } = new Dictionary<Type, EntityMapping>();
+        internal Dictionary<Type, TypeMappingInfo> TypeMap { get; } = new Dictionary<Type, TypeMappingInfo>();
+
+        /// <summary>
+        /// Автоматически настраивает имя таблицы и колонок
+        /// в формате <c>snake_case</c>.
+        /// </summary>
+        /// <remarks>
+        /// Имя таблицы формируется из имени типа сущности.
+        /// Имена колонок формируются из имён свойств сущности.
+        /// </remarks>
+        /// <returns>Текущий экземпляр билдера для продолжения конфигурации.</returns>
+        public DbEntityMap MapToSnakeCase<T>()
+            where T : class
+        {
+            return AutoMap<T>(StringHelper.ToSnakeCase);
+        }
+
+        public DbEntityMap MapToCamelCase<T>()
+            where T : class
+        {
+            return AutoMap<T>(StringHelper.ToCamelCase);
+        }
+
+        public DbEntityMap MapToKebabCase<T>()
+            where T : class
+        {
+            return AutoMap<T>(StringHelper.ToKebabCase);
+        }
+
+        public DbEntityMap AutoMap<T>(Func<string, string> nameMapper)
+            where T : class
+        {
+            var tmi = new TypeMappingInfo(typeof(T));
+            TypeMap[typeof(T)] = tmi;
+            tmi.TableName = nameMapper(typeof(T).Name);
+            foreach (var p in Obj.GetProperties<T>())
+            {
+                var pmi = new PropertyMappingInfo(p);
+                pmi.ColumnName = nameMapper(p.Name);
+                tmi.PropertyMap[p] = pmi;
+            }
+
+            return this;
+        }
 
         /// <summary>
         /// Gets the column to property map.
@@ -42,7 +86,7 @@ namespace RuntimeStuff.Data
                 return Array.Empty<(string, string)>();
             }
 
-            if (!this.EntityMapping.TryGetValue(type, out var typeMapping))
+            if (!this.TypeMap.TryGetValue(type, out var typeMapping))
             {
                 return Array.Empty<(string, string)>();
             }
@@ -62,7 +106,7 @@ namespace RuntimeStuff.Data
                 return Array.Empty<(string, string)>();
             }
 
-            if (!this.EntityMapping.TryGetValue(type, out var typeMapping))
+            if (!this.TypeMap.TryGetValue(type, out var typeMapping))
             {
                 return Array.Empty<(string, string)>();
             }
@@ -84,7 +128,7 @@ namespace RuntimeStuff.Data
                 return null;
             }
 
-            if (this.EntityMapping.TryGetValue(property.DeclaringType, out var typeMapping) && typeMapping.PropertyColumns.TryGetValue(property, out var propertyMapping))
+            if (this.TypeMap.TryGetValue(property.DeclaringType, out var typeMapping) && typeMapping.PropertyColumns.TryGetValue(property, out var propertyMapping))
             {
                 return $"{namePrefix}{propertyMapping.ColumnName}{nameSuffix}";
             }
@@ -105,7 +149,7 @@ namespace RuntimeStuff.Data
                 return null;
             }
 
-            if (!this.EntityMapping.TryGetValue(type, out var typeMapping))
+            if (!this.TypeMap.TryGetValue(type, out var typeMapping))
             {
                 return null;
             }
@@ -127,7 +171,7 @@ namespace RuntimeStuff.Data
                 return null;
             }
 
-            return this.EntityMapping.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.Schema}{nameSuffix}" : null;
+            return this.TypeMap.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.Schema}{nameSuffix}" : null;
         }
 
         /// <summary>
@@ -144,7 +188,7 @@ namespace RuntimeStuff.Data
                 return null;
             }
 
-            return this.EntityMapping.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.TableName}{nameSuffix}" : null;
+            return this.TypeMap.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.TableName}{nameSuffix}" : null;
         }
 
         /// <summary>
@@ -159,7 +203,7 @@ namespace RuntimeStuff.Data
                 return null;
             }
 
-            return this.EntityMapping.FirstOrDefault(x => x.Value.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)).Key;
+            return this.TypeMap.FirstOrDefault(x => x.Value.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)).Key;
         }
 
         /// <summary>
@@ -190,12 +234,12 @@ namespace RuntimeStuff.Data
         /// </summary>
         /// <param name="type">The type.</param>
         /// <returns>EntityMapping.</returns>
-        private EntityMapping GetOrAdd(Type type)
+        private TypeMappingInfo GetOrAdd(Type type)
         {
-            if (!this.EntityMapping.TryGetValue(type, out var typeProps))
+            if (!this.TypeMap.TryGetValue(type, out var typeProps))
             {
-                typeProps = new EntityMapping(type);
-                this.EntityMapping.Add(type, typeProps);
+                typeProps = new TypeMappingInfo(type);
+                this.TypeMap.Add(type, typeProps);
             }
 
             return typeProps;

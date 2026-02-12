@@ -5,22 +5,21 @@
 namespace RuntimeStuff.Data
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Data;
     using System.Linq.Expressions;
 
-    public class DbEntity<T> : ObservableObjectEx
+    public abstract class DbEntity<T> : DbEntityBase
         where T : class
     {
-        private static ConcurrentDictionary<IDbConnection, DbClient> clientCache = new ConcurrentDictionary<IDbConnection, DbClient>();
-        private MemberCache cache;
-        private static readonly MessageBus notifier = new MessageBus(1);
-
-        public DbEntity()
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DbEntity{T}"/> class.
+        /// </summary>
+        protected DbEntity()
         {
-            cache = MemberCache.Create<T>();
+            MemberCache.Create<T>();
         }
+
+        public static DbEntityMap Map { get; set; }
 
         public static T SelectOne(Expression<Func<T, bool>> whereExpression)
         {
@@ -34,19 +33,17 @@ namespace RuntimeStuff.Data
 
         public void Load(params object[] id)
         {
-           
+            GetClient().Fill<T>(this as T, id);
         }
 
         public void Save()
         {
+            GetClient().Update<T>(this as T);
         }
 
         private static DbClient GetClient()
         {
-            return clientCache.GetOrAdd(GetConnection(), (c) => new DbClient(c));
+            return ClientCache.GetOrAdd(GetConnection(typeof(T)), (c) => new DbClient(c, Map ?? DefaultMap ?? DbConnectionResolver.GlobalMap));
         }
-
-        private static IDbConnection GetConnection()
-            => DbConnectionResolver.Instance?.Resolve<T>() ?? DbConnectionResolver.DefaultEntityConnection(typeof(T)) ?? DbConnectionResolver.DefaultConnection();
     }
 }

@@ -20,8 +20,9 @@ namespace RuntimeStuff.Builders
     /// Тип свойства сущности.
     /// </typeparam>
     public sealed class PropertyMapBuilder<T, TProperty>
+        where T : class
     {
-        private readonly PropertyMapping propertyMapping;
+        private readonly PropertyMappingInfo propertyMapping;
         private readonly EntityMapBuilder<T> entityMapBuilder;
 
         /// <summary>
@@ -37,7 +38,7 @@ namespace RuntimeStuff.Builders
         internal PropertyMapBuilder(EntityMapBuilder<T> entityMapBuilder, PropertyInfo propertyInfo)
         {
             this.entityMapBuilder = entityMapBuilder;
-            this.propertyMapping = new PropertyMapping(propertyInfo);
+            this.propertyMapping = new PropertyMappingInfo(propertyInfo);
         }
 
         /// <summary>
@@ -164,13 +165,13 @@ namespace RuntimeStuff.Builders
         /// Свойство сущности.
         /// </param>
         /// <returns>
-        /// Экземпляр <see cref="PropertyMapping"/>.
+        /// Экземпляр <see cref="PropertyMappingInfo"/>.
         /// </returns>
-        private PropertyMapping GetOrAdd(PropertyInfo property)
+        private PropertyMappingInfo GetOrAdd(PropertyInfo property)
         {
             if (!this.entityMapBuilder.EntityMapping.PropertyColumns.TryGetValue(property, out var propMapping))
             {
-                propMapping = new PropertyMapping(property);
+                propMapping = new PropertyMappingInfo(property);
                 this.entityMapBuilder.EntityMapping.PropertyColumns[property] = propMapping;
             }
 

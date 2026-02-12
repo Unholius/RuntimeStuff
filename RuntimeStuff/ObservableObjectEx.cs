@@ -45,6 +45,7 @@ namespace RuntimeStuff
         /// при замене вложенного объекта.
         /// </summary>
         private readonly ConcurrentDictionary<object, EventHandlers> subscriptions = new ConcurrentDictionary<object, EventHandlers>();
+
         private readonly object syncRoot = new object();
         private readonly ConcurrentDictionary<string, object> values = new ConcurrentDictionary<string, object>();
         private bool disposed;
@@ -62,12 +63,6 @@ namespace RuntimeStuff
             this.Dispose(false);
         }
 
-        public object this[string propertyName]
-        {
-            get => Get(propertyName);
-            set => Set(value);
-        }
-
         /// <summary>
         /// Событие <see cref="PropertyChanged" /> для внешних подписчиков.
         /// </summary>
@@ -79,6 +74,17 @@ namespace RuntimeStuff
         /// </summary>
         /// <returns></returns>
         public event PropertyChangingEventHandler PropertyChanging;
+
+        /// <summary>
+        /// Доступ к свойствам через индексер.
+        /// </summary>
+        /// <param name="propertyName">Имя свойства.</param>
+        /// <returns>Значение свойства.</returns>
+        public object this[string propertyName]
+        {
+            get => Get(propertyName);
+            set => Set(value);
+        }
 
         /// <summary>
         /// Выполняет подписку на изменение указанного свойства вложенного объекта и обеспечивает
@@ -216,28 +222,6 @@ namespace RuntimeStuff
         public virtual void OnPropertyChanging([CallerMemberName] string propertyName = null) => this.PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
 
         /// <summary>
-        /// Комбинированная операция: сначала выполняет привязку обработчика изменения свойства у вложенного объекта,
-        /// затем устанавливает новое значение для свойства текущего объекта. Если значение изменилось и
-        /// <paramref name="thisPropertyChangeHandler" /> не равен <c>null</c>, он будет вызван.
-        /// </summary>
-        /// <typeparam name="T">Тип вложенного объекта, реализующего <see cref="INotifyPropertyChanged" />.</typeparam>
-        /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
-        /// <param name="newValue">Новое значение, которое будет присвоено.</param>
-        /// <param name="childPropertyName">Имя свойства вложенного объекта, за изменением которого нужно следить.</param>
-        /// <param name="childPropertyChangeHandler">Действие, вызываемое при изменении <paramref name="childPropertyName" /> у вложенного объекта.</param>
-        /// <param name="thisPropertyChangeHandler">Действие, вызываемое после успешного изменения свойства текущего объекта.</param>
-        /// <param name="propertyName">Имя свойства текущего объекта. Если не задано, используется имя вызывающего члена.</param>
-        public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null)
-            where T : class, INotifyPropertyChanged
-        {
-            this.BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
-            if (this.Set(ref oldValue, newValue, (Action)null, propertyName))
-            {
-                thisPropertyChangeHandler?.Invoke(propertyName);
-            }
-        }
-
-        /// <summary>
         /// Устанавливает значение backing field и вызывает уведомление об изменении свойства,
         /// если значение фактически изменилось.
         /// </summary>
@@ -309,6 +293,28 @@ namespace RuntimeStuff
         {
             values[propertyName] = value;
             OnPropertyChanged(propertyName);
+        }
+
+        /// <summary>
+        /// Комбинированная операция: сначала выполняет привязку обработчика изменения свойства у вложенного объекта,
+        /// затем устанавливает новое значение для свойства текущего объекта. Если значение изменилось и
+        /// <paramref name="thisPropertyChangeHandler" /> не равен <c>null</c>, он будет вызван.
+        /// </summary>
+        /// <typeparam name="T">Тип вложенного объекта, реализующего <see cref="INotifyPropertyChanged" />.</typeparam>
+        /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
+        /// <param name="newValue">Новое значение, которое будет присвоено.</param>
+        /// <param name="childPropertyName">Имя свойства вложенного объекта, за изменением которого нужно следить.</param>
+        /// <param name="childPropertyChangeHandler">Действие, вызываемое при изменении <paramref name="childPropertyName" /> у вложенного объекта.</param>
+        /// <param name="thisPropertyChangeHandler">Действие, вызываемое после успешного изменения свойства текущего объекта.</param>
+        /// <param name="propertyName">Имя свойства текущего объекта. Если не задано, используется имя вызывающего члена.</param>
+        public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null)
+            where T : class, INotifyPropertyChanged
+        {
+            this.BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
+            if (this.Set(ref oldValue, newValue, (Action)null, propertyName))
+            {
+                thisPropertyChangeHandler?.Invoke(propertyName);
+            }
         }
 
         /// <summary>

@@ -20,6 +20,8 @@ namespace RuntimeStuff.Helpers
     using System.IO.Compression;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
+    using RuntimeStuff.Extensions;
 
     /// <summary>
     /// Предоставляет набор статических методов для работы со строками и токенами, включая удаление суффикса, замену и
@@ -1097,6 +1099,70 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Преобразует строку в формат <c>PascalCase</c> (UpperCamelCase).
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>PascalCase</c>.</returns>
+        public static string ToCamelCase(string s)
+        {
+            var words = SplitWords(s);
+            return string.Concat(words.Select(w =>
+                char.ToUpperInvariant(w[0]) + w.Substring(1)));
+        }
+
+        /// <summary>
+        /// Преобразует строку в формат <c>kebab-case</c>.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>kebab-case</c>.</returns>
+        public static string ToKebabCase(string s)
+        {
+            var words = SplitWords(s);
+            return string.Join("-", words);
+        }
+
+        /// <summary>
+        /// Преобразует строку в формат <c>camelCase</c> (lowerCamelCase).
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>camelCase</c>.
+        /// Если входная строка пуста или не содержит слов, возвращается пустая строка.</returns>
+        public static string ToLowerCamelCase(string s)
+        {
+            var words = SplitWords(s);
+            if (words.Length == 0)
+                return string.Empty;
+
+            var first = words[0];
+            var rest = words.Skip(1)
+                .Select(w => char.ToUpperInvariant(w[0]) + w.Substring(1));
+
+            return first + string.Concat(rest);
+        }
+
+        /// <summary>
+        /// Преобразует строку в формат <c>snake_case</c>.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>snake_case</c>.</returns>
+        public static string ToSnakeCase(string s)
+        {
+            var words = SplitWords(s);
+            return string.Join("_", words);
+        }
+
+        /// <summary>
+        /// Преобразует строку в формат <c>UPPER_SNAKE_CASE</c>.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>UPPER_SNAKE_CASE</c>.</returns>
+        public static string ToUpperSnaceCase(string s)
+        {
+            var words = SplitWords(s);
+            return string.Join("_", words).ToUpperInvariant();
+        }
+
+        /// <summary>
         /// Метод удаляет указанный суффикс с конца строки, если он существует.
         /// </summary>
         /// <param name="s">Исходная строка, из которой нужно удалить суффикс.</param>
@@ -1335,6 +1401,49 @@ namespace RuntimeStuff.Helpers
             }
 
             return matrix[matrix.GetUpperBound(0), matrix.GetUpperBound(1)];
+        }
+
+        /// <summary>
+        /// Разбивает входную строку на слова с учётом следующих правил:
+        /// <list type="bullet">
+        /// <item><description>Разделителями считаются символы <c>'-'</c>, <c>'_'</c> и пробел.</description></item>
+        /// <item><description>Поддерживается разбиение строк в формате PascalCase и camelCase.</description></item>
+        /// <item><description>Аббревиатуры (например, HTTPServer) корректно выделяются в отдельные слова.</description></item>
+        /// <item><description>Числовые последовательности выделяются как отдельные слова.</description></item>
+        /// </list>
+        /// Все возвращаемые слова приводятся к нижнему регистру.
+        /// </summary>
+        /// <param name="input">Исходная строка для разбиения.</param>
+        /// <returns>
+        /// Массив слов в нижнем регистре.
+        /// Если входная строка равна <c>null</c>, пустая или состоит только из пробелов,
+        /// возвращается пустой массив.
+        /// </returns>
+        private static string[] SplitWords(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return Array.Empty<string>();
+
+            // Заменяем дефисы и пробелы на _
+            input = input.Replace("-", "_").Replace(" ", "_");
+
+            // Если уже есть разделители — просто делим
+            if (input.Contains("_"))
+            {
+                return input
+                    .Split(new[] { '_' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(w => w.ToLowerInvariant())
+                    .ToArray();
+            }
+
+            // Разбиваем PascalCase / camelCase / аббревиатуры
+            var matches = Regex.Matches(
+                input,
+                @"([A-Z]+(?![a-z]))|([A-Z]?[a-z]+)|(\d+)");
+
+            return matches.Cast<Match>()
+                .Select(m => m.Value.ToLowerInvariant())
+                .ToArray();
         }
 
         /// <summary>

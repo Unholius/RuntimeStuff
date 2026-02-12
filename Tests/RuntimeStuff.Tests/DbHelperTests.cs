@@ -21,10 +21,7 @@ namespace RuntimeStuff.MSTests
             _connectionString = "Data Source=.\\Databases\\sqlte_test.db";
             map = new DbEntityMap();
             map
-                .Table<DTO.SQLite.TestTable>("test_table")
-                .Property(x => x.IntValue, "int_value")
-                .Property(x => x.TextValue, "text_value")
-                .Table<DTO.SQLite.User>("users")
+                .MapToSnakeCase<DTO.SQLite.TestTable>()
                 ;
             // Создаем тестовые таблицы
             CreateTestTables();
@@ -39,11 +36,19 @@ namespace RuntimeStuff.MSTests
         public void Fill_Test_01()
         {
             var i = new DTO.SQLite.TestTable() { TextValue = "123" };
-            var db = DbClient.Create<SqliteConnection>(_connectionString);
-            var id = db.Insert(i);
+            DbEntity<TestTable>.Map = map;
+            var db = DbClient.Create<SqliteConnection>(_connectionString, map);
+            DbConnectionResolver.DefaultConnection = () => db.Connection;
+            var id = db.Insert(i, x => x.TextValue);
             i = new TestTable();
-            db.Options.Map = map;
             db.Fill(i, id);
+            Assert.AreEqual("123", i.TextValue);
+            Assert.AreEqual(id, i.Id);
+            Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
+            i.TextValue = "456";
+            i.Save();
+            var j = db.First<TestTable>(x => x.Id == (long)id);
+            Assert.AreEqual("456", j.TextValue);
         }
 
         // Вспомогательные методы
@@ -62,7 +67,7 @@ CREATE TABLE test_table (
 
     boolean_value   INTEGER CHECK (boolean_value IN (0, 1)),
     date_value      TEXT,        -- ISO8601: YYYY-MM-DD
-    datetime_value  TEXT,        -- ISO8601: YYYY-MM-DD HH:MM:SS
+    date_time_value  TEXT,        -- ISO8601: YYYY-MM-DD HH:MM:SS
     time_value      TEXT,        -- HH:MM:SS
 
     decimal_value   NUMERIC(10,2),

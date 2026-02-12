@@ -23,6 +23,8 @@ namespace RuntimeStuff.Options
     /// </summary>
     public sealed class SqlProviderOptions : OptionsBase<SqlProviderOptions>
     {
+        private DbEntityMap map = new DbEntityMap();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="SqlProviderOptions" /> class.
         /// </summary>
@@ -99,7 +101,17 @@ namespace RuntimeStuff.Options
         /// Gets or sets the map.
         /// </summary>
         /// <value>The map.</value>
-        public DbEntityMap Map { get; set; } = new DbEntityMap();
+        public DbEntityMap Map
+        {
+            get
+            {
+                if (map == null)
+                    map = new DbEntityMap();
+                return map;
+            }
+
+            set => map = value;
+        }
 
         /// <summary>
         /// Gets or sets the name prefix.

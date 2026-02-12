@@ -13,9 +13,9 @@
 // ***********************************************************************
 namespace RuntimeStuff.Extensions
 {
-    using RuntimeStuff.Data;
     using System;
     using System.Reflection;
+    using RuntimeStuff.Data;
 
     /// <summary>
     /// Содержит методы расширения для преобразования

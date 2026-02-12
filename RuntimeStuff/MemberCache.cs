@@ -10,10 +10,12 @@ namespace RuntimeStuff
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel;
+    using System.Diagnostics;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Runtime.CompilerServices;
+    using RuntimeStuff.Collections;
 
     /// <summary>
     /// Предоставляет кэшированную информацию о членах типа (класса, структуры, интерфейса) и их метаданных.
@@ -30,6 +32,11 @@ namespace RuntimeStuff
         /// Статический кэш экземпляров MemberCache для типов.
         /// </summary>
         protected static readonly ConcurrentDictionary<Type, MemberCache> TypeCache = new ConcurrentDictionary<Type, MemberCache>();
+
+        /// <summary>
+        /// Логгер.
+        /// </summary>
+        protected static readonly ConcurrentLogBuffer<string> Logger = new ConcurrentLogBuffer<string>(10_000);
 
         private static readonly MemberTypes[] DefaultMemberTypes =
         {
@@ -63,14 +70,13 @@ namespace RuntimeStuff
         private MemberCache[] publicEnumerableProperties;
         private MemberCache[] publicFields;
         private MemberCache[] publicProperties;
+        private MemberCache[] indexers;
         private MemberCache[] tables;
         private FieldInfo propertyBackingField;
         private bool? propertyBackingFieldExists;
         private Func<object[], object> ctorDelegate;
         private object[] defaultArgs;
-
         private string xmlAttr;
-
         private string xmlElem;
 
         /// <summary>
@@ -85,6 +91,8 @@ namespace RuntimeStuff
 
         private MemberCache(MemberInfo memberInfo, MemberCache parent)
         {
+            var sw = new Stopwatch();
+            sw.Start();
             if (memberInfo == null)
             {
                 throw new ArgumentNullException(nameof(memberInfo));
@@ -219,6 +227,7 @@ namespace RuntimeStuff
                 if (pi != null)
                 {
                     PropertyType = pi.PropertyType;
+                    IsIndexer = typeCache?.IsIndexer ?? pi.GetIndexParameters().Length != 0;
                     IsSetterPublic = pi.GetSetMethod()?.IsPublic == true;
                     IsSetterPrivate = pi.GetSetMethod() == null || pi.GetSetMethod()?.IsPrivate == true;
                     IsGetterPublic = pi.GetGetMethod()?.IsPublic == true;
@@ -303,6 +312,9 @@ namespace RuntimeStuff
                     }
                 }
             }
+
+            sw.Stop();
+            Logger.Add(memberInfo.Name + $"; {sw.ElapsedMilliseconds}");
         }
 
         /// <summary>
@@ -514,6 +526,11 @@ namespace RuntimeStuff
         /// Получает значение, указывающее, является ли тип базовым (примитивным, строкой, DateTime, Decimal, Guid, Enum).
         /// </summary>
         public bool IsBasic { get; }
+
+        /// <summary>
+        /// Является ли член индексатором, this[].
+        /// </summary>
+        public bool IsIndexer { get; }
 
         /// <summary>
         /// Получает значение, указывающее, является ли член коллекцией базовых типов.
@@ -865,6 +882,23 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Получает массив свойств-индексаторов this[].
+        /// </summary>
+        public MemberCache[] Indexers
+        {
+            get
+            {
+                if (indexers != null)
+                {
+                    return indexers;
+                }
+
+                indexers = Properties.Where(x => x.IsIndexer).ToArray();
+                return indexers;
+            }
+        }
+
+        /// <summary>
         /// Получает массив публичных свойств.
         /// </summary>
         public MemberCache[] PublicProperties
@@ -876,7 +910,7 @@ namespace RuntimeStuff
                     return publicProperties;
                 }
 
-                publicProperties = Properties.Where(x => x.IsPublic).ToArray();
+                publicProperties = Properties.Where(x => x.IsPublic && !x.IsIndexer).ToArray();
                 return publicProperties;
             }
         }
@@ -1218,7 +1252,7 @@ namespace RuntimeStuff
         /// <returns>Делегат, создающий экземпляр типа, или null, если тип не имеет конструктора по умолчанию.</returns>
         public static Func<object> CreateConstructorDelegate(Type type)
         {
-            if (type == null)
+            if (type == null || type.IsAbstract)
             {
                 return null;
             }
@@ -2007,7 +2041,7 @@ namespace RuntimeStuff
             where T : class
         {
             if (propertyFilter == null)
-                propertyFilter = x => x.IsPublic;
+                propertyFilter = x => x.IsPublic && !x.IsIndexer;
 
             var props = Properties.Where(propertyFilter).ToArray();
 
