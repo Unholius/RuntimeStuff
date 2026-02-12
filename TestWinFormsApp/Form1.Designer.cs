@@ -39,17 +39,20 @@
             dataGridView1 = new DataGridView();
             btnLoad = new Button();
             tabPage3 = new TabPage();
-            flowLayoutPanel2 = new FlowLayoutPanel();
+            chkOffline = new CheckBox();
             btnOpenForm2 = new Button();
+            btnStart = new Button();
+            btnSendMessage = new Button();
+            listBox1 = new ListBox();
             tabPage4 = new TabPage();
             webView21 = new Microsoft.Web.WebView2.WinForms.WebView2();
+            btnStopServer = new Button();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
             tabPage2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             tabPage3.SuspendLayout();
-            flowLayoutPanel2.SuspendLayout();
             tabPage4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)webView21).BeginInit();
             SuspendLayout();
@@ -74,7 +77,7 @@
             tabControl1.Location = new Point(0, 0);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new Size(800, 455);
+            tabControl1.Size = new Size(1245, 655);
             tabControl1.TabIndex = 1;
             // 
             // tabPage1
@@ -83,7 +86,7 @@
             tabPage1.Location = new Point(4, 24);
             tabPage1.Name = "tabPage1";
             tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(792, 427);
+            tabPage1.Size = new Size(1237, 627);
             tabPage1.TabIndex = 0;
             tabPage1.Text = "tabPage1";
             tabPage1.UseVisualStyleBackColor = true;
@@ -97,7 +100,7 @@
             flowLayoutPanel1.Dock = DockStyle.Fill;
             flowLayoutPanel1.Location = new Point(3, 3);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new Size(786, 421);
+            flowLayoutPanel1.Size = new Size(1231, 621);
             flowLayoutPanel1.TabIndex = 0;
             // 
             // propertyGrid1
@@ -132,7 +135,7 @@
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
             tabPage2.Padding = new Padding(3);
-            tabPage2.Size = new Size(792, 427);
+            tabPage2.Size = new Size(1237, 627);
             tabPage2.TabIndex = 1;
             tabPage2.Text = "tabPage2";
             tabPage2.UseVisualStyleBackColor = true;
@@ -143,7 +146,7 @@
             dataGridView1.Dock = DockStyle.Fill;
             dataGridView1.Location = new Point(3, 26);
             dataGridView1.Name = "dataGridView1";
-            dataGridView1.Size = new Size(786, 398);
+            dataGridView1.Size = new Size(1231, 598);
             dataGridView1.TabIndex = 0;
             dataGridView1.Click += dataGridView1_Click;
             // 
@@ -152,7 +155,7 @@
             btnLoad.Dock = DockStyle.Top;
             btnLoad.Location = new Point(3, 3);
             btnLoad.Name = "btnLoad";
-            btnLoad.Size = new Size(786, 23);
+            btnLoad.Size = new Size(1231, 23);
             btnLoad.TabIndex = 1;
             btnLoad.Text = "Load";
             btnLoad.UseVisualStyleBackColor = true;
@@ -160,28 +163,34 @@
             // 
             // tabPage3
             // 
-            tabPage3.Controls.Add(flowLayoutPanel2);
+            tabPage3.Controls.Add(chkOffline);
+            tabPage3.Controls.Add(btnOpenForm2);
+            tabPage3.Controls.Add(btnStopServer);
+            tabPage3.Controls.Add(btnStart);
+            tabPage3.Controls.Add(btnSendMessage);
+            tabPage3.Controls.Add(listBox1);
             tabPage3.Location = new Point(4, 24);
             tabPage3.Name = "tabPage3";
             tabPage3.Padding = new Padding(3);
-            tabPage3.Size = new Size(792, 427);
+            tabPage3.Size = new Size(1237, 627);
             tabPage3.TabIndex = 2;
             tabPage3.Text = "tabPage3";
             tabPage3.UseVisualStyleBackColor = true;
             // 
-            // flowLayoutPanel2
+            // chkOffline
             // 
-            flowLayoutPanel2.Controls.Add(btnOpenForm2);
-            flowLayoutPanel2.Dock = DockStyle.Fill;
-            flowLayoutPanel2.Location = new Point(3, 3);
-            flowLayoutPanel2.Name = "flowLayoutPanel2";
-            flowLayoutPanel2.Size = new Size(786, 421);
-            flowLayoutPanel2.TabIndex = 0;
+            chkOffline.AutoSize = true;
+            chkOffline.Location = new Point(11, 245);
+            chkOffline.Name = "chkOffline";
+            chkOffline.Size = new Size(62, 19);
+            chkOffline.TabIndex = 4;
+            chkOffline.Text = "Offline";
+            chkOffline.UseVisualStyleBackColor = true;
             // 
             // btnOpenForm2
             // 
             btnOpenForm2.AutoSize = true;
-            btnOpenForm2.Location = new Point(3, 3);
+            btnOpenForm2.Location = new Point(11, 62);
             btnOpenForm2.Name = "btnOpenForm2";
             btnOpenForm2.Size = new Size(96, 25);
             btnOpenForm2.TabIndex = 0;
@@ -189,13 +198,43 @@
             btnOpenForm2.UseVisualStyleBackColor = true;
             btnOpenForm2.Click += btnOpenForm2_Click;
             // 
+            // btnStart
+            // 
+            btnStart.Location = new Point(11, 93);
+            btnStart.Name = "btnStart";
+            btnStart.Size = new Size(96, 25);
+            btnStart.TabIndex = 1;
+            btnStart.Text = "Start Server";
+            btnStart.UseVisualStyleBackColor = true;
+            btnStart.Click += btnStart_Click;
+            // 
+            // btnSendMessage
+            // 
+            btnSendMessage.Location = new Point(11, 124);
+            btnSendMessage.Name = "btnSendMessage";
+            btnSendMessage.Size = new Size(96, 25);
+            btnSendMessage.TabIndex = 2;
+            btnSendMessage.Text = "Send Message";
+            btnSendMessage.UseVisualStyleBackColor = true;
+            btnSendMessage.Click += btnSendMessage_Click;
+            // 
+            // listBox1
+            // 
+            listBox1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            listBox1.FormattingEnabled = true;
+            listBox1.ItemHeight = 15;
+            listBox1.Location = new Point(140, 6);
+            listBox1.Name = "listBox1";
+            listBox1.Size = new Size(1089, 604);
+            listBox1.TabIndex = 3;
+            // 
             // tabPage4
             // 
             tabPage4.Controls.Add(webView21);
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name = "tabPage4";
             tabPage4.Padding = new Padding(3);
-            tabPage4.Size = new Size(792, 427);
+            tabPage4.Size = new Size(1237, 627);
             tabPage4.TabIndex = 3;
             tabPage4.Text = "tabPage4";
             tabPage4.UseVisualStyleBackColor = true;
@@ -208,15 +247,25 @@
             webView21.Dock = DockStyle.Fill;
             webView21.Location = new Point(3, 3);
             webView21.Name = "webView21";
-            webView21.Size = new Size(786, 421);
+            webView21.Size = new Size(1231, 621);
             webView21.TabIndex = 0;
             webView21.ZoomFactor = 1D;
+            // 
+            // btnStopServer
+            // 
+            btnStopServer.Location = new Point(11, 155);
+            btnStopServer.Name = "btnStopServer";
+            btnStopServer.Size = new Size(96, 25);
+            btnStopServer.TabIndex = 1;
+            btnStopServer.Text = "Stop Server";
+            btnStopServer.UseVisualStyleBackColor = true;
+            btnStopServer.Click += btnStopServer_Click;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 455);
+            ClientSize = new Size(1245, 655);
             Controls.Add(tabControl1);
             Name = "Form1";
             Text = "Form1";
@@ -228,8 +277,7 @@
             tabPage2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             tabPage3.ResumeLayout(false);
-            flowLayoutPanel2.ResumeLayout(false);
-            flowLayoutPanel2.PerformLayout();
+            tabPage3.PerformLayout();
             tabPage4.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)webView21).EndInit();
             ResumeLayout(false);
@@ -250,7 +298,11 @@
         private TabPage tabPage3;
         private TabPage tabPage4;
         private Microsoft.Web.WebView2.WinForms.WebView2 webView21;
-        private FlowLayoutPanel flowLayoutPanel2;
         private Button btnOpenForm2;
+        private Button btnStart;
+        private Button btnSendMessage;
+        private ListBox listBox1;
+        private CheckBox chkOffline;
+        private Button btnStopServer;
     }
 }

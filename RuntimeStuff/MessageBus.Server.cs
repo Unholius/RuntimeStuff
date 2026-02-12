@@ -220,8 +220,8 @@ namespace RuntimeStuff
 
         private static HttpClient GetHttpClient()
         {
-            if (httpClient != null)
-                return httpClient;
+            //if (httpClient != null)
+            //    return httpClient;
             httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(30);
             return httpClient;
@@ -290,6 +290,11 @@ namespace RuntimeStuff
             }
         }
 
+        /// <summary>
+        /// Tries the send message.
+        /// </summary>
+        /// <param name="pendingMessage">The pending message.</param>
+        /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
         private static async Task<bool> TrySendMessage(PendingMessage pendingMessage)
         {
             try
@@ -301,7 +306,7 @@ namespace RuntimeStuff
                 var status = JsonHelper.GetValues(response, (x) => x.Equals("status"), false);
                 if (status.FirstOrDefault()?.ToLower() == "accepted")
                     return true;
-
+                client.Dispose();
                 return false;
             }
             catch (Exception ex)
@@ -358,23 +363,25 @@ namespace RuntimeStuff
                     }
 
                     // Десериализуем сообщение
-                    var message = Obj.New(messageType);
-                    var attributes = JsonHelper.GetAttributes(json, "data", false);
 
-                    if (attributes.Length == 0)
-                    {
-                        message = dataElement;
-                    }
-                    else
-                    {
-                        foreach (var a in attributes)
+                        var message = Obj.New(messageType);
+                        var attributes = JsonHelper.GetAttributes(json, "data", false);
+
+                        if (attributes.Length == 0)
                         {
-                            foreach (var kvp in a)
+                            message = dataElement;
+                        }
+                        else
+                        {
+                            foreach (var a in attributes)
                             {
-                                Obj.Set(message, kvp.Key, kvp.Value);
+                                foreach (var kvp in a)
+                                {
+                                    Obj.Set(message, kvp.Key, kvp.Value);
+                                }
                             }
                         }
-                    }
+
 
                     // Публикуем сообщение в шину
                     var publishMethod = typeof(MessageBus)

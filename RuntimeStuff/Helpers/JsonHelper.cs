@@ -218,7 +218,7 @@ namespace RuntimeStuff.Helpers
             try
             {
                 return FindNodes(json, nodeNameSelector)
-                    .Where(v => !searchInArrays || !IsObjectOrArray(v))
+                    .Where(v => searchInArrays || !IsArray(v))
                     .Select(Unwrap)
                     .ToArray();
             }
@@ -571,6 +571,9 @@ namespace RuntimeStuff.Helpers
             {
                 case Type t:
                     return Quote(t.FullName);
+
+                case Guid guid:
+                    return Quote(guid.ToString());
 
                 case string s:
                     return Quote(EscapeString(s));

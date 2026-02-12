@@ -276,6 +276,11 @@ namespace RuntimeStuff.Extensions
                         response.EnsureSuccessStatusCode();
                     }
 
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        return new HttpResponse(response, response.ToString());
+                    }
+
                     var text = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var httpResponse = new HttpResponse(response, text);
 

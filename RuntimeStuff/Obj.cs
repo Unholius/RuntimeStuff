@@ -579,6 +579,18 @@ namespace RuntimeStuff
                 // Преобразование строк
                 if (value is string s)
                 {
+                    if (toType == typeof(bool))
+                    {
+                        if (bool.TryParse(s, out var boolResult))
+                            return boolResult;
+
+                        if (s == "1")
+                            return true;
+
+                        if (s == "0")
+                            return false;
+                    }
+
                     if (string.IsNullOrWhiteSpace(s) && IsNullable(toType))
                     {
                         return Default(toType);
