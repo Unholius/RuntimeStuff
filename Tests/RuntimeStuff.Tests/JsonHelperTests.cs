@@ -6,6 +6,16 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class JsonHelperTests
     {
+        private static string json1 =
+            "{\n  \"user\": {\n    \"name\": \"John\",\n    \"age\": 30,\n    \"active\": true,\n    \"roles\": [\"admin\", \"editor\"],\n    \"address\": {\n      \"city\": \"NY\"\n    }\n  }\n}\n";
+
+
+        [TestMethod]
+        public void GetAllValues_Test_01()
+        {
+            var values = JsonHelper.GetAllValues(json1);
+        }
+        
         #region Примитивные типы
 
         [TestMethod]

@@ -220,8 +220,8 @@ namespace RuntimeStuff
 
         private static HttpClient GetHttpClient()
         {
-            //if (httpClient != null)
-            //    return httpClient;
+            if (httpClient != null)
+                return httpClient;
             httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(30);
             return httpClient;
@@ -352,9 +352,7 @@ namespace RuntimeStuff
                         return;
                     }
 
-                    // Находим тип
                     var messageType = Obj.GetTypeByName(typeElement);
-
                     if (messageType == null)
                     {
                         response.StatusCode = 400;
@@ -362,26 +360,22 @@ namespace RuntimeStuff
                         return;
                     }
 
-                    // Десериализуем сообщение
-
-                        var message = Obj.New(messageType);
-                        var attributes = JsonHelper.GetAttributes(json, "data", false);
-
-                        if (attributes.Length == 0)
+                    var message = Obj.New(messageType);
+                    var attributes = JsonHelper.GetAttributes(json, "data", false);
+                    if (attributes.Length == 0)
+                    {
+                        message = dataElement;
+                    }
+                    else
+                    {
+                        foreach (var a in attributes)
                         {
-                            message = dataElement;
-                        }
-                        else
-                        {
-                            foreach (var a in attributes)
+                            foreach (var kvp in a)
                             {
-                                foreach (var kvp in a)
-                                {
-                                    Obj.Set(message, kvp.Key, kvp.Value);
-                                }
+                                Obj.Set(message, kvp.Key, kvp.Value);
                             }
                         }
-
+                    }
 
                     // Публикуем сообщение в шину
                     var publishMethod = typeof(MessageBus)
@@ -393,8 +387,13 @@ namespace RuntimeStuff
                     response.StatusCode = 202; // Accepted
                     response.ContentType = "application/json";
 
-                    var successResponse = new { status = "accepted", timestamp = DateTime.UtcNow };
-                    var responseJson = JsonHelper.Serialize(successResponse, "yyyy-MM-dd");
+                    var successResponse = new
+                    {
+                        status = "accepted",
+                        timestamp_utc = DateTime.UtcNow,
+                        timestamp_moscow = DateTime.Now.ExactNow(),
+                    };
+                    var responseJson = JsonHelper.Serialize(successResponse, "yyyy-MM-ddTHH:mm:ss.fff");
                     var buffer = System.Text.Encoding.UTF8.GetBytes(responseJson);
                     response.ContentLength64 = buffer.Length;
                     await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);

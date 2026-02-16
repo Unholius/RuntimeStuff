@@ -34,6 +34,56 @@ namespace RuntimeStuff.Helpers
                         RegexOptions.Singleline);
 
         /// <summary>
+        /// Преобразует JSON-строку в плоскую структуру словаря,
+        /// где ключом является путь к узлу через точку,
+        /// а значением — строковое представление простого значения.
+        /// </summary>
+        /// <param name="json">JSON-строка для обработки.</param>
+        /// <returns>
+        /// Словарь, в котором:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// ключ — путь к значению в формате <c>Parent.Child.Property</c>;
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// значение — строковое представление простого JSON-значения
+        /// (строка, число или логическое значение).
+        /// </description>
+        /// </item>
+        /// </list>
+        /// Если входная строка пуста, содержит только пробелы
+        /// или произошла ошибка разбора — возвращается пустой словарь.
+        /// </returns>
+        /// <remarks>
+        /// Обрабатываются только простые типы значений (string, number, boolean).
+        /// Сложные структуры (объекты и массивы) рекурсивно разворачиваются
+        /// до достижения простых узлов.
+        /// Исключения при разборе намеренно подавляются,
+        /// что соответствует общей стратегии обработки ошибок.
+        /// </remarks>
+        public static Dictionary<string, string> GetAllValues(string json)
+        {
+            var result = new Dictionary<string, string>();
+
+            if (string.IsNullOrWhiteSpace(json))
+                return result;
+
+            try
+            {
+                Flatten(json, null, result);
+            }
+            catch
+            {
+                // намеренно подавляем ошибки, поведение согласовано с остальными методами
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Извлекает атрибуты всех JSON-объектов с указанным именем узла.
         /// </summary>
         /// <param name="json">
@@ -428,7 +478,7 @@ namespace RuntimeStuff.Helpers
 
             foreach (Match match in PropertyRegex.Matches(json))
             {
-                if (nameSelector(match.Groups["name"].Value))
+                if (nameSelector != null && nameSelector(match.Groups["name"].Value))
                     yield return match.Groups["value"].Value;
 
                 var value = match.Groups["value"].Value;
@@ -659,6 +709,121 @@ namespace RuntimeStuff.Helpers
             if (value.StartsWith("\"") && value.EndsWith("\""))
                 return value.Substring(1, value.Length - 2);
             return value;
+        }
+
+        private static void Flatten(string json, string prefix, Dictionary<string, string> dict)
+        {
+            if (string.IsNullOrWhiteSpace(json))
+                return;
+
+            json = json.Trim();
+
+            if (IsObject(json))
+            {
+                foreach (Match match in PropertyRegex.Matches(json))
+                {
+                    var name = match.Groups["name"].Value;
+                    var value = match.Groups["value"].Value.Trim();
+
+                    var path = string.IsNullOrEmpty(prefix)
+                        ? name
+                        : prefix + "." + name;
+
+                    if (IsObject(value) || IsArray(value))
+                    {
+                        Flatten(value, path, dict);
+                    }
+                    else if (IsSimpleValue(value))
+                    {
+                        dict[path] = Unwrap(value);
+                    }
+                }
+            }
+            else if (IsArray(json))
+            {
+                var index = 0;
+
+                foreach (var element in SplitArray(json))
+                {
+                    var trimmed = element.Trim();
+
+                    var path = string.IsNullOrEmpty(prefix)
+                        ? "[" + index.ToString(CultureInfo.InvariantCulture) + "]"
+                        : prefix + ".[" + index.ToString(CultureInfo.InvariantCulture) + "]";
+
+                    if (IsObject(trimmed) || IsArray(trimmed))
+                    {
+                        Flatten(trimmed, path, dict);
+                    }
+                    else if (IsSimpleValue(trimmed))
+                    {
+                        dict[path] = Unwrap(trimmed);
+                    }
+
+                    index++;
+                }
+            }
+        }
+
+        private static bool IsSimpleValue(string value)
+        {
+            value = value.Trim();
+
+            if (value == "true" || value == "false")
+                return true;
+
+            if (value.StartsWith("\"") && value.EndsWith("\""))
+                return true;
+
+            if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out _))
+                return true;
+
+            return false;
+        }
+
+        private static IEnumerable<string> SplitArray(string json)
+        {
+            json = json.Trim();
+
+            if (!json.StartsWith("[") || !json.EndsWith("]"))
+                yield break;
+
+            var content = json.Substring(1, json.Length - 2);
+
+            var depth = 0;
+            var inString = false;
+            var sb = new StringBuilder();
+
+            for (int i = 0; i < content.Length; i++)
+            {
+                var c = content[i];
+
+                if (c == '"' && (i == 0 || content[i - 1] != '\\'))
+                    inString = !inString;
+
+                if (!inString)
+                {
+                    if (c == '{' || c == '[')
+                    {
+                        depth++;
+                    }
+                    else if (c == '}' || c == ']')
+                    {
+                        depth--;
+                    }
+                    else if (c == ',' && depth == 0)
+                    {
+                        yield return sb.ToString();
+                        sb.Clear();
+                        continue;
+                    }
+                }
+
+                sb.Append(c);
+            }
+
+            if (sb.Length > 0)
+                yield return sb.ToString();
         }
     }
 }
