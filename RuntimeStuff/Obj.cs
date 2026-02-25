@@ -1448,31 +1448,76 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает тип элементов коллекции.
+        /// Определяет тип элемента коллекции для указанного типа.
         /// </summary>
-        /// <param name="type">Тип коллекции.</param>
-        /// <returns>Тип элементов коллекции или null, если тип не является коллекцией.</returns>
+        /// <param name="type">
+        /// Тип, для которого необходимо определить тип элемента коллекции.
+        /// </param>
+        /// <returns>
+        /// Тип элемента коллекции:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// Для массива — тип элемента массива.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Для <c>IDictionary&lt;TKey, TValue&gt;</c> — тип значения (<c>TValue</c>).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Для <c>IEnumerable&lt;T&gt;</c> — тип элемента перечисления (<c>T</c>).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Для <c>string</c> — <c>char</c>.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// Если тип не является коллекцией или равен <c>null</c>, возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Метод анализирует реализуемые интерфейсы типа для поиска
+        /// обобщённых интерфейсов <c>IDictionary&lt;TKey, TValue&gt;</c>
+        /// и <c>IEnumerable&lt;T&gt;</c>.
+        /// Приоритет проверки следующий:
+        /// <c>string</c>, массив, словарь, затем перечисление.
+        /// </remarks>
         public static Type GetCollectionItemType(Type type)
         {
             if (type == null)
-            {
                 return null;
-            }
+
+            if (type == typeof(string))
+                return typeof(char);
 
             if (type.IsArray)
-            {
                 return type.GetElementType();
-            }
 
-            var isDic = typeof(IDictionary).IsAssignableFrom(type);
-            var ga = type.GetGenericArguments();
+            // IDictionary<TKey, TValue>
+            var dictionaryInterface = type
+                .GetInterfaces()
+                .FirstOrDefault(i =>
+                    i.IsGenericType &&
+                    i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
 
-            if (isDic && ga.Length > 1)
-            {
-                return ga[1];
-            }
+            if (dictionaryInterface != null)
+                return dictionaryInterface.GetGenericArguments()[1];
 
-            return ga.FirstOrDefault();
+            // IEnumerable<T>
+            var enumerableInterface = type
+                .GetInterfaces()
+                .FirstOrDefault(i =>
+                    i.IsGenericType &&
+                    i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+
+            if (enumerableInterface != null)
+                return enumerableInterface.GetGenericArguments()[0];
+
+            return null;
         }
 
         /// <summary>

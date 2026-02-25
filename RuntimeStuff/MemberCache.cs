@@ -178,7 +178,7 @@ namespace RuntimeStuff
             IsPublic = typeCache?.IsPublic ?? Obj.IsPublic(MemberInfo);
             IsPrivate = typeCache?.IsPrivate ?? Obj.IsPrivate(MemberInfo);
             IsCollection = typeCache?.IsCollection ?? Obj.IsCollection(type);
-            ElementType = IsCollection ? typeCache?.ElementType ?? Obj.GetCollectionItemType(Type) : null;
+            ElementType = typeCache?.ElementType ?? Obj.GetCollectionItemType(Type);
             IsBasicCollection = typeCache?.IsBasicCollection ?? (IsCollection && Obj.IsBasic(ElementType));
             CanWrite = pi != null ? pi.CanWrite : fi != null;
             CanRead = pi != null ? pi.CanRead : fi != null;

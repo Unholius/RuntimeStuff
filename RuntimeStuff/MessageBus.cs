@@ -398,6 +398,9 @@ namespace RuntimeStuff
 
         private void Dispatch(object message)
         {
+            if (message == null)
+                return;
+
             var type = message.GetType();
 
             // Обычные подписчики

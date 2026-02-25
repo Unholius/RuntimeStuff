@@ -4,7 +4,7 @@
 // Created          : 01-06-2026
 //
 // Last Modified By : RS
-// Last Modified On : 01-07-2026
+// Last Modified On : 25-02-2026
 // ***********************************************************************
 // <copyright file="DbClient.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
@@ -282,6 +282,61 @@ namespace RuntimeStuff.Data
             }
 
             return parameters;
+        }
+
+        /// <summary>
+        /// Извлекает имена параметров из SQL-строки по заданному префиксу.
+        /// </summary>
+        /// <param name="sql">
+        /// SQL-запрос, из которого необходимо извлечь имена параметров.
+        /// Если значение <c>null</c>, пустое или состоит только из пробельных символов,
+        /// возвращается пустой список.
+        /// </param>
+        /// <param name="prefix">
+        /// Префикс параметра (по умолчанию <c>@</c>).
+        /// Не может быть пустой строкой.
+        /// </param>
+        /// <param name="returnWithPrefix">Возвращать имена с префиксом или без.</param>
+        /// <returns>
+        /// Список уникальных имен параметров без префикса
+        /// в порядке их первого появления в строке.
+        /// </returns>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если <paramref name="prefix"/> является пустой строкой.
+        /// </exception>
+        /// <remarks>
+        /// Метод использует регулярное выражение для поиска параметров вида
+        /// <c>@ParameterName</c> (или с другим указанным префиксом).
+        /// Конструкции вида <c>@@Something</c> игнорируются.
+        /// Допустимые имена параметров должны начинаться с буквы или символа подчеркивания,
+        /// а далее могут содержать буквы, цифры или символы подчеркивания.
+        /// </remarks>
+        public static string[] GetParameterNames(string sql, string prefix = "@", bool returnWithPrefix = false)
+        {
+            if (string.IsNullOrWhiteSpace(sql))
+                return Array.Empty<string>();
+
+            if (string.IsNullOrEmpty(prefix))
+                throw new ArgumentException("Prefix cannot be empty.", nameof(prefix));
+
+            // Экранируем префикс для Regex
+            string escapedPrefix = Regex.Escape(prefix);
+
+            // Ищем параметры вида @ParamName
+            // Исключаем @@Something
+            string pattern = $@"(?<!{escapedPrefix}){escapedPrefix}([A-Za-z_][A-Za-z0-9_]*)";
+
+            var matches = Regex.Matches(sql, pattern);
+            if (!returnWithPrefix)
+            {
+                prefix = string.Empty;
+            }
+
+            return matches
+                .Cast<Match>()
+                .Select(m => prefix + m.Groups[1].Value)
+                .Distinct()
+                .ToArray();
         }
 
         /// <summary>
@@ -609,8 +664,8 @@ namespace RuntimeStuff.Data
             cmd.CommandTimeout = commandTimeOut ?? this.DefaultCommandTimeout;
             cmd.CommandType = CommandType.Text;
             cmd.Transaction = dbTransaction;
-
-            var parameters = this.GetParams(cmdParams);
+            var parameterNames = GetParameterNames(query, Options.ParamPrefix);
+            var parameters = this.GetParams(cmdParams, parameterNames);
 
             if (cmdParams != null)
             {
@@ -1483,7 +1538,7 @@ namespace RuntimeStuff.Data
                 case IDictionary<string, object> idic:
                     return idic.ToDictionary(x => x.Key, x => x.Value);
 
-                case IEnumerable e:
+                case IEnumerable e when !(cmdParams is string) && memberCache.ElementType != null:
                     {
                         var elementCache = MemberCache.Create(memberCache.ElementType);
 
@@ -1517,29 +1572,38 @@ namespace RuntimeStuff.Data
                         }
                         else
                         {
-                            if (memberCache.Properties.Length == 1 && memberCache.Properties[0].Type == typeof(DataTable))
+                            if (memberCache.IsBasic)
                             {
-                                parameters[memberCache.Properties[0].Name] = memberCache.Properties[0].GetValue(cmdParams);
-                                return parameters;
+                                var paramName = propertyNames?.FirstOrDefault();
+                                if (!string.IsNullOrWhiteSpace(paramName))
+                                    parameters[paramName] = cmdParams;
                             }
-
-                            foreach (var arrProp in memberCache.PublicBasicEnumerableProperties)
+                            else
                             {
-                                if (arrProp.Getter(cmdParams) is IEnumerable arr)
+                                if (memberCache.Properties.Length == 1 && memberCache.Properties[0].Type == typeof(DataTable))
                                 {
-                                    var idx = 0;
-                                    foreach (var i in arr)
+                                    parameters[memberCache.Properties[0].Name] = memberCache.Properties[0].GetValue(cmdParams);
+                                    return parameters;
+                                }
+
+                                foreach (var arrProp in memberCache.PublicBasicEnumerableProperties)
+                                {
+                                    if (arrProp.Getter(cmdParams) is IEnumerable arr)
                                     {
-                                        parameters[$"{arrProp.Name}_{idx}"] = i;
-                                        idx++;
+                                        var idx = 0;
+                                        foreach (var i in arr)
+                                        {
+                                            parameters[$"{arrProp.Name}_{idx}"] = i;
+                                            idx++;
+                                        }
                                     }
                                 }
-                            }
 
-                            var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name);
-                            foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyFilter))
-                            {
-                                parameters[kvp.Key] = kvp.Value;
+                                var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name);
+                                foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyFilter))
+                                {
+                                    parameters[kvp.Key] = kvp.Value;
+                                }
                             }
                         }
 

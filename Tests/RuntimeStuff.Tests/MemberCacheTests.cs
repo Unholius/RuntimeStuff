@@ -179,6 +179,13 @@ namespace RuntimeStuff.MSTests
         #region Базовые тесты
 
         [TestMethod]
+        public void String_Member_Cache_Element_Type_Must_Be_Char()
+        {
+            var mc = MemberCache.Create<string>();
+            Assert.IsTrue(mc.ElementType == typeof(char));
+        }
+
+        [TestMethod]
         public void Create_FromType_ReturnsValidMemberCache()
         {
             // Arrange

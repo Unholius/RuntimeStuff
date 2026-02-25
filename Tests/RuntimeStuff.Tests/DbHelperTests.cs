@@ -7,25 +7,32 @@ using RuntimeStuff.Data;
 
 namespace RuntimeStuff.MSTests
 {
+#if DEBUG
     [TestClass]
+#endif
     public partial class DbHelperIntegrationTests
     {
         private static DbEntityMap? map;
         private static string? _connectionString;
 
+        [TestInitialize]
+        public void Init()
+        {
+            _connectionString = $"Data Source={Path.GetTempFileName()}.db";
+            CreateTestTables(_connectionString);
+            DbContext.DefaultConnection = () => new SqliteConnection(_connectionString);
+            DbContext.GlobalMap = map;
+        }
+
         [ClassInitialize]
         public static void ClassInitialize(TestContext _)
         {
             // Получаем строку подключения из конфигурации тестов
-            _connectionString = "Data Source=.\\Databases\\sqlte_test.db";
+            //_connectionString = "Data Source=.\\Databases\\sqlte_test.db";
             map = new DbEntityMap();
             map
                 .MapToSnakeCase<DTO.SQLite.TestTable>()
                 ;
-            // Создаем тестовые таблицы
-            CreateTestTables();
-            DbContext.DefaultConnection = () => new SqliteConnection(_connectionString);
-            DbContext.GlobalMap = map;
         }
 
         [TestMethod]
@@ -52,9 +59,9 @@ namespace RuntimeStuff.MSTests
         //}
 
         // Вспомогательные методы
-        private static void CreateTestTables()
+        private static void CreateTestTables(string cs)
         {
-            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+            using var db = DbClient.Create<SqliteConnection>(cs);
 
             var sqlTestTable = $@"
 CREATE TABLE test_table (
