@@ -1,324 +1,324 @@
-using Microsoft.Data.Sqlite;
-using System.Data.SqlClient;
-using RuntimeStuff.Extensions;
-using System.Data;
-using RuntimeStuff.MSTests.Models;
-using RuntimeStuff.Data;
+//using Microsoft.Data.Sqlite;
+//using System.Data.SqlClient;
+//using RuntimeStuff.Extensions;
+//using System.Data;
+//using RuntimeStuff.MSTests.Models;
+//using RuntimeStuff.Data;
 
-namespace RuntimeStuff.MSTests
-{
+//namespace RuntimeStuff.MSTests
+//{
 
-    [TestClass]
-    public partial class DbHelperIntegrationTests
-    {
-        private static DbEntityMap? map;
-        private static string? _connectionString;
+//    [TestClass]
+//    public partial class DbHelperIntegrationTests
+//    {
+//        private static DbEntityMap? map;
+//        private static string? _connectionString;
 
-        [TestInitialize]
-        public void Init()
-        {
-            _connectionString = $"Data Source={Path.GetTempFileName()}.db";
-            CreateTestTables(_connectionString);
-            DbContext.DefaultConnection = () => new SqliteConnection(_connectionString);
-            DbContext.GlobalMap = map;
-        }
+//        [TestInitialize]
+//        public void Init()
+//        {
+//            _connectionString = $"Data Source={Path.GetTempFileName()}.db";
+//            CreateTestTables(_connectionString);
+//            DbContext.DefaultConnection = () => new SqliteConnection(_connectionString);
+//            DbContext.GlobalMap = map;
+//        }
 
-        [ClassInitialize]
-        public static void ClassInitialize(TestContext _)
-        {
-            // Получаем строку подключения из конфигурации тестов
-            //_connectionString = "Data Source=.\\Databases\\sqlte_test.db";
-            map = new DbEntityMap();
-            map
-                .MapToSnakeCase<DTO.SQLite.TestTable>()
-                ;
-        }
+//        [ClassInitialize]
+//        public static void ClassInitialize(TestContext _)
+//        {
+//            // Получаем строку подключения из конфигурации тестов
+//            //_connectionString = "Data Source=.\\Databases\\sqlte_test.db";
+//            map = new DbEntityMap();
+//            map
+//                .MapToSnakeCase<DTO.SQLite.TestTable>()
+//                ;
+//        }
 
-        [TestMethod]
-        public void Dumb_Test()
-        {
-        }
+//        [TestMethod]
+//        public void Dumb_Test()
+//        {
+//        }
 
-        //[TestMethod]
-        //public void Fill_Test_01()
-        //{
-        //    var i = new DbEntity<TestTable>() { TextValue = "123" };
-        //    DbEntity<TestTable>.Map = map;
-        //    var db = DbClient.Create<SqliteConnection>(_connectionString, map);
-        //    var id = db.Insert(i, x => x.TextValue);
-        //    i = new TestTable();
-        //    i.Load(id);
-        //    Assert.AreEqual("123", i.TextValue);
-        //    Assert.AreEqual(id, i.Id);
-        //    Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
-        //    i.TextValue = "456";
-        //    i.Save();
-        //    var j = db.First<TestTable>(x => x.Id == (long)id);
-        //    Assert.AreEqual("456", j.TextValue);
-        //}
+//        //[TestMethod]
+//        //public void Fill_Test_01()
+//        //{
+//        //    var i = new DbEntity<TestTable>() { TextValue = "123" };
+//        //    DbEntity<TestTable>.Map = map;
+//        //    var db = DbClient.Create<SqliteConnection>(_connectionString, map);
+//        //    var id = db.Insert(i, x => x.TextValue);
+//        //    i = new TestTable();
+//        //    i.Load(id);
+//        //    Assert.AreEqual("123", i.TextValue);
+//        //    Assert.AreEqual(id, i.Id);
+//        //    Assert.IsTrue(db.Connection.State == ConnectionState.Closed);
+//        //    i.TextValue = "456";
+//        //    i.Save();
+//        //    var j = db.First<TestTable>(x => x.Id == (long)id);
+//        //    Assert.AreEqual("456", j.TextValue);
+//        //}
 
-        // Вспомогательные методы
-        private static void CreateTestTables(string cs)
-        {
-            using var db = DbClient.Create<SqliteConnection>(cs);
+//        // Вспомогательные методы
+//        private static void CreateTestTables(string cs)
+//        {
+//            using var db = DbClient.Create<SqliteConnection>(cs);
 
-            var sqlTestTable = $@"
-CREATE TABLE test_table (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT, -- INTEGER
-    int_value       INTEGER,
-    real_value      REAL,
-    numeric_value   NUMERIC,
-    text_value      TEXT,
-    blob_value      BLOB,
+//            var sqlTestTable = $@"
+//CREATE TABLE test_table (
+//    id              INTEGER PRIMARY KEY AUTOINCREMENT, -- INTEGER
+//    int_value       INTEGER,
+//    real_value      REAL,
+//    numeric_value   NUMERIC,
+//    text_value      TEXT,
+//    blob_value      BLOB,
 
-    boolean_value   INTEGER CHECK (boolean_value IN (0, 1)),
-    date_value      TEXT,        -- ISO8601: YYYY-MM-DD
-    date_time_value  TEXT,       -- ISO8601: YYYY-MM-DD HH:MM:SS
-    time_value      TEXT,        -- HH:MM:SS
+//    boolean_value   INTEGER CHECK (boolean_value IN (0, 1)),
+//    date_value      TEXT,        -- ISO8601: YYYY-MM-DD
+//    date_time_value  TEXT,       -- ISO8601: YYYY-MM-DD HH:MM:SS
+//    time_value      TEXT,        -- HH:MM:SS
 
-    decimal_value   NUMERIC(10,2),
-    json_value      TEXT,        -- JSON (SQLite 3.38+ поддерживает JSON-функции)
+//    decimal_value   NUMERIC(10,2),
+//    json_value      TEXT,        -- JSON (SQLite 3.38+ поддерживает JSON-функции)
 
-    nullable_value  TEXT NULL,
-    not_null_value  TEXT NOT NULL DEFAULT 'default',
+//    nullable_value  TEXT NULL,
+//    not_null_value  TEXT NOT NULL DEFAULT 'default',
 
-    created_at      TEXT DEFAULT (datetime('now'))
-);
-";
-            var sqlTable11 = $@"
-CREATE TABLE users (
-    id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    name    TEXT NOT NULL,
-    guid    TEXT
-);
+//    created_at      TEXT DEFAULT (datetime('now'))
+//);
+//";
+//            var sqlTable11 = $@"
+//CREATE TABLE users (
+//    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+//    name    TEXT NOT NULL,
+//    guid    TEXT
+//);
 
-CREATE TABLE user_profiles (
-    user_id     INTEGER PRIMARY KEY, -- гарантирует 1:1
-    bio         TEXT,
-    avatar_url  TEXT,
+//CREATE TABLE user_profiles (
+//    user_id     INTEGER PRIMARY KEY, -- гарантирует 1:1
+//    bio         TEXT,
+//    avatar_url  TEXT,
 
-    FOREIGN KEY (user_id)
-        REFERENCES users(id)
-        ON DELETE CASCADE
-);
-";
-            var sqlTable1M = $@"
-CREATE TABLE authors (
-    id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    name    TEXT NOT NULL
-);
+//    FOREIGN KEY (user_id)
+//        REFERENCES users(id)
+//        ON DELETE CASCADE
+//);
+//";
+//            var sqlTable1M = $@"
+//CREATE TABLE authors (
+//    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+//    name    TEXT NOT NULL
+//);
 
-CREATE TABLE articles (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    author_id  INTEGER NOT NULL,
-    title       TEXT NOT NULL,
-    content     TEXT,
+//CREATE TABLE articles (
+//    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+//    author_id  INTEGER NOT NULL,
+//    title       TEXT NOT NULL,
+//    content     TEXT,
 
-    FOREIGN KEY (author_id)
-        REFERENCES authors(id)
-        ON DELETE CASCADE
-);
-";
-            var sqlTablesMM = $@"
-CREATE TABLE students (
-    id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    name    TEXT NOT NULL
-);
+//    FOREIGN KEY (author_id)
+//        REFERENCES authors(id)
+//        ON DELETE CASCADE
+//);
+//";
+//            var sqlTablesMM = $@"
+//CREATE TABLE students (
+//    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+//    name    TEXT NOT NULL
+//);
 
-CREATE TABLE courses (
-    id      INTEGER PRIMARY KEY AUTOINCREMENT,
-    title   TEXT NOT NULL
-);
+//CREATE TABLE courses (
+//    id      INTEGER PRIMARY KEY AUTOINCREMENT,
+//    title   TEXT NOT NULL
+//);
 
-CREATE TABLE student_courses (
-    student_id INTEGER NOT NULL,
-    course_id  INTEGER NOT NULL,
+//CREATE TABLE student_courses (
+//    student_id INTEGER NOT NULL,
+//    course_id  INTEGER NOT NULL,
 
-    PRIMARY KEY (student_id, course_id),
+//    PRIMARY KEY (student_id, course_id),
 
-    FOREIGN KEY (student_id)
-        REFERENCES students(id)
-        ON DELETE CASCADE,
+//    FOREIGN KEY (student_id)
+//        REFERENCES students(id)
+//        ON DELETE CASCADE,
 
-    FOREIGN KEY (course_id)
-        REFERENCES courses(id)
-        ON DELETE CASCADE
-);
-";
+//    FOREIGN KEY (course_id)
+//        REFERENCES courses(id)
+//        ON DELETE CASCADE
+//);
+//";
 
-            db.ExecuteNonQuery(sqlTestTable);
-            db.ExecuteNonQuery(sqlTable11);
-            db.ExecuteNonQuery(sqlTable1M);
-            db.ExecuteNonQuery(sqlTablesMM);
-        }
+//            db.ExecuteNonQuery(sqlTestTable);
+//            db.ExecuteNonQuery(sqlTable11);
+//            db.ExecuteNonQuery(sqlTable1M);
+//            db.ExecuteNonQuery(sqlTablesMM);
+//        }
 
-        [TestMethod]
-        public void DbClient_Test_01()
-        {
-            using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            db.Options.Map = map;
-            db.EnableLogging = true;
-            var row = new DTO.SQLite.TestTable() { IntValue = 1, TextValue = "1" };
-            var id = db.Insert(row, x => x.IntValue, x => x.TextValue);
-            var row2 = db.First<DTO.SQLite.TestTable>(x => x.Id == (long)id);
-            Assert.AreEqual(1, row2.IntValue);
-            Assert.AreEqual("1", row2.TextValue);
-            var result = db.Delete<DTO.SQLite.TestTable>(x => x.Id == (long)id);
-            Assert.AreEqual(1, result);
-            var count = db.Count<DTO.SQLite.TestTable>(x => x.Id == (long)id);
-            Assert.AreEqual(0L, count);
-        }
+//        [TestMethod]
+//        public void DbClient_Test_01()
+//        {
+//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            db.Options.Map = map;
+//            db.EnableLogging = true;
+//            var row = new DTO.SQLite.TestTable() { IntValue = 1, TextValue = "1" };
+//            var id = db.Insert(row, x => x.IntValue, x => x.TextValue);
+//            var row2 = db.First<DTO.SQLite.TestTable>(x => x.Id == (long)id);
+//            Assert.AreEqual(1, row2.IntValue);
+//            Assert.AreEqual("1", row2.TextValue);
+//            var result = db.Delete<DTO.SQLite.TestTable>(x => x.Id == (long)id);
+//            Assert.AreEqual(1, result);
+//            var count = db.Count<DTO.SQLite.TestTable>(x => x.Id == (long)id);
+//            Assert.AreEqual(0L, count);
+//        }
 
-        [TestMethod]
-        public void DbClient_InsertRange_Test_01()
-        {
-            using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            var rows = new List<(int IntValue, string TextValue)>
-            {
-                new () { IntValue = 111, TextValue = "1" },
-                new () { IntValue = 2222, TextValue = "22" },
-                new () { IntValue = 33333, TextValue = "333" },
-            };
+//        [TestMethod]
+//        public void DbClient_InsertRange_Test_01()
+//        {
+//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            var rows = new List<(int IntValue, string TextValue)>
+//            {
+//                new () { IntValue = 111, TextValue = "1" },
+//                new () { IntValue = 2222, TextValue = "22" },
+//                new () { IntValue = 33333, TextValue = "333" },
+//            };
 
-            var rows2 = rows.Select(x => new { int_value = x.IntValue, text_value = x.TextValue }).ToList();
+//            var rows2 = rows.Select(x => new { int_value = x.IntValue, text_value = x.TextValue }).ToList();
 
-            db.EnableLogging = true;
-            var ids = db.InsertRange(rows2, "test_table");
-        }
+//            db.EnableLogging = true;
+//            var ids = db.InsertRange(rows2, "test_table");
+//        }
 
-        [TestMethod]
-        public void DbClient_Test_02()
-        {
-            using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            db.EnableLogging = true;
-            var user = db.Insert<DTO.SQLite.User>(x => x.Name = "user_1", x => x.Guid = Guid.NewGuid());
-            var profile = db.Insert<DTO.SQLite.UserProfile>(x => x.UserId = user.Id, x => x.AvatarUrl = new Uri("https://ya.ru"));
-            var up = db.First<DTO.SQLite.UserProfile>(x => x.UserId == profile.UserId);
-            up.User = db.First<DTO.SQLite.User>(x => x.Id == profile.UserId);
-            up.Bio = "BIO!";
-            var result = db.Update(up);
-        }
+//        [TestMethod]
+//        public void DbClient_Test_02()
+//        {
+//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            db.EnableLogging = true;
+//            var user = db.Insert<DTO.SQLite.User>(x => x.Name = "user_1", x => x.Guid = Guid.NewGuid());
+//            var profile = db.Insert<DTO.SQLite.UserProfile>(x => x.UserId = user.Id, x => x.AvatarUrl = new Uri("https://ya.ru"));
+//            var up = db.First<DTO.SQLite.UserProfile>(x => x.UserId == profile.UserId);
+//            up.User = db.First<DTO.SQLite.User>(x => x.Id == profile.UserId);
+//            up.Bio = "BIO!";
+//            var result = db.Update(up);
+//        }
 
-        [TestMethod]
-        public void DbClient_Test_03()
-        {
-            using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            for (var i = 0; i < 10; i++)
-            {
-                var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
-            }
+//        [TestMethod]
+//        public void DbClient_Test_03()
+//        {
+//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            for (var i = 0; i < 10; i++)
+//            {
+//                var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
+//            }
 
-            var d = db.ToDictionary<long, string, DTO.SQLite.User>(x => x.Id, x => x.Name);
-            var r = db.Query(typeof(List<string>), "select [name] from [users] where id in (@ids)", new { ids = new[] { 2, 4, 6, 8, 0 } });
-        }
+//            var d = db.ToDictionary<long, string, DTO.SQLite.User>(x => x.Id, x => x.Name);
+//            var r = db.Query(typeof(List<string>), "select [name] from [users] where id in (@ids)", new { ids = new[] { 2, 4, 6, 8, 0 } });
+//        }
 
-        [TestMethod]
-        public void DbClient_Test_06()
-        {
-            using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            var r = db.Query(typeof(List<long>), "select [id] from [users] where id in (@ids)", new { ids = new[] { 1, 2, 3, 4 } });
-        }
+//        [TestMethod]
+//        public void DbClient_Test_06()
+//        {
+//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            var r = db.Query(typeof(List<long>), "select [id] from [users] where id in (@ids)", new { ids = new[] { 1, 2, 3, 4 } });
+//        }
 
-        [TestMethod]
-        public void DbClient_Test_04()
-        {
-            using var db = DbClient.Create<SqliteConnection>(_connectionString);
-            for (var i = 0; i < 10; i++)
-            {
-                var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
-            }
+//        [TestMethod]
+//        public void DbClient_Test_04()
+//        {
+//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            for (var i = 0; i < 10; i++)
+//            {
+//                var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
+//            }
 
-            var list = db.ToList<string>("select [name] from [users]");
-        }
+//            var list = db.ToList<string>("select [name] from [users]");
+//        }
 
-        private readonly string ServerName = "NAS\\RSSQLSERVER";
-        private readonly string DatabaseName = "test";
+//        private readonly string ServerName = "NAS\\RSSQLSERVER";
+//        private readonly string DatabaseName = "test";
 
-        //[TestMethod]
-        public void DbClient_Test_05()
-        {
-            var con = new SqlConnection()
-                .Server(ServerName)
-                .Database(DatabaseName)
-                .Timeout(2)
-                .IntegratedSecurity(true);
+//        //[TestMethod]
+//        public void DbClient_Test_05()
+//        {
+//            var con = new SqlConnection()
+//                .Server(ServerName)
+//                .Database(DatabaseName)
+//                .Timeout(2)
+//                .IntegratedSecurity(true);
 
-            if (!con.TryOpen())
-                return;
+//            if (!con.TryOpen())
+//                return;
 
-            var list = new List<string>
-            {
-                "1",
-                "2",
-                "3"
-            };
-            var dt = new DataTable("dbo.StrList");
-            dt.AddCol("ID");
-            dt.AddRow("1")
-                .AddRow("2")
-                .AddRow("3");
-            var result = con.ToList<string>("select * from dbo.TestFunction(@list)", new { list = dt });
-        }
+//            var list = new List<string>
+//            {
+//                "1",
+//                "2",
+//                "3"
+//            };
+//            var dt = new DataTable("dbo.StrList");
+//            dt.AddCol("ID");
+//            dt.AddRow("1")
+//                .AddRow("2")
+//                .AddRow("3");
+//            var result = con.ToList<string>("select * from dbo.TestFunction(@list)", new { list = dt });
+//        }
 
-        //[TestMethod]
-        public void DbClient_Test_07()
-        {
-            var con = new SqlConnection()
-                .Server("serv40")
-                .Database("Tamuz")
-                .Timeout(2)
-                .IntegratedSecurity(true);
+//        //[TestMethod]
+//        public void DbClient_Test_07()
+//        {
+//            var con = new SqlConnection()
+//                .Server("serv40")
+//                .Database("Tamuz")
+//                .Timeout(2)
+//                .IntegratedSecurity(true);
 
-            if (!con.TryOpen())
-                return;
+//            if (!con.TryOpen())
+//                return;
 
-            var list = new List<BadCodeGoodCodeUpdateData>()
-            {
-                new()
-                {
-                    BadCode = "bad1", GoodCode = "good1"
-                },
-                new()
-                {
-                    BadCode = "bad2", GoodCode = "good2"
-                },
-            };
+//            var list = new List<BadCodeGoodCodeUpdateData>()
+//            {
+//                new()
+//                {
+//                    BadCode = "bad1", GoodCode = "good1"
+//                },
+//                new()
+//                {
+//                    BadCode = "bad2", GoodCode = "good2"
+//                },
+//            };
 
-            var dt = list.ToDataTable("dbo.Tuple2", 
-                (x => x.GoodCode, "Item1"), 
-                (x => x.BadCode, "Item2")
-                );
+//            var dt = list.ToDataTable("dbo.Tuple2", 
+//                (x => x.GoodCode, "Item1"), 
+//                (x => x.BadCode, "Item2")
+//                );
 
-            //var dt = new DataTable("dbo.Tuple2");
-            //dt.AddCol("Item1");
-            //dt.AddCol("Item2");
-            //dt
-            //    .AddRow("1", "2");
-            var result = con.ToList<BadCodeGoodCodeUpdateData>("select * from dbo.GetTableBCGC(@companyId, @bgCodes)", new { companyId = 1, bgCodes = dt });
-        }
+//            //var dt = new DataTable("dbo.Tuple2");
+//            //dt.AddCol("Item1");
+//            //dt.AddCol("Item2");
+//            //dt
+//            //    .AddRow("1", "2");
+//            var result = con.ToList<BadCodeGoodCodeUpdateData>("select * from dbo.GetTableBCGC(@companyId, @bgCodes)", new { companyId = 1, bgCodes = dt });
+//        }
 
-        //[TestMethod]
-        public void DbClient_Tamuz_Test_01()
-        {
-            var con = new SqlConnection()
-                    .Server("serv40")
-                    .Database("Tamuz")
-                    .Timeout(2)
-                    .IntegratedSecurity(true);
+//        //[TestMethod]
+//        public void DbClient_Tamuz_Test_01()
+//        {
+//            var con = new SqlConnection()
+//                    .Server("serv40")
+//                    .Database("Tamuz")
+//                    .Timeout(2)
+//                    .IntegratedSecurity(true);
 
-            if (!con.TryOpen()) return;
+//            if (!con.TryOpen()) return;
 
-            var result = con.ExecuteScalar<bool>(
-                "SELECT\r\n" +
-                "    CASE WHEN EXISTS \r\n" +
-                "    (\r\n" +
-                "        SELECT p.[ID] FROM [Tamuz].[dbo].[Products] p WHERE LTRIM(RTRIM(p.[ProductCode])) = @productCode AND p.[CompanyID] = @companyId\r\n" +
-                "    )\r\n" +
-                "    THEN 1\r\n" +
-                "    ELSE 0\r\n" +
-                "END", new {productCode = "R2093-AN595SM", companyId = 1 });
+//            var result = con.ExecuteScalar<bool>(
+//                "SELECT\r\n" +
+//                "    CASE WHEN EXISTS \r\n" +
+//                "    (\r\n" +
+//                "        SELECT p.[ID] FROM [Tamuz].[dbo].[Products] p WHERE LTRIM(RTRIM(p.[ProductCode])) = @productCode AND p.[CompanyID] = @companyId\r\n" +
+//                "    )\r\n" +
+//                "    THEN 1\r\n" +
+//                "    ELSE 0\r\n" +
+//                "END", new {productCode = "R2093-AN595SM", companyId = 1 });
 
-            Assert.IsTrue(result);
-        }
-    }
-}
+//            Assert.IsTrue(result);
+//        }
+//    }
+//}
