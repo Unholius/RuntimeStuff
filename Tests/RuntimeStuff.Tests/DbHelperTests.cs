@@ -7,9 +7,8 @@ using RuntimeStuff.Data;
 
 namespace RuntimeStuff.MSTests
 {
-#if DEBUG
+
     [TestClass]
-#endif
     public partial class DbHelperIntegrationTests
     {
         private static DbEntityMap? map;
@@ -232,8 +231,8 @@ CREATE TABLE student_courses (
             var list = db.ToList<string>("select [name] from [users]");
         }
 
-        private string ServerName = "NAS\\RSSQLSERVER";
-        private string DatabaseName = "test";
+        private readonly string ServerName = "NAS\\RSSQLSERVER";
+        private readonly string DatabaseName = "test";
 
         //[TestMethod]
         public void DbClient_Test_05()
@@ -275,11 +274,11 @@ CREATE TABLE student_courses (
 
             var list = new List<BadCodeGoodCodeUpdateData>()
             {
-                new BadCodeGoodCodeUpdateData()
+                new()
                 {
                     BadCode = "bad1", GoodCode = "good1"
                 },
-                new BadCodeGoodCodeUpdateData()
+                new()
                 {
                     BadCode = "bad2", GoodCode = "good2"
                 },
@@ -319,6 +318,7 @@ CREATE TABLE student_courses (
                 "    ELSE 0\r\n" +
                 "END", new {productCode = "R2093-AN595SM", companyId = 1 });
 
+            Assert.IsTrue(result);
         }
     }
 }

@@ -97,6 +97,57 @@ namespace RuntimeStuff.Helpers
         };
 
         /// <summary>
+        /// Коллекция открывающих кавычек.
+        /// </summary>
+        public static char[] OpeningQuotes { get; } = new char[]
+        {
+            '"', // Default
+            '«', // French, Russian opening
+            '‹', // Single guillemet opening
+            '“', // Left double quotation mark
+            '‘', // Left single quotation mark
+            '„', // Double low-9 quotation mark (German opening)
+            '‚', // Single low-9 quotation mark
+            '「', // CJK corner bracket opening
+            '『', // CJK white corner bracket opening
+            '〈', // CJK angle bracket opening
+            '《', // CJK double angle bracket opening
+            '「', // Japanese opening quote
+            '﹁', // Small corner bracket opening
+            '﹃', // Small white corner bracket opening
+            '｢',  // Halfwidth corner bracket opening
+        };
+
+        /// <summary>
+        /// Коллекция закрывающих кавычек.
+        /// </summary>
+        public static char[] ClosingQuotes { get; } = new char[]
+        {
+            '"', // Default
+            '»', // French, Russian closing
+            '›', // Single guillemet closing
+            '”', // Right double quotation mark
+            '’', // Right single quotation mark
+            '‟', // Double high-reversed-9 quotation mark
+            '』', // CJK white corner bracket closing
+            '」', // CJK corner bracket closing
+            '〉', // CJK angle bracket closing
+            '》', // CJK double angle bracket closing
+            '﹂', // Small corner bracket closing
+            '﹄', // Small white corner bracket closing
+            '｣',  // Halfwidth corner bracket closing
+        };
+
+        /// <summary>
+        /// Коллекция кавычек. Комбинация уникальных значений <see cref="OpeningQuotes"/> и <see cref="ClosingQuotes"/>.
+        /// </summary>
+        public static char[] AllQuotes { get; } =
+            OpeningQuotes
+            .Concat(ClosingQuotes)
+            .Distinct()
+            .ToArray();
+
+        /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
         /// </summary>
         /// <param name="str">

@@ -813,13 +813,13 @@ namespace RuntimeStuff.MSTests
             var t2Item1Cache = t2Cache["item1"];
             var t2Item2Cache = t2Cache["item2"];
             Assert.IsNotNull(kvKeyCache);
-            Assert.AreEqual(kvKeyCache.Name, "Key");
+            Assert.AreEqual("Key", kvKeyCache.Name);
             Assert.IsNotNull(kvValueCache);
-            Assert.AreEqual(kvValueCache.Name, "Value");
+            Assert.AreEqual("Value", kvValueCache.Name);
             Assert.IsNotNull(t2Item1Cache);
-            Assert.AreEqual(t2Item1Cache.Name, "Item1");
+            Assert.AreEqual("Item1", t2Item1Cache.Name);
             Assert.IsNotNull(t2Item2Cache);
-            Assert.AreEqual(t2Item2Cache.Name, "Item2");
+            Assert.AreEqual("Item2", t2Item2Cache.Name);
         }
 
         public void Test_Implicit_Operators()
@@ -859,16 +859,10 @@ namespace RuntimeStuff.MSTests
 
         #region Вспомогательные классы для тестов
 
-        public class TestClassWithConstructor
+        public class TestClassWithConstructor(string name, int value)
         {
-            public string Name { get; }
-            public int Value { get; }
-
-            public TestClassWithConstructor(string name, int value)
-            {
-                Name = name;
-                Value = value;
-            }
+            public string Name { get; } = name;
+            public int Value { get; } = value;
         }
 
         public class BaseClass
@@ -895,7 +889,7 @@ namespace RuntimeStuff.MSTests
         {
             public string? Prop { get; set; }
             public string? PROP { get; set; }
-            private string? prop;
+            private readonly string? prop;
         }
 
         public class TestAccessModifiersClass
@@ -928,6 +922,7 @@ namespace RuntimeStuff.MSTests
         {
             var memberInfo = typeof(TestClass).GetMemberCache();
             var m = memberInfo["name"];
+            Assert.IsNotNull(m);
         }
 
         [TestMethod]

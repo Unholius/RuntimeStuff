@@ -268,10 +268,8 @@ namespace RuntimeStuff
         /// Gets флаги для поиска членов класса по умолчанию.
         /// </summary>
         /// <value>The default binding flags.</value>
-#pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
 
         public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
-#pragma warning restore S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
                                                                   BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
@@ -2778,12 +2776,9 @@ namespace RuntimeStuff
         /// <returns>FieldInfo.</returns>
         private static FieldInfo FindFieldByNamingPatterns(Type declaringType, string propertyName)
         {
-#pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
             var property = declaringType.GetProperty(
                 propertyName,
                 BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-#pragma warning restore S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
-
             if (property == null)
             {
                 return null;

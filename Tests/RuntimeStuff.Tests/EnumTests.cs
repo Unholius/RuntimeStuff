@@ -189,7 +189,7 @@ namespace RuntimeStuff.MSTests
             var result = enumValue.GetDisplayName();
 
             // Assert
-            Assert.AreEqual(result, "FirstValue");
+            Assert.AreEqual("FirstValue", result);
         }
 
         [TestMethod]
@@ -202,7 +202,7 @@ namespace RuntimeStuff.MSTests
             var result = enumValue.GetDisplayName();
 
             // Assert
-            Assert.AreEqual(result, "SecondValue");
+            Assert.AreEqual("SecondValue", result);
         }
 
         [TestMethod]

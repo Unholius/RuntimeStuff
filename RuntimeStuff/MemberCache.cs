@@ -329,14 +329,12 @@ namespace RuntimeStuff
         /// <summary>
         /// Флаги привязки по умолчанию, используемые для поиска членов в типе.
         /// </summary>
-#pragma warning disable S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
         public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic;
 
         /// <summary>
         /// Флаги привязки по умолчанию c IgnoreCase, используемые для поиска членов в типе.
         /// </summary>
         public static BindingFlags DefaultIgnoreCaseBindingFlags { get; } = BindingFlags.Instance | BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.IgnoreCase;
-#pragma warning restore S3011 // Reflection should not be used to increase accessibility of classes, methods, or fields
 
         /// <summary>
         /// Сопоставление интерфейсов с конкретными реализациями, используемыми при создании экземпляров.

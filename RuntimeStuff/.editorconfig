@@ -1,6 +1,10 @@
-﻿[*.cs]
+﻿root = true
 
-# SA1101: Prefix local calls with this
-dotnet_diagnostic.SA1101.severity = none
-dotnet_diagnostic.SA1503.severity = none
-dotnet_diagnostic.SA1623.severity = none
+[*.cs]
+
+dotnet_analyzer_diagnostic.category-StyleCop.severity = warning
+dotnet_analyzer_diagnostic.category-Microsoft.CodeAnalysis.severity = warning
+dotnet_analyzer_diagnostic.category-Sonar.severity = warning
+
+dotnet_style_qualification_for_field = true:warning
+dotnet_style_qualification_for_property = true:warning

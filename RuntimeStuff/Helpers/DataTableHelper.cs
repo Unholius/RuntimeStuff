@@ -218,15 +218,15 @@ namespace RuntimeStuff.Helpers
 
                 foreach (var item in items)
                 {
-                    foreach (var map in propsMap)
+                    foreach (var (Prop, Col) in propsMap)
                     {
-                        var value = valueConverter == null ? Convert.ChangeType(map.Prop.Getter(item), map.Col.DataType) : valueConverter(map.Prop.Getter(item), map.Col.DataType);
+                        var value = valueConverter == null ? Convert.ChangeType(Prop.Getter(item), Col.DataType) : valueConverter(Prop.Getter(item), Col.DataType);
                         if (value == null)
                         {
                             continue;
                         }
 
-                        row[map.Col] = value;
+                        row[Col] = value;
                     }
 
                     table.Rows.Add(row);
@@ -402,15 +402,15 @@ namespace RuntimeStuff.Helpers
             {
                 var item = new T();
 
-                foreach (var map in propsMap)
+                foreach (var (Col, Prop) in propsMap)
                 {
-                    var value = row[map.Col];
+                    var value = row[Col];
                     if (value == DBNull.Value)
                     {
                         continue;
                     }
 
-                    map.Prop.SetValue(item, valueToPropertyTypeConverter == null ? Convert.ChangeType(value, map.Prop.PropertyType) : valueToPropertyTypeConverter(value, map.Prop.PropertyType));
+                    Prop.SetValue(item, valueToPropertyTypeConverter == null ? Convert.ChangeType(value, Prop.PropertyType) : valueToPropertyTypeConverter(value, Prop.PropertyType));
                 }
 
                 result.Add(item);

@@ -298,7 +298,7 @@ namespace RuntimeStuff.MSTests
         public void AllMethods_WithNullOrWhiteSpace_ReturnEmptyString()
         {
             // Arrange
-            string[] inputs = new[] { null, "", " ", "   " };
+            string[] inputs = [null, "", " ", "   "];
 
             foreach (var input in inputs)
             {
@@ -309,14 +309,6 @@ namespace RuntimeStuff.MSTests
                 Assert.AreEqual("", StringHelper.ToLowerCamelCase(input));
                 Assert.AreEqual("", StringHelper.ToKebabCase(input));
             }
-        }
-
-        [TestMethod]
-        public void Note_ToUpperSnaceCaseMethodHasTypoInName()
-        {
-            // Тест, который замечает, что в названии метода опечатка:
-            // "ToUpperSnaceCase" вместо "ToUpperSnakeCase"
-            Assert.IsTrue(true, "Метод называется ToUpperSnaceCase, а должен быть ToUpperSnakeCase");
         }
     }
 }
