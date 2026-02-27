@@ -132,5 +132,40 @@ namespace RuntimeStuff.Extensions
         /// <param name="row">Строка.</param>
         /// <returns><c>true</c> if the specified row contains row; otherwise, <c>false</c>.</returns>
         public static bool ContainsRow(this DataTable dt, object row) => DataTableHelper.ContainsRow(dt, row);
+
+        /// <summary>
+        /// Преобразует объект <see cref="DataTable"/> в строковое представление в формате CSV.
+        /// </summary>
+        /// <param name="data">
+        /// Таблица <see cref="DataTable"/>, содержащая данные для экспорта.
+        /// </param>
+        /// <param name="writeColumnHeaders">
+        /// Флаг, указывающий, нужно ли записывать строку заголовков столбцов в начало результата.
+        /// </param>
+        /// <param name="columnSeparator">
+        /// Разделитель столбцов. По умолчанию используется запятая (<c>,</c>).
+        /// </param>
+        /// <param name="lineSeparator">
+        /// Разделитель строк. По умолчанию используется <c>";\r\n"</c>.
+        /// </param>
+        /// <param name="valueSerializer">
+        /// Пользовательская функция сериализации значений ячеек.
+        /// Первый параметр — имя столбца, второй — значение ячейки.
+        /// Функция должна вернуть строковое представление значения.
+        /// Если параметр равен <c>null</c>, используется стандартное преобразование через <see cref="Convert.ToString(object)"/>.
+        /// </param>
+        /// <param name="columnNames">
+        /// Необязательный список имен столбцов для экспорта.
+        /// Если указаны, в результат будут включены только эти столбцы и в заданном порядке.
+        /// Если список пуст, экспортируются все столбцы таблицы в их исходном порядке.
+        /// </param>
+        /// <returns>
+        /// Строка, содержащая данные таблицы в формате CSV.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если параметр <paramref name="data"/> равен <c>null</c>.
+        /// </exception>
+        public static string ToCsv(this DataTable data, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<string, object, string> valueSerializer = null, params string[] columnNames)
+            => CsvHelper.ToCsv(data, writeColumnHeaders, columnSeparator, lineSeparator, valueSerializer, columnNames);
     }
 }

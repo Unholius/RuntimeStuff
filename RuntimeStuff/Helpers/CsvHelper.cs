@@ -6,6 +6,7 @@ namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections.Generic;
+    using System.Data;
     using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
@@ -165,7 +166,9 @@ namespace RuntimeStuff.Helpers
                     }
 
                     if (string.IsNullOrEmpty($"{values[j]}"))
+                    {
                         continue;
+                    }
 
                     columnNames[j].SetValue(obj, values[j]);
                 }
@@ -174,6 +177,106 @@ namespace RuntimeStuff.Helpers
             }
 
             return result.ToArray();
+        }
+
+        /// <summary>
+        /// Преобразует объект <see cref="DataTable"/> в строковое представление в формате CSV.
+        /// </summary>
+        /// <param name="data">
+        /// Таблица <see cref="DataTable"/>, содержащая данные для экспорта.
+        /// </param>
+        /// <param name="writeColumnHeaders">
+        /// Флаг, указывающий, нужно ли записывать строку заголовков столбцов в начало результата.
+        /// </param>
+        /// <param name="columnSeparator">
+        /// Разделитель столбцов. По умолчанию используется запятая (<c>,</c>).
+        /// </param>
+        /// <param name="lineSeparator">
+        /// Разделитель строк. По умолчанию используется <c>";\r\n"</c>.
+        /// </param>
+        /// <param name="valueSerializer">
+        /// Пользовательская функция сериализации значений ячеек.
+        /// Первый параметр — имя столбца, второй — значение ячейки.
+        /// Функция должна вернуть строковое представление значения.
+        /// Если параметр равен <c>null</c>, используется стандартное преобразование через <see cref="Convert.ToString(object)"/>.
+        /// </param>
+        /// <param name="columnNames">
+        /// Необязательный список имен столбцов для экспорта.
+        /// Если указаны, в результат будут включены только эти столбцы и в заданном порядке.
+        /// Если список пуст, экспортируются все столбцы таблицы в их исходном порядке.
+        /// </param>
+        /// <returns>
+        /// Строка, содержащая данные таблицы в формате CSV.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если параметр <paramref name="data"/> равен <c>null</c>.
+        /// </exception>
+        public static string ToCsv(DataTable data, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<string, object, string> valueSerializer = null, params string[] columnNames)
+        {
+            if (data == null)
+            {
+                throw new ArgumentNullException(nameof(data));
+            }
+
+            if (string.IsNullOrEmpty(columnSeparator))
+            {
+                throw new ArgumentException(@"Column separator cannot be null or empty.", nameof(columnSeparator));
+            }
+
+            if (lineSeparator == null)
+            {
+                throw new ArgumentNullException(nameof(lineSeparator));
+            }
+
+            var sb = new StringBuilder();
+
+            // Определяем набор колонок
+            var columns = (columnNames != null && columnNames.Length > 0)
+                ? columnNames
+                : data.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToArray();
+
+            // Проверка существования колонок
+            foreach (var columnName in columns)
+            {
+                if (!data.Columns.Contains(columnName))
+                {
+                    throw new ArgumentException($"Column '{columnName}' does not exist in DataTable.");
+                }
+            }
+
+            // Запись заголовков
+            if (writeColumnHeaders)
+            {
+                sb.Append(string.Join(
+                    columnSeparator,
+                    columns.Select(x => EscapeCsv(x, columnSeparator))));
+                sb.Append(lineSeparator);
+            }
+
+            // Запись строк
+            foreach (DataRow row in data.Rows)
+            {
+                var values = columns.Select(columnName =>
+                {
+                    var rawValue = row[columnName];
+
+                    if (rawValue == DBNull.Value)
+                    {
+                        return string.Empty;
+                    }
+
+                    var serialized = valueSerializer != null
+                        ? valueSerializer(columnName, rawValue)
+                        : DefaultSerialize(rawValue);
+
+                    return EscapeCsv(serialized, columnSeparator);
+                });
+
+                sb.Append(string.Join(columnSeparator, values));
+                sb.Append(lineSeparator);
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>
@@ -368,7 +471,7 @@ namespace RuntimeStuff.Helpers
             if (valueSerializer == null)
             {
                 valueSerializer = (member, value) =>
-                    string.Format(CultureInfo.InvariantCulture, "{0}", value ?? string.Empty);
+                    DefaultSerialize(value);
             }
 
             if (writeColumnHeaders)
@@ -394,16 +497,22 @@ namespace RuntimeStuff.Helpers
         private static PropertyInfo GetPropertyInfo<T>(Expression<Func<T, object>> propertySelector)
         {
             if (propertySelector == null)
+            {
                 throw new ArgumentNullException(nameof(propertySelector));
+            }
 
             var body = propertySelector.Body;
 
             // value-type -> object (boxing)
             if (body is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
+            {
                 body = unary.Operand;
+            }
 
             if (body is MemberExpression member && member.Member is PropertyInfo pi)
+            {
                 return pi;
+            }
 
             throw new ArgumentException(@"Expression must be a property access expression.", nameof(propertySelector));
         }
@@ -412,10 +521,14 @@ namespace RuntimeStuff.Helpers
         private static string[] SplitBy(string s, StringSplitOptions options, params string[] splitBy)
         {
             if (string.IsNullOrEmpty(s))
+            {
                 return Array.Empty<string>();
+            }
 
             if (splitBy == null || splitBy.Length == 0)
+            {
                 return new[] { s };
+            }
 
             var result = new List<string>(8);
             var pos = 0;
@@ -428,10 +541,16 @@ namespace RuntimeStuff.Helpers
                 foreach (var sep in splitBy)
                 {
                     if (string.IsNullOrEmpty(sep))
+                    {
                         continue;
+                    }
 
                     var idx = s.IndexOf(sep, pos, StringComparison.Ordinal);
-                    if (idx < 0 || (nextPos >= 0 && idx >= nextPos)) continue;
+                    if (idx < 0 || (nextPos >= 0 && idx >= nextPos))
+                    {
+                        continue;
+                    }
+
                     nextPos = idx;
                     sepLen = sep.Length;
                 }
@@ -439,10 +558,14 @@ namespace RuntimeStuff.Helpers
                 var partLen = (nextPos < 0 ? len : nextPos) - pos;
 
                 if (partLen > 0 || options != StringSplitOptions.RemoveEmptyEntries)
+                {
                     result.Add(s.Substring(pos, partLen));
+                }
 
                 if (nextPos < 0)
+                {
                     break;
+                }
 
                 pos = nextPos + sepLen;
             }
@@ -485,6 +608,24 @@ namespace RuntimeStuff.Helpers
             }
 
             return "\"" + value.Replace("\"", "\"\"") + "\"";
+        }
+
+        private static string DefaultSerialize(object value)
+        {
+            switch (value)
+            {
+                case null:
+                    return string.Empty;
+
+                case DateTime dt:
+                    return dt.TimeOfDay != TimeSpan.Zero ? dt.ToString("yyyy-MM-dd HH:mm:ss") : dt.ToString("yyyy-MM-dd");
+
+                case IFormattable formattable:
+                    return formattable.ToString(null, CultureInfo.InvariantCulture);
+
+                default:
+                    return value.ToString();
+            }
         }
     }
 }
