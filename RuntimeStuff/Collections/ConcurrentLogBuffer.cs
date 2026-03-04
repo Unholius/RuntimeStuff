@@ -49,9 +49,11 @@ namespace RuntimeStuff.Collections
         public ConcurrentLogBuffer(int capacity)
         {
             if (capacity <= 0)
+            {
                 throw new ArgumentOutOfRangeException(nameof(capacity));
+            }
 
-            buffer = new T[capacity];
+            this.buffer = new T[capacity];
         }
 
         /// <summary>
@@ -64,16 +66,19 @@ namespace RuntimeStuff.Collections
         /// </remarks>
         public void Add(T item)
         {
-            int i = Interlocked.Increment(ref index) - 1;
-            Volatile.Write(ref buffer[i % buffer.Length], item);
+            int i = Interlocked.Increment(ref this.index) - 1;
+            Volatile.Write(ref this.buffer[i % this.buffer.Length], item);
 
             int c;
             do
             {
-                c = count;
-                if (c >= buffer.Length) break;
+                c = this.count;
+                if (c >= this.buffer.Length)
+                {
+                    break;
+                }
             }
-            while (Interlocked.CompareExchange(ref count, c + 1, c) != c);
+            while (Interlocked.CompareExchange(ref this.count, c + 1, c) != c);
         }
 
         /// <summary>
@@ -89,13 +94,13 @@ namespace RuntimeStuff.Collections
         /// </remarks>
         public IReadOnlyList<T> Snapshot()
         {
-            var snapshot = new List<T>(Volatile.Read(ref count));
-            int c = Volatile.Read(ref count);
-            int startIndex = Math.Max(0, Volatile.Read(ref index) - c);
+            var snapshot = new List<T>(Volatile.Read(ref this.count));
+            int c = Volatile.Read(ref this.count);
+            int startIndex = Math.Max(0, Volatile.Read(ref this.index) - c);
 
             for (int i = startIndex; i < startIndex + c; i++)
             {
-                snapshot.Add(Volatile.Read(ref buffer[i % buffer.Length]));
+                snapshot.Add(Volatile.Read(ref this.buffer[i % this.buffer.Length]));
             }
 
             return snapshot;
@@ -105,12 +110,12 @@ namespace RuntimeStuff.Collections
         /// Возвращает перечислитель для перебора элементов буфера.
         /// </summary>
         /// <returns>Перечислитель элементов в порядке добавления.</returns>
-        public IEnumerator<T> GetEnumerator() => Snapshot().GetEnumerator();
+        public IEnumerator<T> GetEnumerator() => this.Snapshot().GetEnumerator();
 
         /// <summary>
         /// <inheritdoc/>
         /// </summary>
         /// <returns>Возвращает список элементов из Snapshot().</returns>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
     }
 }

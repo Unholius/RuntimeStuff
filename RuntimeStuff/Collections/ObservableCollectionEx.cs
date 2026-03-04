@@ -40,7 +40,7 @@ namespace RuntimeStuff.Collections
         public ObservableCollectionEx(IEnumerable<T> collection)
             : base(collection)
         {
-            SubscribeAll(this);
+            this.SubscribeAll(this);
         }
 
         /// <summary>
@@ -57,29 +57,33 @@ namespace RuntimeStuff.Collections
         public void AddRange(IEnumerable<T> items)
         {
             if (items == null)
+            {
                 throw new ArgumentNullException(nameof(items));
+            }
 
             var list = items as IList<T> ?? items.ToList();
             if (list.Count == 0)
+            {
                 return;
+            }
 
-            var oldSuppress = SuppressNotifyCollectionChange;
-            SuppressNotifyCollectionChange = true;
+            var oldSuppress = this.SuppressNotifyCollectionChange;
+            this.SuppressNotifyCollectionChange = true;
 
             try
             {
                 foreach (var item in list)
                 {
-                    Items.Add(item);
-                    Subscribe(item);
+                    this.Items.Add(item);
+                    this.Subscribe(item);
                 }
             }
             finally
             {
-                SuppressNotifyCollectionChange = oldSuppress;
+                this.SuppressNotifyCollectionChange = oldSuppress;
             }
 
-            RaiseReset();
+            this.RaiseReset();
         }
 
         /// <summary>
@@ -89,7 +93,7 @@ namespace RuntimeStuff.Collections
         /// <returns>Результат удаления.</returns>
         public new bool Remove(T item)
         {
-            Unsubscribe(item);
+            this.Unsubscribe(item);
             return base.Remove(item);
         }
 
@@ -99,7 +103,7 @@ namespace RuntimeStuff.Collections
         /// <param name="index">Индекс элемента в списке.</param>
         public new void RemoveAt(int index)
         {
-            Unsubscribe(this[index]);
+            this.Unsubscribe(this[index]);
             base.RemoveAt(index);
         }
 
@@ -112,33 +116,41 @@ namespace RuntimeStuff.Collections
         public void RemoveRange(IEnumerable<T> items)
         {
             if (items == null)
+            {
                 throw new ArgumentNullException(nameof(items));
+            }
 
             var list = items as IList<T> ?? items.ToList();
             if (list.Count == 0)
+            {
                 return;
+            }
 
-            var oldSuppress = SuppressNotifyCollectionChange;
-            SuppressNotifyCollectionChange = true;
+            var oldSuppress = this.SuppressNotifyCollectionChange;
+            this.SuppressNotifyCollectionChange = true;
             var removed = false;
             try
             {
-                for (int i = Items.Count - 1; i >= 0; i--)
+                for (int i = this.Items.Count - 1; i >= 0; i--)
                 {
-                    var item = Items[i];
+                    var item = this.Items[i];
                     if (!list.Contains(item))
+                    {
                         continue;
+                    }
 
-                    Unsubscribe(item);
-                    Items.RemoveAt(i);
+                    this.Unsubscribe(item);
+                    this.Items.RemoveAt(i);
                     removed = true;
                 }
             }
             finally
             {
-                SuppressNotifyCollectionChange = oldSuppress;
+                this.SuppressNotifyCollectionChange = oldSuppress;
                 if (removed)
-                    RaiseReset();
+                {
+                    this.RaiseReset();
+                }
             }
         }
 
@@ -162,31 +174,37 @@ namespace RuntimeStuff.Collections
         public void RemoveRange(Func<T, bool> filter)
         {
             if (filter == null)
+            {
                 throw new ArgumentNullException(nameof(filter));
+            }
 
-            var oldSuppress = SuppressNotifyCollectionChange;
-            SuppressNotifyCollectionChange = true;
+            var oldSuppress = this.SuppressNotifyCollectionChange;
+            this.SuppressNotifyCollectionChange = true;
 
             var removed = false;
 
             try
             {
-                for (int i = Items.Count - 1; i >= 0; i--)
+                for (int i = this.Items.Count - 1; i >= 0; i--)
                 {
-                    var item = Items[i];
+                    var item = this.Items[i];
                     if (!filter(item))
+                    {
                         continue;
+                    }
 
-                    Unsubscribe(item);
-                    Items.RemoveAt(i);
+                    this.Unsubscribe(item);
+                    this.Items.RemoveAt(i);
                     removed = true;
                 }
             }
             finally
             {
-                SuppressNotifyCollectionChange = oldSuppress;
+                this.SuppressNotifyCollectionChange = oldSuppress;
                 if (removed)
-                    RaiseReset();
+                {
+                    this.RaiseReset();
+                }
             }
         }
 
@@ -195,7 +213,7 @@ namespace RuntimeStuff.Collections
         /// </summary>
         public new void Clear()
         {
-            ClearItems();
+            this.ClearItems();
         }
 
         /// <summary>
@@ -210,21 +228,23 @@ namespace RuntimeStuff.Collections
         /// </remarks>
         protected override void ClearItems()
         {
-            var oldSuppress = SuppressNotifyCollectionChange;
-            SuppressNotifyCollectionChange = true;
+            var oldSuppress = this.SuppressNotifyCollectionChange;
+            this.SuppressNotifyCollectionChange = true;
 
             try
             {
                 foreach (var item in this)
-                    Unsubscribe(item);
+                {
+                    this.Unsubscribe(item);
+                }
 
-                weakEventManager.ClearWeakEventListeners();
+                this.weakEventManager.ClearWeakEventListeners();
                 base.ClearItems();
             }
             finally
             {
-                SuppressNotifyCollectionChange = oldSuppress;
-                RaiseReset();
+                this.SuppressNotifyCollectionChange = oldSuppress;
+                this.RaiseReset();
             }
         }
 
@@ -235,7 +255,7 @@ namespace RuntimeStuff.Collections
         /// <param name="item">Новый элемент.</param>
         protected new void Insert(int index, T item)
         {
-            InsertItem(index, item);
+            this.InsertItem(index, item);
         }
 
         /// <summary>
@@ -258,7 +278,7 @@ namespace RuntimeStuff.Collections
         protected override void InsertItem(int index, T item)
         {
             base.InsertItem(index, item);
-            Subscribe(item);
+            this.Subscribe(item);
         }
 
         /// <summary>
@@ -276,8 +296,10 @@ namespace RuntimeStuff.Collections
         /// </remarks>
         protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
-            if (!SuppressNotifyCollectionChange)
+            if (!this.SuppressNotifyCollectionChange)
+            {
                 base.OnCollectionChanged(e);
+            }
         }
 
         /// <summary>
@@ -296,8 +318,10 @@ namespace RuntimeStuff.Collections
         /// </remarks>
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
-            if (!SuppressNotifyCollectionChange)
+            if (!this.SuppressNotifyCollectionChange)
+            {
                 base.OnPropertyChanged(e);
+            }
         }
 
         /// <summary>
@@ -316,7 +340,7 @@ namespace RuntimeStuff.Collections
         /// </remarks>
         protected override void RemoveItem(int index)
         {
-            Unsubscribe(this[index]);
+            this.Unsubscribe(this[index]);
             base.RemoveItem(index);
         }
 
@@ -341,15 +365,17 @@ namespace RuntimeStuff.Collections
         protected override void SetItem(int index, T item)
         {
             var oldItem = this[index];
-            Unsubscribe(oldItem);
+            this.Unsubscribe(oldItem);
             base.SetItem(index, item);
-            Subscribe(item);
+            this.Subscribe(item);
         }
 
         private static void OnItemPropertyChanged(ObservableCollectionEx<T> collection)
         {
             if (collection.SuppressNotifyCollectionChange)
+            {
                 return;
+            }
 
             collection.OnCollectionChanged(
                 new NotifyCollectionChangedEventArgs(
@@ -362,9 +388,9 @@ namespace RuntimeStuff.Collections
         /// </summary>
         private void RaiseReset()
         {
-            OnPropertyChanged(new PropertyChangedEventArgs(nameof(Count)));
-            OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
-            OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            this.OnPropertyChanged(new PropertyChangedEventArgs(nameof(this.Count)));
+            this.OnPropertyChanged(new PropertyChangedEventArgs("Item[]"));
+            this.OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
         }
 
         /// <summary>
@@ -373,9 +399,11 @@ namespace RuntimeStuff.Collections
         private void Subscribe(T item)
         {
             if (!(item is INotifyPropertyChanged inpc))
+            {
                 return;
+            }
 
-            weakEventManager.AddWeakEventListener(inpc, (s, e) => OnItemPropertyChanged(this));
+            this.weakEventManager.AddWeakEventListener(inpc, (s, e) => OnItemPropertyChanged(this));
         }
 
         /// <summary>
@@ -385,7 +413,7 @@ namespace RuntimeStuff.Collections
         {
             foreach (var item in items)
             {
-                Subscribe(item);
+                this.Subscribe(item);
             }
         }
 
@@ -396,7 +424,7 @@ namespace RuntimeStuff.Collections
         {
             if (item is INotifyPropertyChanged inpc)
             {
-                weakEventManager.RemoveWeakEventListener(inpc);
+                this.weakEventManager.RemoveWeakEventListener(inpc);
             }
         }
     }

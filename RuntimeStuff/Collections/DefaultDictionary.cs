@@ -40,7 +40,7 @@ namespace RuntimeStuff.Collections
         public DefaultDictionary(TValue keyNotFoundValue)
             : base()
         {
-            DefaultValue = keyNotFoundValue;
+            this.DefaultValue = keyNotFoundValue;
         }
 
         /// <summary>
@@ -57,9 +57,11 @@ namespace RuntimeStuff.Collections
             : this(defaultValue)
         {
             foreach (var kv in initValues)
+            {
                 this[kv.Key] = kv.Value;
+            }
 
-            DefaultValue = defaultValue;
+            this.DefaultValue = defaultValue;
         }
 
         /// <summary>
@@ -77,7 +79,9 @@ namespace RuntimeStuff.Collections
             : this(defaultValue)
         {
             foreach (var kv in initValues)
+            {
                 this[kv.Key] = kv.Value;
+            }
         }
 
         /// <summary>
@@ -94,7 +98,7 @@ namespace RuntimeStuff.Collections
         public DefaultDictionary(IEqualityComparer<TKey> comparer, TValue defaultValue = default)
             : base(comparer)
         {
-            DefaultValue = defaultValue;
+            this.DefaultValue = defaultValue;
         }
 
         /// <summary>
@@ -117,7 +121,7 @@ namespace RuntimeStuff.Collections
             TValue defaultValue = default)
             : base(initValues, comparer)
         {
-            DefaultValue = defaultValue;
+            this.DefaultValue = defaultValue;
         }
 
         /// <summary>
@@ -141,7 +145,7 @@ namespace RuntimeStuff.Collections
         /// </returns>
         public new TValue this[TKey key]
         {
-            get => this.TryGetValue(key, out var val) ? val : DefaultValue;
+            get => this.TryGetValue(key, out var val) ? val : this.DefaultValue;
             set => base[key] = value;
         }
 
@@ -163,7 +167,9 @@ namespace RuntimeStuff.Collections
             get
             {
                 if (!this.TryGetValue(key, out var result))
+                {
                     result = defaultValue;
+                }
 
                 return result;
             }

@@ -76,7 +76,7 @@ namespace RuntimeStuff.MSTests
         public void ToStringComparison_NullComparer_ThrowsArgumentException()
         {
             // Arrange
-            StringComparer nullComparer = null;
+            StringComparer? nullComparer = null;
 
             // Act
             nullComparer.ToStringComparison();

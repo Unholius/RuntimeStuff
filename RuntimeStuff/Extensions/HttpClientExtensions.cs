@@ -223,7 +223,9 @@ namespace RuntimeStuff.Extensions
                 if (!uri.IsAbsoluteUri)
                 {
                     if (client.BaseAddress == null)
+                    {
                         throw new InvalidOperationException("BaseAddress is not set.");
+                    }
 
                     uri = new Uri(client.BaseAddress, uri);
                 }
@@ -432,7 +434,9 @@ namespace RuntimeStuff.Extensions
         private static Uri AppendQuery(Uri uri, Dictionary<string, object> query)
         {
             if (query == null || query.Count == 0)
+            {
                 return uri;
+            }
 
             var newQuery = BuildQueryString(query);
 

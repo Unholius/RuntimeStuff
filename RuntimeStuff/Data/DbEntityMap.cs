@@ -44,7 +44,7 @@ namespace RuntimeStuff.Data
         public DbEntityMap MapToSnakeCase<T>()
             where T : class
         {
-            return AutoMap<T>(StringHelper.ToSnakeCase);
+            return this.AutoMap<T>(StringHelper.ToSnakeCase);
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace RuntimeStuff.Data
         public DbEntityMap MapToCamelCase<T>()
             where T : class
         {
-            return AutoMap<T>(StringHelper.ToCamelCase);
+            return this.AutoMap<T>(StringHelper.ToCamelCase);
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace RuntimeStuff.Data
         public DbEntityMap MapToKebabCase<T>()
             where T : class
         {
-            return AutoMap<T>(StringHelper.ToKebabCase);
+            return this.AutoMap<T>(StringHelper.ToKebabCase);
         }
 
         /// <summary>
@@ -82,7 +82,7 @@ namespace RuntimeStuff.Data
         /// <returns>Текущий экземпляр <see cref="DbEntityMap"/> для цепочного вызова.</returns>
         public DbEntityMap AutoMap<T>(Func<string, string> nameMapper)
         {
-            return AutoMap(nameMapper, typeof(T));
+            return this.AutoMap(nameMapper, typeof(T));
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace RuntimeStuff.Data
             foreach (var entityType in entityTypes)
             {
                 var tmi = new TypeMappingInfo(entityType);
-                TypeMap[entityType] = tmi;
+                this.TypeMap[entityType] = tmi;
 
                 tmi.TableName = nameMapper(entityType.Name);
 

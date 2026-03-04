@@ -311,7 +311,9 @@ namespace RuntimeStuff.Helpers
             bool writeIndent = true)
         {
             if (obj == null)
+            {
                 throw new ArgumentNullException(nameof(obj));
+            }
 
             var type = obj.GetType();
 
@@ -325,7 +327,9 @@ namespace RuntimeStuff.Helpers
                 {
                     // Атрибутами имеет смысл делать только простые типы
                     if (!prop.CanRead || !IsSimpleType(prop.PropertyType))
+                    {
                         continue;
+                    }
 
                     var attrs = new XmlAttributes
                     {

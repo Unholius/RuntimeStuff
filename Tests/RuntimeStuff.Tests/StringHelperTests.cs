@@ -144,7 +144,7 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithNull_ReturnsEmptyString()
         {
             // Arrange
-            string input = null;
+            string? input = null;
             string expected = "";
 
             // Act
@@ -298,7 +298,7 @@ namespace RuntimeStuff.MSTests
         public void AllMethods_WithNullOrWhiteSpace_ReturnEmptyString()
         {
             // Arrange
-            string[] inputs = [null, "", " ", "   "];
+            string[] inputs = [null!, "", " ", "   "];
 
             foreach (var input in inputs)
             {

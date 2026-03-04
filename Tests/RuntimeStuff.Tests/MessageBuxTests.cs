@@ -103,7 +103,7 @@ namespace RuntimeStuff.MSTests
             using var bus = new MessageBus(workerCount: 1);
 
             // Act
-            bus.Publish<object>(null);
+            bus.Publish<object>(null!);
 
             // Assert
             // Если не было исключения - тест пройден

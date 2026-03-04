@@ -65,7 +65,7 @@ namespace TestWinFormsApp
             public ServerMessage(string message, bool offline)
             {
                 Message = message;
-                SenderId = Process.GetCurrentProcess().Id;
+                SenderId = Environment.ProcessId;
                 Offline = offline;
             }
             public Guid Id { get; } = Guid.NewGuid();
@@ -117,14 +117,21 @@ namespace TestWinFormsApp
 
         private async void btnLoad_Click(object sender, EventArgs e)
         {
-            m.IsFree = false;
-            var dt = new DataTable();
-            using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
+            try
             {
-                dt = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
-                dataGridView1.DataSource = dt;
+                m.IsFree = false;
+                var dt = new DataTable();
+                using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
+                {
+                    dt = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
+                    dataGridView1.DataSource = dt;
+                }
+                m.IsFree = true;
             }
-            m.IsFree = true;
+            catch (Exception ex)
+            {
+                throw; // TODO handle exception
+            }
         }
 
         private void dataGridView1_Click(object sender, EventArgs e)

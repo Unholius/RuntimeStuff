@@ -63,7 +63,9 @@ namespace RuntimeStuff.Data
         {
             this.Connection = new T { ConnectionString = connectionString };
             if (map != null)
-                Options.Map = map;
+            {
+                this.Options.Map = map;
+            }
         }
 
         /// <summary>

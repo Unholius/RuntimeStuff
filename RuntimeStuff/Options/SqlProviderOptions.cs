@@ -51,8 +51,8 @@ namespace RuntimeStuff.Options
         public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
             x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
             x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
-            x => x.TrueValue = "TRUE",
-            x => x.FalseValue = "FALSE",
+            x => x.ValueFormatter.TrueValue = "TRUE",
+            x => x.ValueFormatter.FalseValue = "FALSE",
             x => x.ParamPrefix = ":",
             x => x.DatabaseParameterName = "Data Source",
             x => x.ServerParameterName = null,
@@ -69,27 +69,14 @@ namespace RuntimeStuff.Options
         public static SqlProviderOptions SqlServerOptions { get; } = new SqlProviderOptions(
             x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
             x => x.OverrideOffsetRowsTemplate = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY",
-            x => x.TrueValue = "1",
-            x => x.FalseValue = "0",
+            x => x.ValueFormatter.TrueValue = "1",
+            x => x.ValueFormatter.FalseValue = "0",
             x => x.ParamPrefix = "@");
 
         /// <summary>
-        /// Gets or sets the date format.
+        /// Сериализатор значений.
         /// </summary>
-        /// <value>The date format.</value>
-        public string DateFormat { get; set; } = "yyyy-MM-dd";
-
-        /// <summary>
-        /// Gets or sets the date time format.
-        /// </summary>
-        /// <value>The date time format.</value>
-        public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
-
-        /// <summary>
-        /// Gets or sets the false value.
-        /// </summary>
-        /// <value>The false value.</value>
-        public string FalseValue { get; set; } = "0";
+        public ValueFormatter ValueFormatter { get; } = new ValueFormatter();
 
         /// <summary>
         /// Gets or sets the get inserted identifier query.
@@ -105,12 +92,15 @@ namespace RuntimeStuff.Options
         {
             get
             {
-                if (map == null)
-                    map = new DbEntityMap();
-                return map;
+                if (this.map == null)
+                {
+                    this.map = new DbEntityMap();
+                }
+
+                return this.map;
             }
 
-            set => map = value;
+            set => this.map = value;
         }
 
         /// <summary>
@@ -148,24 +138,6 @@ namespace RuntimeStuff.Options
         /// </summary>
         /// <value>The statement terminator.</value>
         public string StatementTerminator { get; set; } = ";";
-
-        /// <summary>
-        /// Gets or sets the string prefix.
-        /// </summary>
-        /// <value>The string prefix.</value>
-        public string StringPrefix { get; set; } = "'";
-
-        /// <summary>
-        /// Gets or sets the string suffix.
-        /// </summary>
-        /// <value>The string suffix.</value>
-        public string StringSuffix { get; set; } = "'";
-
-        /// <summary>
-        /// Gets or sets the true value.
-        /// </summary>
-        /// <value>The true value.</value>
-        public string TrueValue { get; set; } = "1";
 
         /// <summary>
         /// Gets or sets имя параметра строки подключения, используемого для указания имени базы данных.
@@ -237,58 +209,5 @@ namespace RuntimeStuff.Options
                     return Default;
             }
         }
-
-        /// <summary>
-        /// Converts to sqlliteral.
-        /// </summary>
-        /// <param name="value">The value.</param>
-        /// <returns>System.String.</returns>
-        public string ToSqlLiteral(object value)
-        {
-            if (value == null || value == DBNull.Value)
-            {
-                return this.NullValue;
-            }
-
-            switch (value)
-            {
-                case string s:
-                    return $"{this.StringPrefix}{EscapeString(s)}{this.StringSuffix}";
-
-                case char c:
-                    return $"{this.StringPrefix}{EscapeString(c.ToString())}{this.StringSuffix}";
-
-                case bool b:
-                    return b ? this.TrueValue : this.FalseValue;
-
-                case DateTime dt:
-                    return $"{this.StringPrefix}{dt.ToString(this.DateTimeFormat, CultureInfo.InvariantCulture)}{this.StringSuffix}";
-
-                case DateTimeOffset dto:
-                    return $"{this.StringPrefix}{dto.ToString(this.DateTimeFormat, CultureInfo.InvariantCulture)}{this.StringSuffix}";
-
-                case Guid g:
-                    return $"{this.StringPrefix}{g}{this.StringSuffix}";
-
-                case Enum e:
-                    return Convert.ToInt64(e).ToString(CultureInfo.InvariantCulture);
-
-                case TimeSpan ts:
-                    return $"{this.StringPrefix}{ts.ToString("c", CultureInfo.InvariantCulture)}{this.StringSuffix}";
-
-                case IFormattable formattable:
-                    return formattable.ToString(null, CultureInfo.InvariantCulture);
-
-                default:
-                    return $"{this.StringPrefix}{EscapeString(value.ToString())}{this.StringSuffix}";
-            }
-        }
-
-        /// <summary>
-        /// Escapes the string.
-        /// </summary>
-        /// <param name="s">The s.</param>
-        /// <returns>System.String.</returns>
-        private static string EscapeString(string s) => s.Replace("'", "''");
     }
 }

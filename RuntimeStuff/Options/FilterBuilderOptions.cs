@@ -22,6 +22,21 @@ namespace RuntimeStuff.Options
     /// запросов или фильтров на основе пользовательского ввода.</remarks>
     public class FilterBuilderOptions : OptionsBase<FilterBuilderOptions>
     {
+        private static readonly ValueFormatter DefaultValueFormatter = new ValueFormatter()
+        {
+            NonNumberValuePrefix = "'",
+            NonNumberValueSuffix = "'",
+            TrueValue = "1",
+            FalseValue = "0",
+            NullValue = "null",
+            DateFormat = "'{0:yyyy.MM.dd}'",
+            DateTimeFormat = "'{0:yyyy.MM.dd HH:mm:ss}'",
+            TimeFormat = "'{0:HH:mm:ss}'",
+            EnumAsString = true,
+        };
+
+        private ValueFormatter formatter;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="FilterBuilderOptions"/> class.
         /// Инициализирует новый экземпляр класса
@@ -29,6 +44,7 @@ namespace RuntimeStuff.Options
         /// </summary>
         public FilterBuilderOptions()
         {
+            this.Formatter = DefaultValueFormatter;
         }
 
         /// <summary>
@@ -39,6 +55,10 @@ namespace RuntimeStuff.Options
         /// <remarks>Свойство управляет тем, как значения различных типов
         /// (например, даты, логические значения и строки)
         /// преобразуются в строковое представление.</remarks>
-        public FormatValueOptions FormatOptions { get; set; } = new FormatValueOptions();
+        public ValueFormatter Formatter
+        {
+            get => this.formatter ?? (this.formatter = DefaultValueFormatter);
+            set => this.formatter = value;
+        }
     }
 }

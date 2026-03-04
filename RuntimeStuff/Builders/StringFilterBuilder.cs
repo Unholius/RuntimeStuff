@@ -16,7 +16,6 @@ namespace RuntimeStuff.Builders
     using System;
     using System.Collections;
     using System.Collections.Generic;
-    using System.Globalization;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Text;
@@ -138,15 +137,6 @@ namespace RuntimeStuff.Builders
         public FilterBuilderOptions Options { get; set; }
 
         /// <summary>
-        /// Опции форматирования фильтров.
-        /// </summary>
-        OptionsBase IHaveOptions.Options
-        {
-            get => this.Options;
-            set => this.Options.Merge(value);
-        }
-
-        /// <summary>
         /// Добавляет фильтр по указанному свойству и операции.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
@@ -242,7 +232,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder Between(object low, object high)
         {
-            this.Append($" BETWEEN {this.Format(low)} AND {this.Format(high)}");
+            this.Append($" BETWEEN {this.Options.Formatter.Format(low)} AND {this.Options.Formatter.Format(high)}");
             this.needsOp = true;
             return this;
         }
@@ -297,7 +287,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder In(IEnumerable<object> values)
         {
-            this.Append(" IN { ").Append(string.Join(", ", values.Select(this.Format))).Append(" }");
+            this.Append(" IN { ").Append(string.Join(", ", values.Select(this.Options.Formatter.Format))).Append(" }");
             this.needsOp = true;
             return this;
         }
@@ -309,7 +299,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder Like(string pattern)
         {
-            this.Append(" LIKE ").Append(this.Format(pattern));
+            this.Append(" LIKE ").Append(this.Options.Formatter.Format(pattern));
             this.needsOp = true;
             return this;
         }
@@ -346,7 +336,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder NotBetween(object low, object high)
         {
-            this.Append($" NOT BETWEEN {this.Format(low)} AND {this.Format(high)}");
+            this.Append($" NOT BETWEEN {this.Options.Formatter.Format(low)} AND {this.Options.Formatter.Format(high)}");
             this.needsOp = true;
             return this;
         }
@@ -365,7 +355,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder NotIn(IEnumerable<object> values)
         {
-            this.Append(" NOT IN { ").Append(string.Join(", ", values.Select(this.Format))).Append(" }");
+            this.Append(" NOT IN { ").Append(string.Join(", ", values.Select(this.Options.Formatter.Format))).Append(" }");
             this.needsOp = true;
             return this;
         }
@@ -377,7 +367,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder NotLike(string pattern)
         {
-            this.Append(" NOT LIKE ").Append(this.Format(pattern));
+            this.Append(" NOT LIKE ").Append(this.Options.Formatter.Format(pattern));
             this.needsOp = true;
             return this;
         }
@@ -474,39 +464,9 @@ namespace RuntimeStuff.Builders
 
         private StringFilterBuilder Binary(string op, object value)
         {
-            this.Append($" {op} {this.Format(value)}");
+            this.Append($" {op} {this.Options.Formatter.Format(value)}");
             this.needsOp = true;
             return this;
-        }
-
-        private string Format(object value)
-        {
-            if (value == null)
-            {
-                return "null";
-            }
-
-            if (value is string s)
-            {
-                return $"{this.Options.FormatOptions.StringValuePrefix}{s}{this.Options.FormatOptions.StringValueSuffix}";
-            }
-
-            if (value is DateTime dt)
-            {
-                return string.Format(this.Options.FormatOptions.StringValuePrefix + "{0:" + this.Options.FormatOptions.DateFormat + "}" + this.Options.FormatOptions.StringValueSuffix, dt);
-            }
-
-            if (value is bool b)
-            {
-                return b ? this.Options.FormatOptions.TrueString : this.Options.FormatOptions.FalseString;
-            }
-
-            if (value is Enum e)
-            {
-                return Convert.ToInt32(e).ToString();
-            }
-
-            return Convert.ToString(value, CultureInfo.InvariantCulture);
         }
     }
 }

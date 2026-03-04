@@ -33,6 +33,21 @@ KeyB=ValueB
         }
 
         [TestMethod]
+        public void FileName_Tests()
+        {
+            var fileName = Path.GetTempFileName() + ".ini";
+            File.AppendAllText(fileName, "");
+            var ini = IniFile.LoadOrCreate(fileName);
+            Assert.AreEqual(fileName, ini.FileName);
+            var pswd = ini.GetValue("User1", "Password");
+            Assert.IsNull(pswd);
+            ini.SetValue("User1", "Password", "1234");
+            ini.FileName = "new.ini";
+            ini.Save();
+        }
+
+
+        [TestMethod]
         public void Load_WithValidFile_ReturnsIniFileInstance()
         {
             // Arrange

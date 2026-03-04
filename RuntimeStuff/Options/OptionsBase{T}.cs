@@ -14,60 +14,79 @@
 namespace RuntimeStuff.Options
 {
     using System;
-    using System.Linq;
 
     /// <summary>
-    /// Обобщённый базовый класс опций с поддержкой клонирования,
-    /// объединения и построения через конфигурационный делегат.
+    /// Базовый абстрактный класс для реализации паттерна конфигурационных параметров (Options),
+    /// поддерживающий самотипизацию (CRTP) и создание экземпляра по умолчанию.
     /// </summary>
-    /// <typeparam name="T">Тип-наследник, реализующий шаблон CRTP
-    /// (Curiously Recurring Template Pattern).</typeparam>
-    public abstract class OptionsBase<T> : OptionsBase
+    /// <typeparam name="T">
+    /// Конкретный тип параметров, наследующий <see cref="OptionsBase{T}"/>.
+    /// Ограничение <c>where T : OptionsBase&lt;T&gt;, new()</c> обеспечивает:
+    /// <list type="bullet">
+    /// <item>
+    /// <description>Наличие конструктора без параметров.</description>
+    /// </item>
+    /// <item>
+    /// <description>Корректное приведение текущего экземпляра к типу <typeparamref name="T"/>.</description>
+    /// </item>
+    /// </list>
+    /// </typeparam>
+    public abstract class OptionsBase<T>
         where T : OptionsBase<T>, new()
     {
         /// <summary>
-        /// Gets создаёт экземпляр опций со значениями по умолчанию.
+        /// Инициализирует новый экземпляр класса <see cref="OptionsBase{T}"/>.
+        /// Предназначен для использования в производных классах.
         /// </summary>
-        /// <value>The default.</value>
-        public static T Default => new T();
-
-        /// <summary>
-        /// Создаёт и конфигурирует экземпляр опций
-        /// с помощью переданного делегата.
-        /// </summary>
-        /// <param name="configure">Делегат конфигурации.</param>
-        /// <returns>Сконфигурированный экземпляр опций.</returns>
-        public static T Build(Action<T> configure)
+        protected OptionsBase()
         {
-            var instance = Default;
-            configure(instance);
-            return instance;
         }
 
         /// <summary>
-        /// Создаёт поверхностную копию текущего объекта.
+        /// Инициализирует новый экземпляр класса <see cref="OptionsBase{T}"/>
+        /// и применяет к нему набор конфигурационных делегатов.
         /// </summary>
-        /// <returns>Клонированный экземпляр опций.</returns>
-        public T Clone() => (T)this.MemberwiseClone();
-
-        /// <summary>
-        /// Объединяет текущие опции с другими,
-        /// копируя только ненулевые значения.
-        /// </summary>
-        /// <param name="other">Другой объект опций.</param>
-        /// <returns>Текущий экземпляр после объединения.</returns>
-        public T Merge(OptionsBase other)
+        /// <param name="configure">
+        /// Массив делегатов <see cref="Action{T}"/>, каждый из которых
+        /// выполняет настройку экземпляра типа <typeparamref name="T"/>.
+        /// </param>
+        /// <remarks>
+        /// Делегаты выполняются последовательно в порядке передачи.
+        /// Текущий экземпляр приводится к типу <typeparamref name="T"/>.
+        /// </remarks>
+        protected OptionsBase(params Action<T>[] configure)
+            : this()
         {
-            foreach (var property in this.PropertyMap.Select(p => p.Value))
+            foreach (var c in configure)
             {
-                var value = property.GetValue(other);
-                if (value != null)
-                {
-                    property.SetValue(this, value);
-                }
+                c((T)this);
             }
-
-            return (T)this;
         }
+
+        /// <summary>
+        /// Возвращает статический экземпляр параметров по умолчанию.
+        /// </summary>
+        /// <remarks>
+        /// Экземпляр создаётся один раз при первой инициализации типа
+        /// посредством вызова конструктора без параметров.
+        /// Изменение состояния возвращённого объекта повлияет на все обращения
+        /// к <see cref="Default"/>, поэтому при необходимости рекомендуется
+        /// использовать <see cref="Clone"/>.
+        /// </remarks>
+        public static T Default { get; } = new T();
+
+        /// <summary>
+        /// Создаёт поверхностную копию текущего экземпляра.
+        /// </summary>
+        /// <returns>
+        /// Новый объект типа <typeparamref name="T"/>, содержащий копии
+        /// значений полей текущего экземпляра.
+        /// </returns>
+        /// <remarks>
+        /// Метод использует <see cref="object.MemberwiseClone"/>,
+        /// поэтому выполняется поверхностное копирование:
+        /// ссылочные поля копируются по ссылке.
+        /// </remarks>
+        public T Clone() => (T)this.MemberwiseClone();
     }
 }

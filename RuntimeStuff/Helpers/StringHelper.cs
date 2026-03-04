@@ -56,6 +56,71 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Определяет стратегию экранирования (escaping) строки
+        /// в зависимости от целевого формата или протокола передачи данных.
+        /// </summary>
+        public enum EscapeMode
+        {
+            /// <summary>
+            /// Экранирование не выполняется.
+            /// Строка возвращается без изменений.
+            /// </summary>
+            None,
+
+            /// <summary>
+            /// URL-кодирование (percent-encoding) в соответствии с RFC 3986.
+            /// Применяется для параметров HTTP-запросов и query-строк.
+            /// Пример: пробел преобразуется в "%20".
+            /// </summary>
+            Url,
+
+            /// <summary>
+            /// Экранирование строки для использования в SQL-литералах.
+            /// Обычно заключается в удвоении одинарной кавычки:
+            /// ' → ''.
+            /// </summary>
+            Sql,
+
+            /// <summary>
+            /// Экранирование строки по правилам JSON.
+            /// Спецсимволы (", \, \n, \r и др.) заменяются на escape-последовательности.
+            /// </summary>
+            Json,
+
+            /// <summary>
+            /// Экранирование текста для размещения внутри XML-узла (текстовое содержимое).
+            /// </summary>
+            XmlText,
+
+            /// <summary>
+            /// Экранирование строки для использования в значении XML-атрибута.
+            /// Дополнительно к XmlText экранируются кавычки.
+            /// </summary>
+            XmlAttribute,
+
+            /// <summary>
+            /// Экранирование строки по правилам CSV.
+            /// При наличии разделителей, кавычек или переводов строки
+            /// значение заключается в двойные кавычки,
+            /// а двойные кавычки удваиваются.
+            /// </summary>
+            Csv,
+
+            /// <summary>
+            /// Экранирование строки для использования в C#-строковом литерале.
+            /// Экранируются ", \, \n, \r, \t и другие спецсимволы.
+            /// </summary>
+            CSharp,
+
+            /// <summary>
+            /// Кодирование строки в формат Base64.
+            /// Применяется для безопасной передачи бинарных данных
+            /// или произвольного текста через текстовые протоколы.
+            /// </summary>
+            Base64,
+        }
+
+        /// <summary>
         /// Разделители для колонок. ("\t", ";", "|").
         /// </summary>
         public static string[] DefaultColumnSeparators { get; } = new string[] { "\t", ";", "|" };
@@ -146,6 +211,75 @@ namespace RuntimeStuff.Helpers
             .Concat(ClosingQuotes)
             .Distinct()
             .ToArray();
+
+        /// <summary>
+        /// Выполняет экранирование строки в соответствии с указанным режимом.
+        /// </summary>
+        /// <param name="value">
+        /// Исходная строка для экранирования.
+        /// Если значение равно <c>null</c>, метод возвращает <c>null</c>.
+        /// </param>
+        /// <param name="mode">
+        /// Режим экранирования, определяющий правила преобразования строки:
+        /// <list type="bullet">
+        /// <item>
+        /// <description><see cref="EscapeMode.None"/> — строка возвращается без изменений.</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="EscapeMode.Url"/> — URL-кодирование с использованием <see cref="Uri.EscapeDataString(string)"/>.</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="EscapeMode.Sql"/> — экранирование одинарных кавычек для SQL (замена <c>'</c> на <c>''</c>).</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="EscapeMode.Json"/> — экранирование специальных символов согласно спецификации JSON.</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="EscapeMode.XmlText"/> — экранирование строки для использования в тексте XML-узла.</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="EscapeMode.XmlAttribute"/> — экранирование строки для использования в значении XML-атрибута.</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="EscapeMode.Csv"/> — экранирование строки по правилам CSV (RFC 4180).</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="EscapeMode.CSharp"/> — экранирование строки для безопасного использования в строковом литерале C#.</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="EscapeMode.Base64"/> — преобразование строки в Base64 (кодировка UTF-8).</description>
+        /// </item>
+        /// </list>
+        /// </param>
+        /// <returns>
+        /// Экранированная строка в соответствии с выбранным режимом.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если передано неподдерживаемое значение <paramref name="mode"/>.
+        /// </exception>
+        public static string EscapeString(string value, EscapeMode mode)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            switch (mode)
+            {
+                case EscapeMode.None: return value;
+                case EscapeMode.Url: return Uri.EscapeDataString(value);
+                case EscapeMode.Sql: return value.Replace("'", "''");
+                case EscapeMode.Json: return EscapeJson(value);
+                case EscapeMode.XmlText: return EscapeXmlText(value);
+                case EscapeMode.XmlAttribute: return EscapeXmlAttribute(value);
+                case EscapeMode.Csv: return EscapeCsv(value);
+                case EscapeMode.CSharp: return EscapeCSharp(value);
+                case EscapeMode.Base64:
+                    return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+        }
 
         /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
@@ -788,20 +922,26 @@ namespace RuntimeStuff.Helpers
         public static bool IsJson(string s)
         {
             if (string.IsNullOrWhiteSpace(s))
+            {
                 return false;
+            }
 
-            s = TrimWhiteChars(s);
+            s = TrimWhitespaces(s);
 
             // JSON всегда начинается с { или [
             if (s.Length < 2)
+            {
                 return false;
+            }
 
             var first = s[0];
             var last = s[s.Length - 1];
 
             if (!((first == '{' && last == '}') ||
                   (first == '[' && last == ']')))
+            {
                 return false;
+            }
 
             return true;
         }
@@ -834,50 +974,52 @@ namespace RuntimeStuff.Helpers
         public static bool IsXml(string s)
         {
             if (string.IsNullOrWhiteSpace(s))
+            {
                 return false;
+            }
 
-            s = TrimWhiteChars(s);
+            s = TrimWhitespaces(s);
 
             // XML всегда начинается с '<'
             if (s[0] != '<')
+            {
                 return false;
+            }
 
             // Минимальная длина: <a/>
             if (s.Length < 4)
+            {
                 return false;
+            }
 
             // Явно отсекаем HTML-комментарии и DOCTYPE без корневого элемента
             if (s.StartsWith("<!--", StringComparison.Ordinal) ||
                 s.StartsWith("<!DOCTYPE", StringComparison.OrdinalIgnoreCase))
+            {
                 return false;
+            }
 
             // Проверка наличия закрывающего '>'
             var close = s.IndexOf('>');
             if (close < 0)
+            {
                 return false;
+            }
 
             return true;
         }
 
         /// <summary>
-        /// Удаляет повторяющиеся пробелы, табуляции и/или переносы строк из строки,
-        /// оставляя только один символ подряд для каждого типа.
+        /// Нормализует пробельные символы в строке:
+        /// заменяет все последовательности пробелов, табуляций и переносов строк на один пробел,
+        /// а также удаляет пробелы с начала и конца строки.
         /// </summary>
-        /// <param name="s">Исходная строка для обработки.</param>
-        /// <param name="includeNewLines">
-        /// Если <c>true</c>, последовательности символов переноса строки (<c>\r</c>, <c>\n</c>) будут сокращены до одного.
-        /// Если <c>false</c>, переносы строк сохраняются без изменений.
-        /// </param>
-        /// <param name="includeTabs">
-        /// Если <c>true</c>, последовательности табуляций (<c>\t</c>) будут сокращены до одного.
-        /// Если <c>false</c>, табуляции сохраняются без изменений.
-        /// </param>
-        /// <returns>Строка с сокращёнными последовательностями пробелов, табуляций и переносов строк.</returns>
-        /// <remarks>
-        /// Метод полезен для нормализации текста, когда необходимо удалить лишние пробелы или пустые строки,
-        /// сохраняя при этом читаемость и структуру текста.
-        /// </remarks>
-        public static string RemoveLongSpaces(string s, bool includeNewLines = true, bool includeTabs = true)
+        /// <param name="s">Строка для нормализации. Может быть <c>null</c> или пустой.</param>
+        /// <returns>
+        /// Строка с нормализованными пробелами.
+        /// Если входная строка <c>null</c> или пустая, возвращается исходное значение.
+        /// </returns>
+        public static string NormalizeWhiteSpaces(string s)
         {
             if (string.IsNullOrEmpty(s))
             {
@@ -885,60 +1027,51 @@ namespace RuntimeStuff.Helpers
             }
 
             var sb = new StringBuilder(s.Length);
-            char? lastChar = null;
+            var inWhitespace = false;
 
             foreach (var c in s)
             {
-                switch (c)
+                if (IsWhiteSpaceChar(c))
                 {
-                    case ' ':
-                        if (lastChar != ' ')
-                        {
-                            sb.Append(c);
-                        }
-
-                        break;
-
-                    case '\t':
-                        if (includeTabs)
-                        {
-                            if (lastChar != '\t')
-                            {
-                                sb.Append(c);
-                            }
-                        }
-                        else
-                        {
-                            sb.Append(c);
-                        }
-
-                        break;
-
-                    case '\r':
-                    case '\n':
-                        if (includeNewLines)
-                        {
-                            if (lastChar != '\r' && lastChar != '\n')
-                            {
-                                sb.Append(c);
-                            }
-                        }
-                        else
-                        {
-                            sb.Append(c);
-                        }
-
-                        break;
-
-                    default:
-                        sb.Append(c);
-                        break;
+                    inWhitespace = true;
                 }
+                else
+                {
+                    if (inWhitespace && sb.Length > 0)
+                    {
+                        sb.Append(' ');
+                    }
 
-                lastChar = c;
+                    sb.Append(c);
+                    inWhitespace = false;
+                }
             }
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Определяет является ли символ переносом строки. Идет проверка на символы \r, \n, \u0085, \u2028, \u2029.
+        /// </summary>
+        /// <param name="c">Символ для проверки.</param>
+        /// <returns>Результат проверки.</returns>
+        public static bool IsNewLineChar(char c)
+        {
+            return c == '\r'
+                || c == '\n'
+                || c == '\u0085' // NEXT LINE
+                || c == '\u2028' // LINE SEPARATOR
+                || c == '\u2029'; // PARAGRAPH SEPARATOR
+        }
+
+        /// <summary>
+        /// Является ли символ непечатаемым.
+        /// </summary>
+        /// <param name="c">Символ.</param>
+        /// <returns>Результат проверки.</returns>
+        public static bool IsWhiteSpaceChar(char c)
+        {
+            return char.IsWhiteSpace(c) || WhitespaceChars.Contains(c);
         }
 
         /// <summary>
@@ -1027,10 +1160,14 @@ namespace RuntimeStuff.Helpers
         public static string[] SplitBy(string s, StringSplitOptions options, params string[] splitBy)
         {
             if (string.IsNullOrEmpty(s))
+            {
                 return Array.Empty<string>();
+            }
 
             if (splitBy == null || splitBy.Length == 0)
+            {
                 return new[] { s };
+            }
 
             var result = new List<string>(8);
             var pos = 0;
@@ -1043,10 +1180,16 @@ namespace RuntimeStuff.Helpers
                 foreach (var sep in splitBy)
                 {
                     if (string.IsNullOrEmpty(sep))
+                    {
                         continue;
+                    }
 
                     var idx = s.IndexOf(sep, pos, StringComparison.Ordinal);
-                    if (idx < 0 || (nextPos >= 0 && idx >= nextPos)) continue;
+                    if (idx < 0 || (nextPos >= 0 && idx >= nextPos))
+                    {
+                        continue;
+                    }
+
                     nextPos = idx;
                     sepLen = sep.Length;
                 }
@@ -1054,10 +1197,14 @@ namespace RuntimeStuff.Helpers
                 var partLen = (nextPos < 0 ? len : nextPos) - pos;
 
                 if (partLen > 0 || options != StringSplitOptions.RemoveEmptyEntries)
+                {
                     result.Add(s.Substring(pos, partLen));
+                }
 
                 if (nextPos < 0)
+                {
                     break;
+                }
 
                 pos = nextPos + sepLen;
             }
@@ -1119,27 +1266,44 @@ namespace RuntimeStuff.Helpers
             var result = new List<T>();
 
             if (columnSeparators == null)
+            {
                 columnSeparators = StringHelper.DefaultColumnSeparators;
+            }
 
             if (lineSeparators == null)
+            {
                 lineSeparators = StringHelper.DefaultLineSeparators;
+            }
 
             var typeCache = MemberCache.Create(typeof(T));
             var lines = SplitBy(s, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
             var props = propertyMap?.Any() == true ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicBasicProperties.ToArray();
             if (props.Length == 0)
+            {
                 props = propertyMap?.Any() == true ? typeCache.Fields.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicFields.ToArray();
+            }
+
             if (props.Length == 0)
+            {
                 throw new InvalidOperationException($"Не найдено публичных свойств или полей в типе {typeof(T).FullName}");
+            }
+
             foreach (var line in lines)
             {
                 var columns = SplitBy(line, StringSplitOptions.None, columnSeparators);
                 if (!columns.Any())
-                    continue;
-                var item = typeCache.CreateInstance();
-                for (int i = 0; i < columns.Length; i++)
                 {
-                    if (i >= props.Length) continue;
+                    continue;
+                }
+
+                var item = typeCache.CreateInstance();
+                for (var i = 0; i < columns.Length; i++)
+                {
+                    if (i >= props.Length)
+                    {
+                        continue;
+                    }
+
                     props[i].SetValue(item, columns[i]);
                 }
 
@@ -1182,7 +1346,9 @@ namespace RuntimeStuff.Helpers
         {
             var words = SplitWords(s);
             if (words.Length == 0)
+            {
                 return string.Empty;
+            }
 
             var first = words[0];
             var rest = words.Skip(1)
@@ -1243,11 +1409,14 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Trims the white chars.
+        /// Удаляет пробельные символы с начала и конца строки.
         /// </summary>
-        /// <param name="s">The s.</param>
-        /// <returns>System.String.</returns>
-        public static string TrimWhiteChars(string s)
+        /// <param name="s">Строка для обработки. Может быть <c>null</c> или пустой.</param>
+        /// <returns>
+        /// Строка без ведущих и завершающих пробельных символов.
+        /// Если входная строка <c>null</c> или пустая, возвращается исходное значение.
+        /// </returns>
+        public static string TrimWhitespaces(string s)
         {
             if (string.IsNullOrEmpty(s))
             {
@@ -1319,13 +1488,125 @@ namespace RuntimeStuff.Helpers
             }
         }
 
+        private static string EscapeCSharp(string value)
+        {
+            var sb = new StringBuilder(value.Length + 10);
+
+            foreach (var c in value)
+            {
+                switch (c)
+                {
+                    case '"': sb.Append("\\\""); break;
+                    case '\\': sb.Append("\\\\"); break;
+                    case '\0': sb.Append("\\0"); break;
+                    case '\a': sb.Append("\\a"); break;
+                    case '\b': sb.Append("\\b"); break;
+                    case '\f': sb.Append("\\f"); break;
+                    case '\n': sb.Append("\\n"); break;
+                    case '\r': sb.Append("\\r"); break;
+                    case '\t': sb.Append("\\t"); break;
+                    case '\v': sb.Append("\\v"); break;
+
+                    default:
+                        if (char.IsControl(c))
+                        {
+                            sb.Append("\\u" + ((int)c).ToString("x4"));
+                        }
+                        else
+                        {
+                            sb.Append(c);
+                        }
+
+                        break;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static string EscapeJson(string value)
+        {
+            var sb = new StringBuilder(value.Length + 10);
+
+            foreach (var c in value)
+            {
+                switch (c)
+                {
+                    case '"': sb.Append("\\\""); break;
+                    case '\\': sb.Append("\\\\"); break;
+                    case '\b': sb.Append("\\b"); break;
+                    case '\f': sb.Append("\\f"); break;
+                    case '\n': sb.Append("\\n"); break;
+                    case '\r': sb.Append("\\r"); break;
+                    case '\t': sb.Append("\\t"); break;
+
+                    default:
+                        if (char.IsControl(c))
+                        {
+                            sb.Append("\\u" + ((int)c).ToString("x4"));
+                        }
+                        else
+                        {
+                            sb.Append(c);
+                        }
+
+                        break;
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static string EscapeXmlText(string value)
+        {
+            return value
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;");
+        }
+
+        private static string EscapeXmlAttribute(string value)
+        {
+            return value
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;")
+                .Replace("\"", "&quot;")
+                .Replace("'", "&apos;");
+        }
+
+        private static string EscapeCsv(string value)
+        {
+            var mustQuote =
+                value.Contains(',') ||
+                value.Contains('"') ||
+                value.Contains('\n') ||
+                value.Contains('\r');
+
+            if (!mustQuote)
+            {
+                return value;
+            }
+
+            var escaped = value.Replace("\"", "\"\"");
+
+            return $"\"{escaped}\"";
+        }
+
         private static int FindMinimum(params int[] p)
         {
-            if (p == null) return int.MinValue;
+            if (p == null)
+            {
+                return int.MinValue;
+            }
+
             var min = int.MaxValue;
             for (var i = 0; i < p.Length; i++)
             {
-                if (min > p[i]) min = p[i];
+                if (min > p[i])
+                {
+                    min = p[i];
+                }
             }
 
             return min;
@@ -1338,7 +1619,9 @@ namespace RuntimeStuff.Helpers
             for (var i = 0; i < n; i++)
             {
                 if (s1[i] != s2[i])
+                {
                     return i;
+                }
             }
 
             return n;
@@ -1347,7 +1630,9 @@ namespace RuntimeStuff.Helpers
         private static double JaroDistance(string s1, string s2)
         {
             if (s1 == s2)
+            {
                 return 1.0;
+            }
 
             var s1Len = s1.Length;
             var s2Len = s2.Length;
@@ -1367,8 +1652,16 @@ namespace RuntimeStuff.Helpers
 
                 for (var j = start; j <= end; j++)
                 {
-                    if (s2Matches[j]) continue;
-                    if (s1[i] != s2[j]) continue;
+                    if (s2Matches[j])
+                    {
+                        continue;
+                    }
+
+                    if (s1[i] != s2[j])
+                    {
+                        continue;
+                    }
+
                     s1Matches[i] = true;
                     s2Matches[j] = true;
                     matches++;
@@ -1377,15 +1670,28 @@ namespace RuntimeStuff.Helpers
             }
 
             if (matches == 0)
+            {
                 return 0.0;
+            }
 
             var k = 0;
             for (var i = 0; i < s1Len; i++)
             {
-                if (!s1Matches[i]) continue;
-                while (!s2Matches[k]) k++;
+                if (!s1Matches[i])
+                {
+                    continue;
+                }
+
+                while (!s2Matches[k])
+                {
+                    k++;
+                }
+
                 if (s1[i] != s2[k])
+                {
                     transpositions++;
+                }
+
                 k++;
             }
 
@@ -1414,7 +1720,11 @@ namespace RuntimeStuff.Helpers
 
         private static int LevenshteinDistance(string input, string comparedTo, bool caseSensitive = false)
         {
-            if (string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(comparedTo)) return -1;
+            if (string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(comparedTo))
+            {
+                return -1;
+            }
+
             if (!caseSensitive)
             {
                 input = input.ToLower();
@@ -1423,8 +1733,15 @@ namespace RuntimeStuff.Helpers
 
             var matrix = new int[input.Length + 1, comparedTo.Length + 1];
 
-            for (var i = 0; i <= matrix.GetUpperBound(0); i++) matrix[i, 0] = i;
-            for (var i = 0; i <= matrix.GetUpperBound(1); i++) matrix[0, i] = i;
+            for (var i = 0; i <= matrix.GetUpperBound(0); i++)
+            {
+                matrix[i, 0] = i;
+            }
+
+            for (var i = 0; i <= matrix.GetUpperBound(1); i++)
+            {
+                matrix[0, i] = i;
+            }
 
             for (var i = 1; i <= matrix.GetUpperBound(0); i++)
             {
@@ -1442,9 +1759,20 @@ namespace RuntimeStuff.Helpers
                     if (i > 1 && j > 1)
                     {
                         var trans = matrix[i - 2, j - 2] + 1;
-                        if (input[i - 2] != comparedTo[j - 1]) trans++;
-                        if (input[i - 1] != comparedTo[j - 2]) trans++;
-                        if (cell > trans) cell = trans;
+                        if (input[i - 2] != comparedTo[j - 1])
+                        {
+                            trans++;
+                        }
+
+                        if (input[i - 1] != comparedTo[j - 2])
+                        {
+                            trans++;
+                        }
+
+                        if (cell > trans)
+                        {
+                            cell = trans;
+                        }
                     }
 
                     matrix[i, j] = cell;
@@ -1473,7 +1801,9 @@ namespace RuntimeStuff.Helpers
         private static string[] SplitWords(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
+            {
                 return Array.Empty<string>();
+            }
 
             // Заменяем дефисы и пробелы на _
             input = input.Replace("-", "_").Replace(" ", "_");
@@ -1693,7 +2023,7 @@ namespace RuntimeStuff.Helpers
                 get
                 {
                     var level = 0;
-                    var node = Parent;
+                    var node = this.Parent;
 
                     while (node != null)
                     {
@@ -1759,7 +2089,9 @@ namespace RuntimeStuff.Helpers
                 {
                     var node = this;
                     while (node.Parent != null)
+                    {
                         node = node.Parent;
+                    }
 
                     return node;
                 }

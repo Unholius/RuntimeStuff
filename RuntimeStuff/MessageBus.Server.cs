@@ -74,7 +74,9 @@ namespace RuntimeStuff
         public static async Task PublishAsync<T>(Uri serverUrl, T message)
         {
             if (!Channels.Values.All(bus => bus.running))
+            {
                 throw new ObjectDisposedException(nameof(MessageBus));
+            }
 
             var pendingMessage = new PendingMessage
             {
@@ -104,7 +106,9 @@ namespace RuntimeStuff
         public static void SetRetryInterval(int intervalMs)
         {
             if (intervalMs < 1000)
+            {
                 throw new ArgumentOutOfRangeException(nameof(intervalMs), @"Interval must be at least 1000ms");
+            }
 
             retryIntervalMs = intervalMs;
 
@@ -126,11 +130,15 @@ namespace RuntimeStuff
         /// <exception cref="HttpListenerException">Если не удалось запустить HttpListener.</exception>
         public Task StartServer(int port, string path = "/")
         {
-            if (!running)
+            if (!this.running)
+            {
                 throw new ObjectDisposedException(nameof(MessageBus));
+            }
 
-            if (activeServers.ContainsKey(port))
+            if (this.activeServers.ContainsKey(port))
+            {
                 throw new InvalidOperationException($"Server already running on port {port}");
+            }
 
             var listener = new HttpListener();
             listener.Prefixes.Add($"http://*:{port}{path}");
@@ -147,7 +155,7 @@ namespace RuntimeStuff
                     $"Failed to start HTTP listener on port {port}. On Windows, you may need to run: netsh http add urlacl url=http://+:{port}/ user=Everyone");
             }
 
-            if (!activeServers.TryAdd(port, listener))
+            if (!this.activeServers.TryAdd(port, listener))
             {
                 listener.Stop();
                 listener.Close();
@@ -159,10 +167,10 @@ namespace RuntimeStuff
                 {
                     try
                     {
-                        while (!serverCts.Token.IsCancellationRequested && listener.IsListening)
+                        while (!this.serverCts.Token.IsCancellationRequested && listener.IsListening)
                         {
                             var context = await listener.GetContextAsync();
-                            _ = ProcessRequest(context);
+                            _ = this.ProcessRequest(context);
                         }
                     }
                     catch (HttpListenerException)
@@ -179,9 +187,9 @@ namespace RuntimeStuff
                     }
                     finally
                     {
-                        activeServers.TryRemove(port, out _);
+                        this.activeServers.TryRemove(port, out _);
                     }
-                }, serverCts.Token);
+                }, this.serverCts.Token);
             return Task.CompletedTask;
         }
 
@@ -190,11 +198,11 @@ namespace RuntimeStuff
         /// </summary>
         public void StopAllServers()
         {
-            serverCts.Cancel();
+            this.serverCts.Cancel();
 
-            foreach (var port in activeServers.Keys.ToArray())
+            foreach (var port in this.activeServers.Keys.ToArray())
             {
-                StopServer(port);
+                this.StopServer(port);
             }
         }
 
@@ -204,7 +212,7 @@ namespace RuntimeStuff
         /// <param name="port">Порт для остановки.</param>
         public void StopServer(int port)
         {
-            if (activeServers.TryRemove(port, out var listener))
+            if (this.activeServers.TryRemove(port, out var listener))
             {
                 try
                 {
@@ -221,7 +229,10 @@ namespace RuntimeStuff
         private static HttpClient GetHttpClient()
         {
             if (httpClient != null)
+            {
                 return httpClient;
+            }
+
             httpClient = new HttpClient();
             httpClient.Timeout = TimeSpan.FromSeconds(30);
             return httpClient;
@@ -230,7 +241,9 @@ namespace RuntimeStuff
         private static async Task ProcessMessageQueue()
         {
             if (MessageQueue.IsEmpty)
+            {
                 return;
+            }
 
             var failedMessages = new ConcurrentQueue<PendingMessage>();
 
@@ -274,7 +287,9 @@ namespace RuntimeStuff
             lock (RetryLock)
             {
                 if (isProcessingQueue)
+                {
                     return;
+                }
 
                 isProcessingQueue = true;
 
@@ -305,7 +320,10 @@ namespace RuntimeStuff
                     new { type = pendingMessage.MessageType, data = pendingMessage.Message });
                 var status = JsonHelper.GetValues(response, (x) => x.Equals("status"), false);
                 if (status.FirstOrDefault()?.ToLower() == "accepted")
+                {
                     return true;
+                }
+
                 client.Dispose();
                 return false;
             }
@@ -379,7 +397,7 @@ namespace RuntimeStuff
 
                     // Публикуем сообщение в шину
                     var publishMethod = typeof(MessageBus)
-                        .GetMethod(nameof(Publish))
+                        .GetMethod(nameof(this.Publish))
                         ?.MakeGenericMethod(messageType);
 
                     publishMethod?.Invoke(this, new[] { message });

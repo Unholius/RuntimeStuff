@@ -191,14 +191,18 @@ namespace RuntimeStuff.Extensions
             params (TWhen when, TThen then)[] cases)
         {
             if (defaultValue == null)
+            {
                 throw new ArgumentNullException(nameof(defaultValue));
+            }
 
             var comparer = EqualityComparer<TWhen>.Default;
 
             foreach (var (when, then) in cases)
             {
                 if (comparer.Equals(obj, when))
+                {
                     return then;
+                }
             }
 
             return defaultValue(obj);
@@ -221,9 +225,14 @@ namespace RuntimeStuff.Extensions
             params (TWhen when, TThen then)[] cases)
         {
             if (defaultValue == null)
+            {
                 throw new ArgumentNullException(nameof(defaultValue));
+            }
+
             if (cases == null)
+            {
                 throw new ArgumentNullException(nameof(cases));
+            }
 
             var value = objParser != null ? objParser(obj) : obj;
             var comparer = EqualityComparer<TWhen>.Default;
@@ -231,7 +240,9 @@ namespace RuntimeStuff.Extensions
             foreach (var (when, then) in cases)
             {
                 if (comparer.Equals(value, when))
+                {
                     return then;
+                }
             }
 
             return defaultValue(obj);

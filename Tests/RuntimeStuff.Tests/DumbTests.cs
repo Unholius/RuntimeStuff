@@ -1,5 +1,7 @@
 ﻿namespace RuntimeStuff.MSTests;
 
+// DUMB TESTS FOR KEEP CONST TESTS NUMBER 666
+
 [TestClass]
 public class DumbTests
 {
@@ -186,29 +188,4 @@ public class DumbTests
     [TestMethod] public void Dumb_Test_181() => Assert.IsTrue(true);
     [TestMethod] public void Dumb_Test_182() => Assert.IsTrue(true);
     [TestMethod] public void Dumb_Test_183() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_184() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_185() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_186() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_187() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_188() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_189() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_190() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_191() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_192() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_193() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_194() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_195() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_196() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_197() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_198() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_199() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_200() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_201() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_202() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_203() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_204() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_205() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_206() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_207() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_208() => Assert.IsTrue(true);
-}
+ }

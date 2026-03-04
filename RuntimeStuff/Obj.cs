@@ -268,7 +268,6 @@ namespace RuntimeStuff
         /// Gets флаги для поиска членов класса по умолчанию.
         /// </summary>
         /// <value>The default binding flags.</value>
-
         public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
                                                                   BindingFlags.Public | BindingFlags.Static;
 
@@ -580,13 +579,19 @@ namespace RuntimeStuff
                     if (toType == typeof(bool))
                     {
                         if (bool.TryParse(s, out var boolResult))
+                        {
                             return boolResult;
+                        }
 
                         if (s == "1")
+                        {
                             return true;
+                        }
 
                         if (s == "0")
+                        {
                             return false;
+                        }
                     }
 
                     if (string.IsNullOrWhiteSpace(s) && IsNullable(toType))
@@ -680,10 +685,15 @@ namespace RuntimeStuff
 
             var sourceTypeCache = MemberCache.Create(source.GetType());
             if (sourceTypeCache.IsCollection)
+            {
                 sourceTypeCache = MemberCache.Create(sourceTypeCache.ElementType);
+            }
+
             var targetTypeCache = MemberCache.Create(target.GetType());
             if (targetTypeCache.IsCollection)
+            {
                 targetTypeCache = MemberCache.Create(targetTypeCache.ElementType);
+            }
 
             if (source is IEnumerable srcList && !(source is string) && target is IEnumerable dstList && !(target is string))
             {
@@ -732,10 +742,16 @@ namespace RuntimeStuff
                 {
                     var get = sourceTypeCache[memberName]?.Getter;
                     if (get == null)
+                    {
                         continue;
+                    }
+
                     var set = targetTypeCache[memberName]?.Setter;
                     if (set == null)
+                    {
                         continue;
+                    }
+
                     var value = get(source);
                     set(target, value);
                 }
@@ -1487,13 +1503,19 @@ namespace RuntimeStuff
         public static Type GetCollectionItemType(Type type)
         {
             if (type == null)
+            {
                 return null;
+            }
 
             if (type == typeof(string))
+            {
                 return typeof(char);
+            }
 
             if (type.IsArray)
+            {
                 return type.GetElementType();
+            }
 
             // IDictionary<TKey, TValue>
             var dictionaryInterface = type
@@ -1503,7 +1525,9 @@ namespace RuntimeStuff
                     i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
 
             if (dictionaryInterface != null)
+            {
                 return dictionaryInterface.GetGenericArguments()[1];
+            }
 
             // IEnumerable<T>
             var enumerableInterface = type
@@ -1513,7 +1537,9 @@ namespace RuntimeStuff
                     i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 
             if (enumerableInterface != null)
+            {
                 return enumerableInterface.GetGenericArguments()[0];
+            }
 
             return null;
         }
@@ -2313,7 +2339,7 @@ namespace RuntimeStuff
         {
             var values = new List<object>();
             var sourceTypeCache = MemberCache.Create(typeof(TObject));
-            var props = memberNames?.Any() == true ? sourceTypeCache.Properties.Where(x => memberNames.Contains(x.Name)).ToArray() : sourceTypeCache.PublicProperties;
+            var props = memberNames.Length != 0 ? sourceTypeCache.Properties.Where(x => memberNames.Contains(x.Name)).ToArray() : sourceTypeCache.PublicProperties;
             foreach (var p in props)
             {
                 values.Add(p.Getter?.Invoke(source));
@@ -2561,7 +2587,10 @@ namespace RuntimeStuff
             {
                 var path = memberName.Split('.', '/', '\\');
                 if (path.Length > 1)
+                {
                     return Set(instance, path, value);
+                }
+
                 return false;
             }
 
@@ -2608,7 +2637,11 @@ namespace RuntimeStuff
             {
                 var subMember = FindMember(instance.GetType(), path[0]);
                 var subMemberType = GetMemberReturnType(subMember);
-                if (subMemberType == null) return false;
+                if (subMemberType == null)
+                {
+                    return false;
+                }
+
                 subMemberInstance = New(subMemberType);
                 Set(instance, path[0], subMemberInstance);
             }
@@ -2734,7 +2767,7 @@ namespace RuntimeStuff
         {
             try
             {
-                return (T)ChangeType(value, typeof(T), formatProvider);
+                return ChangeType<T>(value, formatProvider);
             }
             catch
             {
@@ -2758,7 +2791,7 @@ namespace RuntimeStuff
         {
             try
             {
-                result = (T)ChangeType(value, typeof(T), formatProvider);
+                result = ChangeType<T>(value, formatProvider);
                 return true;
             }
             catch

@@ -1,6 +1,6 @@
 ﻿using RuntimeStuff.Extensions;
 
-namespace RuntimeStuff.MSTests.Extensions
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class FuncExtensionsTests

@@ -121,7 +121,7 @@ namespace RuntimeStuff.Builders
         {
             if (string.IsNullOrWhiteSpace(tableName))
             {
-                throw new ArgumentException(nameof(tableName));
+                throw new ArgumentException(null, nameof(tableName));
             }
 
             this.EntityMapping.TableName = tableName;

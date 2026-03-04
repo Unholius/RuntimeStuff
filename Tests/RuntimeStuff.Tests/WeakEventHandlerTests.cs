@@ -83,7 +83,8 @@ namespace RuntimeStuff.MSTests
             Setup();
 
             GC.Collect();
-
+            Assert.IsNotNull(_publisher);
+            Assert.IsNotNull(_subscriber);
             _publisher.Fire();
 
             Assert.AreEqual(1, _subscriber.Invocations);
@@ -160,9 +161,11 @@ namespace RuntimeStuff.MSTests
         {
             Setup();
             var reference = new WeakReference(_publisher);
+            Assert.IsNotNull(_publisher);
+            Assert.IsNotNull(_subscriber);
 
             _publisher = null;
-            _subscriber.Publisher = null;
+            _subscriber.Publisher = null!;
 
             GC.Collect();
 

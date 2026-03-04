@@ -61,22 +61,22 @@ namespace RuntimeStuff.Internal
         {
             this.source = source;
             this.eventInfo = eventInfo;
-            targetRef = new WeakReference<TTarget>(target);
+            this.targetRef = new WeakReference<TTarget>(target);
 
-            handler = EventHelper.CreateEventHandlerDelegate<object, object>(
+            this.handler = EventHelper.CreateEventHandlerDelegate<object, object>(
                 eventInfo.EventHandlerType,
                 (sender, args) =>
                 {
-                    if (!targetRef.TryGetTarget(out var targetInstance))
+                    if (!this.targetRef.TryGetTarget(out var targetInstance))
                     {
-                        Dispose();
+                        this.Dispose();
                         return;
                     }
 
                     callback(targetInstance, sender, args);
                 });
 
-            eventInfo.AddEventHandler(source, handler);
+            eventInfo.AddEventHandler(source, this.handler);
         }
 
         /// <summary>
@@ -90,11 +90,13 @@ namespace RuntimeStuff.Internal
         /// </remarks>
         public void Dispose()
         {
-            if (disposed)
+            if (this.disposed)
+            {
                 return;
+            }
 
-            eventInfo.RemoveEventHandler(source, handler);
-            disposed = true;
+            this.eventInfo.RemoveEventHandler(this.source, this.handler);
+            this.disposed = true;
         }
     }
 }

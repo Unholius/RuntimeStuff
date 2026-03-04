@@ -11,10 +11,10 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-using System;
+
 namespace RuntimeStuff
 {
-    
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -58,7 +58,6 @@ namespace RuntimeStuff
 
         private readonly bool allowEscapeChars;
         private readonly StringComparison comparison;
-        private readonly string fileName;
         private readonly string lineBreaker;
         private bool cacheDirty = true;
         private string content;
@@ -83,8 +82,13 @@ namespace RuntimeStuff
             this.comparison = comparison;
             this.allowEscapeChars = allowEscChars;
             this.lineBreaker = AutoDetectLineBreaker(this.content);
-            this.fileName = Assembly.GetExecutingAssembly().GetName().Name + ".ini";
+            this.FileName = Assembly.GetExecutingAssembly().GetName().Name + ".ini";
         }
+
+        /// <summary>
+        /// Указать имя файла в который будут сохраняться данные.
+        /// </summary>
+        public string FileName { get; set; }
 
         /// <summary>
         /// Gets or sets содержимое INI-файла в виде строки.
@@ -240,10 +244,15 @@ namespace RuntimeStuff
                 File.WriteAllText(filePath, string.Empty);
             }
 
-            return new IniFile(
+            var ini = new IniFile(
                 File.ReadAllText(filePath),
                 comparison,
-                allowEscChars);
+                allowEscChars)
+            {
+                FileName = fileName,
+            };
+
+            return ini;
         }
 
         /// <summary>
@@ -289,7 +298,7 @@ namespace RuntimeStuff
         /// <param name="section">Имя секции. Может быть null для глобальных ключей.</param>
         /// <param name="key">Имя ключа.</param>
         /// <param name="defaultValue">Значение по умолчанию.</param>
-        /// <returns>Значение ключа или defaultValue.</returns>
+        /// <returns>Значение ключа или defaultValue, если ключ отсутствует.</returns>
         public string GetValue(string section, string key, string defaultValue = null)
         {
             if (key == null)
@@ -308,7 +317,7 @@ namespace RuntimeStuff
                 keys.TryGetValue(key, out var values) &&
                 values.Count > 0)
             {
-                return values[values.Count - 1]; // последний wins
+                return values[values.Count - 1];
             }
 
             return defaultValue;
@@ -321,7 +330,7 @@ namespace RuntimeStuff
         /// <exception cref="ArgumentException">Если fileName некорректен.</exception>
         public void Save(Encoding encoding = null)
         {
-            var fullPath = GetFullPath(this.fileName);
+            var fullPath = GetFullPath(this.FileName);
             File.WriteAllText(fullPath, this.Content, encoding ?? Encoding.UTF8);
         }
 

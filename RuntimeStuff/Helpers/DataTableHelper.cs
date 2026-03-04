@@ -193,7 +193,10 @@ namespace RuntimeStuff.Helpers
                 foreach (var prop in props)
                 {
                     if (propertyToColumnMapper?.TryGetValue(prop.Name, out var columnName) != true)
+                    {
                         columnName = prop.ColumnName;
+                    }
+
                     DataColumn col = null;
                     if (!table.Columns.Contains(columnName))
                     {
@@ -212,21 +215,24 @@ namespace RuntimeStuff.Helpers
                     }
 
                     if (col == null)
+                    {
                         continue;
+                    }
+
                     propsMap.Add((prop, col));
                 }
 
                 foreach (var item in items)
                 {
-                    foreach (var (Prop, Col) in propsMap)
+                    foreach (var (prop, col1) in propsMap)
                     {
-                        var value = valueConverter == null ? Convert.ChangeType(Prop.Getter(item), Col.DataType) : valueConverter(Prop.Getter(item), Col.DataType);
+                        var value = valueConverter == null ? Convert.ChangeType(prop.Getter(item), col1.DataType) : valueConverter(prop.Getter(item), col1.DataType);
                         if (value == null)
                         {
                             continue;
                         }
 
-                        row[Col] = value;
+                        row[col1] = value;
                     }
 
                     table.Rows.Add(row);
@@ -357,7 +363,9 @@ namespace RuntimeStuff.Helpers
             {
                 var value = row[columnName];
                 if (value == DBNull.Value)
+                {
                     continue;
+                }
 
                 result.Add(valueConverter != null ? valueConverter(value) : (T)Convert.ChangeType(value, toType));
             }
@@ -391,10 +399,16 @@ namespace RuntimeStuff.Helpers
             foreach (DataColumn col in table.Columns)
             {
                 if (columnToPropertyMapper?.TryGetValue(col.ColumnName, out var propName) != true)
+                {
                     propName = col.ColumnName;
+                }
+
                 var propCache = typeCache[propName];
                 if (propCache == null)
+                {
                     continue;
+                }
+
                 propsMap.Add((col, propCache));
             }
 
@@ -402,15 +416,15 @@ namespace RuntimeStuff.Helpers
             {
                 var item = new T();
 
-                foreach (var (Col, Prop) in propsMap)
+                foreach (var (col, prop) in propsMap)
                 {
-                    var value = row[Col];
+                    var value = row[col];
                     if (value == DBNull.Value)
                     {
                         continue;
                     }
 
-                    Prop.SetValue(item, valueToPropertyTypeConverter == null ? Convert.ChangeType(value, Prop.PropertyType) : valueToPropertyTypeConverter(value, Prop.PropertyType));
+                    prop.SetValue(item, valueToPropertyTypeConverter == null ? Convert.ChangeType(value, prop.PropertyType) : valueToPropertyTypeConverter(value, prop.PropertyType));
                 }
 
                 result.Add(item);

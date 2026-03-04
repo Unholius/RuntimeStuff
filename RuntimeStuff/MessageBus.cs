@@ -53,20 +53,22 @@ namespace RuntimeStuff
         public MessageBus(string threadName = "MessageBusWorker", int workerCount = 1)
         {
             if (workerCount <= 0)
-                throw new ArgumentOutOfRangeException(nameof(workerCount));
-
-            Name = threadName;
-
-            workers = new Thread[workerCount];
-
-            for (int i = 0; i < workers.Length; i++)
             {
-                workers[i] = new Thread(WorkerLoop)
+                throw new ArgumentOutOfRangeException(nameof(workerCount));
+            }
+
+            this.Name = threadName;
+
+            this.workers = new Thread[workerCount];
+
+            for (int i = 0; i < this.workers.Length; i++)
+            {
+                this.workers[i] = new Thread(this.WorkerLoop)
                 {
                     IsBackground = true,
                     Name = $"{threadName}-{i}",
                 };
-                workers[i].Start();
+                this.workers[i].Start();
             }
         }
 
@@ -93,17 +95,20 @@ namespace RuntimeStuff
         /// </summary>
         /// <param name="channelName">Name of the channel.</param>
         /// <returns>MessageBus.</returns>
-        public MessageBus this[string channelName] => Channels.GetOrAdd(channelName, x => new MessageBus(x, workers.Length));
+        public MessageBus this[string channelName] => Channels.GetOrAdd(channelName, x => new MessageBus(x, this.workers.Length));
 
         /// <summary>
         /// Освобождает ресурсы и завершает работу всех рабочих потоков.
         /// </summary>
         public void Dispose()
         {
-            if (disposed) return; // безопасный повторный вызов
+            if (this.disposed)
+            {
+                return; // безопасный повторный вызов
+            }
 
-            StopAllServers();
-            serverCts.Dispose();
+            this.StopAllServers();
+            this.serverCts.Dispose();
 
             // Останавливаем обработку очереди
             lock (RetryLock)
@@ -111,11 +116,11 @@ namespace RuntimeStuff
                 retryTimer?.Dispose();
             }
 
-            disposed = true;
-            running = false;
+            this.disposed = true;
+            this.running = false;
 
             // Завершаем все ожидающие задачи
-            foreach (var handlersList in waitingHandlers.Select(kvp => kvp.Value))
+            foreach (var handlersList in this.waitingHandlers.Select(kvp => kvp.Value))
             {
                 lock (handlersList)
                 {
@@ -136,14 +141,18 @@ namespace RuntimeStuff
                 }
             }
 
-            for (int i = 0; i < workers.Length; i++)
-                signal.Set();
+            for (int i = 0; i < this.workers.Length; i++)
+            {
+                this.signal.Set();
+            }
 
-            foreach (var t in workers)
+            foreach (var t in this.workers)
+            {
                 t.Join();
+            }
 
-            signal.Dispose();
-            Channels.TryRemove(Name, out _);
+            this.signal.Dispose();
+            Channels.TryRemove(this.Name, out _);
         }
 
         /// <summary>
@@ -154,11 +163,13 @@ namespace RuntimeStuff
         /// <exception cref="ObjectDisposedException">Если шина уже освобождена.</exception>
         public void Publish<T>(T message)
         {
-            if (!running)
+            if (!this.running)
+            {
                 throw new ObjectDisposedException(nameof(MessageBus));
+            }
 
-            queue.Enqueue(message);
-            signal.Set();
+            this.queue.Enqueue(message);
+            this.signal.Set();
         }
 
         /// <summary>
@@ -171,7 +182,9 @@ namespace RuntimeStuff
         public void Subscribe<T>(Action<T> handler, Func<T, bool> messageFilter = null)
         {
             if (handler == null)
+            {
                 throw new ArgumentNullException(nameof(handler));
+            }
 
             Action<T> wrapped = message =>
             {
@@ -181,11 +194,11 @@ namespace RuntimeStuff
                 }
             };
 
-            var list = handlers.GetOrAdd(typeof(T), _ => new List<Delegate>());
+            var list = this.handlers.GetOrAdd(typeof(T), _ => new List<Delegate>());
             lock (list)
             {
                 list.Add(wrapped);
-                wrappedHandlers[handler] = wrapped;
+                this.wrappedHandlers[handler] = wrapped;
             }
         }
 
@@ -200,18 +213,22 @@ namespace RuntimeStuff
         public void Subscribe<T>(Action<T> handler, SynchronizationContext context, Func<T, bool> messageFilter = null)
         {
             if (handler == null)
+            {
                 throw new ArgumentNullException(nameof(handler));
+            }
 
             if (context == null)
             {
-                Subscribe(handler, messageFilter);
+                this.Subscribe(handler, messageFilter);
                 return;
             }
 
             Action<T> wrapped = message =>
             {
                 if (messageFilter != null && !messageFilter(message))
+                {
                     return;
+                }
 
                 context.Post(
                     state =>
@@ -222,11 +239,11 @@ namespace RuntimeStuff
                     Tuple.Create(handler, message));
             };
 
-            var list = handlers.GetOrAdd(typeof(T), _ => new List<Delegate>());
+            var list = this.handlers.GetOrAdd(typeof(T), _ => new List<Delegate>());
             lock (list)
             {
                 list.Add(wrapped);
-                wrappedHandlers[handler] = wrapped;
+                this.wrappedHandlers[handler] = wrapped;
             }
         }
 
@@ -237,12 +254,14 @@ namespace RuntimeStuff
         /// <param name="handler">Делегат для отписки.</param>
         public void Unsubscribe<T>(Action<T> handler)
         {
-            if (!handlers.TryGetValue(typeof(T), out var list))
+            if (!this.handlers.TryGetValue(typeof(T), out var list))
+            {
                 return;
+            }
 
             lock (list)
             {
-                if (wrappedHandlers.TryRemove(handler, out var wrapped))
+                if (this.wrappedHandlers.TryRemove(handler, out var wrapped))
                 {
                     list.Remove(wrapped);
                 }
@@ -268,8 +287,10 @@ namespace RuntimeStuff
             int? timeout = null,
             CancellationToken cancellationToken = default)
         {
-            if (!running)
+            if (!this.running)
+            {
                 throw new ObjectDisposedException(nameof(MessageBus));
+            }
 
             var tcs = new TaskCompletionSource<T>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
@@ -282,7 +303,7 @@ namespace RuntimeStuff
 
             waitingHandler = obj =>
             {
-                if (!running)
+                if (!this.running)
                 {
                     tcs.TrySetException(new ObjectDisposedException(nameof(MessageBus)));
                     return;
@@ -295,16 +316,20 @@ namespace RuntimeStuff
                 }
 
                 if (!(obj is T message))
+                {
                     return;
+                }
 
                 if (messageFilter != null && !messageFilter(message))
+                {
                     return;
+                }
 
                 Cleanup();
                 tcs.TrySetResult(message);
             };
 
-            var list = waitingHandlers.GetOrAdd(type, _ => new List<Action<object>>());
+            var list = this.waitingHandlers.GetOrAdd(type, _ => new List<Action<object>>());
             lock (list)
             {
                 list.Add(waitingHandler);
@@ -328,7 +353,7 @@ namespace RuntimeStuff
 
             void Cleanup()
             {
-                if (waitingHandlers.TryGetValue(type, out var h))
+                if (this.waitingHandlers.TryGetValue(type, out var h))
                 {
                     lock (h)
                     {
@@ -360,11 +385,13 @@ namespace RuntimeStuff
             CancellationToken cancellationToken = default)
         {
             if (context == null)
+            {
                 throw new ArgumentNullException(nameof(context));
+            }
 
             var tcs = new TaskCompletionSource<T>();
 
-            var waitingTask = WaitForMessage<T>(messageFilter, timeout, cancellationToken);
+            var waitingTask = this.WaitForMessage<T>(messageFilter, timeout, cancellationToken);
 
             waitingTask.ContinueWith(
                 task =>
@@ -399,12 +426,14 @@ namespace RuntimeStuff
         private void Dispatch(object message)
         {
             if (message == null)
+            {
                 return;
+            }
 
             var type = message.GetType();
 
             // Обычные подписчики
-            if (handlers.TryGetValue(type, out var list))
+            if (this.handlers.TryGetValue(type, out var list))
             {
                 Delegate[] snapshot;
                 lock (list)
@@ -426,7 +455,7 @@ namespace RuntimeStuff
             }
 
             // Ожидающие задачи
-            if (waitingHandlers.TryGetValue(type, out var waitList))
+            if (this.waitingHandlers.TryGetValue(type, out var waitList))
             {
                 Action<object>[] snapshot;
                 lock (waitList)
@@ -450,20 +479,20 @@ namespace RuntimeStuff
 
         private void WorkerLoop()
         {
-            while (running)
+            while (this.running)
             {
-                if (!queue.TryDequeue(out var message))
+                if (!this.queue.TryDequeue(out var message))
                 {
-                    signal.WaitOne();
+                    this.signal.WaitOne();
                     continue;
                 }
 
-                Dispatch(message);
+                this.Dispatch(message);
             }
 
-            while (queue.TryDequeue(out var msg))
+            while (this.queue.TryDequeue(out var msg))
             {
-                Dispatch(msg);
+                this.Dispatch(msg);
             }
         }
     }

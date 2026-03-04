@@ -83,7 +83,10 @@ namespace RuntimeStuff.Extensions
         {
             var srcEvent = source.GetType().GetEvent(onSourceEventName) ?? throw new ArgumentException($@"Событие '{onSourceEventName}' не найдено в типе '{source.GetType().Name}'", nameof(onSourceEventName));
             if (canExecuteAction == null)
+            {
                 canExecuteAction = () => true;
+            }
+
             return EventHelper.BindEventToAction(source, srcEvent, action, (s, e) => canExecuteAction());
         }
 
@@ -486,22 +489,34 @@ namespace RuntimeStuff.Extensions
             where TTargetEventArgs : EventArgs
         {
             if (source == null)
+            {
                 throw new ArgumentNullException(nameof(source));
+            }
 
             if (target == null)
+            {
                 throw new ArgumentNullException(nameof(target));
+            }
 
             if (sourcePropertySelector == null)
+            {
                 throw new ArgumentException(@"Свойство источника не может быть пустым", nameof(sourcePropertySelector));
+            }
 
             if (targetPropertySelector == null)
+            {
                 throw new ArgumentException(@"Свойство приемника не может быть пустым", nameof(targetPropertySelector));
+            }
 
             if (string.IsNullOrWhiteSpace(onSourceEventName))
+            {
                 throw new ArgumentException(@"Имя события источника не может быть пустым", nameof(onSourceEventName));
+            }
 
             if (string.IsNullOrWhiteSpace(onTargetEventName))
+            {
                 throw new ArgumentException(@"Имя приемника источника не может быть пустым", nameof(onTargetEventName));
+            }
 
             var srcEvent = source.GetType().GetEvent(onSourceEventName) ?? throw new ArgumentException($@"Событие '{onSourceEventName}' не найдено в типе '{source.GetType().Name}'", nameof(onSourceEventName));
             var srcProp = sourcePropertySelector.GetPropertyInfo();
@@ -509,16 +524,24 @@ namespace RuntimeStuff.Extensions
             var targetEvent = target.GetType().GetEvent(onTargetEventName);
 
             if (canAcceptSourceEvent == null)
+            {
                 canAcceptSourceEvent = (s, e) => true;
+            }
 
             if (canAcceptTargetEvent == null)
+            {
                 canAcceptTargetEvent = (s, e) => true;
+            }
 
             if (sourcePropertyValueToTargetPropertyValueConverter == null && !typeof(TTargetProp).IsAssignableFrom(typeof(TSourceProp)))
+            {
                 sourcePropertyValueToTargetPropertyValueConverter = (v) => Obj.ChangeType<TTargetProp>(v);
+            }
 
             if (targetPropertyValueToSourcePropertyValueConverter == null && !typeof(TSourceProp).IsAssignableFrom(typeof(TTargetProp)))
+            {
                 targetPropertyValueToSourcePropertyValueConverter = (v) => Obj.ChangeType<TSourceProp>(v);
+            }
 
             return EventHelper.BindProperties(source, srcProp, srcEvent, canAcceptSourceEvent, target, targetProp, targetEvent, canAcceptTargetEvent, sourcePropertyValueToTargetPropertyValueConverter, targetPropertyValueToSourcePropertyValueConverter, onPropertyChanged);
         }

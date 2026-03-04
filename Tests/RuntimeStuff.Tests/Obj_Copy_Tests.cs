@@ -48,7 +48,7 @@ public class ObjCopyTests
 
         // Act & Assert
         Assert.ThrowsException<ArgumentNullException>(() =>
-            Obj.Copy<SourceClass, TargetClass>(null, target));
+            Obj.Copy<SourceClass, TargetClass>(null!, target));
     }
 
     [TestMethod]
@@ -59,7 +59,7 @@ public class ObjCopyTests
 
         // Act & Assert
         Assert.ThrowsException<ArgumentNullException>(() =>
-            Obj.Copy<SourceClass, TargetClass>(source, null));
+            Obj.Copy<SourceClass, TargetClass>(source, null!));
     }
 
     [TestMethod]
@@ -142,7 +142,7 @@ public class ObjCopyTests
         var target = new TargetClass();
 
         // Act
-        Obj.Copy(source, target, new string[0]);
+        Obj.Copy(source, target);
 
         // Assert - должен скопировать все свойства
         Assert.AreEqual(source.Name, target.Name);
@@ -244,7 +244,7 @@ public class ObjCopyTests
     public void Copy_HandlesNullCollections()
     {
         // Arrange
-        List<SimpleItem> sourceList = null;
+        List<SimpleItem>? sourceList = null;
         var targetList = new List<SimpleItem>();
 
         // Act & Assert

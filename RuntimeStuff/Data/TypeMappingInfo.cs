@@ -25,8 +25,8 @@ namespace RuntimeStuff.Data
         /// </exception>
         internal TypeMappingInfo(Type entityType)
         {
-            EntityType = entityType ?? throw new ArgumentNullException(nameof(entityType));
-            PropertyMap = new Dictionary<PropertyInfo, PropertyMappingInfo>();
+            this.EntityType = entityType ?? throw new ArgumentNullException(nameof(entityType));
+            this.PropertyMap = new Dictionary<PropertyInfo, PropertyMappingInfo>();
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace RuntimeStuff.Data
         /// значением — объект <see cref="PropertyMappingInfo"/>, описывающий
         /// параметры сопоставления с колонкой.
         /// </remarks>
-        public IDictionary<PropertyInfo, PropertyMappingInfo> PropertyColumns => PropertyMap;
+        public IDictionary<PropertyInfo, PropertyMappingInfo> PropertyColumns => this.PropertyMap;
 
         /// <summary>
         /// Получает или задаёт имя схемы базы данных,

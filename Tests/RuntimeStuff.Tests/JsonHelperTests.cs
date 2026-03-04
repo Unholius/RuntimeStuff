@@ -6,7 +6,7 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class JsonHelperTests
     {
-        private static string json1 =
+        private static readonly string json1 =
             "{\n  \"user\": {\n    \"name\": \"John\",\n    \"age\": 30,\n    \"active\": true,\n    \"roles\": [\"admin\", \"editor\"],\n    \"address\": {\n      \"city\": \"NY\"\n    }\n  }\n}\n";
 
 
@@ -22,7 +22,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_Null_ReturnsNullString()
         {
             // Arrange
-            object obj = null;
+            object? obj = null;
 
             // Act
             var result = JsonHelper.Serialize(obj);

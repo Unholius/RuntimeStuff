@@ -78,11 +78,15 @@ namespace RuntimeStuff.Extensions
         public static string GetDescription(this Enum enumValue)
         {
             if (enumValue == null)
+            {
                 throw new ArgumentNullException(nameof(enumValue));
+            }
 
             var name = Enum.GetName(enumValue.GetType(), enumValue);
             if (name == null)
+            {
                 return enumValue.ToString();
+            }
 
             var cache = MemberCache.Create(enumValue.GetType()).GetField(name);
             return string.IsNullOrEmpty(cache.Description) ? name : cache.Description;
@@ -110,11 +114,15 @@ namespace RuntimeStuff.Extensions
         public static string GetDisplayName(this Enum enumValue)
         {
             if (enumValue == null)
+            {
                 throw new ArgumentNullException(nameof(enumValue));
+            }
 
             var name = Enum.GetName(enumValue.GetType(), enumValue);
             if (name == null)
+            {
                 return enumValue.ToString();
+            }
 
             var cache = MemberCache.Create(enumValue.GetType()).GetField(name);
             return string.IsNullOrEmpty(cache.DisplayName) ? name : cache.DisplayName;
@@ -170,25 +178,39 @@ namespace RuntimeStuff.Extensions
         public static StringComparison ToStringComparison(this StringComparer comparer)
         {
             if (comparer == null)
+            {
                 throw new ArgumentNullException(nameof(comparer));
+            }
 
             if (ReferenceEquals(comparer, StringComparer.Ordinal))
+            {
                 return StringComparison.Ordinal;
+            }
 
             if (ReferenceEquals(comparer, StringComparer.OrdinalIgnoreCase))
+            {
                 return StringComparison.OrdinalIgnoreCase;
+            }
 
             if (comparer.Equals(StringComparer.CurrentCulture))
+            {
                 return StringComparison.CurrentCulture;
+            }
 
             if (comparer.Equals(StringComparer.CurrentCultureIgnoreCase))
+            {
                 return StringComparison.CurrentCultureIgnoreCase;
+            }
 
             if (comparer.Equals(StringComparer.InvariantCulture))
+            {
                 return StringComparison.InvariantCulture;
+            }
 
             if (comparer.Equals(StringComparer.InvariantCultureIgnoreCase))
+            {
                 return StringComparison.InvariantCultureIgnoreCase;
+            }
 
             throw new NotSupportedException(
                 $"StringComparer '{comparer.GetType().FullName}' cannot be converted to StringComparison.");

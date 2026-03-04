@@ -82,8 +82,8 @@ namespace RuntimeStuff
         /// <returns>Значение свойства.</returns>
         public object this[string propertyName]
         {
-            get => Get(propertyName);
-            set => Set(value);
+            get => this.Get(propertyName);
+            set => this.Set(value);
         }
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace RuntimeStuff
         /// </remarks>
         public virtual T Get<T>([CallerMemberName] string propertyName = null)
         {
-            return (T)values.GetOrAdd(propertyName, x => default(T));
+            return (T)this.values.GetOrAdd(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), x => default(T));
         }
 
         /// <summary>
@@ -204,7 +204,7 @@ namespace RuntimeStuff
         /// </remarks>
         public virtual object Get([CallerMemberName] string propertyName = null)
         {
-            return values.GetOrAdd(propertyName, x => null);
+            return this.values.GetOrAdd(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), x => null);
         }
 
         /// <summary>
@@ -291,8 +291,8 @@ namespace RuntimeStuff
         /// </remarks>
         public virtual void Set<T>(T value, [CallerMemberName] string propertyName = null)
         {
-            values[propertyName] = value;
-            OnPropertyChanged(propertyName);
+            this.values[propertyName ?? throw new ArgumentNullException(nameof(propertyName))] = value;
+            this.OnPropertyChanged(propertyName);
         }
 
         /// <summary>

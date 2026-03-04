@@ -144,7 +144,9 @@ namespace RuntimeStuff.Helpers
             }
 
             if (insertCols.Length == 0)
+            {
                 throw new NotSupportedException("Не указаны колонки для генерации INSERT запроса!");
+            }
 
             for (var i = 0; i < insertCols.Length; i++)
             {
@@ -598,7 +600,7 @@ namespace RuntimeStuff.Helpers
                     }
                     else
                     {
-                        var inclause = $"{member} IN ({string.Join(", ", vals.Select(x => options.ToSqlLiteral(x)))})";
+                        var inclause = $"{member} IN ({string.Join(", ", vals.Select(x => options.ValueFormatter.Format(x)))})";
                         return inclause;
                     }
             }
@@ -640,7 +642,7 @@ namespace RuntimeStuff.Helpers
             return $"({left} {op} {right})";
         }
 
-        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options) => options.ToSqlLiteral(ce.Value);
+        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options) => options.ValueFormatter.Format(ce.Value);
 
         private static string VisitMember(MemberExpression me, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
@@ -652,7 +654,7 @@ namespace RuntimeStuff.Helpers
 
             var value = ExpressionHelper.GetValue(me);
             var paramName = (mi.ColumnName ?? mi.Name) + "_" + (cmdParams.Count + 1);
-            return useParams ? options.ParamPrefix + paramName : options.ToSqlLiteral(value);
+            return useParams ? options.ParamPrefix + paramName : options.ValueFormatter.Format(value);
         }
 
         private static string VisitUnary(UnaryExpression ue, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)

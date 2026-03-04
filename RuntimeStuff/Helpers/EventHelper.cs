@@ -77,9 +77,14 @@ namespace RuntimeStuff.Helpers
             Func<T, TArgs, bool> canExecuteAction = null)
         {
             if (eventInfo == null)
+            {
                 throw new ArgumentNullException(nameof(eventInfo));
+            }
+
             if (action == null)
+            {
                 throw new ArgumentNullException(nameof(action));
+            }
 
             var binding = new EventBinding<T, TArgs>(obj, eventInfo, action, canExecuteAction);
             var handler = CreateEventHandlerDelegate<T, TArgs>(eventInfo.EventHandlerType, binding.OnEvent);
@@ -213,16 +218,23 @@ namespace RuntimeStuff.Helpers
             Action<T, TArgs> action)
         {
             if (eventHandlerType == null)
+            {
                 throw new ArgumentNullException(nameof(eventHandlerType));
+            }
+
             if (action == null)
+            {
                 throw new ArgumentNullException(nameof(action));
+            }
 
             var invokeMethod = eventHandlerType.GetMethod("Invoke")
                                ?? throw new InvalidOperationException("Event handler has no Invoke method.");
 
             var parameters = invokeMethod.GetParameters();
             if (parameters.Length < 2)
+            {
                 throw new InvalidOperationException("Event must have at least 2 parameters (sender and args).");
+            }
 
             var senderParam = Expression.Parameter(parameters[0].ParameterType, "sender");
             var argsParam = Expression.Parameter(parameters[1].ParameterType, "args");
@@ -267,9 +279,14 @@ namespace RuntimeStuff.Helpers
             Delegate actionHandler)
         {
             if (eventInfo == null)
+            {
                 throw new ArgumentNullException(nameof(eventInfo));
+            }
+
             if (actionHandler == null)
+            {
                 throw new ArgumentNullException(nameof(actionHandler));
+            }
 
             eventInfo.RemoveEventHandler(obj, actionHandler);
         }
@@ -292,24 +309,29 @@ namespace RuntimeStuff.Helpers
 
             ~EventBinding()
             {
-                Dispose();
+                this.Dispose();
             }
 
             public Delegate ActionHandler { get; internal set; }
 
             public void Dispose()
             {
-                if (disposed)
+                if (this.disposed)
+                {
                     return;
+                }
 
-                eventInfo.RemoveEventHandler(target, ActionHandler);
-                disposed = true;
+                this.eventInfo.RemoveEventHandler(this.target, this.ActionHandler);
+                this.disposed = true;
             }
 
             public void OnEvent(TSource source, TEventArgs args)
             {
-                if (canExecute != null && !this.canExecute(source, args))
+                if (this.canExecute != null && !this.canExecute(source, args))
+                {
                     return;
+                }
+
                 this.action(source, args);
             }
         }
@@ -377,17 +399,24 @@ namespace RuntimeStuff.Helpers
             /// </remarks>
             public void Dispose()
             {
-                if (disposed)
+                if (this.disposed)
+                {
                     return;
+                }
 
-                var src = source?.Target;
-                var dst = target?.Target;
+                var src = this.source?.Target;
+                var dst = this.target?.Target;
 
-                if (src != null && sourceEvent != null && SrcEventHandler != null)
-                    EventHelper.UnBindActionFromEvent(source.Target, sourceEvent, SrcEventHandler);
+                if (src != null && this.sourceEvent != null && this.SrcEventHandler != null)
+                {
+                    EventHelper.UnBindActionFromEvent(this.source.Target, this.sourceEvent, this.SrcEventHandler);
+                }
 
-                if (dst != null && targetEvent != null && DstEventHandler != null)
-                    EventHelper.UnBindActionFromEvent(target.Target, targetEvent, DstEventHandler);
+                if (dst != null && this.targetEvent != null && this.DstEventHandler != null)
+                {
+                    EventHelper.UnBindActionFromEvent(this.target.Target, this.targetEvent, this.DstEventHandler);
+                }
+
                 this.sourcePropertyInfo = null;
                 this.targetPropertyInfo = null;
                 this.sourceToTargetConverter = null;
@@ -396,63 +425,75 @@ namespace RuntimeStuff.Helpers
                 this.targetEvent = null;
                 this.source = null;
                 this.target = null;
-                disposed = true;
+                this.disposed = true;
             }
 
             internal void OnSourceEvent(object sender, object args)
             {
-                if (canAcceptSourceEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
-                    return;
-
-                if (canAcceptSourceEvent != null && sender is TSrc src && args is TSrcArgs srcArgs && !canAcceptSourceEvent(src, srcArgs))
-                    return;
-
-                if (source.Target == null)
+                if (this.canAcceptSourceEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != this.sourcePropertyInfo.Name)
                 {
-                    Dispose();
                     return;
                 }
 
-                if (target.Target != null)
+                if (this.canAcceptSourceEvent != null && sender is TSrc src && args is TSrcArgs srcArgs && !this.canAcceptSourceEvent(src, srcArgs))
                 {
-                    var senderValue = sourcePropertyInfo.GetValue(sender);
-                    var targetValue = targetPropertyInfo.GetValue(target.Target);
-                    var convertedValue = sourceToTargetConverter != null
-                        ? sourceToTargetConverter((TSrcValue)senderValue)
+                    return;
+                }
+
+                if (this.source.Target == null)
+                {
+                    this.Dispose();
+                    return;
+                }
+
+                if (this.target.Target != null)
+                {
+                    var senderValue = this.sourcePropertyInfo.GetValue(sender);
+                    var targetValue = this.targetPropertyInfo.GetValue(this.target.Target);
+                    var convertedValue = this.sourceToTargetConverter != null
+                        ? this.sourceToTargetConverter((TSrcValue)senderValue)
                         : senderValue;
                     if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue, (TTargetValue)convertedValue))
+                    {
                         return;
+                    }
 
-                    targetPropertyInfo.SetValue(target.Target, convertedValue);
+                    this.targetPropertyInfo.SetValue(this.target.Target, convertedValue);
                 }
 
-                onPropertyChanged?.Invoke(target.Target, new PropertyChangedEventArgs(targetPropertyInfo.Name));
+                this.onPropertyChanged?.Invoke(this.target.Target, new PropertyChangedEventArgs(this.targetPropertyInfo.Name));
             }
 
             internal void OnTargetEvent(object sender, object args)
             {
-                if (canAcceptTargetEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != sourcePropertyInfo.Name)
-                    return;
-
-                if (canAcceptTargetEvent != null && sender is TTarget s && args is TTargetArgs a && !canAcceptTargetEvent(s, a))
-                    return;
-
-                if (source.Target == null || target.Target == null)
+                if (this.canAcceptTargetEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != this.sourcePropertyInfo.Name)
                 {
-                    Dispose();
                     return;
                 }
 
-                var senderValue = targetPropertyInfo.GetValue(sender);
-                var targetValue = sourcePropertyInfo.GetValue(source.Target);
-                var convertedValue = targetToSourceConverter != null
-                    ? targetToSourceConverter((TTargetValue)senderValue)
+                if (this.canAcceptTargetEvent != null && sender is TTarget s && args is TTargetArgs a && !this.canAcceptTargetEvent(s, a))
+                {
+                    return;
+                }
+
+                if (this.source.Target == null || this.target.Target == null)
+                {
+                    this.Dispose();
+                    return;
+                }
+
+                var senderValue = this.targetPropertyInfo.GetValue(sender);
+                var targetValue = this.sourcePropertyInfo.GetValue(this.source.Target);
+                var convertedValue = this.targetToSourceConverter != null
+                    ? this.targetToSourceConverter((TTargetValue)senderValue)
                     : senderValue;
                 if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue, (TSrcValue)convertedValue))
+                {
                     return;
+                }
 
-                sourcePropertyInfo.SetValue(source.Target, convertedValue);
-                onPropertyChanged?.Invoke(source.Target, new PropertyChangedEventArgs(sourcePropertyInfo.Name));
+                this.sourcePropertyInfo.SetValue(this.source.Target, convertedValue);
+                this.onPropertyChanged?.Invoke(this.source.Target, new PropertyChangedEventArgs(this.sourcePropertyInfo.Name));
             }
         }
     }

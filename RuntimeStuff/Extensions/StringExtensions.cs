@@ -287,31 +287,23 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
-        /// Удаляет повторяющиеся пробелы, табуляции и/или переносы строк из строки,
-        /// оставляя только один символ подряд для каждого типа.
+        /// Нормализует пробельные символы в строке:
+        /// заменяет все последовательности пробелов, табуляций и переносов строк на один пробел,
+        /// а также удаляет пробелы с начала и конца строки.
         /// </summary>
-        /// <param name="s">Исходная строка для обработки.</param>
-        /// <param name="includeNewLines">
-        /// Если <c>true</c>, последовательности символов переноса строки (<c>\r</c>, <c>\n</c>) будут сокращены до одного.
-        /// Если <c>false</c>, переносы строк сохраняются без изменений.
-        /// </param>
-        /// <param name="includeTabs">
-        /// Если <c>true</c>, последовательности табуляций (<c>\t</c>) будут сокращены до одного.
-        /// Если <c>false</c>, табуляции сохраняются без изменений.
-        /// </param>
-        /// <returns>Строка с сокращёнными последовательностями пробелов, табуляций и переносов строк.</returns>
-        /// <remarks>
-        /// Метод полезен для нормализации текста, когда необходимо удалить лишние пробелы или пустые строки,
-        /// сохраняя при этом читаемость и структуру текста.
-        /// </remarks>
-        public static string RemoveLongSpaces(this string s, bool includeNewLines = true, bool includeTabs = true) => StringHelper.RemoveLongSpaces(s, includeNewLines, includeTabs);
+        /// <param name="s">Строка для нормализации. Может быть <c>null</c> или пустой.</param>
+        /// <returns>
+        /// Строка с нормализованными пробелами.
+        /// Если входная строка <c>null</c> или пустая, возвращается исходное значение.
+        /// </returns>
+        public static string NormalizeWhitespace(this string s) => StringHelper.NormalizeWhiteSpaces(s);
 
         /// <summary>
         /// Trimes the white chars.
         /// </summary>
         /// <param name="s">The s.</param>
         /// <returns>System.String.</returns>
-        public static string TrimWhiteChars(this string s) => StringHelper.TrimWhiteChars(s);
+        public static string TrimWhiteChars(this string s) => StringHelper.TrimWhitespaces(s);
 
         /// <summary>
         /// Расширение для string.IsNullOrWhiteSpace(s).

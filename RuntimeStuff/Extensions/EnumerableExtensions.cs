@@ -65,8 +65,15 @@ namespace RuntimeStuff.Extensions
         /// </remarks>
         public static void RemoveWhere<T>(this IList<T> collection, Predicate<T> predicate)
         {
-            if (collection == null) throw new ArgumentNullException(nameof(collection));
-            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+            if (collection == null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
+
+            if (predicate == null)
+            {
+                throw new ArgumentNullException(nameof(predicate));
+            }
 
             for (int i = collection.Count - 1; i >= 0; i--)
             {
@@ -135,12 +142,19 @@ namespace RuntimeStuff.Extensions
         public static void AddRange<T>(this ObservableCollection<T> list, IEnumerable<T> items)
         {
             if (list == null)
+            {
                 throw new ArgumentNullException(nameof(list));
+            }
+
             if (items == null)
+            {
                 return;
+            }
 
             foreach (var item in items)
+            {
                 list.Add(item);
+            }
         }
 
         /// <summary>

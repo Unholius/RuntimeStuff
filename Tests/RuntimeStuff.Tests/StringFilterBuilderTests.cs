@@ -87,7 +87,7 @@ namespace RuntimeStuff.MSTests
             var dt = new DateTime(2025, 1, 2, 3, 4, 5);
             var b = new StringFilterBuilder();
             b.Property("Created").Equal(dt);
-            Assert.AreEqual($"[Created] == '{string.Format("{0:" + b.Options.FormatOptions.DateFormat + "}", dt)}'", b.ToString());
+            Assert.AreEqual($"[Created] == {string.Format(b.Options.Formatter.DateTimeFormat, dt)}", b.ToString());
         }
 
         [TestMethod]

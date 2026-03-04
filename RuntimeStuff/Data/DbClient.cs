@@ -193,19 +193,6 @@ namespace RuntimeStuff.Data
         public SqlProviderOptions Options { get; set; } = new SqlProviderOptions();
 
         /// <summary>
-        /// Gets or sets базовые опции клиента базы данных.
-        /// </summary>
-        /// <value>The options.</value>
-        /// <remarks>Свойство является ковариантным (<c>out T</c>) и предназначено
-        /// только для чтения. Для изменения опций рекомендуется использовать
-        /// методы самого объекта опций или создавать новый экземпляр.</remarks>
-        OptionsBase IHaveOptions.Options
-        {
-            get => this.Options;
-            set => this.Options = (SqlProviderOptions)value;
-        }
-
-        /// <summary>
         /// Gets or sets the maximum size of the query log.
         /// </summary>
         /// <value>The maximum size of the query log.</value>
@@ -314,10 +301,14 @@ namespace RuntimeStuff.Data
         public static string[] GetParameterNames(string sql, string prefix = "@", bool returnWithPrefix = false)
         {
             if (string.IsNullOrWhiteSpace(sql))
+            {
                 return Array.Empty<string>();
+            }
 
             if (string.IsNullOrEmpty(prefix))
+            {
                 throw new ArgumentException("Prefix cannot be empty.", nameof(prefix));
+            }
 
             // Экранируем префикс для Regex
             string escapedPrefix = Regex.Escape(prefix);
@@ -664,7 +655,7 @@ namespace RuntimeStuff.Data
             cmd.CommandTimeout = commandTimeOut ?? this.DefaultCommandTimeout;
             cmd.CommandType = CommandType.Text;
             cmd.Transaction = dbTransaction;
-            var parameterNames = GetParameterNames(query, Options.ParamPrefix);
+            var parameterNames = GetParameterNames(query, this.Options.ParamPrefix);
             var parameters = this.GetParams(cmdParams, parameterNames);
 
             if (cmdParams != null)
@@ -676,7 +667,9 @@ namespace RuntimeStuff.Data
                     {
                         var arr = (arrProp.Getter(cmdParams) as IEnumerable)?.Cast<object>();
                         if (arr != null)
+                        {
                             cmd.CommandText = cmd.CommandText.Replace("@" + arrProp.Name, string.Join(", ", arr.Select((x, i) => $"@{arrProp.Name}_{i}")));
+                        }
                     }
                 }
 
@@ -887,7 +880,10 @@ namespace RuntimeStuff.Data
                 this.CommandExecuted?.Invoke(cmd);
                 this.Log(cmd);
                 if (cmd.Transaction == null)
+                {
                     this.CloseConnection(this.Connection);
+                }
+
                 return i;
             }
         }
@@ -926,7 +922,9 @@ namespace RuntimeStuff.Data
                 finally
                 {
                     if (cmd.Transaction == null)
+                    {
                         this.CloseConnection(this.Connection);
+                    }
                 }
             }
         }
@@ -1019,7 +1017,9 @@ namespace RuntimeStuff.Data
                 finally
                 {
                     if (cmd.Transaction == null)
+                    {
                         this.CloseConnection(this.Connection);
+                    }
                 }
             }
         }
@@ -1125,7 +1125,9 @@ namespace RuntimeStuff.Data
                 finally
                 {
                     if (cmd.Transaction == null)
+                    {
                         this.CloseConnection(this.Connection);
+                    }
                 }
             }
         }
@@ -1156,7 +1158,7 @@ namespace RuntimeStuff.Data
 
             var pCmdParams = GetKeyParams(item, id);
 
-            Query<List<T>, T>(
+            this.Query<List<T>, T>(
                 query,
                 pCmdParams,
                 itemFactory: (objects, strings) => item);
@@ -1190,7 +1192,7 @@ namespace RuntimeStuff.Data
 
             var pCmdParams = GetKeyParams(item, id);
 
-            return QueryAsync<List<T>, T>(
+            return this.QueryAsync<List<T>, T>(
                 query,
                 pCmdParams,
                 itemFactory: (objects, strings) => item);
@@ -1576,7 +1578,9 @@ namespace RuntimeStuff.Data
                             {
                                 var paramName = propertyNames?.FirstOrDefault();
                                 if (!string.IsNullOrWhiteSpace(paramName))
+                                {
                                     parameters[paramName] = cmdParams;
+                                }
                             }
                             else
                             {
@@ -1634,7 +1638,7 @@ namespace RuntimeStuff.Data
             foreach (IDbDataParameter parameter in command.Parameters)
             {
                 var paramToken = this.Options.ParamPrefix + parameter.ParameterName;
-                var literal = this.Options.ToSqlLiteral(parameter.Value);
+                var literal = this.Options.ValueFormatter.Format(parameter.Value);
 
                 sql = ReplaceParameterToken(sql, paramToken, literal);
             }
@@ -1806,8 +1810,8 @@ namespace RuntimeStuff.Data
             params Expression<Func<T, object>>[] insertColumns)
             where T : class
         {
-            Options.Map.Table<T>(tableName);
-            return InsertRange(list, dbTransaction, insertColumns);
+            this.Options.Map.Table<T>(tableName);
+            return this.InsertRange(list, dbTransaction, insertColumns);
         }
 
         /// <summary>
@@ -1891,8 +1895,8 @@ namespace RuntimeStuff.Data
             CancellationToken token = default)
             where T : class
         {
-            Options.Map.Table<T>(tableName);
-            return InsertRangeAsync<T>(list, insertColumns, dbTransaction, token);
+            this.Options.Map.Table<T>(tableName);
+            return this.InsertRangeAsync<T>(list, insertColumns, dbTransaction, token);
         }
 
         /// <summary>
@@ -3089,7 +3093,9 @@ namespace RuntimeStuff.Data
             where T : class
         {
             if (!string.IsNullOrWhiteSpace(tableName))
-                Options.Map.Table<T>(tableName);
+            {
+                this.Options.Map.Table<T>(tableName);
+            }
 
             var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
             var cmdParams = this.GetParams(item);
@@ -3151,7 +3157,10 @@ namespace RuntimeStuff.Data
             where T : class
         {
             if (!string.IsNullOrWhiteSpace(tableName))
-                Options.Map.Table<T>(tableName);
+            {
+                this.Options.Map.Table<T>(tableName);
+            }
+
             var cmdParams = this.GetParams(item);
             var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
             query += " " + (whereExpression != null
@@ -3183,8 +3192,11 @@ namespace RuntimeStuff.Data
             where T : class
         {
             if (!string.IsNullOrWhiteSpace(tableName))
-                Options.Map.Table<T>(tableName);
-            return UpdateRange<T>(list, dbTransaction, updateColumns);
+            {
+                this.Options.Map.Table<T>(tableName);
+            }
+
+            return this.UpdateRange<T>(list, dbTransaction, updateColumns);
         }
 
         /// <summary>
@@ -3265,8 +3277,8 @@ namespace RuntimeStuff.Data
             CancellationToken token = default)
             where T : class
         {
-            Options.Map.Table<T>(tableName);
-            return UpdateRangeAsync(list, updateColumns, dbTransaction, token);
+            this.Options.Map.Table<T>(tableName);
+            return this.UpdateRangeAsync(list, updateColumns, dbTransaction, token);
         }
 
         /// <summary>
@@ -3471,7 +3483,9 @@ namespace RuntimeStuff.Data
                 var colIndex = i;
                 var colName = reader.GetName(i);
                 if (string.IsNullOrWhiteSpace(colName))
+                {
                     colName = $"Column{i}";
+                }
 
                 if (customMapDic.Count > 0 && customMapDic.TryGetValue(colName, out var mappedColumn))
                 {
@@ -3813,7 +3827,10 @@ namespace RuntimeStuff.Data
                         if (raw == null || raw == DBNull.Value)
                         {
                             if (kv.Value.IsNullable)
+                            {
                                 kv.Value.Setter(item, null);
+                            }
+
                             continue;
                         }
 

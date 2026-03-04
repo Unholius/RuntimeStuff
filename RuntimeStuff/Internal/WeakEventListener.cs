@@ -37,13 +37,13 @@ namespace RuntimeStuff.Internal
             this.handler = new WeakReference<Action<T, TArgs>>(handler ?? throw new ArgumentNullException(nameof(handler)));
         }
 
-        public bool IsAlive => handler.TryGetTarget(out var _) && source.TryGetTarget(out var _);
+        public bool IsAlive => this.handler.TryGetTarget(out var _) && this.source.TryGetTarget(out var _);
 
         public object Source
         {
             get
             {
-                if (source.TryGetTarget(out var src))
+                if (this.source.TryGetTarget(out var src))
                 {
                     return src;
                 }
@@ -56,7 +56,7 @@ namespace RuntimeStuff.Internal
         {
             get
             {
-                if (handler.TryGetTarget(out var h))
+                if (this.handler.TryGetTarget(out var h))
                 {
                     return h;
                 }
@@ -67,21 +67,21 @@ namespace RuntimeStuff.Internal
 
         public void StopListening()
         {
-            if (source.TryGetTarget(out var s))
+            if (this.source.TryGetTarget(out var s))
             {
-                StopListening(s);
+                this.StopListening(s);
             }
         }
 
         protected void HandleEvent(object sender, TArgs e)
         {
-            if (handler.TryGetTarget(out var h))
+            if (this.handler.TryGetTarget(out var h))
             {
                 h(sender as T, e);
             }
             else
             {
-                StopListening();
+                this.StopListening();
             }
         }
 
@@ -104,10 +104,10 @@ namespace RuntimeStuff.Internal
             }
 
             this.unregister = unregister ?? throw new ArgumentNullException(nameof(unregister));
-            register(source, HandleEvent);
+            register(source, this.HandleEvent);
         }
 
-        protected override void StopListening(T source) => unregister(source, HandleEvent);
+        protected override void StopListening(T source) => this.unregister(source, this.HandleEvent);
     }
 
     internal class PropertyChangedWeakEventListener<T> : WeakEventListenerBase<T, PropertyChangedEventArgs>
@@ -116,10 +116,10 @@ namespace RuntimeStuff.Internal
         public PropertyChangedWeakEventListener(T source, Action<T, PropertyChangedEventArgs> handler)
             : base(source, handler)
         {
-            source.PropertyChanged += HandleEvent;
+            source.PropertyChanged += this.HandleEvent;
         }
 
-        protected override void StopListening(T source) => source.PropertyChanged -= HandleEvent;
+        protected override void StopListening(T source) => source.PropertyChanged -= this.HandleEvent;
     }
 
     internal class CollectionChangedWeakEventListener<T> : WeakEventListenerBase<T, NotifyCollectionChangedEventArgs>
@@ -128,10 +128,10 @@ namespace RuntimeStuff.Internal
         public CollectionChangedWeakEventListener(T source, Action<T, NotifyCollectionChangedEventArgs> handler)
             : base(source, handler)
         {
-            source.CollectionChanged += HandleEvent;
+            source.CollectionChanged += this.HandleEvent;
         }
 
-        protected override void StopListening(T source) => source.CollectionChanged -= HandleEvent;
+        protected override void StopListening(T source) => source.CollectionChanged -= this.HandleEvent;
     }
 
     internal class TypedWeakEventListener<T, TArgs, THandler> : WeakEventListenerBase<T, TArgs>
@@ -150,12 +150,12 @@ namespace RuntimeStuff.Internal
             }
 
             this.unregister = unregister ?? throw new ArgumentNullException(nameof(unregister));
-            register(source, (THandler)Delegate.CreateDelegate(typeof(THandler), this, nameof(HandleEvent)));
+            register(source, (THandler)Delegate.CreateDelegate(typeof(THandler), this, nameof(this.HandleEvent)));
         }
 
         protected override void StopListening(T source)
         {
-            unregister(source, (THandler)Delegate.CreateDelegate(typeof(THandler), this, nameof(HandleEvent)));
+            this.unregister(source, (THandler)Delegate.CreateDelegate(typeof(THandler), this, nameof(this.HandleEvent)));
         }
     }
 
@@ -169,26 +169,26 @@ namespace RuntimeStuff.Internal
         public WeakEventListener(T source, string eventName, Action<T, TArgs> handler)
             : base(source, handler)
         {
-            eventInfo = source.GetType().GetEvent(eventName) ?? throw new ArgumentException("Unknown Event Name", nameof(eventName));
-            if (eventInfo.EventHandlerType == typeof(EventHandler<TArgs>))
+            this.eventInfo = source.GetType().GetEvent(eventName) ?? throw new ArgumentException("Unknown Event Name", nameof(eventName));
+            if (this.eventInfo.EventHandlerType == typeof(EventHandler<TArgs>))
             {
-                eventInfo.AddEventHandler(source, new EventHandler<TArgs>(HandleEvent));
+                this.eventInfo.AddEventHandler(source, new EventHandler<TArgs>(this.HandleEvent));
             }
             else
             {
-                eventInfo.AddEventHandler(source, Delegate.CreateDelegate(eventInfo.EventHandlerType, this, nameof(HandleEvent)));
+                this.eventInfo.AddEventHandler(source, Delegate.CreateDelegate(this.eventInfo.EventHandlerType, this, nameof(this.HandleEvent)));
             }
         }
 
         protected override void StopListening(T source)
         {
-            if (eventInfo.EventHandlerType == typeof(EventHandler<TArgs>))
+            if (this.eventInfo.EventHandlerType == typeof(EventHandler<TArgs>))
             {
-                eventInfo.RemoveEventHandler(source, new EventHandler<TArgs>(HandleEvent));
+                this.eventInfo.RemoveEventHandler(source, new EventHandler<TArgs>(this.HandleEvent));
             }
             else
             {
-                eventInfo.RemoveEventHandler(source, Delegate.CreateDelegate(eventInfo.EventHandlerType, this, nameof(HandleEvent)));
+                this.eventInfo.RemoveEventHandler(source, Delegate.CreateDelegate(this.eventInfo.EventHandlerType, this, nameof(this.HandleEvent)));
             }
         }
     }

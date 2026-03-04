@@ -24,7 +24,7 @@ namespace RuntimeStuff.Data
         /// </exception>
         public PropertyMappingInfo(PropertyInfo property)
         {
-            Property = property ?? throw new ArgumentNullException(nameof(property));
+            this.Property = property ?? throw new ArgumentNullException(nameof(property));
         }
 
         /// <summary>

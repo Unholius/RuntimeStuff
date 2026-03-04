@@ -69,7 +69,9 @@ namespace RuntimeStuff.Helpers
             var result = new Dictionary<string, string>();
 
             if (string.IsNullOrWhiteSpace(json))
+            {
                 return result;
+            }
 
             try
             {
@@ -102,7 +104,9 @@ namespace RuntimeStuff.Helpers
         public static Dictionary<string, string>[] GetAttributes(string json, Func<string, bool> nodeNameSelector, bool searchInArrays)
         {
             if (string.IsNullOrWhiteSpace(json))
+            {
                 return Array.Empty<Dictionary<string, string>>();
+            }
 
             try
             {
@@ -210,7 +214,9 @@ namespace RuntimeStuff.Helpers
                     Func<string, bool> contentFilter = null)
         {
             if (string.IsNullOrWhiteSpace(json))
+            {
                 return Array.Empty<string>();
+            }
 
             try
             {
@@ -263,7 +269,9 @@ namespace RuntimeStuff.Helpers
         public static string[] GetValues(string json, Func<string, bool> nodeNameSelector, bool searchInArrays = true)
         {
             if (string.IsNullOrWhiteSpace(json))
+            {
                 return Array.Empty<string>();
+            }
 
             try
             {
@@ -474,18 +482,24 @@ namespace RuntimeStuff.Helpers
         private static IEnumerable<string> FindNodes(string json, Func<string, bool> nameSelector)
         {
             if (nameSelector == null)
+            {
                 yield return json;
+            }
 
             foreach (Match match in PropertyRegex.Matches(json))
             {
                 if (nameSelector != null && nameSelector(match.Groups["name"].Value))
+                {
                     yield return match.Groups["value"].Value;
+                }
 
                 var value = match.Groups["value"].Value;
                 if (IsObjectOrArray(value))
                 {
                     foreach (var nested in FindNodes(value, nameSelector))
+                    {
                         yield return nested;
+                    }
                 }
             }
         }
@@ -493,7 +507,9 @@ namespace RuntimeStuff.Helpers
         private static bool IsNumeric(object obj)
         {
             if (obj == null)
+            {
                 return false;
+            }
 
             switch (Type.GetTypeCode(obj.GetType()))
             {
@@ -707,14 +723,19 @@ namespace RuntimeStuff.Helpers
         {
             value = value.Trim();
             if (value.StartsWith("\"") && value.EndsWith("\""))
+            {
                 return value.Substring(1, value.Length - 2);
+            }
+
             return value;
         }
 
         private static void Flatten(string json, string prefix, Dictionary<string, string> dict)
         {
             if (string.IsNullOrWhiteSpace(json))
+            {
                 return;
+            }
 
             json = json.Trim();
 
@@ -770,13 +791,19 @@ namespace RuntimeStuff.Helpers
             value = value.Trim();
 
             if (value == "true" || value == "false")
+            {
                 return true;
+            }
 
             if (value.StartsWith("\"") && value.EndsWith("\""))
+            {
                 return true;
+            }
 
             if (double.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out _))
+            {
                 return true;
+            }
 
             return false;
         }
@@ -786,7 +813,9 @@ namespace RuntimeStuff.Helpers
             json = json.Trim();
 
             if (!json.StartsWith("[") || !json.EndsWith("]"))
+            {
                 yield break;
+            }
 
             var content = json.Substring(1, json.Length - 2);
 
@@ -799,7 +828,9 @@ namespace RuntimeStuff.Helpers
                 var c = content[i];
 
                 if (c == '"' && (i == 0 || content[i - 1] != '\\'))
+                {
                     inString = !inString;
+                }
 
                 if (!inString)
                 {
@@ -823,7 +854,9 @@ namespace RuntimeStuff.Helpers
             }
 
             if (sb.Length > 0)
+            {
                 yield return sb.ToString();
+            }
         }
     }
 }

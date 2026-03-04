@@ -88,11 +88,19 @@ namespace RuntimeStuff.Helpers
                 Expression<Func<TR2, TR1>> resultConverter)
         {
             if (expression == null)
+            {
                 throw new ArgumentNullException(nameof(expression));
+            }
+
             if (argConverter == null)
+            {
                 throw new ArgumentNullException(nameof(argConverter));
+            }
+
             if (resultConverter == null)
+            {
                 throw new ArgumentNullException(nameof(resultConverter));
+            }
 
             // Новый параметр итогового выражения
             var newParameter = Expression.Parameter(typeof(T1), "p");
@@ -196,16 +204,22 @@ namespace RuntimeStuff.Helpers
         public static PropertyInfo GetPropertyInfo<T>(Expression<Func<T, object>> propertySelector)
         {
             if (propertySelector == null)
+            {
                 throw new ArgumentNullException(nameof(propertySelector));
+            }
 
             var body = propertySelector.Body;
 
             // value-type -> object (boxing)
             if (body is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
+            {
                 body = unary.Operand;
+            }
 
             if (body is MemberExpression member && member.Member is PropertyInfo pi)
+            {
                 return pi;
+            }
 
             throw new ArgumentException(@"Expression must be a property access expression.", nameof(propertySelector));
         }
@@ -249,19 +263,25 @@ namespace RuntimeStuff.Helpers
         public static IReadOnlyList<PropertyInfo> GetPropertyInfoChain<T>(Expression<Func<T, object>> propertySelector)
         {
             if (propertySelector == null)
+            {
                 throw new ArgumentNullException(nameof(propertySelector));
+            }
 
             var expr = propertySelector.Body;
 
             if (expr is UnaryExpression u && u.NodeType == ExpressionType.Convert)
+            {
                 expr = u.Operand;
+            }
 
             var stack = new Stack<PropertyInfo>();
 
             while (expr is MemberExpression m)
             {
                 if (!(m.Member is PropertyInfo pi))
+                {
                     break;
+                }
 
                 stack.Push(pi);
                 expr = m.Expression;
@@ -384,7 +404,7 @@ namespace RuntimeStuff.Helpers
 
             protected override Expression VisitParameter(ParameterExpression node)
             {
-                return node == source ? target : base.VisitParameter(node);
+                return node == this.source ? this.target : base.VisitParameter(node);
             }
         }
     }
