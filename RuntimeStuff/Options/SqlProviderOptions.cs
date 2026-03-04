@@ -15,7 +15,6 @@ namespace RuntimeStuff.Options
 {
     using System;
     using System.Data;
-    using System.Globalization;
     using RuntimeStuff.Data;
 
     /// <summary>

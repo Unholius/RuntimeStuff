@@ -19,13 +19,14 @@ namespace RuntimeStuff
     using System.Globalization;
     using System.Linq;
     using RuntimeStuff.Helpers;
+    using RuntimeStuff.Options;
 
     /// <summary>
     /// Выполняет форматирование значений различных типов с учетом настроек культуры,
     /// пользовательских форматов, правил экранирования и обработки специальных случаев
     /// (null, bool, enum, числовые типы и т.д.).
     /// </summary>
-    public class ValueFormatter
+    public class ValueFormatter : OptionsBase<ValueFormatter>
     {
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="ValueFormatter"/>.

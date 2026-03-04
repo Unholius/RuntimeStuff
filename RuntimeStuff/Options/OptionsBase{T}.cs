@@ -35,14 +35,6 @@ namespace RuntimeStuff.Options
         where T : OptionsBase<T>, new()
     {
         /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="OptionsBase{T}"/>.
-        /// Предназначен для использования в производных классах.
-        /// </summary>
-        protected OptionsBase()
-        {
-        }
-
-        /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="OptionsBase{T}"/>
         /// и применяет к нему набор конфигурационных делегатов.
         /// </summary>
@@ -54,13 +46,21 @@ namespace RuntimeStuff.Options
         /// Делегаты выполняются последовательно в порядке передачи.
         /// Текущий экземпляр приводится к типу <typeparamref name="T"/>.
         /// </remarks>
-        protected OptionsBase(params Action<T>[] configure)
+        public OptionsBase(params Action<T>[] configure)
             : this()
         {
             foreach (var c in configure)
             {
                 c((T)this);
             }
+        }
+
+        /// <summary>
+        /// Инициализирует новый экземпляр класса <see cref="OptionsBase{T}"/>.
+        /// Предназначен для использования в производных классах.
+        /// </summary>
+        protected OptionsBase()
+        {
         }
 
         /// <summary>

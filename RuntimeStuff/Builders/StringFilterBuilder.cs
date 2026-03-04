@@ -26,7 +26,7 @@ namespace RuntimeStuff.Builders
     /// Построитель строковых фильтров для выражений SQL-подобного формата.
     /// Позволяет создавать сложные фильтры с операциями сравнения, логическими операторами и группировками.
     /// </summary>
-    public class StringFilterBuilder : IHaveOptions<FilterBuilderOptions>
+    public class StringFilterBuilder
     {
         private readonly Dictionary<Operation, string> operations = new Dictionary<Operation, string>
         {

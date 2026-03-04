@@ -213,6 +213,65 @@ namespace RuntimeStuff.Helpers
             .ToArray();
 
         /// <summary>
+        /// Заменяет все вхождения указанных подстрок в исходной строке
+        /// на заданное значение с учетом правила сравнения.
+        /// </summary>
+        /// <param name="s">
+        /// Исходная строка.
+        /// Если значение равно <c>null</c>, метод возвращает <c>null</c>.
+        /// </param>
+        /// <param name="replacement">
+        /// Строка, на которую выполняется замена.
+        /// Если значение равно <c>null</c>, используется пустая строка.
+        /// </param>
+        /// <param name="comparison">
+        /// Правило сравнения строк (<see cref="StringComparison"/>),
+        /// определяющее чувствительность к регистру и культуру сравнения.
+        /// </param>
+        /// <param name="replaceText">
+        /// Массив подстрок, которые необходимо заменить.
+        /// Пустые или <c>null</c> элементы массива игнорируются.
+        /// </param>
+        /// <returns>
+        /// Новая строка, в которой все вхождения каждой из указанных подстрок
+        /// заменены на <paramref name="replacement"/>.
+        /// Если <paramref name="replaceText"/> не задан или пуст,
+        /// возвращается исходная строка.
+        /// </returns>
+        /// <remarks>
+        /// Замена выполняется последовательно для каждой подстроки из <paramref name="replaceText"/>.
+        /// Результат предыдущей замены используется как вход для следующей.
+        /// </remarks>
+        public static string Replace(string s, string replacement, StringComparison comparison, params string[] replaceText)
+        {
+            if (s == null)
+            {
+                return null;
+            }
+
+            if (replaceText == null || replaceText.Length == 0)
+            {
+                return s;
+            }
+
+            replacement = replacement ?? string.Empty;
+
+            var result = s;
+
+            foreach (var text in replaceText)
+            {
+                if (string.IsNullOrEmpty(text))
+                {
+                    continue;
+                }
+
+                result = ReplaceInternal(result, text, replacement, comparison);
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Выполняет экранирование строки в соответствии с указанным режимом.
         /// </summary>
         /// <param name="value">
@@ -1825,6 +1884,35 @@ namespace RuntimeStuff.Helpers
             return matches.Cast<Match>()
                 .Select(m => m.Value.ToLowerInvariant())
                 .ToArray();
+        }
+
+        private static string ReplaceInternal(
+            string source,
+            string search,
+            string replacement,
+            StringComparison comparison)
+        {
+            int index = source.IndexOf(search, comparison);
+
+            if (index < 0)
+            {
+                return source;
+            }
+
+            var sb = new StringBuilder(source.Length);
+            int lastIndex = 0;
+
+            while (index >= 0)
+            {
+                sb.Append(source, lastIndex, index - lastIndex);
+                sb.Append(replacement);
+
+                lastIndex = index + search.Length;
+                index = source.IndexOf(search, lastIndex, comparison);
+            }
+
+            sb.Append(source, lastIndex, source.Length - lastIndex);
+            return sb.ToString();
         }
 
         /// <summary>

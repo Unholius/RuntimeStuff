@@ -37,7 +37,7 @@ namespace RuntimeStuff.Data
     /// транзакций, агрегаций и асинхронного выполнения команд.
     /// </summary>
     /// <remarks>Предназначен для использования как легковесная альтернатива ORM.</remarks>
-    public class DbClient : IDisposable, IHaveOptions<SqlProviderOptions>
+    public class DbClient : IDisposable
     {
         /// <summary>
         /// The ignore case comparer.
