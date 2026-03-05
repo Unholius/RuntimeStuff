@@ -1,4 +1,4 @@
-п»ї// ***********************************************************************
+// ***********************************************************************
 // Assembly         : RuntimeStuff
 // Author           : RS
 // Created          : 01-06-2026
@@ -48,6 +48,9 @@ namespace RuntimeStuff.Options
         /// </summary>
         /// <value>The sqlite options.</value>
         public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
+            x => x.ValueFormatter.NonNumberValuePrefix = "'",
+            x => x.ValueFormatter.NonNumberValueSuffix = "'",
+            x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
             x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
             x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
             x => x.ValueFormatter.TrueValue = "TRUE",
@@ -66,6 +69,9 @@ namespace RuntimeStuff.Options
         /// </summary>
         /// <value>The SQL server options.</value>
         public static SqlProviderOptions SqlServerOptions { get; } = new SqlProviderOptions(
+            x => x.ValueFormatter.NonNumberValuePrefix = "'",
+            x => x.ValueFormatter.NonNumberValueSuffix = "'",
+            x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
             x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
             x => x.OverrideOffsetRowsTemplate = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY",
             x => x.ValueFormatter.TrueValue = "1",
@@ -73,7 +79,7 @@ namespace RuntimeStuff.Options
             x => x.ParamPrefix = "@");
 
         /// <summary>
-        /// РЎРµСЂРёР°Р»РёР·Р°С‚РѕСЂ Р·РЅР°С‡РµРЅРёР№.
+        /// Сериализатор значений.
         /// </summary>
         public ValueFormatter ValueFormatter { get; } = new ValueFormatter();
 
@@ -139,46 +145,46 @@ namespace RuntimeStuff.Options
         public string StatementTerminator { get; set; } = ";";
 
         /// <summary>
-        /// Gets or sets РёРјСЏ РїР°СЂР°РјРµС‚СЂР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РґР»СЏ СѓРєР°Р·Р°РЅРёСЏ РёРјРµРЅРё Р±Р°Р·С‹ РґР°РЅРЅС‹С….
+        /// Gets or sets имя параметра строки подключения, используемого для указания имени базы данных.
         /// </summary>
         public string DatabaseParameterName { get; set; } = "Database";
 
         /// <summary>
-        /// Gets or sets РёРјСЏ РїР°СЂР°РјРµС‚СЂР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РґР»СЏ СѓРєР°Р·Р°РЅРёСЏ Р°РґСЂРµСЃР° РёР»Рё РёРјРµРЅРё СЃРµСЂРІРµСЂР° Р±Р°Р·С‹ РґР°РЅРЅС‹С….
+        /// Gets or sets имя параметра строки подключения, используемого для указания адреса или имени сервера базы данных.
         /// </summary>
         public string ServerParameterName { get; set; } = "Server";
 
         /// <summary>
-        /// Gets or sets РёРјСЏ РїР°СЂР°РјРµС‚СЂР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РґР»СЏ СѓРєР°Р·Р°РЅРёСЏ РёРјРµРЅРё РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ Р±Р°Р·С‹ РґР°РЅРЅС‹С….
+        /// Gets or sets имя параметра строки подключения, используемого для указания имени пользователя базы данных.
         /// </summary>
         public string UserParameterName { get; set; } = "User";
 
         /// <summary>
-        /// Gets or sets РёРјСЏ РїР°СЂР°РјРµС‚СЂР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РґР»СЏ СѓРєР°Р·Р°РЅРёСЏ РїР°СЂРѕР»СЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ Р±Р°Р·С‹ РґР°РЅРЅС‹С….
+        /// Gets or sets имя параметра строки подключения, используемого для указания пароля пользователя базы данных.
         /// </summary>
         public string PasswordParameterName { get; set; } = "Password";
 
         /// <summary>
-        /// Gets or sets РёРјСЏ РїР°СЂР°РјРµС‚СЂР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РґР»СЏ СѓРєР°Р·Р°РЅРёСЏ СЂРµР¶РёРјР° РёРЅС‚РµРіСЂРёСЂРѕРІР°РЅРЅРѕР№ Р±РµР·РѕРїР°СЃРЅРѕСЃС‚Рё
-        /// (Р°СѓС‚РµРЅС‚РёС„РёРєР°С†РёСЏ Windows).
+        /// Gets or sets имя параметра строки подключения, используемого для указания режима интегрированной безопасности
+        /// (аутентификация Windows).
         /// </summary>
         public string IntegratedSecurityParameterName { get; set; } = "Integrated Security";
 
         /// <summary>
-        /// Gets or sets РёРјСЏ РїР°СЂР°РјРµС‚СЂР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РґР»СЏ СѓРєР°Р·Р°РЅРёСЏ РёРјРµРЅРё РїСЂРёР»РѕР¶РµРЅРёСЏ,
-        /// РѕС‚ РёРјРµРЅРё РєРѕС‚РѕСЂРѕРіРѕ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚СЃСЏ СЃРѕРµРґРёРЅРµРЅРёРµ СЃ Р±Р°Р·РѕР№ РґР°РЅРЅС‹С….
+        /// Gets or sets имя параметра строки подключения, используемого для указания имени приложения,
+        /// от имени которого устанавливается соединение с базой данных.
         /// </summary>
         public string ApplicationNameParameterName { get; set; } = "Application Name";
 
         /// <summary>
-        /// Gets or sets РёРјСЏ РїР°СЂР°РјРµС‚СЂР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РґР»СЏ СѓРєР°Р·Р°РЅРёСЏ РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РґРѕРІРµСЂСЏС‚СЊ СЃРµСЂС‚РёС„РёРєР°С‚Сѓ СЃРµСЂРІРµСЂР°
-        /// Р±РµР· РїСЂРѕРІРµСЂРєРё С†РµРїРѕС‡РєРё РґРѕРІРµСЂРёСЏ.
+        /// Gets or sets имя параметра строки подключения, используемого для указания необходимости доверять сертификату сервера
+        /// без проверки цепочки доверия.
         /// </summary>
         public string TrustServerCertificateParameterName { get; set; } = "TrustServerCertificate";
 
         /// <summary>
-        /// Gets or sets РёРјСЏ РїР°СЂР°РјРµС‚СЂР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ, РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РґР»СЏ СѓРєР°Р·Р°РЅРёСЏ С‚Р°Р№Рј-Р°СѓС‚Р° РїРѕРґРєР»СЋС‡РµРЅРёСЏ
-        /// Рє СЃРµСЂРІРµСЂСѓ Р±Р°Р·С‹ РґР°РЅРЅС‹С… (РІ СЃРµРєСѓРЅРґР°С…).
+        /// Gets or sets имя параметра строки подключения, используемого для указания тайм-аута подключения
+        /// к серверу базы данных (в секундах).
         /// </summary>
         public string ConnectTimeoutParameterName { get; set; } = "Connect Timeout";
 
