@@ -35,9 +35,11 @@ namespace RuntimeStuff.MSTests
         {
             var s = "A01-22006";
             var whereClause =
-                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(x => x.Str == s, SqlProviderOptions.SqlServerOptions, true, out _);
+                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(x => x.Str == s, SqlProviderOptions.SqlServerOptions, true, out var p);
 
-            Assert.AreEqual("WHERE (\"Str\" = @s_1)", whereClause);
+            Assert.AreEqual("WHERE (\"Str\" = @Str_1)", whereClause);
+            Assert.AreEqual(1, p.Count);
+            Assert.AreEqual("Str_1", p.Keys.ElementAt(0));
         }
 
         [TestMethod]

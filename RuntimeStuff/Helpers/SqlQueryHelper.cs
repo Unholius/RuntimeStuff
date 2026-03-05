@@ -615,16 +615,26 @@ namespace RuntimeStuff.Helpers
 
             if (be.Left is MemberExpression me && useParams)
             {
+                var paramName = me.Member.GetColumnName() + "_" + (cmdParams.Count + 1);
                 if (be.Right.NodeType == ExpressionType.Constant)
                 {
-                    var paramName = me.Member.GetColumnName() + "_" + (cmdParams.Count + 1);
                     right = options.ParamPrefix + paramName;
                     cmdParams[paramName] = ExpressionHelper.GetValue(be.Right);
                 }
-
-                if (be.Right is MemberExpression rme && rme.Member.GetMemberCache()?.IsProperty == true)
+                else
                 {
-                    right = options.NamePrefix + rme.Member.GetColumnName() + options.NameSuffix;
+                    if (be.Right is MemberExpression rme)
+                    {
+                        if (rme.Member.GetMemberCache()?.IsProperty == true)
+                        {
+                            right = options.NamePrefix + rme.Member.GetColumnName() + options.NameSuffix;
+                        }
+                        else
+                        {
+                            right = options.ParamPrefix + paramName;
+                            cmdParams[paramName] = ExpressionHelper.GetValue(be.Right);
+                        }
+                    }
                 }
             }
 
