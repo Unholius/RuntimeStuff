@@ -36,6 +36,23 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Инициализирует новый экземпляр <see cref="ValueFormatter"/>.
+        /// </summary>
+        /// <param name="dateFormat">Формат даты.</param>
+        /// <param name="enumAsString">Определяет, следует ли форматировать значения перечислений как строки (имена),
+        /// а не как числовые значения.</param>
+        /// <param name="trimTrailingSpaces">Удалять пробелы с концов отформатированной строки.</param>
+        /// <param name="escapeMode">Режим экранирования результирующей строки <see cref="StringHelper.EscapeString"/>.</param>
+        public ValueFormatter(string dateFormat, bool enumAsString = false, bool trimTrailingSpaces = true, StringHelper.EscapeMode escapeMode = StringHelper.EscapeMode.None)
+        {
+            this.DateFormat = dateFormat;
+            this.DateTimeFormat = dateFormat;
+            this.EnumAsString = enumAsString;
+            this.TrimTrailingSpaces = trimTrailingSpaces;
+            this.EscapeMode = escapeMode;
+        }
+
+        /// <summary>
         /// Пользовательские правила форматирования для конкретных типов.
         /// Ключ — тип значения, значение — делегат, возвращающий форматную строку
         /// и <see cref="CultureInfo"/> для форматирования.

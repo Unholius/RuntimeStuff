@@ -26,5 +26,12 @@ namespace RuntimeStuff.Extensions
         /// <param name="memberInfo">Информация о члене класса.</param>
         /// <returns>Расширенная информация о члене класса.</returns>
         public static MemberCache GetMemberCache(this MemberInfo memberInfo) => MemberCache.Create(memberInfo);
+
+        /// <summary>
+        /// Получить имя колонки из метаданных свойства.
+        /// </summary>
+        /// <param name="memberInfo">Свойство.</param>
+        /// <returns>Имя колонки.</returns>
+        public static string GetColumnName(this MemberInfo memberInfo) => GetMemberCache(memberInfo)?.ColumnName;
     }
 }

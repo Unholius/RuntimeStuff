@@ -91,6 +91,37 @@ namespace RuntimeStuff.Helpers
         /// <param name="hasColumnsHeader">
         /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
         /// </param>
+        /// <param name="columnSeparator">Строка-разделителей колонок. По умолчанию { ";" }.</param>
+        /// <param name="lineSeparator">Строка-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
+        /// <param name="valueParser">
+        /// Функция для преобразования текстового значения колонки в объект. По умолчанию возвращает строку без изменений.
+        /// </param>
+        /// <returns>Массив объектов <typeparamref name="T"/>, созданных из CSV-данных.</returns>
+        /// <remarks>
+        /// <para>Метод выполняет следующие шаги:</para>
+        /// <list type="bullet">
+        /// <item>Разбивает CSV по строкам с учётом <paramref name="lineSeparator"/> и игнорирует пустые строки.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>true</c>, первая строка используется для сопоставления колонок с членами класса <typeparamref name="T"/> через <see cref="MemberCache"/>.</item>
+        /// <item>Каждая последующая строка создаёт новый объект <typeparamref name="T"/>. Значения колонок преобразуются с помощью <paramref name="valueParser"/> и присваиваются соответствующим свойствам или полям.</item>
+        /// <item>Если <paramref name="hasColumnsHeader"/> равен <c>false</c>, используются все публичные базовые свойства класса.</item>
+        /// </list>
+        /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
+        /// </remarks>
+        public static T[] FromCsv<T>(string csv, string[] objectProperties, bool hasColumnsHeader, string columnSeparator, string lineSeparator = null, Func<string, object> valueParser = null)
+            where T : class, new()
+        {
+            return FromCsv<T>(csv, objectProperties, hasColumnsHeader, columnSeparator == null ? null : new[] { columnSeparator }, lineSeparator == null ? null : new[] { lineSeparator }, valueParser);
+        }
+
+        /// <summary>
+        /// Преобразует CSV-строку в массив объектов указанного класса с возможностью настройки разделителей и парсера значений.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов для создания. Должен быть классом с публичным конструктором без параметров.</typeparam>
+        /// <param name="csv">CSV-строка для обработки.</param>
+        /// <param name="objectProperties">Маппер колонок из csv на свойства объекта в порядке следования колонок в csv.</param>
+        /// <param name="hasColumnsHeader">
+        /// <c>true</c>, если первая строка CSV содержит заголовки колонок, иначе <c>false. Если null, то определяем автоматически: есть ли в первой строке хоть одно имя совпадающее со простыми публичными свойствами класса</c>.
+        /// </param>
         /// <param name="columnSeparators">Массив строк-разделителей колонок. По умолчанию { ";" }.</param>
         /// <param name="lineSeparators">Массив строк-разделителей строк. По умолчанию { "\r", "\n", Environment.NewLine }.</param>
         /// <param name="valueParser">
@@ -108,7 +139,7 @@ namespace RuntimeStuff.Helpers
         /// <para>Количество колонок в строке может быть меньше или больше, чем количество свойств: лишние значения игнорируются, недостающие остаются без изменений.</para>
         /// </remarks>
         public static T[] FromCsv<T>(string csv, PropertyInfo[] objectProperties, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
-    where T : class, new()
+            where T : class, new()
         {
             if (string.IsNullOrWhiteSpace(csv))
             {
@@ -130,7 +161,7 @@ namespace RuntimeStuff.Helpers
                 valueParser = s => s;
             }
 
-            var lines = SplitBy(csv, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
+            var lines = StringHelper.SplitBy(csv, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
             if (lines.Length == 0)
             {
                 return Array.Empty<T>();
@@ -140,25 +171,27 @@ namespace RuntimeStuff.Helpers
 
             if (hasColumnsHeader == null)
             {
-                hasColumnsHeader = SplitBy(lines[0], StringSplitOptions.None, columnSeparators).Any(x => typeCache[x.Replace(" ", string.Empty)] != null);
+                hasColumnsHeader = StringHelper.SplitBy(lines[0], StringSplitOptions.None, columnSeparators).Any(x => typeCache[x.Replace(" ", string.Empty)] != null);
             }
 
             MemberCache[] columnNames;
             if (hasColumnsHeader.Value)
             {
-                columnNames = SplitBy(lines[0], StringSplitOptions.None, columnSeparators).Select(x => typeCache[x.Replace(" ", string.Empty)]).ToArray();
+                columnNames = StringHelper.SplitBy(lines[0], StringSplitOptions.None, columnSeparators).Select(x => typeCache[x.Replace(" ", string.Empty)]).ToArray();
             }
             else
             {
-                columnNames = objectProperties?.Any() == true ? objectProperties.Select(x => (MemberCache)x).ToArray() : typeCache.PublicBasicProperties.ToArray();
+                columnNames = objectProperties.Length > 0 ? objectProperties.Select(x => (MemberCache)x).ToArray() : typeCache.PublicBasicProperties.ToArray();
             }
 
             var result = new List<T>();
             for (var i = hasColumnsHeader.Value ? 1 : 0; i < lines.Length; i++)
             {
-                var values = SplitBy(lines[i], StringSplitOptions.None, columnSeparators).Select(x => valueParser(x)).ToArray();
+                var values = StringHelper.SplitBy(lines[i], StringSplitOptions.None, columnSeparators, ("\"", "\""))
+                    .Select(x => valueParser(x)).ToArray();
                 var obj = new T();
-                for (var j = 0; j < columnNames.Length && j < values.Length; j++)
+                var columnCount = Math.Min(columnNames.Length, values.Length);
+                for (var j = 0; j < columnCount; j++)
                 {
                     if (j >= values.Length || columnNames[j] == null)
                     {
@@ -168,6 +201,11 @@ namespace RuntimeStuff.Helpers
                     if (string.IsNullOrEmpty($"{values[j]}"))
                     {
                         continue;
+                    }
+
+                    if (StringHelper.ContainsAny($"{values[j]}", StringComparison.Ordinal, columnSeparators))
+                    {
+                        values[j] = $"{values[j]}".Trim('"');
                     }
 
                     columnNames[j].SetValue(obj, values[j]);
@@ -361,7 +399,7 @@ namespace RuntimeStuff.Helpers
         /// </exception>
         public static string ToCsv<T>(IEnumerable<T> data, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null, params Expression<Func<T, object>>[] columnSelectors)
         {
-            return ToCsv(data, columnSelectors.Select(GetPropertyInfo).ToArray(), writeColumnHeaders, columnSeparator, lineSeparator, valueSerializer);
+            return ToCsv(data, columnSelectors.Select(ExpressionHelper.GetPropertyInfo).ToArray(), writeColumnHeaders, columnSeparator, lineSeparator, valueSerializer);
         }
 
         /// <summary>
@@ -405,7 +443,7 @@ namespace RuntimeStuff.Helpers
         {
             var typeCache = MemberCache.Create(typeof(T));
             MemberCache[] props = null;
-            props = columns?.Any() != true ? typeCache.PublicBasicProperties.ToArray() : columns.Select(c => typeCache[c]).Where(m => m != null).ToArray();
+            props = columns.Length > 0 ? typeCache.PublicBasicProperties.ToArray() : columns.Select(c => typeCache[c]).Where(m => m != null).ToArray();
 
             return ToCsv(
                 data,
@@ -491,86 +529,6 @@ namespace RuntimeStuff.Helpers
             }
 
             return sb.ToString();
-        }
-
-        // copy-paste helper method
-        private static PropertyInfo GetPropertyInfo<T>(Expression<Func<T, object>> propertySelector)
-        {
-            if (propertySelector == null)
-            {
-                throw new ArgumentNullException(nameof(propertySelector));
-            }
-
-            var body = propertySelector.Body;
-
-            // value-type -> object (boxing)
-            if (body is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
-            {
-                body = unary.Operand;
-            }
-
-            if (body is MemberExpression member && member.Member is PropertyInfo pi)
-            {
-                return pi;
-            }
-
-            throw new ArgumentException(@"Expression must be a property access expression.", nameof(propertySelector));
-        }
-
-        // copy-paste helper method
-        private static string[] SplitBy(string s, StringSplitOptions options, params string[] splitBy)
-        {
-            if (string.IsNullOrEmpty(s))
-            {
-                return Array.Empty<string>();
-            }
-
-            if (splitBy == null || splitBy.Length == 0)
-            {
-                return new[] { s };
-            }
-
-            var result = new List<string>(8);
-            var pos = 0;
-            var len = s.Length;
-
-            while (pos < len)
-            {
-                var nextPos = -1;
-                var sepLen = 0;
-                foreach (var sep in splitBy)
-                {
-                    if (string.IsNullOrEmpty(sep))
-                    {
-                        continue;
-                    }
-
-                    var idx = s.IndexOf(sep, pos, StringComparison.Ordinal);
-                    if (idx < 0 || (nextPos >= 0 && idx >= nextPos))
-                    {
-                        continue;
-                    }
-
-                    nextPos = idx;
-                    sepLen = sep.Length;
-                }
-
-                var partLen = (nextPos < 0 ? len : nextPos) - pos;
-
-                if (partLen > 0 || options != StringSplitOptions.RemoveEmptyEntries)
-                {
-                    result.Add(s.Substring(pos, partLen));
-                }
-
-                if (nextPos < 0)
-                {
-                    break;
-                }
-
-                pos = nextPos + sepLen;
-            }
-
-            return result.ToArray();
         }
 
         private static void WriteLine(StringBuilder sb, IEnumerable<string> values, string separator)

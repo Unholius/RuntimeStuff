@@ -66,7 +66,7 @@ namespace RuntimeStuff.Helpers
                 _ = clause.Append(string.Join(
                     ", ",
                     mi.PrimaryKeys.Length > 0 ? mi.PrimaryKeys.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix) : mi.ColumnProperties.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix)));
-                clause.Append(" ");
+                clause.Append(' ');
             }
 
             clause.Append(string.Format(
@@ -180,7 +180,7 @@ namespace RuntimeStuff.Helpers
                 }
             }
 
-            query.Append(")");
+            query.Append(')');
 
             return query.ToString();
         }
@@ -414,7 +414,7 @@ namespace RuntimeStuff.Helpers
             if (props.Count == 0)
             {
                 props.AddRange(mi.PublicBasicProperties
-                    .Where(x => x.Name.ToLower() != "id" && x.IsSetterPublic)
+                    .Where(x => !x.Name.Equals("id", StringComparison.CurrentCultureIgnoreCase) && x.IsSetterPublic)
                     .Select(x => x.Name));
             }
             else
@@ -583,7 +583,7 @@ namespace RuntimeStuff.Helpers
             {
                 case "in" when mce.Arguments[0] is MemberExpression me && mce.Arguments[1] is NewArrayExpression ae:
                     var member = VisitMember(me, options, useParams, cmdParams);
-                    var vals = (ExpressionHelper.GetValue(ae) as IEnumerable).Cast<object>().ToArray();
+                    var vals = (ExpressionHelper.GetValue(ae) as IEnumerable)?.Cast<object>().ToArray() ?? Array.Empty<object>();
                     if (useParams)
                     {
                         var sb = new StringBuilder($"{member} IN (");
@@ -595,13 +595,12 @@ namespace RuntimeStuff.Helpers
                         }
 
                         sb.Remove(sb.Length - 2, 2);
-                        sb.Append(")");
+                        sb.Append(')');
                         return sb.ToString();
                     }
                     else
                     {
-                        var inclause = $"{member} IN ({string.Join(", ", vals.Select(x => options.ValueFormatter.Format(x)))})";
-                        return inclause;
+                        return $"{member} IN ({string.Join(", ", vals.Select(x => options.ValueFormatter.Format(x)))})";
                     }
             }
 
@@ -616,26 +615,16 @@ namespace RuntimeStuff.Helpers
 
             if (be.Left is MemberExpression me && useParams)
             {
-                if (be.Right is UnaryExpression ue && ue.NodeType == ExpressionType.Convert)
+                if (be.Right.NodeType == ExpressionType.Constant)
                 {
-                    var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
+                    var paramName = me.Member.GetColumnName() + "_" + (cmdParams.Count + 1);
                     right = options.ParamPrefix + paramName;
-                    if (ue.Operand is ConstantExpression ce)
-                    {
-                        cmdParams[paramName] = ce?.Value;
-                    }
-
-                    if (ue.Operand is MemberExpression me2)
-                    {
-                        cmdParams[paramName] = ExpressionHelper.GetValue(me2);
-                    }
+                    cmdParams[paramName] = ExpressionHelper.GetValue(be.Right);
                 }
 
                 if (be.Right is MemberExpression rme)
                 {
-                    var paramName = me.Member.Name + "_" + (cmdParams.Count + 1);
-                    right = options.ParamPrefix + paramName;
-                    cmdParams[paramName] = ExpressionHelper.GetValue(rme);
+                    right = options.NamePrefix + rme.Member.GetColumnName() + options.NameSuffix;
                 }
             }
 

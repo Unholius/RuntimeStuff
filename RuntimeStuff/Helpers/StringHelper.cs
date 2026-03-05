@@ -33,27 +33,7 @@ namespace RuntimeStuff.Helpers
     /// создания экземпляра класса. Класс потокобезопасен при условии корректного использования входных данных.</remarks>
     public static class StringHelper
     {
-        /// <summary>
-        /// Определяет алгоритм нечеткого сравнения строк.
-        /// </summary>
-        public enum FuzzyCompareMethod
-        {
-            /// <summary>
-            /// Алгоритм Левенштейна.
-            /// Основан на подсчёте минимального количества операций
-            /// (вставка, удаление, замена), необходимых для преобразования
-            /// одной строки в другую.
-            /// </summary>
-            Levenshtein,
-
-            /// <summary>
-            /// Алгоритм Жаро–Винклера.
-            /// Учитывает количество совпадающих символов, перестановки
-            /// и общий префикс строк, что делает его более подходящим
-            /// для сравнения коротких строк и имён.
-            /// </summary>
-            JaroWinkler,
-        }
+        private static readonly char[] Separator = new[] { '_' };
 
         /// <summary>
         /// Определяет стратегию экранирования (escaping) строки
@@ -121,45 +101,26 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Разделители для колонок. ("\t", ";", "|").
+        /// Определяет алгоритм нечеткого сравнения строк.
         /// </summary>
-        public static string[] DefaultColumnSeparators { get; } = new string[] { "\t", ";", "|" };
-
-        /// <summary>
-        /// Разделители для колонок. (" ", "\t", ";", "|").
-        /// </summary>
-        public static string[] DefaultColumnSeparatorsAndSpace { get; } = new string[] { " ", "\t", ";", "|" };
-
-        /// <summary>
-        /// Разделители для строк. (Environment.NewLine, "\r", "\n").
-        /// </summary>
-        public static string[] DefaultLineSeparators { get; } = new string[] { Environment.NewLine, "\r", "\n" };
-
-        /// <summary>
-        /// Gets whitespace chars.
-        /// Набор пробельных символов, используемых при разборе строк.
-        /// Включает пробел, перевод строки, табуляция, пустой символ.
-        /// </summary>
-        public static char[] WhitespaceChars { get; } = new char[]
+        public enum FuzzyCompareMethod
         {
-            ' ',
-            '\t',
-            '\r',
-            '\n',
-            '\0',
-            '\v', // U+000B Vertical Tab
-            '\f', // U+000C Form Feed
-            '\u00A0', // NO-BREAK SPACE
-            '\u2007', // Figure Space
-            '\u202F', // Narrow No-Break Space
-            '\u2028', // Line Separator
-            '\u2029', // Paragraph Separator
-            '\u200B', // Zero Width Space
-            '\u200C', // Zero Width Non-Joiner
-            '\u200D', // Zero Width Joiner
-            '\u2060', // Word Joiner
-            '\uFEFF', // BOM (Zero Width No-Break Space)
-        };
+            /// <summary>
+            /// Алгоритм Левенштейна.
+            /// Основан на подсчёте минимального количества операций
+            /// (вставка, удаление, замена), необходимых для преобразования
+            /// одной строки в другую.
+            /// </summary>
+            Levenshtein,
+
+            /// <summary>
+            /// Алгоритм Жаро–Винклера.
+            /// Учитывает количество совпадающих символов, перестановки
+            /// и общий префикс строк, что делает его более подходящим
+            /// для сравнения коротких строк и имён.
+            /// </summary>
+            JaroWinkler,
+        }
 
         /// <summary>
         /// Коллекция открывающих кавычек.
@@ -208,67 +169,181 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         public static char[] AllQuotes { get; } =
             OpeningQuotes
-            .Concat(ClosingQuotes)
-            .Distinct()
-            .ToArray();
+                .Concat(ClosingQuotes)
+                .Distinct()
+                .ToArray();
 
         /// <summary>
-        /// Заменяет все вхождения указанных подстрок в исходной строке
-        /// на заданное значение с учетом правила сравнения.
+        /// Разделители для колонок. ("\t", ";", "|").
         /// </summary>
-        /// <param name="s">
-        /// Исходная строка.
-        /// Если значение равно <c>null</c>, метод возвращает <c>null</c>.
+        public static string[] DefaultColumnSeparators { get; } = new string[] { "\t", ";", "|" };
+
+        /// <summary>
+        /// Разделители для колонок. (" ", "\t", ";", "|").
+        /// </summary>
+        public static string[] DefaultColumnSeparatorsAndSpace { get; } = new string[] { " ", "\t", ";", "|" };
+
+        /// <summary>
+        /// Разделители для строк. (Environment.NewLine, "\r", "\n").
+        /// </summary>
+        public static string[] DefaultLineSeparators { get; } = new string[] { Environment.NewLine, "\r", "\n" };
+
+        /// <summary>
+        /// Gets whitespace chars.
+        /// Набор пробельных символов, используемых при разборе строк.
+        /// Включает пробел, перевод строки, табуляция, пустой символ.
+        /// </summary>
+        public static char[] WhitespaceChars { get; } = new char[]
+        {
+            ' ',
+            '\t',
+            '\r',
+            '\n',
+            '\0',
+            '\v', // U+000B Vertical Tab
+            '\f', // U+000C Form Feed
+            '\u00A0', // NO-BREAK SPACE
+            '\u2007', // Figure Space
+            '\u202F', // Narrow No-Break Space
+            '\u2028', // Line Separator
+            '\u2029', // Paragraph Separator
+            '\u200B', // Zero Width Space
+            '\u200C', // Zero Width Non-Joiner
+            '\u200D', // Zero Width Joiner
+            '\u2060', // Word Joiner
+            '\uFEFF', // BOM (Zero Width No-Break Space)
+        };
+
+        /// <summary>
+        /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
+        /// </summary>
+        /// <param name="str">
+        /// Исходная строка, проверяемая в первую очередь.
         /// </param>
-        /// <param name="replacement">
-        /// Строка, на которую выполняется замена.
-        /// Если значение равно <c>null</c>, используется пустая строка.
-        /// </param>
-        /// <param name="comparison">
-        /// Правило сравнения строк (<see cref="StringComparison"/>),
-        /// определяющее чувствительность к регистру и культуру сравнения.
-        /// </param>
-        /// <param name="replaceText">
-        /// Массив подстрок, которые необходимо заменить.
-        /// Пустые или <c>null</c> элементы массива игнорируются.
+        /// <param name="strings">
+        /// Дополнительные строки для проверки, используемые в случае,
+        /// если <paramref name="str"/> равна <c>null</c>, пуста или содержит только пробельные символы.
         /// </param>
         /// <returns>
-        /// Новая строка, в которой все вхождения каждой из указанных подстрок
-        /// заменены на <paramref name="replacement"/>.
-        /// Если <paramref name="replaceText"/> не задан или пуст,
-        /// возвращается исходная строка.
+        /// Первую строку, которая не равна <c>null</c>, не пуста и не состоит только из пробельных символов;
+        /// либо <c>null</c>, если все переданные строки не удовлетворяют этому условию.
         /// </returns>
         /// <remarks>
-        /// Замена выполняется последовательно для каждой подстроки из <paramref name="replaceText"/>.
-        /// Результат предыдущей замены используется как вход для следующей.
+        /// Метод является строковым аналогом оператора <c>COALESCE</c>
+        /// и удобен для выбора значения по умолчанию из набора строк.
         /// </remarks>
-        public static string Replace(string s, string replacement, StringComparison comparison, params string[] replaceText)
+        public static string Coalesce(string str, params string[] strings)
+        {
+            if (!string.IsNullOrWhiteSpace(str))
+            {
+                return str;
+            }
+
+            return strings.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
+        }
+
+        /// <summary>
+        /// Проверяет, содержит ли исходная строка указанную подстроку,
+        /// используя заданный способ сравнения строк.
+        /// </summary>
+        /// <param name="source">Исходная строка, в которой выполняется поиск.</param>
+        /// <param name="value">Подстрока, которую необходимо найти.</param>
+        /// <param name="comparison">Параметр, определяющий способ сравнения строк
+        /// (<see cref="StringComparison" />), например <see cref="StringComparison.OrdinalIgnoreCase" />.</param>
+        /// <returns>Значение <c>true</c>, если подстрока найдена в исходной строке;
+        /// в противном случае — <c>false</c>.
+        /// Также возвращает <c>false</c>, если <paramref name="source" /> или <paramref name="value" /> равны <c>null</c>.</returns>
+        public static bool Contains(string source, string value, StringComparison comparison)
+        {
+            if (source == null || value == null)
+            {
+                return false;
+            }
+
+            return source.IndexOf(value, comparison) >= 0;
+        }
+
+        /// <summary>
+        /// Проверяет, содержит ли исходная строка указанную подстроку,
+        /// используя заданный способ сравнения строк.
+        /// </summary>
+        /// <param name="source">Исходная строка, в которой выполняется поиск.</param>
+        /// <param name="comparison">Параметр, определяющий способ сравнения строк
+        /// (<see cref="StringComparison" />), например <see cref="StringComparison.OrdinalIgnoreCase" />.</param>
+        /// <param name="values">Подстрока, которую необходимо найти.</param>
+        /// <returns>Значение <c>true</c>, если подстрока найдена в исходной строке;
+        /// в противном случае — <c>false</c>.
+        /// Также возвращает <c>false</c>, если <paramref name="source" /> или <paramref name="values" /> равны <c>null</c>.</returns>
+        public static bool ContainsAny(string source, StringComparison comparison, params string[] values)
+        {
+            if (source == null || values == null)
+            {
+                return false;
+            }
+
+            return values.Any(x => source.IndexOf(x, comparison) >= 0);
+        }
+
+        /// <summary>
+        /// Возвращает часть строки в диапазоне [startIndex..endIndex]. Работает как string.Substring(s, startIndex, endIndex -
+        /// startIndex + 1).
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="startIndex">Начальная позиция (включительно).</param>
+        /// <param name="endIndex">Конечная позиция (включительно).</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.ArgumentNullException">s.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
+        public static string Crop(string s, int startIndex, int endIndex)
         {
             if (s == null)
             {
-                return null;
+                throw new ArgumentNullException(nameof(s));
             }
 
-            if (replaceText == null || replaceText.Length == 0)
+            if (startIndex < 0 || startIndex > s.Length)
             {
-                return s;
+                throw new ArgumentOutOfRangeException(nameof(startIndex));
             }
 
-            replacement = replacement ?? string.Empty;
-
-            var result = s;
-
-            foreach (var text in replaceText)
+            if (endIndex < startIndex || endIndex > s.Length)
             {
-                if (string.IsNullOrEmpty(text))
-                {
-                    continue;
-                }
-
-                result = ReplaceInternal(result, text, replacement, comparison);
+                throw new ArgumentOutOfRangeException(nameof(endIndex));
             }
 
-            return result;
+            return s.Substring(startIndex, endIndex - startIndex + 1);
+        }
+
+        /// <summary>
+        /// Удаляет часть строки в диапазоне [startIndex..endIndex]. Работает как s.Substring(0, startIndex) +
+        /// s.Substring(endIndex + 1);.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="startIndex">Начальная позиция (включительно).</param>
+        /// <param name="endIndex">Конечная позиция (включительно).</param>
+        /// <returns>System.String.</returns>
+        /// <exception cref="System.ArgumentNullException">s.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
+        public static string Cut(string s, int startIndex, int endIndex)
+        {
+            if (s == null)
+            {
+                throw new ArgumentNullException(nameof(s));
+            }
+
+            if (startIndex < 0 || startIndex > s.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startIndex));
+            }
+
+            if (endIndex < startIndex || endIndex > s.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(endIndex));
+            }
+
+            return s.Substring(0, startIndex) + s.Substring(endIndex + 1);
         }
 
         /// <summary>
@@ -335,120 +410,10 @@ namespace RuntimeStuff.Helpers
                 case EscapeMode.CSharp: return EscapeCSharp(value);
                 case EscapeMode.Base64:
                     return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(mode));
             }
-        }
-
-        /// <summary>
-        /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
-        /// </summary>
-        /// <param name="str">
-        /// Исходная строка, проверяемая в первую очередь.
-        /// </param>
-        /// <param name="strings">
-        /// Дополнительные строки для проверки, используемые в случае,
-        /// если <paramref name="str"/> равна <c>null</c>, пуста или содержит только пробельные символы.
-        /// </param>
-        /// <returns>
-        /// Первую строку, которая не равна <c>null</c>, не пуста и не состоит только из пробельных символов;
-        /// либо <c>null</c>, если все переданные строки не удовлетворяют этому условию.
-        /// </returns>
-        /// <remarks>
-        /// Метод является строковым аналогом оператора <c>COALESCE</c>
-        /// и удобен для выбора значения по умолчанию из набора строк.
-        /// </remarks>
-        public static string Coalesce(string str, params string[] strings)
-        {
-            if (!string.IsNullOrWhiteSpace(str))
-            {
-                return str;
-            }
-
-            return strings.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
-        }
-
-        /// <summary>
-        /// Проверяет, содержит ли исходная строка указанную подстроку,
-        /// используя заданный способ сравнения строк.
-        /// </summary>
-        /// <param name="source">Исходная строка, в которой выполняется поиск.</param>
-        /// <param name="value">Подстрока, которую необходимо найти.</param>
-        /// <param name="comparison">Параметр, определяющий способ сравнения строк
-        /// (<see cref="StringComparison" />), например <see cref="StringComparison.OrdinalIgnoreCase" />.</param>
-        /// <returns>Значение <c>true</c>, если подстрока найдена в исходной строке;
-        /// в противном случае — <c>false</c>.
-        /// Также возвращает <c>false</c>, если <paramref name="source" /> или <paramref name="value" /> равны <c>null</c>.</returns>
-        public static bool Contains(string source, string value, StringComparison comparison)
-        {
-            if (source == null || value == null)
-            {
-                return false;
-            }
-
-            return source.IndexOf(value, comparison) >= 0;
-        }
-
-        /// <summary>
-        /// Возвращает часть строки в диапазоне [startIndex..endIndex]. Работает как string.Substring(s, startIndex, endIndex -
-        /// startIndex + 1).
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <param name="startIndex">Начальная позиция (включительно).</param>
-        /// <param name="endIndex">Конечная позиция (включительно).</param>
-        /// <returns>System.String.</returns>
-        /// <exception cref="System.ArgumentNullException">s.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
-        public static string Crop(string s, int startIndex, int endIndex)
-        {
-            if (s == null)
-            {
-                throw new ArgumentNullException(nameof(s));
-            }
-
-            if (startIndex < 0 || startIndex > s.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(startIndex));
-            }
-
-            if (endIndex < startIndex || endIndex > s.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(endIndex));
-            }
-
-            return s.Substring(startIndex, endIndex - startIndex + 1);
-        }
-
-        /// <summary>
-        /// Удаляет часть строки в диапазоне [startIndex..endIndex]. Работает как s.Substring(0, startIndex) +
-        /// s.Substring(endIndex + 1);.
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <param name="startIndex">Начальная позиция (включительно).</param>
-        /// <param name="endIndex">Конечная позиция (включительно).</param>
-        /// <returns>System.String.</returns>
-        /// <exception cref="System.ArgumentNullException">s.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
-        public static string Cut(string s, int startIndex, int endIndex)
-        {
-            if (s == null)
-            {
-                throw new ArgumentNullException(nameof(s));
-            }
-
-            if (startIndex < 0 || startIndex > s.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(startIndex));
-            }
-
-            if (endIndex < startIndex || endIndex > s.Length)
-            {
-                throw new ArgumentOutOfRangeException(nameof(endIndex));
-            }
-
-            return s.Substring(0, startIndex) + s.Substring(endIndex + 1);
         }
 
         /// <summary>
@@ -777,7 +742,7 @@ namespace RuntimeStuff.Helpers
                                 }
                             }
 
-                            if (topToken.Mask.AllowedChildrenMasks?.Any() == true && !topToken.Mask.AllowedChildrenMasks.Contains(tm))
+                            if (topToken.Mask.AllowedChildrenMasks.Count > 0 && !topToken.Mask.AllowedChildrenMasks.Contains(tm))
                             {
                                 if (tm.ThrowExceptionOnNotAllowedToken)
                                 {
@@ -791,7 +756,7 @@ namespace RuntimeStuff.Helpers
                         }
 
                         var prevToken = result.LastOrDefault();
-                        if (prevToken?.Mask?.AllowedNextMasks?.Any() == true && !prevToken.Mask.AllowedNextMasks.Contains(tm))
+                        if (prevToken?.Mask?.AllowedNextMasks.Count > 0 && !prevToken.Mask.AllowedNextMasks.Contains(tm))
                         {
                             if (tm.ThrowExceptionOnNotAllowedToken)
                             {
@@ -955,6 +920,102 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Выполняет поиск подстроки в строке, начиная с указанной позиции и
+        /// перемещаясь по строке с заданным шагом с учетом правила сравнения строк.
+        /// </summary>
+        /// <param name="s">Строка, в которой выполняется поиск.</param>
+        /// <param name="subString">Подстрока, которую необходимо найти.</param>
+        /// <param name="startIndex">Индекс, с которого начинается поиск.</param>
+        /// <param name="step">
+        /// Шаг перемещения по строке.
+        /// Положительное значение выполняет поиск слева направо,
+        /// отрицательное — справа налево. Значение не может быть равно <c>0</c>.
+        /// </param>
+        /// <param name="comparison">
+        /// Правило сравнения строк (<see cref="StringComparison"/>),
+        /// определяющее чувствительность к регистру и культуру сравнения.
+        /// </param>
+        /// <returns>
+        /// Индекс найденного вхождения <paramref name="subString"/>.
+        /// Если совпадение не найдено или <paramref name="startIndex"/> находится
+        /// вне диапазона строки, возвращается <c>-1</c>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="s"/> или <paramref name="subString"/> равны <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если <paramref name="step"/> равен <c>0</c>.
+        /// </exception>
+        /// <remarks>
+        /// Позволяет выполнять поиск с произвольным шагом:
+        /// <list type="bullet">
+        /// <item><description><c>step = 1</c> — обычный поиск слева направо.</description></item>
+        /// <item><description><c>step = -1</c> — поиск справа налево.</description></item>
+        /// <item><description><c>step = n</c> — проверка каждой <c>n</c>-й позиции.</description></item>
+        /// </list>
+        /// Если <paramref name="subString"/> является пустой строкой,
+        /// возвращается <paramref name="startIndex"/>.
+        /// </remarks>
+        public static int IndexOf(this string s, string subString, int startIndex, int step, StringComparison comparison = StringComparison.Ordinal)
+        {
+            if (s == null)
+            {
+                throw new ArgumentNullException(nameof(s));
+            }
+
+            if (subString == null)
+            {
+                throw new ArgumentNullException(nameof(subString));
+            }
+
+            if (step == 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(step));
+            }
+
+            if (subString.Length == 0)
+            {
+                return startIndex;
+            }
+
+            var len = s.Length;
+            var subLen = subString.Length;
+
+            if (startIndex < 0 || startIndex >= len)
+            {
+                return -1;
+            }
+
+            if (step > 0)
+            {
+                for (var i = startIndex; i <= len - subLen; i += step)
+                {
+                    if (string.Compare(s, i, subString, 0, subLen, comparison) == 0)
+                    {
+                        return i;
+                    }
+                }
+            }
+            else
+            {
+                for (var i = startIndex; i >= 0; i += step)
+                {
+                    if (i + subLen > len)
+                    {
+                        continue;
+                    }
+
+                    if (string.Compare(s, i, subString, 0, subLen, comparison) == 0)
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Проверяет, является ли строка потенциально корректным JSON-фрагментом.
         /// </summary>
         /// <param name="s">
@@ -1003,6 +1064,30 @@ namespace RuntimeStuff.Helpers
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Определяет является ли символ переносом строки. Идет проверка на символы \r, \n, \u0085, \u2028, \u2029.
+        /// </summary>
+        /// <param name="c">Символ для проверки.</param>
+        /// <returns>Результат проверки.</returns>
+        public static bool IsNewLineChar(char c)
+        {
+            return c == '\r'
+                || c == '\n'
+                || c == '\u0085' // NEXT LINE
+                || c == '\u2028' // LINE SEPARATOR
+                || c == '\u2029'; // PARAGRAPH SEPARATOR
+        }
+
+        /// <summary>
+        /// Является ли символ непечатаемым.
+        /// </summary>
+        /// <param name="c">Символ.</param>
+        /// <returns>Результат проверки.</returns>
+        public static bool IsWhiteSpaceChar(char c)
+        {
+            return char.IsWhiteSpace(c) || WhitespaceChars.Contains(c);
         }
 
         /// <summary>
@@ -1110,30 +1195,6 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Определяет является ли символ переносом строки. Идет проверка на символы \r, \n, \u0085, \u2028, \u2029.
-        /// </summary>
-        /// <param name="c">Символ для проверки.</param>
-        /// <returns>Результат проверки.</returns>
-        public static bool IsNewLineChar(char c)
-        {
-            return c == '\r'
-                || c == '\n'
-                || c == '\u0085' // NEXT LINE
-                || c == '\u2028' // LINE SEPARATOR
-                || c == '\u2029'; // PARAGRAPH SEPARATOR
-        }
-
-        /// <summary>
-        /// Является ли символ непечатаемым.
-        /// </summary>
-        /// <param name="c">Символ.</param>
-        /// <returns>Результат проверки.</returns>
-        public static bool IsWhiteSpaceChar(char c)
-        {
-            return char.IsWhiteSpace(c) || WhitespaceChars.Contains(c);
-        }
-
-        /// <summary>
         /// Возвращает строку, повторенную указанное количество раз.
         /// </summary>
         /// <param name="str">Исходная строка.</param>
@@ -1166,6 +1227,65 @@ namespace RuntimeStuff.Helpers
             }
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Заменяет все вхождения указанных подстрок в исходной строке
+        /// на заданное значение с учетом правила сравнения.
+        /// </summary>
+        /// <param name="s">
+        /// Исходная строка.
+        /// Если значение равно <c>null</c>, метод возвращает <c>null</c>.
+        /// </param>
+        /// <param name="replacement">
+        /// Строка, на которую выполняется замена.
+        /// Если значение равно <c>null</c>, используется пустая строка.
+        /// </param>
+        /// <param name="comparison">
+        /// Правило сравнения строк (<see cref="StringComparison"/>),
+        /// определяющее чувствительность к регистру и культуру сравнения.
+        /// </param>
+        /// <param name="replaceText">
+        /// Массив подстрок, которые необходимо заменить.
+        /// Пустые или <c>null</c> элементы массива игнорируются.
+        /// </param>
+        /// <returns>
+        /// Новая строка, в которой все вхождения каждой из указанных подстрок
+        /// заменены на <paramref name="replacement"/>.
+        /// Если <paramref name="replaceText"/> не задан или пуст,
+        /// возвращается исходная строка.
+        /// </returns>
+        /// <remarks>
+        /// Замена выполняется последовательно для каждой подстроки из <paramref name="replaceText"/>.
+        /// Результат предыдущей замены используется как вход для следующей.
+        /// </remarks>
+        public static string Replace(string s, string replacement, StringComparison comparison, params string[] replaceText)
+        {
+            if (s == null)
+            {
+                return null;
+            }
+
+            if (replaceText == null || replaceText.Length == 0)
+            {
+                return s;
+            }
+
+            replacement = replacement ?? string.Empty;
+
+            var result = s;
+
+            foreach (var text in replaceText)
+            {
+                if (string.IsNullOrEmpty(text))
+                {
+                    continue;
+                }
+
+                result = ReplaceInternal(result, text, replacement, comparison);
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -1207,6 +1327,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="s">Исходная строка для разбиения.</param>
         /// <param name="options">Настройки.</param>
         /// <param name="splitBy">Массив строк-разделителей. Порядок важен, выбирается ближайший к текущей позиции.</param>
+        /// <param name="dontSplitBetween">Не разделять строку, между префиксом и суфиксом.</param>
         /// <returns>
         /// Массив подстрок, полученных после разбиения. Если строка <c>null</c> или пустая, возвращается пустой массив.
         /// Если <paramref name="splitBy"/> пустой или <c>null</c>, возвращается массив, содержащий исходную строку.
@@ -1216,7 +1337,7 @@ namespace RuntimeStuff.Helpers
         /// <para>Подстроки между разделителями включаются в результат, разделители сами не включаются.</para>
         /// <para>Поддерживается несколько разделителей произвольной длины.</para>
         /// </remarks>
-        public static string[] SplitBy(string s, StringSplitOptions options, params string[] splitBy)
+        public static string[] SplitBy(string s, StringSplitOptions options, string[] splitBy, params (string Prefix, string Suffix)[] dontSplitBetween)
         {
             if (string.IsNullOrEmpty(s))
             {
@@ -1236,6 +1357,7 @@ namespace RuntimeStuff.Helpers
             {
                 var nextPos = -1;
                 var sepLen = 0;
+
                 foreach (var sep in splitBy)
                 {
                     if (string.IsNullOrEmpty(sep))
@@ -1243,14 +1365,29 @@ namespace RuntimeStuff.Helpers
                         continue;
                     }
 
-                    var idx = s.IndexOf(sep, pos, StringComparison.Ordinal);
-                    if (idx < 0 || (nextPos >= 0 && idx >= nextPos))
-                    {
-                        continue;
-                    }
+                    var searchPos = pos;
 
-                    nextPos = idx;
-                    sepLen = sep.Length;
+                    while (true)
+                    {
+                        var idx = s.IndexOf(sep, searchPos, StringComparison.Ordinal);
+                        if (idx < 0)
+                        {
+                            break;
+                        }
+
+                        if (!IsInsideProtectedRange(s, idx, dontSplitBetween))
+                        {
+                            if (nextPos < 0 || idx < nextPos)
+                            {
+                                nextPos = idx;
+                                sepLen = sep.Length;
+                            }
+
+                            break;
+                        }
+
+                        searchPos = idx + sep.Length;
+                    }
                 }
 
                 var partLen = (nextPos < 0 ? len : nextPos) - pos;
@@ -1336,10 +1473,10 @@ namespace RuntimeStuff.Helpers
 
             var typeCache = MemberCache.Create(typeof(T));
             var lines = SplitBy(s, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
-            var props = propertyMap?.Any() == true ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicBasicProperties.ToArray();
+            var props = propertyMap.Length > 0 ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicBasicProperties.ToArray();
             if (props.Length == 0)
             {
-                props = propertyMap?.Any() == true ? typeCache.Fields.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicFields.ToArray();
+                props = propertyMap.Length > 0 ? typeCache.Fields.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicFields.ToArray();
             }
 
             if (props.Length == 0)
@@ -1350,7 +1487,7 @@ namespace RuntimeStuff.Helpers
             foreach (var line in lines)
             {
                 var columns = SplitBy(line, StringSplitOptions.None, columnSeparators);
-                if (!columns.Any())
+                if (columns.Length == 0)
                 {
                     continue;
                 }
@@ -1583,6 +1720,24 @@ namespace RuntimeStuff.Helpers
             return sb.ToString();
         }
 
+        private static string EscapeCsv(string value)
+        {
+            var mustQuote =
+                value.Contains(',') ||
+                value.Contains('"') ||
+                value.Contains('\n') ||
+                value.Contains('\r');
+
+            if (!mustQuote)
+            {
+                return value;
+            }
+
+            var escaped = value.Replace("\"", "\"\"");
+
+            return $"\"{escaped}\"";
+        }
+
         private static string EscapeJson(string value)
         {
             var sb = new StringBuilder(value.Length + 10);
@@ -1616,14 +1771,6 @@ namespace RuntimeStuff.Helpers
             return sb.ToString();
         }
 
-        private static string EscapeXmlText(string value)
-        {
-            return value
-                .Replace("&", "&amp;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
-        }
-
         private static string EscapeXmlAttribute(string value)
         {
             return value
@@ -1634,22 +1781,12 @@ namespace RuntimeStuff.Helpers
                 .Replace("'", "&apos;");
         }
 
-        private static string EscapeCsv(string value)
+        private static string EscapeXmlText(string value)
         {
-            var mustQuote =
-                value.Contains(',') ||
-                value.Contains('"') ||
-                value.Contains('\n') ||
-                value.Contains('\r');
-
-            if (!mustQuote)
-            {
-                return value;
-            }
-
-            var escaped = value.Replace("\"", "\"\"");
-
-            return $"\"{escaped}\"";
+            return value
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;");
         }
 
         private static int FindMinimum(params int[] p)
@@ -1684,6 +1821,38 @@ namespace RuntimeStuff.Helpers
             }
 
             return n;
+        }
+
+        private static bool IsInsideProtectedRange(string s, int index, (string Prefix, string Suffix)[] ranges)
+        {
+            if (ranges == null || ranges.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var (prefix, suffix) in ranges)
+            {
+                if (string.IsNullOrEmpty(prefix) || string.IsNullOrEmpty(suffix))
+                {
+                    continue;
+                }
+
+                var start = IndexOf(s, prefix, index, -1);
+                var count = s.Count((x, i) => x == '"' && i < index);
+                if (start < 0 || count % 2 == 0)
+                {
+                    continue;
+                }
+
+                var end = IndexOf(s, suffix, index, 1);
+                count = s.Count((x, i) => x == '"' && i > index);
+                if (end >= 0 && index < end && count % 2 != 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static double JaroDistance(string s1, string s2)
@@ -1761,7 +1930,7 @@ namespace RuntimeStuff.Helpers
                     ((matches - transpositions) / matches)) / 3.0;
         }
 
-        private static double JaroWinklerDistance(this string s1, string s2, bool caseSensitive = false)
+        private static double JaroWinklerDistance(string s1, string s2, bool caseSensitive = false)
         {
             if (!caseSensitive)
             {
@@ -1841,6 +2010,35 @@ namespace RuntimeStuff.Helpers
             return matrix[matrix.GetUpperBound(0), matrix.GetUpperBound(1)];
         }
 
+        private static string ReplaceInternal(
+                    string source,
+                    string search,
+                    string replacement,
+                    StringComparison comparison)
+        {
+            int index = source.IndexOf(search, comparison);
+
+            if (index < 0)
+            {
+                return source;
+            }
+
+            var sb = new StringBuilder(source.Length);
+            int lastIndex = 0;
+
+            while (index >= 0)
+            {
+                sb.Append(source, lastIndex, index - lastIndex);
+                sb.Append(replacement);
+
+                lastIndex = index + search.Length;
+                index = source.IndexOf(search, lastIndex, comparison);
+            }
+
+            sb.Append(source, lastIndex, source.Length - lastIndex);
+            return sb.ToString();
+        }
+
         /// <summary>
         /// Разбивает входную строку на слова с учётом следующих правил:
         /// <list type="bullet">
@@ -1871,7 +2069,7 @@ namespace RuntimeStuff.Helpers
             if (input.Contains("_"))
             {
                 return input
-                    .Split(new[] { '_' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Split(Separator, StringSplitOptions.RemoveEmptyEntries)
                     .Select(w => w.ToLowerInvariant())
                     .ToArray();
             }
@@ -1884,35 +2082,6 @@ namespace RuntimeStuff.Helpers
             return matches.Cast<Match>()
                 .Select(m => m.Value.ToLowerInvariant())
                 .ToArray();
-        }
-
-        private static string ReplaceInternal(
-            string source,
-            string search,
-            string replacement,
-            StringComparison comparison)
-        {
-            int index = source.IndexOf(search, comparison);
-
-            if (index < 0)
-            {
-                return source;
-            }
-
-            var sb = new StringBuilder(source.Length);
-            int lastIndex = 0;
-
-            while (index >= 0)
-            {
-                sb.Append(source, lastIndex, index - lastIndex);
-                sb.Append(replacement);
-
-                lastIndex = index + search.Length;
-                index = source.IndexOf(search, lastIndex, comparison);
-            }
-
-            sb.Append(source, lastIndex, source.Length - lastIndex);
-            return sb.ToString();
         }
 
         /// <summary>

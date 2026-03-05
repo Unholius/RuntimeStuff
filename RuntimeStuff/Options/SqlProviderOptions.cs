@@ -51,10 +51,10 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.NonNumberValuePrefix = "'",
             x => x.ValueFormatter.NonNumberValueSuffix = "'",
             x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
-            x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
-            x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
             x => x.ValueFormatter.TrueValue = "TRUE",
             x => x.ValueFormatter.FalseValue = "FALSE",
+            x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
+            x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
             x => x.ParamPrefix = ":",
             x => x.DatabaseParameterName = "Data Source",
             x => x.ServerParameterName = null,
@@ -72,10 +72,10 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.NonNumberValuePrefix = "'",
             x => x.ValueFormatter.NonNumberValueSuffix = "'",
             x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
-            x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
-            x => x.OverrideOffsetRowsTemplate = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY",
             x => x.ValueFormatter.TrueValue = "1",
             x => x.ValueFormatter.FalseValue = "0",
+            x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
+            x => x.OverrideOffsetRowsTemplate = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY",
             x => x.ParamPrefix = "@");
 
         /// <summary>

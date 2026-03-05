@@ -6,6 +6,16 @@ namespace RuntimeStuff.MSTests
     public class NormalizeWhitespaceTests
     {
         [TestMethod]
+        public void NormalizeWhitespace_TrimSpaces()
+        {
+            // Act
+            var result = StringHelper.NormalizeWhiteSpaces(" 123 ");
+
+            // Assert
+            Assert.AreEqual("123", result);
+        }
+
+        [TestMethod]
         public void NormalizeWhitespace_WhitespaceChars()
         {
             // Act

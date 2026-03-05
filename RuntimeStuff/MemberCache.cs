@@ -49,6 +49,8 @@ namespace RuntimeStuff
             MemberTypes.Property, MemberTypes.Field,
         };
 
+        private static readonly char[] NamesSeparator = new[] { '.' };
+
         private readonly CasePriorityDictionary<Attribute> memberAttributesMap = new CasePriorityDictionary<Attribute>();
         private readonly ConcurrentDictionary<MemberInfo, MemberCache> memberCacheMap = new ConcurrentDictionary<MemberInfo, MemberCache>();
         private readonly CasePriorityDictionary<EventInfo> memberEventsMap = new CasePriorityDictionary<EventInfo>();
@@ -182,7 +184,7 @@ namespace RuntimeStuff
             this.IsBasicCollection = this.typeCache?.IsBasicCollection ?? (this.IsCollection && Obj.IsBasic(this.ElementType));
             this.CanWrite = pi != null ? pi.CanWrite : fi != null;
             this.CanRead = pi != null ? pi.CanRead : fi != null;
-            this.Name = this.typeCache?.Name ?? this.MemberInfo.Name.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
+            this.Name = this.typeCache?.Name ?? this.MemberInfo.Name.Split(NamesSeparator, StringSplitOptions.RemoveEmptyEntries)
                 .LastOrDefault() ?? string.Empty;
 
             this.Description = this.typeCache?.Description ??
@@ -990,7 +992,7 @@ namespace RuntimeStuff
                 if (this.typeCache == null)
                 {
                     var xmlAttrs = this.GetAttributes().Where(x => x.GetType().Name.StartsWith("Xml")).ToArray();
-                    if (xmlAttrs.Any())
+                    if (xmlAttrs.Length > 0)
                     {
                         foreach (var xa in xmlAttrs)
                         {
@@ -1032,7 +1034,7 @@ namespace RuntimeStuff
                 if (this.typeCache == null)
                 {
                     var xmlAttrs = this.GetAttributes().Where(x => x.GetType().Name.StartsWith("Xml")).ToArray();
-                    if (xmlAttrs.Any())
+                    if (xmlAttrs.Length > 0)
                     {
                         foreach (var xa in xmlAttrs)
                         {

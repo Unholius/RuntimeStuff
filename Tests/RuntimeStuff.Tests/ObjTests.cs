@@ -1145,12 +1145,23 @@ Bob,40,Chicago
             var csv = @"
 
 
-""John"",30,""New York"";
+""John"",30,""New,York"";
 
 Jane,25,Los Angeles;
 Bob,40,Chicago;
 ";
-            var result = CsvHelper.FromCsv<TestCsv>(csv, ["Name", "Age", "City"], false);
+            var result = CsvHelper.FromCsv<TestCsv>(csv, ["Name", "Age", "City"], false, [","], [";", "\r", "\n", Environment.NewLine
+            ]);
+            Assert.AreEqual(3, result.Length);
+            Assert.AreEqual("\"John\"", result[0].Name);
+            Assert.AreEqual(30, result[0].Age);
+            Assert.AreEqual("New,York", result[0].City);
+            Assert.AreEqual("Jane", result[1].Name);
+            Assert.AreEqual(25, result[1].Age);
+            Assert.AreEqual("Los Angeles", result[1].City);
+            Assert.AreEqual("Bob", result[2].Name);
+            Assert.AreEqual(40, result[2].Age);
+            Assert.AreEqual("Chicago", result[2].City);
         }
 
         [TestMethod]
@@ -1173,7 +1184,7 @@ Bob,40,Chicago;
         {
             var csv = @"R2093-AN595SM;144
 ";
-            var result = CsvHelper.FromCsv<ImportFileData>(csv, ["Key", "Value"], false, new [] {";"});
+            var result = CsvHelper.FromCsv<ImportFileData>(csv, ["Key", "Value"], false, [";"]);
         }
 
         public class ImportFileData : INotifyPropertyChanged
