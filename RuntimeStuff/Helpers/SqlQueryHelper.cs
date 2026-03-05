@@ -622,7 +622,7 @@ namespace RuntimeStuff.Helpers
                     cmdParams[paramName] = ExpressionHelper.GetValue(be.Right);
                 }
 
-                if (be.Right is MemberExpression rme)
+                if (be.Right is MemberExpression rme && rme.Member.GetMemberCache()?.IsProperty == true)
                 {
                     right = options.NamePrefix + rme.Member.GetColumnName() + options.NameSuffix;
                 }

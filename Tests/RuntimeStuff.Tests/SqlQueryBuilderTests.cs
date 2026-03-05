@@ -31,6 +31,16 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
+        public void WhereClause_Test_04()
+        {
+            var s = "A01-22006";
+            var whereClause =
+                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(x => x.Str == s, SqlProviderOptions.SqlServerOptions, true, out _);
+
+            Assert.AreEqual("WHERE (\"Str\" = @s_1)", whereClause);
+        }
+
+        [TestMethod]
         public void WhereClause_Test_02()
         {
             var whereClause =
