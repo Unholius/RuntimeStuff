@@ -1,4 +1,4 @@
-﻿namespace RuntimeStuff.MSTests;
+namespace RuntimeStuff.MSTests;
 
 // DUMB TESTS FOR KEEP CONST TESTS NUMBER 666
 
@@ -182,5 +182,4 @@ public class DumbTests
     [TestMethod] public void Dumb_Test_175() => Assert.IsTrue(true);
     [TestMethod] public void Dumb_Test_176() => Assert.IsTrue(true);
     [TestMethod] public void Dumb_Test_177() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_178() => Assert.IsTrue(true);
  }

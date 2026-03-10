@@ -35,6 +35,11 @@ namespace RuntimeStuff
     public static class Obj
     {
         /// <summary>
+        ///  еширование типов по сборкам.
+        /// </summary>
+        private static readonly ConcurrentDictionary<Assembly, Type[]> AssemblyTypesCache = new ConcurrentDictionary<Assembly, Type[]>();
+
+        /// <summary>
         /// The date formats.
         /// </summary>
         private static readonly string[] DateFormats =
@@ -196,34 +201,56 @@ namespace RuntimeStuff
         /// </summary>
         private static readonly ConcurrentDictionary<string, Type> TypeCache = new ConcurrentDictionary<string, Type>(OrdinalIgnoreCaseComparer);
 
-        /// <summary>
-        ///  еширование типов по сборкам.
-        /// </summary>
-        private static readonly ConcurrentDictionary<Assembly, Type[]> AssemblyTypesCache = new ConcurrentDictionary<Assembly, Type[]>();
+        static Obj()
+        {
+            IntNumberTypes = new HashSet<Type>
+            {
+                typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(short), typeof(ushort), typeof(byte),
+                typeof(sbyte),
+                typeof(int?), typeof(uint?), typeof(long?), typeof(ulong?), typeof(short?), typeof(ushort?),
+                typeof(byte?),
+                typeof(sbyte?),
+            };
+
+            FloatNumberTypes = new HashSet<Type>
+            {
+                typeof(float), typeof(double), typeof(decimal),
+                typeof(float?), typeof(double?), typeof(decimal?),
+            };
+
+            NumberTypes = new HashSet<Type>(IntNumberTypes.Concat(FloatNumberTypes));
+
+            BoolTypes = new HashSet<Type>
+            {
+                typeof(bool),
+                typeof(bool?),
+            };
+
+            BasicTypes = new Type[]
+            {
+                typeof(object),
+                typeof(char), typeof(char?), typeof(string),
+                typeof(DateTime), typeof(DateTime?), typeof(TimeSpan),
+                typeof(Guid), typeof(Guid?),
+                typeof(Uri),
+                typeof(Enum),
+            }
+                .Concat(NumberTypes)
+                .Concat(BoolTypes)
+                .ToArray();
+        }
 
         /// <summary>
         /// Gets набор основных типов: числа, логические, строки, даты, Guid, Enum и др.
         /// </summary>
         /// <value>The basic types.</value>
-        public static Type[] BasicTypes { get; } = new Type[]
-        {
-            typeof(object),
-            typeof(char), typeof(char?), typeof(string),
-            typeof(DateTime), typeof(DateTime?), typeof(TimeSpan),
-            typeof(Guid), typeof(Guid?),
-            typeof(Uri),
-            typeof(Enum),
-        }.Concat(NumberTypes).Concat(BoolTypes).ToArray();
+        public static Type[] BasicTypes { get; }
 
         /// <summary>
         /// Gets типы, представл€ющие логические значени€.
         /// </summary>
         /// <value>The bool types.</value>
-        public static HashSet<Type> BoolTypes { get; } = new HashSet<Type>
-        {
-            typeof(bool),
-            typeof(bool?),
-        };
+        public static HashSet<Type> BoolTypes { get; }
 
         /// <summary>
         /// Gets хранилище пользовательских конвертеров типов.  люч первого уровн€ Ч исходный тип, ключ второго уровн€ Ч
@@ -263,24 +290,13 @@ namespace RuntimeStuff
         /// Gets типы с плавающей зап€той (float, double, decimal).
         /// </summary>
         /// <value>The float number types.</value>
-        public static HashSet<Type> FloatNumberTypes { get; } = new HashSet<Type>
-        {
-            typeof(float), typeof(double), typeof(decimal),
-            typeof(float?), typeof(double?), typeof(decimal?),
-        };
+        public static HashSet<Type> FloatNumberTypes { get; }
 
         /// <summary>
         /// Gets целочисленные типы (byte, int, long и т.д. с nullable и без).
         /// </summary>
         /// <value>The int number types.</value>
-        public static HashSet<Type> IntNumberTypes { get; } = new HashSet<Type>
-        {
-            typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(short), typeof(ushort), typeof(byte),
-            typeof(sbyte),
-            typeof(int?), typeof(uint?), typeof(long?), typeof(ulong?), typeof(short?), typeof(ushort?),
-            typeof(byte?),
-            typeof(sbyte?),
-        };
+        public static HashSet<Type> IntNumberTypes { get; }
 
         /// <summary>
         /// Gets the member information cache.
@@ -298,7 +314,7 @@ namespace RuntimeStuff
         /// Gets все числовые типы: целочисленные и с плавающей точкой.
         /// </summary>
         /// <value>The number types.</value>
-        public static HashSet<Type> NumberTypes { get; } = new HashSet<Type>(IntNumberTypes.Concat(FloatNumberTypes));
+        public static HashSet<Type> NumberTypes { get; }
 
         /// <summary>
         /// Gets the property getter cache.
