@@ -1,4 +1,4 @@
-п»ї// <copyright file="MessageBus.Server.cs" company="Rudnev Sergey">
+// <copyright file="MessageBus.Server.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
@@ -16,7 +16,7 @@ namespace RuntimeStuff
     using RuntimeStuff.Helpers;
 
     /// <summary>
-    /// РЎРµСЂРІРµСЂ РґР»СЏ MessageBus.
+    /// Сервер для MessageBus.
     /// Implements the <see cref="IDisposable" />.
     /// </summary>
     /// <seealso cref="IDisposable" />
@@ -32,19 +32,19 @@ namespace RuntimeStuff
         private static int retryIntervalMs = 5000;
         private static Timer retryTimer;
 
-        // РРЅС‚РµСЂРІР°Р» РїРѕРІС‚РѕСЂРЅС‹С… РїРѕРїС‹С‚РѕРє РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
+        // Интервал повторных попыток по умолчанию
         private readonly ConcurrentDictionary<int, HttpListener> activeServers =
             new ConcurrentDictionary<int, HttpListener>();
 
         private readonly CancellationTokenSource serverCts = new CancellationTokenSource();
 
         /// <summary>
-        /// РџРѕР»СѓС‡Р°РµС‚ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРѕРѕР±С‰РµРЅРёР№ РІ РѕС‡РµСЂРµРґРё.
+        /// Получает количество сообщений в очереди.
         /// </summary>
         public static int QueueLength => MessageQueue.Count;
 
         /// <summary>
-        /// РћС‡РёС‰Р°РµС‚ РѕС‡РµСЂРµРґСЊ СЃРѕРѕР±С‰РµРЅРёР№ Р±РµР· РѕС‚РїСЂР°РІРєРё.
+        /// Очищает очередь сообщений без отправки.
         /// </summary>
         public static void ClearQueue()
         {
@@ -55,7 +55,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// РђСЃРёРЅС…СЂРѕРЅРЅРѕ РѕС‚РїСЂР°РІР»СЏРµС‚ РІСЃРµ РЅР°РєРѕРїР»РµРЅРЅС‹Рµ СЃРѕРѕР±С‰РµРЅРёСЏ РёР· РѕС‡РµСЂРµРґРё.
+        /// Асинхронно отправляет все накопленные сообщения из очереди.
         /// </summary>
         /// <returns>A <see cref="Task"/>Representing the asynchronous operation.</returns>
         public static async Task FlushQueueAsync()
@@ -64,13 +64,13 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// РџСѓР±Р»РёРєСѓРµС‚ СЃРѕРѕР±С‰РµРЅРёРµ РЅР° СЃРµСЂРІРµСЂ СЃ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРёРј РїРѕРІС‚РѕСЂРµРЅРёРµРј РїСЂРё РЅРµСѓРґР°С‡Рµ.
+        /// Публикует сообщение на сервер с автоматическим повторением при неудаче.
         /// </summary>
-        /// <typeparam name="T">РўРёРї СЃРѕРѕР±С‰РµРЅРёСЏ.</typeparam>
-        /// <param name="serverUrl">РђРґСЂРµСЃ СЃРµСЂРІРµСЂР° СЃРѕРѕР±С‰РµРЅРёР№. <see cref="StartServer"/>.</param>
-        /// <param name="message">РЎРѕРѕР±С‰РµРЅРёРµ РґР»СЏ РїСѓР±Р»РёРєР°С†РёРё.</param>
-        /// <returns>Task, РїСЂРµРґСЃС‚Р°РІР»СЏСЋС‰РёР№ Р°СЃРёРЅС…СЂРѕРЅРЅСѓСЋ РѕРїРµСЂР°С†РёСЋ.</returns>
-        /// <exception cref="ObjectDisposedException">Р•СЃР»Рё С€РёРЅР° СѓР¶Рµ РѕСЃРІРѕР±РѕР¶РґРµРЅР°.</exception>
+        /// <typeparam name="T">Тип сообщения.</typeparam>
+        /// <param name="serverUrl">Адрес сервера сообщений. <see cref="StartServer"/>.</param>
+        /// <param name="message">Сообщение для публикации.</param>
+        /// <returns>Task, представляющий асинхронную операцию.</returns>
+        /// <exception cref="ObjectDisposedException">Если шина уже освобождена.</exception>
         public static async Task PublishAsync<T>(Uri serverUrl, T message)
         {
             if (!Channels.Values.All(bus => bus.running))
@@ -87,21 +87,21 @@ namespace RuntimeStuff
                 RetryCount = 0,
             };
 
-            // РџС‹С‚Р°РµРјСЃСЏ РѕС‚РїСЂР°РІРёС‚СЊ СЃСЂР°Р·Сѓ
+            // Пытаемся отправить сразу
             if (await TrySendMessage(pendingMessage))
             {
-                return; // РЈСЃРїРµС€РЅРѕ РѕС‚РїСЂР°РІР»РµРЅРѕ
+                return; // Успешно отправлено
             }
 
-            // Р•СЃР»Рё РЅРµ СѓРґР°Р»РѕСЃСЊ, РґРѕР±Р°РІР»СЏРµРј РІ РѕС‡РµСЂРµРґСЊ Рё Р·Р°РїСѓСЃРєР°РµРј РѕР±СЂР°Р±РѕС‚С‡РёРє
+            // Если не удалось, добавляем в очередь и запускаем обработчик
             MessageQueue.Enqueue(pendingMessage);
             StartQueueProcessor();
         }
 
         /// <summary>
-        /// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РёРЅС‚РµСЂРІР°Р» РїРѕРІС‚РѕСЂРЅС‹С… РїРѕРїС‹С‚РѕРє РѕС‚РїСЂР°РІРєРё.
+        /// Устанавливает интервал повторных попыток отправки.
         /// </summary>
-        /// <param name="intervalMs">РРЅС‚РµСЂРІР°Р» РІ РјРёР»Р»РёСЃРµРєСѓРЅРґР°С….</param>
+        /// <param name="intervalMs">Интервал в миллисекундах.</param>
         /// <exception cref="System.ArgumentOutOfRangeException">intervalMs - Interval must be at least 1000ms.</exception>
         public static void SetRetryInterval(int intervalMs)
         {
@@ -119,15 +119,15 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Р—Р°РїСѓСЃРєР°РµС‚ HTTP-СЃРµСЂРІРµСЂ РґР»СЏ РїСЂРёРµРјР° СЃРѕРѕР±С‰РµРЅРёР№ С‡РµСЂРµР· REST API.
-        /// РЎРµСЂРІРµСЂ РїСЂРёРЅРёРјР°РµС‚ POST-Р·Р°РїСЂРѕСЃС‹ РЅР° СЌРЅРґРїРѕРёРЅС‚ СЃ JSON-С‚РµР»РѕРј СЃРѕРѕР±С‰РµРЅРёСЏ.
+        /// Запускает HTTP-сервер для приема сообщений через REST API.
+        /// Сервер принимает POST-запросы на эндпоинт с JSON-телом сообщения.
         /// </summary>
-        /// <param name="port">РџРѕСЂС‚ РґР»СЏ РїСЂРѕСЃР»СѓС€РёРІР°РЅРёСЏ.</param>
-        /// <param name="path">РџСѓС‚СЊ РґР»СЏ СЌРЅРґРїРѕРёРЅС‚Р° (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ "/").</param>
-        /// <returns>Task, РїСЂРµРґСЃС‚Р°РІР»СЏСЋС‰РёР№ Р°СЃРёРЅС…СЂРѕРЅРЅСѓСЋ РѕРїРµСЂР°С†РёСЋ СЃРµСЂРІРµСЂР°.</returns>
-        /// <exception cref="ObjectDisposedException">Р•СЃР»Рё С€РёРЅР° СѓР¶Рµ РѕСЃРІРѕР±РѕР¶РґРµРЅР°.</exception>
-        /// <exception cref="InvalidOperationException">Р•СЃР»Рё СЃРµСЂРІРµСЂ РЅР° СѓРєР°Р·Р°РЅРЅРѕРј РїРѕСЂС‚Сѓ СѓР¶Рµ Р·Р°РїСѓС‰РµРЅ.</exception>
-        /// <exception cref="HttpListenerException">Р•СЃР»Рё РЅРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РїСѓСЃС‚РёС‚СЊ HttpListener.</exception>
+        /// <param name="port">Порт для прослушивания.</param>
+        /// <param name="path">Путь для эндпоинта (по умолчанию "/").</param>
+        /// <returns>Task, представляющий асинхронную операцию сервера.</returns>
+        /// <exception cref="ObjectDisposedException">Если шина уже освобождена.</exception>
+        /// <exception cref="InvalidOperationException">Если сервер на указанном порту уже запущен.</exception>
+        /// <exception cref="HttpListenerException">Если не удалось запустить HttpListener.</exception>
         public Task StartServer(int port, string path = "/")
         {
             if (!this.running)
@@ -142,7 +142,7 @@ namespace RuntimeStuff
 
             var listener = new HttpListener();
             listener.Prefixes.Add($"http://*:{port}{path}");
-            listener.Prefixes.Add($"http://+:{port}{path}"); // + РѕР·РЅР°С‡Р°РµС‚ РІСЃРµ РёРЅС‚РµСЂС„РµР№СЃС‹
+            listener.Prefixes.Add($"http://+:{port}{path}"); // + означает все интерфейсы
 
             try
             {
@@ -175,11 +175,11 @@ namespace RuntimeStuff
                     }
                     catch (HttpListenerException)
                     {
-                        // РќРѕСЂРјР°Р»СЊРЅРѕРµ Р·Р°РІРµСЂС€РµРЅРёРµ РїСЂРё РѕСЃС‚Р°РЅРѕРІРєРµ СЃРµСЂРІРµСЂР°
+                        // Нормальное завершение при остановке сервера
                     }
                     catch (OperationCanceledException)
                     {
-                        // РћС‚РјРµРЅР° РѕРїРµСЂР°С†РёРё
+                        // Отмена операции
                     }
                     catch (Exception ex)
                     {
@@ -194,7 +194,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// РћСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РІСЃРµ Р·Р°РїСѓС‰РµРЅРЅС‹Рµ HTTP-СЃРµСЂРІРµСЂС‹.
+        /// Останавливает все запущенные HTTP-серверы.
         /// </summary>
         public void StopAllServers()
         {
@@ -207,9 +207,9 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// РћСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ HTTP-СЃРµСЂРІРµСЂ РЅР° СѓРєР°Р·Р°РЅРЅРѕРј РїРѕСЂС‚Сѓ.
+        /// Останавливает HTTP-сервер на указанном порту.
         /// </summary>
-        /// <param name="port">РџРѕСЂС‚ РґР»СЏ РѕСЃС‚Р°РЅРѕРІРєРё.</param>
+        /// <param name="port">Порт для остановки.</param>
         public void StopServer(int port)
         {
             if (this.activeServers.TryRemove(port, out var listener))
@@ -221,7 +221,7 @@ namespace RuntimeStuff
                 }
                 catch (ObjectDisposedException)
                 {
-                    // РЈР¶Рµ РѕСЃРІРѕР±РѕР¶РґРµРЅ
+                    // Уже освобожден
                 }
             }
         }
@@ -233,8 +233,10 @@ namespace RuntimeStuff
                 return httpClient;
             }
 
-            httpClient = new HttpClient();
-            httpClient.Timeout = TimeSpan.FromSeconds(30);
+            httpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(30),
+            };
             return httpClient;
         }
 
@@ -247,30 +249,30 @@ namespace RuntimeStuff
 
             var failedMessages = new ConcurrentQueue<PendingMessage>();
 
-            // РћР±СЂР°Р±Р°С‚С‹РІР°РµРј РІСЃРµ СЃРѕРѕР±С‰РµРЅРёСЏ РІ РѕС‡РµСЂРµРґРё
+            // Обрабатываем все сообщения в очереди
             while (MessageQueue.TryDequeue(out var pendingMessage))
             {
                 if (await TrySendMessage(pendingMessage))
                 {
-                    // РЈСЃРїРµС€РЅРѕ РѕС‚РїСЂР°РІР»РµРЅРѕ
+                    // Успешно отправлено
                     Debug.WriteLine($"Successfully sent message {pendingMessage.MessageId} after {pendingMessage.RetryCount} retries");
                 }
                 else
                 {
                     pendingMessage.RetryCount++;
 
-                    // РњР°РєСЃРёРјР°Р»СЊРЅРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРѕРїС‹С‚РѕРє - Р±РµР· РѕРіСЂР°РЅРёС‡РµРЅРёР№, РЅРѕ РјРѕР¶РЅРѕ РґРѕР±Р°РІРёС‚СЊ Р»РёРјРёС‚
+                    // Максимальное количество попыток - без ограничений, но можно добавить лимит
                     failedMessages.Enqueue(pendingMessage);
                 }
             }
 
-            // Р’РѕР·РІСЂР°С‰Р°РµРј РЅРµСѓРґР°РІС€РёРµСЃСЏ СЃРѕРѕР±С‰РµРЅРёСЏ РѕР±СЂР°С‚РЅРѕ РІ РѕС‡РµСЂРµРґСЊ
+            // Возвращаем неудавшиеся сообщения обратно в очередь
             while (failedMessages.TryDequeue(out var failedMessage))
             {
                 MessageQueue.Enqueue(failedMessage);
             }
 
-            // Р•СЃР»Рё РѕС‡РµСЂРµРґСЊ РїСѓСЃС‚Р°, РѕСЃС‚Р°РЅР°РІР»РёРІР°РµРј С‚Р°Р№РјРµСЂ
+            // Если очередь пуста, останавливаем таймер
             if (MessageQueue.IsEmpty)
             {
                 lock (RetryLock)
@@ -293,10 +295,10 @@ namespace RuntimeStuff
 
                 isProcessingQueue = true;
 
-                // Р—Р°РїСѓСЃРєР°РµРј РЅРµРјРµРґР»РµРЅРЅСѓСЋ РѕР±СЂР°Р±РѕС‚РєСѓ
+                // Запускаем немедленную обработку
                 Task.Run(async () => await ProcessMessageQueue());
 
-                // РќР°СЃС‚СЂР°РёРІР°РµРј РїРµСЂРёРѕРґРёС‡РµСЃРєРёР№ С‚Р°Р№РјРµСЂ
+                // Настраиваем периодический таймер
                 retryTimer = new Timer(
                     async _ => await ProcessMessageQueue(),
                     null,
@@ -348,7 +350,7 @@ namespace RuntimeStuff
                     return;
                 }
 
-                string contentType = request.ContentType ?? string.Empty;
+                var contentType = request.ContentType ?? string.Empty;
                 if (!contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase))
                 {
                     response.StatusCode = 415; // Unsupported Media Type
@@ -356,13 +358,13 @@ namespace RuntimeStuff
                     return;
                 }
 
-                // Р§РёС‚Р°РµРј JSON РёР· С‚РµР»Р° Р·Р°РїСЂРѕСЃР°
+                // Читаем JSON из тела запроса
                 using (var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding))
                 {
                     var json = await reader.ReadToEndAsync();
 
-                    var typeElement = JsonHelper.GetValues(json, (x) => x.ToLower() == "type").FirstOrDefault();
-                    var dataElement = JsonHelper.GetValues(json, (x) => x.ToLower() == "data").FirstOrDefault();
+                    var typeElement = JsonHelper.GetValues(json, (x) => x.Equals("type", StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+                    var dataElement = JsonHelper.GetValues(json, (x) => x.Equals("data", StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
                     if (string.IsNullOrWhiteSpace(typeElement) || string.IsNullOrWhiteSpace(dataElement))
                     {
                         response.StatusCode = 400; // Bad Request
@@ -395,7 +397,7 @@ namespace RuntimeStuff
                         }
                     }
 
-                    // РџСѓР±Р»РёРєСѓРµРј СЃРѕРѕР±С‰РµРЅРёРµ РІ С€РёРЅСѓ
+                    // Публикуем сообщение в шину
                     var publishMethod = typeof(MessageBus)
                         .GetMethod(nameof(this.Publish))
                         ?.MakeGenericMethod(messageType);
@@ -429,13 +431,13 @@ namespace RuntimeStuff
                 }
                 catch
                 {
-                    // РРіРЅРѕСЂРёСЂСѓРµРј РѕС€РёР±РєРё РїСЂРё РѕС‚РїСЂР°РІРєРµ РѕС‚РІРµС‚Р° РѕР± РѕС€РёР±РєРµ
+                    // Игнорируем ошибки при отправке ответа об ошибке
                 }
             }
         }
 
         /// <summary>
-        /// РљР»Р°СЃСЃ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ РѕС‚Р»РѕР¶РµРЅРЅРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ.
+        /// Класс для хранения отложенного сообщения.
         /// </summary>
         private sealed class PendingMessage
         {

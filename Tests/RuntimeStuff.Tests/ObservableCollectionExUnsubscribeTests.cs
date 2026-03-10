@@ -1,4 +1,4 @@
-п»їusing System.Collections.Specialized;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using RuntimeStuff.Collections;
 
@@ -35,7 +35,7 @@ namespace RuntimeStuff.MSTests
             var item = new TestItem { Name = "Test" };
             collection.Add(item);
 
-            bool collectionChangedRaised = false;
+            var collectionChangedRaised = false;
             collection.CollectionChanged += (sender, args) =>
             {
                 if (args.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
@@ -49,7 +49,7 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.IsTrue(collectionChangedRaised,
-                "РР·РјРµРЅРµРЅРёРµ СЃРІРѕР№СЃС‚РІР° СЌР»РµРјРµРЅС‚Р° РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ CollectionChanged");
+                "Изменение свойства элемента должно вызывать CollectionChanged");
         }
 
         [TestMethod]
@@ -60,22 +60,22 @@ namespace RuntimeStuff.MSTests
             var item = new TestItem { Name = "Test" };
             collection.Add(item);
 
-            bool collectionChangedRaised = false;
+            var collectionChangedRaised = false;
             collection.CollectionChanged += (sender, args) =>
             {
                 collectionChangedRaised = true;
             };
 
-            // РЈРґР°Р»СЏРµРј СЌР»РµРјРµРЅС‚ (РґРѕР»Р¶РЅР° РїСЂРѕРёР·РѕР№С‚Рё РѕС‚РїРёСЃРєР°)
+            // Удаляем элемент (должна произойти отписка)
             collection.Remove(item);
-            collectionChangedRaised = false; // РЎР±СЂР°СЃС‹РІР°РµРј С„Р»Р°Рі
+            collectionChangedRaised = false; // Сбрасываем флаг
 
             // Act
             item.Name = "Updated";
 
             // Assert
             Assert.IsFalse(collectionChangedRaised,
-                "РР·РјРµРЅРµРЅРёРµ СЃРІРѕР№СЃС‚РІР° СѓРґР°Р»РµРЅРЅРѕРіРѕ СЌР»РµРјРµРЅС‚Р° РЅРµ РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ CollectionChanged");
+                "Изменение свойства удаленного элемента не должно вызывать CollectionChanged");
         }
 
         [TestMethod]
@@ -86,7 +86,7 @@ namespace RuntimeStuff.MSTests
             var item = new TestItem { Name = "Test" };
             collection.Add(item);
 
-            bool collectionChangedOnItemUpdate = false;
+            var collectionChangedOnItemUpdate = false;
             collection.CollectionChanged += (sender, args) =>
             {
                 if (args.Action == NotifyCollectionChangedAction.Reset)
@@ -95,10 +95,10 @@ namespace RuntimeStuff.MSTests
                 }
             };
 
-            // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РїСЂРё РёР·РјРµРЅРµРЅРёРё СЌР»РµРјРµРЅС‚Р° СЃСЂР°Р±Р°С‚С‹РІР°РµС‚ СЃРѕР±С‹С‚РёРµ
+            // Проверяем, что при изменении элемента срабатывает событие
             item.Name = "Updated1";
             Assert.IsTrue(collectionChangedOnItemUpdate,
-                "Р”Рѕ СѓРґР°Р»РµРЅРёСЏ: РёР·РјРµРЅРµРЅРёРµ СЌР»РµРјРµРЅС‚Р° РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ CollectionChanged");
+                "До удаления: изменение элемента должно вызывать CollectionChanged");
 
             collectionChangedOnItemUpdate = false;
 
@@ -108,7 +108,7 @@ namespace RuntimeStuff.MSTests
             // Assert
             item.Name = "Updated2";
             Assert.IsFalse(collectionChangedOnItemUpdate,
-                "РџРѕСЃР»Рµ СѓРґР°Р»РµРЅРёСЏ: РёР·РјРµРЅРµРЅРёРµ СЌР»РµРјРµРЅС‚Р° РќР• РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ CollectionChanged");
+                "После удаления: изменение элемента НЕ должно вызывать CollectionChanged");
         }
 
         [TestMethod]
@@ -122,7 +122,7 @@ namespace RuntimeStuff.MSTests
 
             collection.AddRange(items);
 
-            int collectionChangedCount = 0;
+            var collectionChangedCount = 0;
             collection.CollectionChanged += (sender, args) =>
             {
                 if (args.Action == NotifyCollectionChangedAction.Reset)
@@ -131,10 +131,10 @@ namespace RuntimeStuff.MSTests
                 }
             };
 
-            // Act - РѕС‡РёС‰Р°РµРј РєРѕР»Р»РµРєС†РёСЋ
+            // Act - очищаем коллекцию
             collection.Clear();
 
-            // Assert - РёР·РјРµРЅСЏРµРј СЃРІРѕР№СЃС‚РІР° СѓРґР°Р»РµРЅРЅС‹С… СЌР»РµРјРµРЅС‚РѕРІ
+            // Assert - изменяем свойства удаленных элементов
             foreach (var item in items)
             {
                 var nameBefore = item.Name;
@@ -142,7 +142,7 @@ namespace RuntimeStuff.MSTests
             }
 
             Assert.AreEqual(1, collectionChangedCount,
-                "РџРѕСЃР»Рµ РѕС‡РёСЃС‚РєРё РєРѕР»Р»РµРєС†РёРё РёР·РјРµРЅРµРЅРёСЏ СЌР»РµРјРµРЅС‚РѕРІ РЅРµ РґРѕР»Р¶РЅС‹ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёСЏ");
+                "После очистки коллекции изменения элементов не должны вызывать события");
         }
 
         [TestMethod]
@@ -159,7 +159,7 @@ namespace RuntimeStuff.MSTests
             collection.AddRange(itemsToRemove);
             collection.Add(itemToKeep);
 
-            int collectionChangedCount = 0;
+            var collectionChangedCount = 0;
             collection.CollectionChanged += (sender, args) =>
             {
                 if (args.Action == NotifyCollectionChangedAction.Reset)
@@ -170,21 +170,21 @@ namespace RuntimeStuff.MSTests
 
             // Act
             collection.RemoveRange(itemsToRemove);
-            collectionChangedCount = 0; // РЎР±СЂР°СЃС‹РІР°РµРј СЃС‡РµС‚С‡РёРє
+            collectionChangedCount = 0; // Сбрасываем счетчик
 
-            // Assert - РёР·РјРµРЅСЏРµРј СѓРґР°Р»РµРЅРЅС‹Рµ СЌР»РµРјРµРЅС‚С‹
+            // Assert - изменяем удаленные элементы
             foreach (var item in itemsToRemove)
             {
                 item.Name = $"{item.Name}_Updated";
             }
 
             Assert.AreEqual(0, collectionChangedCount,
-                "РР·РјРµРЅРµРЅРёРµ СѓРґР°Р»РµРЅРЅС‹С… СЌР»РµРјРµРЅС‚РѕРІ РЅРµ РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёСЏ");
+                "Изменение удаленных элементов не должно вызывать события");
 
-            // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ РѕСЃС‚Р°РІС€РёР№СЃСЏ СЌР»РµРјРµРЅС‚ РІСЃРµ РµС‰Рµ РѕС‚СЃР»РµР¶РёРІР°РµС‚СЃСЏ
+            // Проверяем, что оставшийся элемент все еще отслеживается
             itemToKeep.Name = "Updated";
             Assert.AreEqual(1, collectionChangedCount,
-                "РР·РјРµРЅРµРЅРёРµ СЌР»РµРјРµРЅС‚Р°, РѕСЃС‚Р°РІС€РµРіРѕСЃСЏ РІ РєРѕР»Р»РµРєС†РёРё, РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ");
+                "Изменение элемента, оставшегося в коллекции, должно вызывать событие");
         }
 
         [TestMethod]
@@ -209,7 +209,7 @@ namespace RuntimeStuff.MSTests
 
             collection.Add(oldItem);
 
-            int collectionChangedCount = 0;
+            var collectionChangedCount = 0;
             collection.CollectionChanged += (sender, args) =>
             {
                 if (args.Action == NotifyCollectionChangedAction.Reset)
@@ -220,18 +220,18 @@ namespace RuntimeStuff.MSTests
 
             // Act
             collection[0] = newItem;
-            collectionChangedCount = 0; // РЎР±СЂР°СЃС‹РІР°РµРј СЃС‡РµС‚С‡РёРє РїРѕСЃР»Рµ Р·Р°РјРµРЅС‹
+            collectionChangedCount = 0; // Сбрасываем счетчик после замены
 
             // Assert
-            // РЎС‚Р°СЂС‹Р№ СЌР»РµРјРµРЅС‚ Р±РѕР»СЊС€Рµ РЅРµ РґРѕР»Р¶РµРЅ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёСЏ
+            // Старый элемент больше не должен вызывать события
             oldItem.Name = "Old_Updated";
             Assert.AreEqual(0, collectionChangedCount,
-                "РР·РјРµРЅРµРЅРёРµ СЃС‚Р°СЂРѕРіРѕ СЌР»РµРјРµРЅС‚Р° РїРѕСЃР»Рµ Р·Р°РјРµРЅС‹ РЅРµ РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёСЏ");
+                "Изменение старого элемента после замены не должно вызывать события");
 
-            // РќРѕРІС‹Р№ СЌР»РµРјРµРЅС‚ РґРѕР»Р¶РµРЅ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёСЏ
+            // Новый элемент должен вызывать события
             newItem.Name = "New_Updated";
             Assert.AreEqual(1, collectionChangedCount,
-                "РР·РјРµРЅРµРЅРёРµ РЅРѕРІРѕРіРѕ СЌР»РµРјРµРЅС‚Р° РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёСЏ");
+                "Изменение нового элемента должно вызывать события");
         }
 
         [TestMethod]
@@ -239,15 +239,15 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var collection = new ObservableCollectionEx<TestItem>();
-            int eventCount = 0;
+            var eventCount = 0;
 
             // Act & Assert
-            for (int i = 0; i < 100; i++)
+            for (var i = 0; i < 100; i++)
             {
                 var item = new TestItem { Name = $"Item{i}" };
                 collection.Add(item);
 
-                // РџРѕРґРїРёСЃС‹РІР°РµРјСЃСЏ РЅР° СЃРѕР±С‹С‚РёРµ РєРѕР»Р»РµРєС†РёРё
+                // Подписываемся на событие коллекции
                 collection.CollectionChanged += (sender, args) =>
                 {
                     if (args.Action == NotifyCollectionChangedAction.Reset)
@@ -256,19 +256,19 @@ namespace RuntimeStuff.MSTests
                     }
                 };
 
-                // РР·РјРµРЅСЏРµРј СЌР»РµРјРµРЅС‚ - РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ
+                // Изменяем элемент - должно вызывать событие
                 item.Name = $"{item.Name}_Updated";
-                Assert.IsTrue(eventCount > 0, $"РќР° РёС‚РµСЂР°С†РёРё {i}: СЃРѕР±С‹С‚РёРµ РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊСЃСЏ");
+                Assert.IsTrue(eventCount > 0, $"На итерации {i}: событие должно вызываться");
                 eventCount = 0;
 
-                // РЈРґР°Р»СЏРµРј СЌР»РµРјРµРЅС‚
+                // Удаляем элемент
                 collection.Remove(item);
 
-                // Р•С‰Рµ СЂР°Р· РёР·РјРµРЅСЏРµРј СЌР»РµРјРµРЅС‚ - РќР• РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ
+                // Еще раз изменяем элемент - НЕ должно вызывать событие
                 item.Name = $"{item.Name}_Again";
-                Assert.AreEqual(0, eventCount, $"РќР° РёС‚РµСЂР°С†РёРё {i}: РїРѕСЃР»Рµ СѓРґР°Р»РµРЅРёСЏ СЃРѕР±С‹С‚РёРµ РќР• РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊСЃСЏ");
+                Assert.AreEqual(0, eventCount, $"На итерации {i}: после удаления событие НЕ должно вызываться");
 
-                // РЈР±РёСЂР°РµРј РѕР±СЂР°Р±РѕС‚С‡РёРє СЃРѕР±С‹С‚РёСЏ
+                // Убираем обработчик события
                 collection.CollectionChanged -= (sender, args) =>
                 {
                     if (args.Action == NotifyCollectionChangedAction.Reset)
@@ -290,16 +290,16 @@ namespace RuntimeStuff.MSTests
             // Act
             collection.Remove(item);
 
-            // Assert - РёР·РјРµРЅРµРЅРёРµ СЃРІРѕР№СЃС‚РІР° РїРѕСЃР»Рµ СѓРґР°Р»РµРЅРёСЏ РЅРµ РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ РёСЃРєР»СЋС‡РµРЅРёР№
+            // Assert - изменение свойства после удаления не должно вызывать исключений
             try
             {
                 item.Name = "Updated";
-                // Р•СЃР»Рё РјС‹ Р·РґРµСЃСЊ, Р·РЅР°С‡РёС‚ РёСЃРєР»СЋС‡РµРЅРёР№ РЅРµ Р±С‹Р»Рѕ - СЌС‚Рѕ С…РѕСЂРѕС€Рѕ
+                // Если мы здесь, значит исключений не было - это хорошо
                 Assert.IsTrue(true);
             }
             catch
             {
-                Assert.Fail("РР·РјРµРЅРµРЅРёРµ СЃРІРѕР№СЃС‚РІР° СѓРґР°Р»РµРЅРЅРѕРіРѕ СЌР»РµРјРµРЅС‚Р° РЅРµ РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ РёСЃРєР»СЋС‡РµРЅРёР№");
+                Assert.Fail("Изменение свойства удаленного элемента не должно вызывать исключений");
             }
         }
 
@@ -314,7 +314,7 @@ namespace RuntimeStuff.MSTests
             collection.Add(item1);
             collection.Add(item2);
 
-            int resetEventsCount = 0;
+            var resetEventsCount = 0;
             collection.CollectionChanged += (sender, args) =>
             {
                 if (args.Action == NotifyCollectionChangedAction.Reset)
@@ -324,21 +324,21 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act & Assert
-            // РР·РјРµРЅСЏРµРј РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ - РґРѕР»Р¶РЅРѕ РІС‹Р·РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ
+            // Изменяем первый элемент - должно вызвать событие
             item1.Name = "Item1_Updated";
-            Assert.AreEqual(1, resetEventsCount, "РР·РјРµРЅРµРЅРёРµ СЌР»РµРјРµРЅС‚Р° РІ РєРѕР»Р»РµРєС†РёРё РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ");
+            Assert.AreEqual(1, resetEventsCount, "Изменение элемента в коллекции должно вызывать событие");
 
-            // РЈРґР°Р»СЏРµРј РІС‚РѕСЂРѕР№ СЌР»РµРјРµРЅС‚
+            // Удаляем второй элемент
             collection.Remove(item2);
             resetEventsCount = 0;
 
-            // РР·РјРµРЅСЏРµРј СѓРґР°Р»РµРЅРЅС‹Р№ СЌР»РµРјРµРЅС‚ - РќР• РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ
+            // Изменяем удаленный элемент - НЕ должно вызывать событие
             item2.Name = "Item2_Updated";
-            Assert.AreEqual(0, resetEventsCount, "РР·РјРµРЅРµРЅРёРµ СѓРґР°Р»РµРЅРЅРѕРіРѕ СЌР»РµРјРµРЅС‚Р° РЅРµ РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ");
+            Assert.AreEqual(0, resetEventsCount, "Изменение удаленного элемента не должно вызывать событие");
 
-            // РР·РјРµРЅСЏРµРј РїРµСЂРІС‹Р№ СЌР»РµРјРµРЅС‚ (РІСЃРµ РµС‰Рµ РІ РєРѕР»Р»РµРєС†РёРё) - РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ
+            // Изменяем первый элемент (все еще в коллекции) - должно вызывать событие
             item1.Name = "Item1_UpdatedAgain";
-            Assert.AreEqual(1, resetEventsCount, "РР·РјРµРЅРµРЅРёРµ СЌР»РµРјРµРЅС‚Р°, РѕСЃС‚Р°РІС€РµРіРѕСЃСЏ РІ РєРѕР»Р»РµРєС†РёРё, РґРѕР»Р¶РЅРѕ РІС‹Р·С‹РІР°С‚СЊ СЃРѕР±С‹С‚РёРµ");
+            Assert.AreEqual(1, resetEventsCount, "Изменение элемента, оставшегося в коллекции, должно вызывать событие");
         }
     }
 }

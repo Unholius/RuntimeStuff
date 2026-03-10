@@ -1,4 +1,4 @@
-п»ї// <copyright file="MessageBusTests.cs" company="Rudnev Sergey">
+// <copyright file="MessageBusTests.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
@@ -8,7 +8,7 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class MessageBusTests
     {
-        #region РўРµСЃС‚С‹ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°
+        #region Тесты конструктора
 
         [TestMethod]
         [ExpectedException(typeof(ArgumentOutOfRangeException))]
@@ -40,13 +40,13 @@ namespace RuntimeStuff.MSTests
         public void Constructor_WithThreadName_SetsThreadName()
         {
             // Arrange
-            string threadName = "TestWorker";
+            var threadName = "TestWorker";
 
             // Act
             var bus = new MessageBus(threadName: threadName, workerCount: 1);
 
             // Assert
-            // РќРµ РјРѕР¶РµРј РЅР°РїСЂСЏРјСѓСЋ РїСЂРѕРІРµСЂРёС‚СЊ РёРјСЏ РїРѕС‚РѕРєР°, РЅРѕ СѓР±РµРґРёРјСЃСЏ С‡С‚Рѕ СЌРєР·РµРјРїР»СЏСЂ СЃРѕР·РґР°РЅ
+            // Не можем напрямую проверить имя потока, но убедимся что экземпляр создан
             Assert.IsNotNull(bus);
         }
 
@@ -67,7 +67,7 @@ namespace RuntimeStuff.MSTests
 
         #endregion
 
-        #region РўРµСЃС‚С‹ Publish
+        #region Тесты Publish
 
         [TestMethod]
         [ExpectedException(typeof(ObjectDisposedException))]
@@ -92,7 +92,7 @@ namespace RuntimeStuff.MSTests
             bus.Publish(message);
 
             // Assert
-            // Р•СЃР»Рё РЅРµ Р±С‹Р»Рѕ РёСЃРєР»СЋС‡РµРЅРёСЏ - С‚РµСЃС‚ РїСЂРѕР№РґРµРЅ
+            // Если не было исключения - тест пройден
             Assert.IsTrue(true);
         }
 
@@ -106,13 +106,13 @@ namespace RuntimeStuff.MSTests
             bus.Publish<object>(null!);
 
             // Assert
-            // Р•СЃР»Рё РЅРµ Р±С‹Р»Рѕ РёСЃРєР»СЋС‡РµРЅРёСЏ - С‚РµСЃС‚ РїСЂРѕР№РґРµРЅ
+            // Если не было исключения - тест пройден
             Assert.IsTrue(true);
         }
 
         #endregion
 
-        #region РўРµСЃС‚С‹ Subscribe Рё Unsubscribe
+        #region Тесты Subscribe и Unsubscribe
 
         [TestMethod]
         [ExpectedException(typeof(ArgumentNullException))]
@@ -137,7 +137,7 @@ namespace RuntimeStuff.MSTests
 
             // Act
             bus.Publish(message);
-            Thread.Sleep(50); // Р”Р°РµРј РІСЂРµРјСЏ РЅР° РѕР±СЂР°Р±РѕС‚РєСѓ
+            Thread.Sleep(50); // Даем время на обработку
 
             // Assert
             Assert.AreEqual(1, receivedMessages.Count);
@@ -177,7 +177,7 @@ namespace RuntimeStuff.MSTests
 
             bus.Subscribe<TestMessage>(Handler);
 
-            // Act - РїСѓР±Р»РёРєСѓРµРј, РѕС‚РїРёСЃС‹РІР°РµРјСЃСЏ, РїСѓР±Р»РёРєСѓРµРј СЃРЅРѕРІР°
+            // Act - публикуем, отписываемся, публикуем снова
             bus.Publish(message);
             Thread.Sleep(50);
             bus.Unsubscribe<TestMessage>(Handler);
@@ -185,7 +185,7 @@ namespace RuntimeStuff.MSTests
             Thread.Sleep(50);
 
             // Assert
-            Assert.AreEqual(1, receivedCount); // РўРѕР»СЊРєРѕ РїРµСЂРІРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РѕР±СЂР°Р±РѕС‚Р°РЅРѕ
+            Assert.AreEqual(1, receivedCount); // Только первое сообщение должно быть обработано
         }
 
         [TestMethod]
@@ -197,22 +197,22 @@ namespace RuntimeStuff.MSTests
             var message = new TestMessage { Id = 1 };
 
             void Handler1(TestMessage msg) => receivedCount++;
-            void Handler2(TestMessage msg) { /* РґСЂСѓРіР°СЏ СЂРµР°Р»РёР·Р°С†РёСЏ */ }
+            void Handler2(TestMessage msg) { /* другая реализация */ }
 
             bus.Subscribe<TestMessage>(Handler1);
 
             // Act
-            bus.Unsubscribe<TestMessage>(Handler2); // РћС‚РїРёСЃС‹РІР°РµРј РЅРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ РѕР±СЂР°Р±РѕС‚С‡РёРє
+            bus.Unsubscribe<TestMessage>(Handler2); // Отписываем несуществующий обработчик
             bus.Publish(message);
             Thread.Sleep(50);
 
             // Assert
-            Assert.AreEqual(1, receivedCount); // РћР±СЂР°Р±РѕС‚С‡РёРє РІСЃРµ РµС‰Рµ РґРѕР»Р¶РµРЅ СЂР°Р±РѕС‚Р°С‚СЊ
+            Assert.AreEqual(1, receivedCount); // Обработчик все еще должен работать
         }
 
         #endregion
 
-        #region РўРµСЃС‚С‹ Subscribe СЃ SynchronizationContext
+        #region Тесты Subscribe с SynchronizationContext
 
         [TestMethod]
         [ExpectedException(typeof(ArgumentNullException))]
@@ -245,7 +245,7 @@ namespace RuntimeStuff.MSTests
 
         #endregion
 
-        #region РўРµСЃС‚С‹ WaitForMessage
+        #region Тесты WaitForMessage
 
         [TestMethod]
         [ExpectedException(typeof(ObjectDisposedException))]
@@ -268,7 +268,7 @@ namespace RuntimeStuff.MSTests
 
             // Act
             var waitTask = bus.WaitForMessage<TestMessage>();
-            await Task.Delay(10); // РќРµР±РѕР»СЊС€Р°СЏ Р·Р°РґРµСЂР¶РєР° С‡С‚РѕР±С‹ РіР°СЂР°РЅС‚РёСЂРѕРІР°С‚СЊ С‡С‚Рѕ WaitForMessage РїРѕРґРїРёСЃР°Р»СЃСЏ
+            await Task.Delay(10); // Небольшая задержка чтобы гарантировать что WaitForMessage подписался
             bus.Publish(message);
 
             var result = await waitTask;
@@ -288,14 +288,14 @@ namespace RuntimeStuff.MSTests
             var waitTask = bus.WaitForMessage<TestMessage>(
                 messageFilter: msg => msg.Id == 42);
 
-            // РџСѓР±Р»РёРєСѓРµРј СЃРѕРѕР±С‰РµРЅРёРµ, РєРѕС‚РѕСЂРѕРµ РќР• РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РїСЂРёРЅСЏС‚Рѕ
+            // Публикуем сообщение, которое НЕ должно быть принято
             bus.Publish(new TestMessage { Id = 1 });
             await Task.Delay(50);
 
-            // РЈР±РµР¶РґР°РµРјСЃСЏ С‡С‚Рѕ Р·Р°РґР°С‡Р° РІСЃРµ РµС‰Рµ РѕР¶РёРґР°РµС‚
+            // Убеждаемся что задача все еще ожидает
             Assert.IsFalse(waitTask.IsCompleted);
 
-            // РџСѓР±Р»РёРєСѓРµРј СЃРѕРѕР±С‰РµРЅРёРµ, РєРѕС‚РѕСЂРѕРµ Р”РћР›Р–РќРћ Р±С‹С‚СЊ РїСЂРёРЅСЏС‚Рѕ
+            // Публикуем сообщение, которое ДОЛЖНО быть принято
             bus.Publish(new TestMessage { Id = 42 });
 
             var result = await waitTask;
@@ -327,7 +327,7 @@ namespace RuntimeStuff.MSTests
                 timeout: null,
                 cancellationToken: cts.Token);
 
-            // РћС‚РјРµРЅСЏРµРј С‡РµСЂРµР· 50 РјСЃ
+            // Отменяем через 50 мс
             cts.CancelAfter(50);
 
             // Assert
@@ -345,9 +345,9 @@ namespace RuntimeStuff.MSTests
             var waiter1 = bus.WaitForMessage<TestMessage>();
             var waiter2 = bus.WaitForMessage<TestMessage>();
             var waiter3 = bus.WaitForMessage<TestMessage>(
-                messageFilter: msg => msg.Id == 1); // РЎ С„РёР»СЊС‚СЂРѕРј
+                messageFilter: msg => msg.Id == 1); // С фильтром
 
-            await Task.Delay(10); // Р“Р°СЂР°РЅС‚РёСЂСѓРµРј С‡С‚Рѕ РІСЃРµ РїРѕРґРїРёСЃР°Р»РёСЃСЊ
+            await Task.Delay(10); // Гарантируем что все подписались
 
             bus.Publish(message);
 
@@ -370,7 +370,7 @@ namespace RuntimeStuff.MSTests
 
             // Act
             bus.Publish(message);
-            await Task.Delay(50); // Р”Р°РµРј РІСЂРµРјСЏ РЅР° РѕР±СЂР°Р±РѕС‚РєСѓ
+            await Task.Delay(50); // Даем время на обработку
 
             var waitTask = bus.WaitForMessage<TestMessage>(timeout: 100);
 
@@ -385,8 +385,8 @@ namespace RuntimeStuff.MSTests
             using var bus = new MessageBus(workerCount: 1);
             var exceptionThrown = false;
 
-            // РџРµСЂРµС…РІР°С‚С‹РІР°РµРј РёСЃРєР»СЋС‡РµРЅРёСЏ С‡РµСЂРµР· Debug (РЅРµ РёРґРµР°Р»СЊРЅРѕ, РЅРѕ СЂР°Р±РѕС‚Р°РµС‚)
-            // Р’ СЂРµР°Р»СЊРЅРѕРј РєРѕРґРµ РЅСѓР¶РЅРѕ Р±С‹Р»Рѕ Р±С‹ РґРѕР±Р°РІРёС‚СЊ СЃРѕР±С‹С‚РёРµ РґР»СЏ РјРѕРЅРёС‚РѕСЂРёРЅРіР° РёСЃРєР»СЋС‡РµРЅРёР№
+            // Перехватываем исключения через Debug (не идеально, но работает)
+            // В реальном коде нужно было бы добавить событие для мониторинга исключений
 
             // Act
             var waitTask = bus.WaitForMessage<TestMessage>(
@@ -397,14 +397,14 @@ namespace RuntimeStuff.MSTests
                     return true;
                 });
 
-            // РџСѓР±Р»РёРєСѓРµРј СЃРѕРѕР±С‰РµРЅРёРµ, РєРѕС‚РѕСЂРѕРµ РІС‹Р·С‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ РІ С„РёР»СЊС‚СЂРµ
+            // Публикуем сообщение, которое вызывает исключение в фильтре
             bus.Publish(new TestMessage { Id = 1 });
             await Task.Delay(50);
 
-            // Р—Р°РґР°С‡Р° РІСЃРµ РµС‰Рµ РґРѕР»Р¶РЅР° РѕР¶РёРґР°С‚СЊ
+            // Задача все еще должна ожидать
             Assert.IsFalse(waitTask.IsCompleted);
 
-            // РџСѓР±Р»РёРєСѓРµРј СЃРѕРѕР±С‰РµРЅРёРµ, РєРѕС‚РѕСЂРѕРµ РЅРµ РІС‹Р·С‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ
+            // Публикуем сообщение, которое не вызывает исключение
             bus.Publish(new TestMessage { Id = 2 });
 
             var result = await waitTask;
@@ -413,7 +413,7 @@ namespace RuntimeStuff.MSTests
 
         #endregion
 
-        #region РўРµСЃС‚С‹ РјРЅРѕРіРѕРїРѕС‚РѕС‡РЅРѕСЃС‚Рё
+        #region Тесты многопоточности
 
         [TestMethod]
         public void MultipleThreads_PublishAndSubscribe_ThreadSafe()
@@ -433,11 +433,11 @@ namespace RuntimeStuff.MSTests
 
             // Act
             var threads = new List<Thread>();
-            for (int i = 0; i < 10; i++)
+            for (var i = 0; i < 10; i++)
             {
                 var thread = new Thread(() =>
                 {
-                    for (int j = 0; j < 100; j++)
+                    for (var j = 0; j < 100; j++)
                     {
                         bus.Publish(new TestMessage { Id = j });
                     }
@@ -451,11 +451,11 @@ namespace RuntimeStuff.MSTests
                 thread.Join();
             }
 
-            // Р”Р°РµРј РІСЂРµРјСЏ РЅР° РѕР±СЂР°Р±РѕС‚РєСѓ РІСЃРµС… СЃРѕРѕР±С‰РµРЅРёР№
+            // Даем время на обработку всех сообщений
             Thread.Sleep(500);
 
             // Assert
-            Assert.AreEqual(1000, receivedCount); // 10 РїРѕС‚РѕРєРѕРІ * 100 СЃРѕРѕР±С‰РµРЅРёР№
+            Assert.AreEqual(1000, receivedCount); // 10 потоков * 100 сообщений
         }
 
         [TestMethod]
@@ -467,17 +467,17 @@ namespace RuntimeStuff.MSTests
             var tasks = new Task<TestMessage>[taskCount];
 
             // Act
-            for (int i = 0; i < taskCount; i++)
+            for (var i = 0; i < taskCount; i++)
             {
-                int taskId = i;
+                var taskId = i;
                 tasks[taskId] = bus.WaitForMessage<TestMessage>(
                     messageFilter: msg => msg.Id == taskId);
             }
 
-            await Task.Delay(50); // Р”Р°РµРј РІСЂРµРјСЏ РІСЃРµРј РїРѕРґРїРёСЃР°С‚СЊСЃСЏ
+            await Task.Delay(50); // Даем время всем подписаться
 
-            // РџСѓР±Р»РёРєСѓРµРј СЃРѕРѕР±С‰РµРЅРёСЏ РІ РѕР±СЂР°С‚РЅРѕРј РїРѕСЂСЏРґРєРµ
-            for (int i = taskCount - 1; i >= 0; i--)
+            // Публикуем сообщения в обратном порядке
+            for (var i = taskCount - 1; i >= 0; i--)
             {
                 bus.Publish(new TestMessage { Id = i });
                 await Task.Delay(10);
@@ -487,7 +487,7 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.AreEqual(taskCount, results.Length);
-            for (int i = 0; i < taskCount; i++)
+            for (var i = 0; i < taskCount; i++)
             {
                 Assert.AreEqual(i, results[i].Id);
             }
@@ -495,7 +495,7 @@ namespace RuntimeStuff.MSTests
 
         #endregion
 
-        #region РўРµСЃС‚С‹ Dispose
+        #region Тесты Dispose
 
         [TestMethod]
         public void Dispose_MultipleTimes_DoesNotThrow()
@@ -505,10 +505,10 @@ namespace RuntimeStuff.MSTests
 
             // Act
             bus.Dispose();
-            bus.Dispose(); // Р’С‚РѕСЂРѕР№ РІС‹Р·РѕРІ
+            bus.Dispose(); // Второй вызов
 
             // Assert
-            // Р•СЃР»Рё РЅРµ Р±С‹Р»Рѕ РёСЃРєР»СЋС‡РµРЅРёСЏ - С‚РµСЃС‚ РїСЂРѕР№РґРµРЅ
+            // Если не было исключения - тест пройден
             Assert.IsTrue(true);
         }
 
@@ -528,7 +528,7 @@ namespace RuntimeStuff.MSTests
 
             bus.Dispose();
 
-            // Р”Р°РµРј РЅРµР±РѕР»СЊС€РѕРµ РІСЂРµРјСЏ РЅР° Р·Р°РІРµСЂС€РµРЅРёРµ РѕР±СЂР°Р±РѕС‚РєРё
+            // Даем небольшое время на завершение обработки
             Thread.Sleep(100);
 
             // Assert
@@ -546,11 +546,11 @@ namespace RuntimeStuff.MSTests
             bus.Dispose();
 
             // Assert
-            // WaitForMessage РґРѕР»Р¶РµРЅ Р·Р°РІРµСЂС€РёС‚СЊСЃСЏ СЃ РёСЃРєР»СЋС‡РµРЅРёРµРј
+            // WaitForMessage должен завершиться с исключением
             await Assert.ThrowsExceptionAsync<ObjectDisposedException>(() => waitTask);
         }
 
-        // РўРµСЃС‚ РЅР° РѕР±СЂР°Р±РѕС‚РєСѓ РёСЃРєР»СЋС‡РµРЅРёР№ РІ РїРѕРґРїРёСЃС‡РёРєР°С…
+        // Тест на обработку исключений в подписчиках
         [TestMethod]
         public void Subscribe_HandlerThrowsException_DoesNotBreakBus()
         {
@@ -570,10 +570,10 @@ namespace RuntimeStuff.MSTests
             Thread.Sleep(50);
 
             // Assert
-            Assert.AreEqual(1, receivedMessages.Count); // Р’С‚РѕСЂРѕР№ РѕР±СЂР°Р±РѕС‚С‡РёРє РґРѕР»Р¶РµРЅ СЃСЂР°Р±РѕС‚Р°С‚СЊ
+            Assert.AreEqual(1, receivedMessages.Count); // Второй обработчик должен сработать
         }
 
-        // РўРµСЃС‚ РЅР° РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ
+        // Тест на производительность
         /// <summary>
         /// Defines the test method Performance_PublishManyMessages_HandlesCorrectly.
         /// </summary>
@@ -592,24 +592,24 @@ namespace RuntimeStuff.MSTests
 
             // Act
             var stopwatch = Stopwatch.StartNew();
-            for (int i = 0; i < 10000; i++)
+            for (var i = 0; i < 10000; i++)
             {
                 bus.Publish(new TestMessage { Id = i });
             }
 
-            // Р”Р°РµРј РІСЂРµРјСЏ РЅР° РѕР±СЂР°Р±РѕС‚РєСѓ
+            // Даем время на обработку
             Thread.Sleep(1000);
             stopwatch.Stop();
 
             // Assert
             Assert.AreEqual(10000, count);
             Assert.IsTrue(stopwatch.ElapsedMilliseconds < 2000,
-                $"РћР±СЂР°Р±РѕС‚РєР° Р·Р°РЅСЏР»Р° {stopwatch.ElapsedMilliseconds} РјСЃ");
+                $"Обработка заняла {stopwatch.ElapsedMilliseconds} мс");
         }
 
         #endregion
 
-        #region Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Рµ РєР»Р°СЃСЃС‹
+        #region Вспомогательные классы
 
         private class TestMessage
         {

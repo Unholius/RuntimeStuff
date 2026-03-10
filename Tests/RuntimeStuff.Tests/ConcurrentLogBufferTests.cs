@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using RuntimeStuff.Collections;
 
@@ -19,7 +19,7 @@ namespace RuntimeStuff.MSTests
             // Act
             Parallel.For(0, threadCount, thread =>
             {
-                for (int i = 0; i < iterations; i++)
+                for (var i = 0; i < iterations; i++)
                 {
                     buffer.Add((i * threadCount + thread).ToString());
                 }
@@ -46,7 +46,7 @@ namespace RuntimeStuff.MSTests
             var cts = new CancellationTokenSource();
             var tasks = new List<Task>();
 
-            for (int i = 0; i < threadCount; i++)
+            for (var i = 0; i < threadCount; i++)
             {
                 tasks.Add(Task.Run(async () =>
                 {
@@ -84,7 +84,7 @@ namespace RuntimeStuff.MSTests
                     {
                         // Since multiple threads add concurrently, strict ordering isn't guaranteed,
                         // but we should at least not get exceptions
-                        for (int j = 0; j < snapshot.Count; j++)
+                        for (var j = 0; j < snapshot.Count; j++)
                         {
                             // Just accessing should not throw
                             var _ = snapshot[j];
@@ -118,7 +118,7 @@ namespace RuntimeStuff.MSTests
 
             // Act
             stopwatch.Start();
-            for (int i = 0; i < iterations; i++)
+            for (var i = 0; i < iterations; i++)
             {
                 buffer.Add(i.ToString());
             }
@@ -153,7 +153,7 @@ namespace RuntimeStuff.MSTests
             // Act - Add many large items
             var largeArray = new byte[10000]; // 10KB per item
 
-            for (int i = 0; i < iterations; i++)
+            for (var i = 0; i < iterations; i++)
             {
                 buffer.Add(largeArray);
             }
@@ -186,7 +186,7 @@ namespace RuntimeStuff.MSTests
 
             // Act - Force index to wrap around by adding many items
             // We'll add enough items to cause multiple wrap-arounds
-            for (int i = 0; i < capacity * 10 + 2; i++) // 32 items for buffer of size 3
+            for (var i = 0; i < capacity * 10 + 2; i++) // 32 items for buffer of size 3
             {
                 buffer.Add(i.ToString());
             }
@@ -198,7 +198,7 @@ namespace RuntimeStuff.MSTests
 
             // Should contain the last 3 items
             var expectedStart = capacity * 10 + 2 - capacity; // 32 - 3 = 29
-            for (int i = 0; i < capacity; i++)
+            for (var i = 0; i < capacity; i++)
             {
                 Assert.AreEqual((expectedStart + i).ToString(), snapshot[i]);
             }

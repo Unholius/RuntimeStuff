@@ -1,4 +1,4 @@
-﻿using RuntimeStuff.Extensions;
+using RuntimeStuff.Extensions;
 using RuntimeStuff.Helpers;
 
 namespace RuntimeStuff.MSTests
@@ -6,6 +6,14 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class StringHelperTests
     {
+        [TestMethod]
+        public void SplitToList_Test_03()
+        {
+            var text = "2006310001105 95118164\r\n2007130000002 95114600\r\n2007130000003 95112930\r\n2001620007444 99017320\r\n2005600005426 96213874\r\n2004160004233 122220\r\n2006300001465 95117496\r\n2006300001467 95043926\r\n2005450004856 8180047903\r\n2004970017754 0\r\n2004090005388 0\r\n2004610008220 0";
+            var list = StringHelper.SplitToList<KeyValuePair<string, string>>(text, null, new string[] { " ", "|", ";", "\t" }, new string[] { Environment.NewLine, "\r", "\n" });
+            Assert.AreEqual(12, list.Count);
+        }
+
         [TestMethod]
         public void SplitToList_Test_01()
         {
@@ -32,11 +40,11 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithPascalCase_ReturnsSnakeCase()
         {
             // Arrange
-            string input = "PascalCase";
-            string expected = "pascal_case";
+            var input = "PascalCase";
+            var expected = "pascal_case";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -46,11 +54,11 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithCamelCase_ReturnsSnakeCase()
         {
             // Arrange
-            string input = "camelCase";
-            string expected = "camel_case";
+            var input = "camelCase";
+            var expected = "camel_case";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -60,11 +68,11 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithUnderscores_ReturnsSnakeCase()
         {
             // Arrange
-            string input = "already_snake_case";
-            string expected = "already_snake_case";
+            var input = "already_snake_case";
+            var expected = "already_snake_case";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -74,11 +82,11 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithHyphens_ReturnsSnakeCase()
         {
             // Arrange
-            string input = "kebab-case";
-            string expected = "kebab_case";
+            var input = "kebab-case";
+            var expected = "kebab_case";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -88,11 +96,11 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithSpaces_ReturnsSnakeCase()
         {
             // Arrange
-            string input = "spaces between words";
-            string expected = "spaces_between_words";
+            var input = "spaces between words";
+            var expected = "spaces_between_words";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -102,11 +110,11 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithAcronyms_ReturnsSnakeCase()
         {
             // Arrange
-            string input = "XMLHttpRequest";
-            string expected = "xml_http_request";
+            var input = "XMLHttpRequest";
+            var expected = "xml_http_request";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -116,11 +124,11 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithNumbers_ReturnsSnakeCase()
         {
             // Arrange
-            string input = "Version2Update3";
-            string expected = "version_2_update_3";
+            var input = "Version2Update3";
+            var expected = "version_2_update_3";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -130,11 +138,11 @@ namespace RuntimeStuff.MSTests
         public void ToSnakeCase_WithEmptyString_ReturnsEmptyString()
         {
             // Arrange
-            string input = "";
-            string expected = "";
+            var input = "";
+            var expected = "";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -145,10 +153,10 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             string? input = null;
-            string expected = "";
+            var expected = "";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -158,11 +166,11 @@ namespace RuntimeStuff.MSTests
         public void ToUpperSnaceCase_WithPascalCase_ReturnsUpperSnakeCase()
         {
             // Arrange
-            string input = "PascalCase";
-            string expected = "PASCAL_CASE";
+            var input = "PascalCase";
+            var expected = "PASCAL_CASE";
 
             // Act
-            string result = StringHelper.ToUpperSnaceCase(input);
+            var result = StringHelper.ToUpperSnaceCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -172,11 +180,11 @@ namespace RuntimeStuff.MSTests
         public void ToCamelCase_WithSnakeCase_ReturnsPascalCase()
         {
             // Arrange
-            string input = "snake_case_example";
-            string expected = "SnakeCaseExample";
+            var input = "snake_case_example";
+            var expected = "SnakeCaseExample";
 
             // Act
-            string result = StringHelper.ToCamelCase(input);
+            var result = StringHelper.ToCamelCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -186,11 +194,11 @@ namespace RuntimeStuff.MSTests
         public void ToCamelCase_WithKebabCase_ReturnsPascalCase()
         {
             // Arrange
-            string input = "kebab-case-example";
-            string expected = "KebabCaseExample";
+            var input = "kebab-case-example";
+            var expected = "KebabCaseExample";
 
             // Act
-            string result = StringHelper.ToCamelCase(input);
+            var result = StringHelper.ToCamelCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -200,11 +208,11 @@ namespace RuntimeStuff.MSTests
         public void ToLowerCamelCase_WithSnakeCase_ReturnsCamelCase()
         {
             // Arrange
-            string input = "snake_case_example";
-            string expected = "snakeCaseExample";
+            var input = "snake_case_example";
+            var expected = "snakeCaseExample";
 
             // Act
-            string result = StringHelper.ToLowerCamelCase(input);
+            var result = StringHelper.ToLowerCamelCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -214,11 +222,11 @@ namespace RuntimeStuff.MSTests
         public void ToLowerCamelCase_WithPascalCase_ReturnsCamelCase()
         {
             // Arrange
-            string input = "PascalCase";
-            string expected = "pascalCase";
+            var input = "PascalCase";
+            var expected = "pascalCase";
 
             // Act
-            string result = StringHelper.ToLowerCamelCase(input);
+            var result = StringHelper.ToLowerCamelCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -228,11 +236,11 @@ namespace RuntimeStuff.MSTests
         public void ToLowerCamelCase_WithSingleWord_ReturnsLowercase()
         {
             // Arrange
-            string input = "Single";
-            string expected = "single";
+            var input = "Single";
+            var expected = "single";
 
             // Act
-            string result = StringHelper.ToLowerCamelCase(input);
+            var result = StringHelper.ToLowerCamelCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -242,11 +250,11 @@ namespace RuntimeStuff.MSTests
         public void ToKebabCase_WithPascalCase_ReturnsKebabCase()
         {
             // Arrange
-            string input = "PascalCase";
-            string expected = "pascal-case";
+            var input = "PascalCase";
+            var expected = "pascal-case";
 
             // Act
-            string result = StringHelper.ToKebabCase(input);
+            var result = StringHelper.ToKebabCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -256,11 +264,11 @@ namespace RuntimeStuff.MSTests
         public void ToKebabCase_WithSnakeCase_ReturnsKebabCase()
         {
             // Arrange
-            string input = "snake_case";
-            string expected = "snake-case";
+            var input = "snake_case";
+            var expected = "snake-case";
 
             // Act
-            string result = StringHelper.ToKebabCase(input);
+            var result = StringHelper.ToKebabCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -270,11 +278,11 @@ namespace RuntimeStuff.MSTests
         public void ToKebabCase_WithMixedCase_ReturnsKebabCase()
         {
             // Arrange
-            string input = "Mixed_Case-With Spaces";
-            string expected = "mixed-case-with-spaces";
+            var input = "Mixed_Case-With Spaces";
+            var expected = "mixed-case-with-spaces";
 
             // Act
-            string result = StringHelper.ToKebabCase(input);
+            var result = StringHelper.ToKebabCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -284,11 +292,11 @@ namespace RuntimeStuff.MSTests
         public void SplitWords_WithMultipleSeparators_WorksCorrectly()
         {
             // Arrange
-            string input = "test_with-mixed spaces_and_underscores";
-            string expected = "test_with_mixed_spaces_and_underscores";
+            var input = "test_with-mixed spaces_and_underscores";
+            var expected = "test_with_mixed_spaces_and_underscores";
 
             // Act
-            string result = StringHelper.ToSnakeCase(input);
+            var result = StringHelper.ToSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);

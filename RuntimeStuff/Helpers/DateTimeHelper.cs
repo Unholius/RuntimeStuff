@@ -1,4 +1,4 @@
-п»ї// ***********************************************************************
+// ***********************************************************************
 // Assembly         : RuntimeStuff
 // Author           : RS
 // Created          : 10-13-2025
@@ -21,13 +21,13 @@ namespace RuntimeStuff.Helpers
     using System.Threading;
 
     /// <summary>
-    /// РџСЂРµРґРѕСЃС‚Р°РІР»СЏРµС‚ РЅР°Р±РѕСЂ СЃС‚Р°С‚РёС‡РµСЃРєРёС… РјРµС‚РѕРґРѕРІ РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ РґР°С‚Р°РјРё Рё РІСЂРµРјРµРЅРµРј, РІРєР»СЋС‡Р°СЏ РїРѕР»СѓС‡РµРЅРёРµ СѓРЅРёРєР°Р»СЊРЅС‹С… С‚РёРєРѕРІ, РїР°СЂСЃРёРЅРі
-    /// РІСЂРµРјРµРЅРЅС‹С… РёРЅС‚РµСЂРІР°Р»РѕРІ РёР· СЃС‚СЂРѕРє, Р° С‚Р°РєР¶Рµ РІС‹С‡РёСЃР»РµРЅРёРµ РЅР°С‡Р°Р»Р° Рё РєРѕРЅС†Р° РґРЅСЏ, РјРµСЃСЏС†Р° Рё РіРѕРґР°.
+    /// Предоставляет набор статических методов для работы с датами и временем, включая получение уникальных тиков, парсинг
+    /// временных интервалов из строк, а также вычисление начала и конца дня, месяца и года.
     /// </summary>
-    /// <remarks>РљР»Р°СЃСЃ РїСЂРµРґРЅР°Р·РЅР°С‡РµРЅ РґР»СЏ СѓРїСЂРѕС‰РµРЅРёСЏ С‚РёРїРѕРІС‹С… РѕРїРµСЂР°С†РёР№ СЃ РґР°С‚РѕР№ Рё РІСЂРµРјРµРЅРµРј, С‚Р°РєРёС… РєР°Рє РѕРїСЂРµРґРµР»РµРЅРёРµ РЅР°Р»РёС‡РёСЏ
-    /// РєРѕРјРїРѕРЅРµРЅС‚Р° РІСЂРµРјРµРЅРё, РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ СЃС‚СЂРѕРєРѕРІС‹С… РёРЅС‚РµСЂРІР°Р»РѕРІ РІ TimeSpan, Р° С‚Р°РєР¶Рµ Р±РµР·РѕРїР°СЃРЅРѕРµ РїРѕР»СѓС‡РµРЅРёРµ СѓРЅРёРєР°Р»СЊРЅС‹С… Р·РЅР°С‡РµРЅРёР№
-    /// РІСЂРµРјРµРЅРё РґР»СЏ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅС‹С… РІС‹Р·РѕРІРѕРІ. Р’СЃРµ РјРµС‚РѕРґС‹ СЂРµР°Р»РёР·РѕРІР°РЅС‹ РєР°Рє СЃС‚Р°С‚РёС‡РµСЃРєРёРµ Рё РїРѕС‚РѕРєРѕР±РµР·РѕРїР°СЃРЅС‹, С‡С‚Рѕ РїРѕР·РІРѕР»СЏРµС‚
-    /// РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РёС… Р±РµР· СЃРѕР·РґР°РЅРёСЏ СЌРєР·РµРјРїР»СЏСЂР° РєР»Р°СЃСЃР°.</remarks>
+    /// <remarks>Класс предназначен для упрощения типовых операций с датой и временем, таких как определение наличия
+    /// компонента времени, преобразование строковых интервалов в TimeSpan, а также безопасное получение уникальных значений
+    /// времени для последовательных вызовов. Все методы реализованы как статические и потокобезопасны, что позволяет
+    /// использовать их без создания экземпляра класса.</remarks>
     public static class DateTimeHelper
     {
         /// <summary>
@@ -92,8 +92,8 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Gets РІРѕР·РІСЂР°С‰Р°РµС‚ СѓРЅРёРєР°Р»СЊРЅС‹Рµ С‚РёРєРё РґР»СЏ С‚РµРєСѓС‰РµРіРѕ РјРѕРјРµРЅС‚Р° РІСЂРµРјРµРЅРё (РіР°СЂР°РЅС‚РёСЂСѓРµС‚ СѓРЅРёРєР°Р»СЊРЅРѕСЃС‚СЊ РґР°Р¶Рµ РїСЂРё Р±С‹СЃС‚СЂС‹С… РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅС‹С…
-        /// РІС‹Р·РѕРІР°С…).
+        /// Gets возвращает уникальные тики для текущего момента времени (гарантирует уникальность даже при быстрых последовательных
+        /// вызовах).
         /// </summary>
         /// <value>The now ticks.</value>
         public static long NowTicks
@@ -120,9 +120,9 @@ namespace RuntimeStuff.Helpers
         private static TimeSpan LocalUtcOffset { get; set; }
 
         /// <summary>
-        /// Gets СѓРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ РєРѕРЅРІРµСЂС‚РµСЂ СЃС‚СЂРѕРєРё РІ DateTime?, РЅРµ Р·Р°РІРёСЃСЏС‰РёР№ РѕС‚ СЂРµРіРёРѕРЅР°Р»СЊРЅС‹С… РЅР°СЃС‚СЂРѕРµРє.
-        /// РџС‹С‚Р°РµС‚СЃСЏ СЂР°СЃРїР°СЂСЃРёС‚СЊ РґР°С‚Сѓ РёР· СЃС‚СЂРѕРєРё, РёСЃРїРѕР»СЊР·СѓСЏ РЅР°Р±РѕСЂ С„РёРєСЃРёСЂРѕРІР°РЅРЅС‹С… С„РѕСЂРјР°С‚РѕРІ. Р•СЃР»Рё РЅРµ РїРѕР»СѓС‡Р°РµС‚СЃСЏ, С‚Рѕ РїС‹С‚Р°РµС‚СЃСЏ СѓРіР°РґР°С‚СЊ
-        /// С„РѕСЂРјР°С‚.
+        /// Gets универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
+        /// Пытается распарсить дату из строки, используя набор фиксированных форматов. Если не получается, то пытается угадать
+        /// формат.
         /// </summary>
         private static Converter<string, DateTime?> StringToDateTimeConverter { get; } = s =>
         {
@@ -141,7 +141,7 @@ namespace RuntimeStuff.Helpers
                 return d;
             }
 
-            // РџСЂРѕР±СѓРµРј СѓРіР°РґР°С‚СЊ С„РѕСЂРјР°С‚:
+            // Пробуем угадать формат:
             var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
             var dateParts = dateTimeParts[0]
                 .Split(new[] { '.', '\\', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
@@ -188,11 +188,11 @@ namespace RuntimeStuff.Helpers
         };
 
         /// <summary>
-        /// Р”РѕР±Р°РІР»СЏРµС‚ Рє РґР°С‚Рµ РІСЂРµРјРµРЅРЅРѕР№ РёРЅС‚РµСЂРІР°Р», Р·Р°РґР°РЅРЅС‹Р№ СЃС‚СЂРѕРєРѕР№.
+        /// Добавляет к дате временной интервал, заданный строкой.
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р°.</param>
-        /// <param name="timeSpan">РЎС‚СЂРѕРєР° СЃ РІСЂРµРјРµРЅРЅС‹Рј РёРЅС‚РµСЂРІР°Р»РѕРј <see cref="ParseTimeSpan(string)" />.</param>
-        /// <returns>РќРѕРІР°СЏ РґР°С‚Р° РїРѕСЃР»Рµ РґРѕР±Р°РІР»РµРЅРёСЏ РёРЅС‚РµСЂРІР°Р»Р°.</returns>
+        /// <param name="date">Исходная дата.</param>
+        /// <param name="timeSpan">Строка с временным интервалом <see cref="ParseTimeSpan(string)" />.</param>
+        /// <returns>Новая дата после добавления интервала.</returns>
         public static DateTime Add(DateTime date, string timeSpan)
         {
             var timeIntervals = ParseTimeSpan(timeSpan);
@@ -206,17 +206,17 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РЅР°С‡Р°Р»Рѕ РґРЅСЏ (00:00:00) РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕР№ РґР°С‚С‹.
+        /// Возвращает начало дня (00:00:00) для указанной даты.
         /// </summary>
-        /// <param name="dt">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РІСЂРµРјРµРЅРµРј 00:00:00.</returns>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с временем 00:00:00.</returns>
         public static DateTime BeginDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, dt.Kind);
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РЅР°С‡Р°Р»Рѕ РґРЅСЏ (00:00:00) РґР»СЏ nullable РґР°С‚С‹.
+        /// Возвращает начало дня (00:00:00) для nullable даты.
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ nullable РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РІСЂРµРјРµРЅРµРј 00:00:00 РёР»Рё DateTime.MinValue РµСЃР»Рё date СЂР°РІРЅРѕ null.</returns>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
         public static DateTime BeginDay(DateTime? date)
         {
             if (date == null)
@@ -229,17 +229,17 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РЅР°С‡Р°Р»Рѕ РјРµСЃСЏС†Р° (РїРµСЂРІС‹Р№ РґРµРЅСЊ, 00:00:00) РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕР№ РґР°С‚С‹.
+        /// Возвращает начало месяца (первый день, 00:00:00) для указанной даты.
         /// </summary>
-        /// <param name="dt">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РїРµСЂРІС‹Рј РґРЅРµРј РјРµСЃСЏС†Р° Рё РІСЂРµРјРµРЅРµРј 00:00:00.</returns>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с первым днем месяца и временем 00:00:00.</returns>
         public static DateTime BeginMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, dt.Kind);
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РЅР°С‡Р°Р»Рѕ РјРµСЃСЏС†Р° (РїРµСЂРІС‹Р№ РґРµРЅСЊ, 00:00:00) РґР»СЏ nullable РґР°С‚С‹.
+        /// Возвращает начало месяца (первый день, 00:00:00) для nullable даты.
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ nullable РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РїРµСЂРІС‹Рј РґРЅРµРј РјРµСЃСЏС†Р° Рё РІСЂРµРјРµРЅРµРј 00:00:00 РёР»Рё DateTime.MinValue РµСЃР»Рё date СЂР°РІРЅРѕ null.</returns>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с первым днем месяца и временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
         public static DateTime BeginMonth(DateTime? date)
         {
             if (date == null)
@@ -252,17 +252,17 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РЅР°С‡Р°Р»Рѕ РіРѕРґР° (РїРµСЂРІС‹Р№ РґРµРЅСЊ, 00:00:00) РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕР№ РґР°С‚С‹.
+        /// Возвращает начало года (первый день, 00:00:00) для указанной даты.
         /// </summary>
-        /// <param name="dt">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РїРµСЂРІС‹Рј РґРЅРµРј РіРѕРґР° Рё РІСЂРµРјРµРЅРµРј 00:00:00.</returns>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с первым днем года и временем 00:00:00.</returns>
         public static DateTime BeginYear(DateTime dt) => new DateTime(dt.Year, 1, 1, 0, 0, 0, dt.Kind);
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РЅР°С‡Р°Р»Рѕ РіРѕРґР° (РїРµСЂРІС‹Р№ РґРµРЅСЊ, 00:00:00) РґР»СЏ nullable РґР°С‚С‹.
+        /// Возвращает начало года (первый день, 00:00:00) для nullable даты.
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ nullable РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РїРµСЂРІС‹Рј РґРЅРµРј РіРѕРґР° Рё РІСЂРµРјРµРЅРµРј 00:00:00 РёР»Рё DateTime.MinValue РµСЃР»Рё date СЂР°РІРЅРѕ null.</returns>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с первым днем года и временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
         public static DateTime BeginYear(DateTime? date)
         {
             if (date == null)
@@ -289,17 +289,17 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРЅРµС† РґРЅСЏ (23:59:59.999) РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕР№ РґР°С‚С‹.
+        /// Возвращает конец дня (23:59:59.999) для указанной даты.
         /// </summary>
-        /// <param name="dt">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РІСЂРµРјРµРЅРµРј 23:59:59.999.</returns>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с временем 23:59:59.999.</returns>
         public static DateTime EndDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, dt.Kind);
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРЅРµС† РґРЅСЏ (23:59:59.999) РґР»СЏ nullable РґР°С‚С‹.
+        /// Возвращает конец дня (23:59:59.999) для nullable даты.
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ nullable РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РІСЂРµРјРµРЅРµРј 23:59:59.999 РёР»Рё DateTime.MaxValue РµСЃР»Рё date СЂР°РІРЅРѕ null.</returns>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
         public static DateTime EndDay(DateTime? date)
         {
             if (date == null)
@@ -312,17 +312,17 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРЅРµС† РјРµСЃСЏС†Р° (РїРѕСЃР»РµРґРЅРёР№ РґРµРЅСЊ, 23:59:59.999) РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕР№ РґР°С‚С‹.
+        /// Возвращает конец месяца (последний день, 23:59:59.999) для указанной даты.
         /// </summary>
-        /// <param name="dt">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РїРѕСЃР»РµРґРЅРёРј РґРЅРµРј РјРµСЃСЏС†Р° Рё РІСЂРµРјРµРЅРµРј 23:59:59.999.</returns>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с последним днем месяца и временем 23:59:59.999.</returns>
         public static DateTime EndMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999, dt.Kind);
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРЅРµС† РјРµСЃСЏС†Р° (РїРѕСЃР»РµРґРЅРёР№ РґРµРЅСЊ, 23:59:59.999) РґР»СЏ nullable РґР°С‚С‹.
+        /// Возвращает конец месяца (последний день, 23:59:59.999) для nullable даты.
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ nullable РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РїРѕСЃР»РµРґРЅРёРј РґРЅРµРј РјРµСЃСЏС†Р° Рё РІСЂРµРјРµРЅРµРј 23:59:59.999 РёР»Рё DateTime.MaxValue РµСЃР»Рё date СЂР°РІРЅРѕ null.</returns>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с последним днем месяца и временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
         public static DateTime EndMonth(DateTime? date)
         {
             if (date == null)
@@ -335,17 +335,17 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРЅРµС† РіРѕРґР° (РїРѕСЃР»РµРґРЅРёР№ РґРµРЅСЊ, 23:59:59.999) РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕР№ РґР°С‚С‹.
+        /// Возвращает конец года (последний день, 23:59:59.999) для указанной даты.
         /// </summary>
-        /// <param name="dt">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РїРѕСЃР»РµРґРЅРёРј РґРЅРµРј РіРѕРґР° Рё РІСЂРµРјРµРЅРµРј 23:59:59.999.</returns>
+        /// <param name="dt">Исходная дата.</param>
+        /// <returns>Дата с последним днем года и временем 23:59:59.999.</returns>
         public static DateTime EndYear(DateTime dt) => new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999, dt.Kind);
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РєРѕРЅРµС† РіРѕРґР° (РїРѕСЃР»РµРґРЅРёР№ РґРµРЅСЊ, 23:59:59.999) РґР»СЏ nullable РґР°С‚С‹.
+        /// Возвращает конец года (последний день, 23:59:59.999) для nullable даты.
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ nullable РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° СЃ РїРѕСЃР»РµРґРЅРёРј РґРЅРµРј РіРѕРґР° Рё РІСЂРµРјРµРЅРµРј 23:59:59.999 РёР»Рё DateTime.MaxValue РµСЃР»Рё date СЂР°РІРЅРѕ null.</returns>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата с последним днем года и временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
         public static DateTime EndYear(DateTime? date)
         {
             if (date == null)
@@ -358,77 +358,77 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ С‚РµРєСѓС‰СѓСЋ РґР°С‚Сѓ Рё РІСЂРµРјСЏ СЃ РіР°СЂР°РЅС‚РёРµР№ СѓРЅРёРєР°Р»СЊРЅРѕСЃС‚Рё С‚РёРєРѕРІ.
+        /// Возвращает текущую дату и время с гарантией уникальности тиков.
         /// </summary>
-        /// <returns>РўРµРєСѓС‰Р°СЏ РґР°С‚Р° Рё РІСЂРµРјСЏ СЃ СѓРЅРёРєР°Р»СЊРЅС‹РјРё С‚РёРєР°РјРё.</returns>
+        /// <returns>Текущая дата и время с уникальными тиками.</returns>
         public static DateTime ExactNow() => new DateTime(NowTicks, DateTimeKind.Local);
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ СѓРЅРёРєР°Р»СЊРЅС‹Рµ С‚РёРєРё РґР»СЏ С‚РµРєСѓС‰РµРіРѕ РјРѕРјРµРЅС‚Р° РІСЂРµРјРµРЅРё.
+        /// Возвращает уникальные тики для текущего момента времени.
         /// </summary>
-        /// <returns>РЈРЅРёРєР°Р»СЊРЅС‹Рµ С‚РёРєРё С‚РµРєСѓС‰РµРіРѕ РјРѕРјРµРЅС‚Р° РІСЂРµРјРµРЅРё.</returns>
+        /// <returns>Уникальные тики текущего момента времени.</returns>
         public static long ExactTicks() => NowTicks;
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РґР°С‚ Рё РІСЂРµРјРµРЅРё РІ Р·Р°РґР°РЅРЅРѕРј РґРёР°РїР°Р·РѕРЅРµ
-        /// СЃ РїСЂРѕРёР·РІРѕР»СЊРЅС‹Рј С€Р°РіРѕРј Рё РёРЅС‚РµСЂРІР°Р»РѕРј, СЃ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊСЋ С„РёР»СЊС‚СЂР°С†РёРё.
+        /// Возвращает последовательность дат и времени в заданном диапазоне
+        /// с произвольным шагом и интервалом, с возможностью фильтрации.
         /// </summary>
         /// <param name="startDate">
-        /// РќР°С‡Р°Р»СЊРЅР°СЏ РґР°С‚Р° РґРёР°РїР°Р·РѕРЅР° (РІРєР»СЋС‡РёС‚РµР»СЊРЅРѕ).
+        /// Начальная дата диапазона (включительно).
         /// </param>
         /// <param name="endDate">
-        /// РљРѕРЅРµС‡РЅР°СЏ РґР°С‚Р° РґРёР°РїР°Р·РѕРЅР° (РІРєР»СЋС‡РёС‚РµР»СЊРЅРѕ).
+        /// Конечная дата диапазона (включительно).
         /// </param>
         /// <param name="step">
-        /// РЁР°Рі РёР·РјРµРЅРµРЅРёСЏ РґР°С‚С‹. РњРѕР¶РµС‚ Р±С‹С‚СЊ РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹Рј (РґРІРёР¶РµРЅРёРµ РІРїРµСЂС‘Рґ)
-        /// РёР»Рё РѕС‚СЂРёС†Р°С‚РµР»СЊРЅС‹Рј (РґРІРёР¶РµРЅРёРµ РЅР°Р·Р°Рґ), РЅРѕ РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ СЂР°РІРµРЅ РЅСѓР»СЋ.
+        /// Шаг изменения даты. Может быть положительным (движение вперёд)
+        /// или отрицательным (движение назад), но не может быть равен нулю.
         /// </param>
         /// <param name="interval">
-        /// РўРёРї РІСЂРµРјРµРЅРЅРѕРіРѕ РёРЅС‚РµСЂРІР°Р»Р°, РЅР° РєРѕС‚РѕСЂС‹Р№ РёР·РјРµРЅСЏРµС‚СЃСЏ РґР°С‚Р° РїСЂРё РєР°Р¶РґРѕРј С€Р°РіРµ
-        /// (РґРµРЅСЊ, РЅРµРґРµР»СЏ, РјРµСЃСЏС†, РіРѕРґ Рё С‚.Рї.).
+        /// Тип временного интервала, на который изменяется дата при каждом шаге
+        /// (день, неделя, месяц, год и т.п.).
         /// </param>
         /// <param name="includeDate">
-        /// РќРµРѕР±СЏР·Р°С‚РµР»СЊРЅР°СЏ С„СѓРЅРєС†РёСЏ-С„РёР»СЊС‚СЂ, РѕРїСЂРµРґРµР»СЏСЋС‰Р°СЏ, РґРѕР»Р¶РЅР° Р»Рё С‚РµРєСѓС‰Р°СЏ РґР°С‚Р°
-        /// Р±С‹С‚СЊ РІРєР»СЋС‡РµРЅР° РІ СЂРµР·СѓР»СЊС‚РёСЂСѓСЋС‰СѓСЋ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ.
-        /// РџР°СЂР°РјРµС‚СЂС‹ С„СѓРЅРєС†РёРё:
+        /// Необязательная функция-фильтр, определяющая, должна ли текущая дата
+        /// быть включена в результирующую последовательность.
+        /// Параметры функции:
         /// <list type="bullet">
-        /// <item><description>РїРµСЂРІС‹Р№ вЂ” С‚РµРєСѓС‰Р°СЏ РґР°С‚Р°;</description></item>
-        /// <item><description>РІС‚РѕСЂРѕР№ вЂ” РїРѕСЂСЏРґРєРѕРІС‹Р№ РёРЅРґРµРєСЃ С€Р°РіР° (РЅР°С‡РёРЅР°СЏ СЃ 0).</description></item>
+        /// <item><description>первый — текущая дата;</description></item>
+        /// <item><description>второй — порядковый индекс шага (начиная с 0).</description></item>
         /// </list>
-        /// Р•СЃР»Рё С„СѓРЅРєС†РёСЏ РІРѕР·РІСЂР°С‰Р°РµС‚ <c>true</c>, РґР°С‚Р° РІРєР»СЋС‡Р°РµС‚СЃСЏ.
+        /// Если функция возвращает <c>true</c>, дата включается.
         /// </param>
         /// <param name="excludeDate">
-        /// РќРµРѕР±СЏР·Р°С‚РµР»СЊРЅР°СЏ С„СѓРЅРєС†РёСЏ-С„РёР»СЊС‚СЂ, РѕРїСЂРµРґРµР»СЏСЋС‰Р°СЏ, РґРѕР»Р¶РЅР° Р»Рё С‚РµРєСѓС‰Р°СЏ РґР°С‚Р°
-        /// Р±С‹С‚СЊ РёСЃРєР»СЋС‡РµРЅР° РёР· СЂРµР·СѓР»СЊС‚РёСЂСѓСЋС‰РµР№ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚Рё.
-        /// РџР°СЂР°РјРµС‚СЂС‹ С„СѓРЅРєС†РёРё Р°РЅР°Р»РѕРіРёС‡РЅС‹ <paramref name="includeDate"/>.
-        /// Р•СЃР»Рё С„СѓРЅРєС†РёСЏ РІРѕР·РІСЂР°С‰Р°РµС‚ <c>true</c>, РґР°С‚Р° РёСЃРєР»СЋС‡Р°РµС‚СЃСЏ.
+        /// Необязательная функция-фильтр, определяющая, должна ли текущая дата
+        /// быть исключена из результирующей последовательности.
+        /// Параметры функции аналогичны <paramref name="includeDate"/>.
+        /// Если функция возвращает <c>true</c>, дата исключается.
         /// </param>
         /// <returns>
-        /// РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ Р·РЅР°С‡РµРЅРёР№ <see cref="DateTime"/>, СѓРґРѕРІР»РµС‚РІРѕСЂСЏСЋС‰РёС…
-        /// Р·Р°РґР°РЅРЅРѕРјСѓ РґРёР°РїР°Р·РѕРЅСѓ, С€Р°РіСѓ, РёРЅС‚РµСЂРІР°Р»Сѓ Рё СѓСЃР»РѕРІРёСЏРј С„РёР»СЊС‚СЂР°С†РёРё.
+        /// Последовательность значений <see cref="DateTime"/>, удовлетворяющих
+        /// заданному диапазону, шагу, интервалу и условиям фильтрации.
         /// </returns>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё <paramref name="step"/> СЂР°РІРµРЅ РЅСѓР»СЋ.
+        /// Выбрасывается, если <paramref name="step"/> равен нулю.
         /// </exception>
         /// <remarks>
         /// <para>
-        /// РќР°РїСЂР°РІР»РµРЅРёРµ РїРµСЂРµР±РѕСЂР° РѕРїСЂРµРґРµР»СЏРµС‚СЃСЏ Р·РЅР°РєРѕРј РїР°СЂР°РјРµС‚СЂР° <paramref name="step"/>:
-        /// РїРѕР»РѕР¶РёС‚РµР»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ вЂ” РѕС‚ <paramref name="startDate"/> Рє <paramref name="endDate"/>,
-        /// РѕС‚СЂРёС†Р°С‚РµР»СЊРЅРѕРµ вЂ” РІ РѕР±СЂР°С‚РЅРѕРј РЅР°РїСЂР°РІР»РµРЅРёРё.
+        /// Направление перебора определяется знаком параметра <paramref name="step"/>:
+        /// положительное значение — от <paramref name="startDate"/> к <paramref name="endDate"/>,
+        /// отрицательное — в обратном направлении.
         /// </para>
         /// <para>
-        /// Р•СЃР»Рё РЅР°РїСЂР°РІР»РµРЅРёРµ РїРµСЂРµР±РѕСЂР° РЅРµ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ РіСЂР°РЅРёС†Р°Рј РґРёР°РїР°Р·РѕРЅР°
-        /// (РЅР°РїСЂРёРјРµСЂ, РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹Р№ С€Р°Рі РїСЂРё <paramref name="startDate"/> Р±РѕР»СЊС€Рµ
-        /// <paramref name="endDate"/>), РјРµС‚РѕРґ РІРѕР·РІСЂР°С‰Р°РµС‚ РїСѓСЃС‚СѓСЋ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ.
+        /// Если направление перебора не соответствует границам диапазона
+        /// (например, положительный шаг при <paramref name="startDate"/> больше
+        /// <paramref name="endDate"/>), метод возвращает пустую последовательность.
         /// </para>
         /// <para>
-        /// Р”Р»СЏ РїРµСЂРµС…РѕРґР° Рє СЃР»РµРґСѓСЋС‰РµР№ РґР°С‚Рµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РІСЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Р№ РјРµС‚РѕРґ
-        /// <c>AddInterval</c>, РєРѕС‚РѕСЂС‹Р№ РёРЅРєР°РїСЃСѓР»РёСЂСѓРµС‚ Р»РѕРіРёРєСѓ РґРѕР±Р°РІР»РµРЅРёСЏ РІСЂРµРјРµРЅРЅРѕРіРѕ РёРЅС‚РµСЂРІР°Р»Р°.
+        /// Для перехода к следующей дате используется вспомогательный метод
+        /// <c>AddInterval</c>, который инкапсулирует логику добавления временного интервала.
         /// </para>
         /// <para>
-        /// РЎРЅР°С‡Р°Р»Р° РїСЂРёРјРµРЅСЏРµС‚СЃСЏ <paramref name="includeDate"/>, Р·Р°С‚РµРј
-        /// <paramref name="excludeDate"/>. Р”Р°С‚Р° РІРєР»СЋС‡Р°РµС‚СЃСЏ РІ СЂРµР·СѓР»СЊС‚Р°С‚
-        /// С‚РѕР»СЊРєРѕ РµСЃР»Рё РѕРЅР° СѓРґРѕРІР»РµС‚РІРѕСЂСЏРµС‚ РѕР±РѕРёРј СѓСЃР»РѕРІРёСЏРј.
+        /// Сначала применяется <paramref name="includeDate"/>, затем
+        /// <paramref name="excludeDate"/>. Дата включается в результат
+        /// только если она удовлетворяет обоим условиям.
         /// </para>
         /// </remarks>
         public static IEnumerable<DateTime> GetDates(
@@ -454,32 +454,32 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// РџСЂРµРѕР±СЂР°Р·СѓРµС‚ РІРµР»РёС‡РёРЅСѓ РІСЂРµРјРµРЅРё РІ РІРёРґРµ С‡РёСЃР»Р° <paramref name="elapsed" /> Рё РёРЅС‚РµСЂРІР°Р»Р°
-        /// <paramref name="timeInterval" /> РІ РѕР±СЉРµРєС‚ <see cref="TimeSpan" />.
+        /// Преобразует величину времени в виде числа <paramref name="elapsed" /> и интервала
+        /// <paramref name="timeInterval" /> в объект <see cref="TimeSpan" />.
         /// </summary>
-        /// <param name="elapsed">Р’РµР»РёС‡РёРЅР° РІСЂРµРјРµРЅРё РІ РµРґРёРЅРёС†Р°С…, Р·Р°РґР°РЅРЅС‹С… <paramref name="timeInterval" />.</param>
-        /// <param name="timeInterval">Р•РґРёРЅРёС†Р° РёР·РјРµСЂРµРЅРёСЏ РґР»СЏ <paramref name="elapsed" />.</param>
-        /// <returns>Р­РєРІРёРІР°Р»РµРЅС‚РЅРѕРµ Р·РЅР°С‡РµРЅРёРµ <see cref="TimeSpan" />.
-        /// Р”Р»СЏ РјРµСЃСЏС†РµРІ Рё Р»РµС‚ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РїСЂРёР±Р»РёР¶С‘РЅРЅРѕРµ РІС‹С‡РёСЃР»РµРЅРёРµ:
-        /// <list type="bullet"><item><description>1 РјРµСЃСЏС† в‰€ 30 РґРЅРµР№</description></item><item><description>1 РіРѕРґ в‰€ 365 РґРЅРµР№</description></item></list></returns>
+        /// <param name="elapsed">Величина времени в единицах, заданных <paramref name="timeInterval" />.</param>
+        /// <param name="timeInterval">Единица измерения для <paramref name="elapsed" />.</param>
+        /// <returns>Эквивалентное значение <see cref="TimeSpan" />.
+        /// Для месяцев и лет используется приближённое вычисление:
+        /// <list type="bullet"><item><description>1 месяц ? 30 дней</description></item><item><description>1 год ? 365 дней</description></item></list></returns>
         /// <exception cref="System.ArgumentOutOfRangeException">timeInterval.</exception>
         /// <example>
         ///   <code>
-        /// // 2.5 С‡Р°СЃР°
+        /// // 2.5 часа
         /// TimeSpan ts1 = GetElapsedTime(2.5, DateTimeInterval.Hour);
-        /// // 3 РјРµСЃСЏС†Р° в‰€ 90 РґРЅРµР№
+        /// // 3 месяца ? 90 дней
         /// TimeSpan ts2 = GetElapsedTime(3, DateTimeInterval.Month);
         /// </code>
         /// </example>
-        /// <remarks>РњРµС‚РѕРґ РёСЃРїРѕР»СЊР·СѓРµС‚ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рµ С„СѓРЅРєС†РёРё <see cref="TimeSpan.FromMilliseconds" />,
+        /// <remarks>Метод использует стандартные функции <see cref="TimeSpan.FromMilliseconds" />,
         /// <see cref="TimeSpan.FromSeconds" />, <see cref="TimeSpan.FromMinutes" />,
-        /// <see cref="TimeSpan.FromHours" /> Рё <see cref="TimeSpan.FromDays" /> РґР»СЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ.
-        /// Р”Р»СЏ РёРЅС‚РµСЂРІР°Р»РѕРІ <see cref="DateTimeInterval.Month" /> Рё <see cref="DateTimeInterval.Year" />
-        /// РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РїСЂРёР±Р»РёР¶С‘РЅРЅРѕРµ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ С‡РµСЂРµР· РґРЅРё (30 Рё 365 СЃРѕРѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕ),
-        /// РїРѕСЌС‚РѕРјСѓ СЂРµР·СѓР»СЊС‚Р°С‚ СЏРІР»СЏРµС‚СЃСЏ РѕСЂРёРµРЅС‚РёСЂРѕРІРѕС‡РЅС‹Рј Рё РЅРµ СѓС‡РёС‚С‹РІР°РµС‚ СЂР°Р·РЅС‹Рµ РґР»РёРЅС‹ РјРµСЃСЏС†РµРІ Рё РІРёСЃРѕРєРѕСЃРЅС‹Рµ РіРѕРґС‹.</remarks>
+        /// <see cref="TimeSpan.FromHours" /> и <see cref="TimeSpan.FromDays" /> для преобразования.
+        /// Для интервалов <see cref="DateTimeInterval.Month" /> и <see cref="DateTimeInterval.Year" />
+        /// используется приближённое преобразование через дни (30 и 365 соответственно),
+        /// поэтому результат является ориентировочным и не учитывает разные длины месяцев и високосные годы.</remarks>
         public static TimeSpan GetElapsedTime(double elapsed, DateTimeInterval timeInterval)
         {
-            // РєРѕРЅРІРµСЂС‚РёСЂСѓРµРј elapsed РІ TimeSpan
+            // конвертируем elapsed в TimeSpan
             TimeSpan ts;
             switch (timeInterval)
             {
@@ -508,11 +508,11 @@ namespace RuntimeStuff.Helpers
                     break;
 
                 case DateTimeInterval.Month:
-                    ts = TimeSpan.FromDays(elapsed * 30); // РїСЂРёР±Р»РёР¶РµРЅРЅРѕ
+                    ts = TimeSpan.FromDays(elapsed * 30); // приближенно
                     break;
 
                 case DateTimeInterval.Year:
-                    ts = TimeSpan.FromDays(elapsed * 365); // РїСЂРёР±Р»РёР¶РµРЅРЅРѕ
+                    ts = TimeSpan.FromDays(elapsed * 365); // приближенно
                     break;
 
                 default:
@@ -523,55 +523,55 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// РџСЂРµРѕР±СЂР°Р·СѓРµС‚ РІРµР»РёС‡РёРЅСѓ РІСЂРµРјРµРЅРё РІ С‡РµР»РѕРІРµРєРѕС‡РёС‚Р°РµРјСѓСЋ СЃС‚СЂРѕРєСѓ СЃ СѓРєР°Р·Р°РЅРЅС‹Рј С„РѕСЂРјР°С‚РѕРј.
+        /// Преобразует величину времени в человекочитаемую строку с указанным форматом.
         /// </summary>
-        /// <param name="elapsed">Р’РµР»РёС‡РёРЅР° РІСЂРµРјРµРЅРё РІ РµРґРёРЅРёС†Р°С…, Р·Р°РґР°РЅРЅС‹С… <paramref name="timeInterval" />.</param>
-        /// <param name="timeInterval">Р•РґРёРЅРёС†Р° РёР·РјРµСЂРµРЅРёСЏ РґР»СЏ <paramref name="elapsed" />.</param>
-        /// <param name="format">Р¤РѕСЂРјР°С‚ СЃС‚СЂРѕРєРё СЃ С‚РѕРєРµРЅР°РјРё РґР»СЏ Р·Р°РјРµРЅС‹ РЅР° СЃРѕСЃС‚Р°РІРЅС‹Рµ С‡Р°СЃС‚Рё РІСЂРµРјРµРЅРё.
-        /// РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ: <c>"[{Year} Р»РµС‚] [{Month} РјРµСЃ.] [{Day} РґРЅ.] [{Hour} С‡Р°СЃ.] [{Minute} РјРёРЅ.] [{Second} СЃ.]"</c>.
-        /// РўРѕРєРµРЅС‹:
-        /// <list type="bullet"><item><description>{Year} вЂ” РєРѕР»РёС‡РµСЃС‚РІРѕ Р»РµС‚;</description></item><item><description>{Month} вЂ” РєРѕР»РёС‡РµСЃС‚РІРѕ РјРµСЃСЏС†РµРІ;</description></item><item><description>{Week} вЂ” РєРѕР»РёС‡РµСЃС‚РІРѕ РЅРµРґРµР»СЊ;</description></item><item><description>{Day} вЂ” РєРѕР»РёС‡РµСЃС‚РІРѕ РґРЅРµР№;</description></item><item><description>{Hour} вЂ” РєРѕР»РёС‡РµСЃС‚РІРѕ С‡Р°СЃРѕРІ;</description></item><item><description>{Minute} вЂ” РєРѕР»РёС‡РµСЃС‚РІРѕ РјРёРЅСѓС‚;</description></item><item><description>{Second} вЂ” РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРµРєСѓРЅРґ;</description></item><item><description>{Millisecond} вЂ” РєРѕР»РёС‡РµСЃС‚РІРѕ РјРёР»Р»РёСЃРµРєСѓРЅРґ.</description></item></list>
-        /// Р§Р°СЃС‚Рё СЃ РЅСѓР»РµРІС‹РјРё Р·РЅР°С‡РµРЅРёСЏРјРё Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё СѓРґР°Р»СЏСЋС‚СЃСЏ РІРјРµСЃС‚Рµ СЃ РєРІР°РґСЂР°С‚РЅС‹РјРё СЃРєРѕР±РєР°РјРё.</param>
-        /// <returns>Р§РµР»РѕРІРµРєРѕС‡РёС‚Р°РµРјР°СЏ СЃС‚СЂРѕРєР°, РїСЂРµРґСЃС‚Р°РІР»СЏСЋС‰Р°СЏ РІСЂРµРјРµРЅРЅРѕР№ РїСЂРѕРјРµР¶СѓС‚РѕРє,
-        /// СЃ РїСЂРѕРїСѓСЃРєРѕРј РЅСѓР»РµРІС‹С… РµРґРёРЅРёС† РІСЂРµРјРµРЅРё.</returns>
+        /// <param name="elapsed">Величина времени в единицах, заданных <paramref name="timeInterval" />.</param>
+        /// <param name="timeInterval">Единица измерения для <paramref name="elapsed" />.</param>
+        /// <param name="format">Формат строки с токенами для замены на составные части времени.
+        /// По умолчанию: <c>"[{Year} лет] [{Month} мес.] [{Day} дн.] [{Hour} час.] [{Minute} мин.] [{Second} с.]"</c>.
+        /// Токены:
+        /// <list type="bullet"><item><description>{Year} — количество лет;</description></item><item><description>{Month} — количество месяцев;</description></item><item><description>{Week} — количество недель;</description></item><item><description>{Day} — количество дней;</description></item><item><description>{Hour} — количество часов;</description></item><item><description>{Minute} — количество минут;</description></item><item><description>{Second} — количество секунд;</description></item><item><description>{Millisecond} — количество миллисекунд.</description></item></list>
+        /// Части с нулевыми значениями автоматически удаляются вместе с квадратными скобками.</param>
+        /// <returns>Человекочитаемая строка, представляющая временной промежуток,
+        /// с пропуском нулевых единиц времени.</returns>
         /// <example>
         ///   <code>
-        /// // 400 РґРЅРµР№
+        /// // 400 дней
         /// string s = GetElapsedTimeString(400, DateTimeInterval.Day);
-        /// // Р РµР·СѓР»СЊС‚Р°С‚: "1 Р»РµС‚ 1 РјРµСЃ. 5 РґРЅ."
-        /// // 2 С‡Р°СЃР°, 15 РјРёРЅСѓС‚
+        /// // Результат: "1 лет 1 мес. 5 дн."
+        /// // 2 часа, 15 минут
         /// string s2 = GetElapsedTimeString(2.25, DateTimeInterval.Hour);
-        /// // Р РµР·СѓР»СЊС‚Р°С‚: "2 С‡Р°СЃ. 15 РјРёРЅ."
+        /// // Результат: "2 час. 15 мин."
         /// </code>
         /// </example>
-        /// <remarks>РњРµС‚РѕРґ РёСЃРїРѕР»СЊР·СѓРµС‚:
-        /// <list type="bullet"><item><description><see cref="GetElapsedTime(double, DateTimeInterval)" /> вЂ” РґР»СЏ РєРѕРЅРІРµСЂС‚Р°С†РёРё С‡РёСЃР»Р° <paramref name="elapsed" /> РІ <see cref="TimeSpan" />;</description></item><item><description>РІС‹С‡РёСЃР»РµРЅРёРµ Р»РµС‚, РјРµСЃСЏС†РµРІ, РЅРµРґРµР»СЊ Рё РґРЅРµР№ СЃ РїСЂРёР±Р»РёР¶РµРЅРёРµРј (1 РіРѕРґ = 365 РґРЅРµР№, 1 РјРµСЃСЏС† = 30 РґРЅРµР№, 1 РЅРµРґРµР»СЏ = 7 РґРЅРµР№);</description></item><item><description>Р·Р°РјРµРЅСѓ С‚РѕРєРµРЅРѕРІ РІ С„РѕСЂРјР°С‚Рµ РЅР° СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёРµ Р·РЅР°С‡РµРЅРёСЏ Рё СѓРґР°Р»РµРЅРёРµ С‡Р°СЃС‚РµР№ СЃ РЅСѓР»РµРІС‹РјРё Р·РЅР°С‡РµРЅРёСЏРјРё.</description></item></list>
-        /// Р РµР·СѓР»СЊС‚Р°С‚ СѓС‡РёС‚С‹РІР°РµС‚ РїСЂРёР±Р»РёР¶РµРЅРёСЏ РґР»СЏ РјРµСЃСЏС†РµРІ Рё Р»РµС‚, РїРѕСЌС‚РѕРјСѓ РґР»СЏ С‚РѕС‡РЅС‹С… РІС‹С‡РёСЃР»РµРЅРёР№ РїРѕ РєР°Р»РµРЅРґР°СЂСЋ СЃР»РµРґСѓРµС‚ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РјРµС‚РѕРґС‹ СЂР°Р±РѕС‚С‹ СЃ <see cref="DateTime" />.</remarks>
+        /// <remarks>Метод использует:
+        /// <list type="bullet"><item><description><see cref="GetElapsedTime(double, DateTimeInterval)" /> — для конвертации числа <paramref name="elapsed" /> в <see cref="TimeSpan" />;</description></item><item><description>вычисление лет, месяцев, недель и дней с приближением (1 год = 365 дней, 1 месяц = 30 дней, 1 неделя = 7 дней);</description></item><item><description>замену токенов в формате на соответствующие значения и удаление частей с нулевыми значениями.</description></item></list>
+        /// Результат учитывает приближения для месяцев и лет, поэтому для точных вычислений по календарю следует использовать методы работы с <see cref="DateTime" />.</remarks>
         public static string GetElapsedTimeString(
             double elapsed,
             DateTimeInterval timeInterval,
-            string format = "[{Year} Р»РµС‚] [{Month} РјРµСЃ.] [{Day} РґРЅ.] [{Hour} С‡Р°СЃ.] [{Minute} РјРёРЅ.] [{Second} СЃ.] [{Millisecond} РјСЃ.]")
+            string format = "[{Year} лет] [{Month} мес.] [{Day} дн.] [{Hour} час.] [{Minute} мин.] [{Second} с.] [{Millisecond} мс.]")
         {
             var ts = GetElapsedTime(elapsed, timeInterval);
 
-            // РІС‹С‡РёСЃР»СЏРµРј СЃРѕСЃС‚Р°РІРЅС‹Рµ С‡Р°СЃС‚Рё
-            int totalDays = (int)ts.TotalDays;
-            int years = totalDays / 365;
-            int months = (totalDays % 365) / 30;
-            int days = totalDays - (years * 365) - (months * 30);
-            int hours = ts.Hours;
-            int minutes = ts.Minutes;
-            int seconds = ts.Seconds;
-            int ms = ts.Milliseconds;
+            // вычисляем составные части
+            var totalDays = (int)ts.TotalDays;
+            var years = totalDays / 365;
+            var months = (totalDays % 365) / 30;
+            var days = totalDays - (years * 365) - (months * 30);
+            var hours = ts.Hours;
+            var minutes = ts.Minutes;
+            var seconds = ts.Seconds;
+            var ms = ts.Milliseconds;
 
-            // Р·Р°РјРµРЅСЏРµРј С‚РѕРєРµРЅС‹, СѓРґР°Р»СЏСЏ РЅСѓР»РµРІС‹Рµ С‡Р°СЃС‚Рё РІРјРµСЃС‚Рµ СЃ РєРІР°РґСЂР°С‚РЅС‹РјРё СЃРєРѕР±РєР°РјРё
-            string result = format;
+            // заменяем токены, удаляя нулевые части вместе с квадратными скобками
+            var result = format;
             var maskPrefix = "\\[[^\\]]*?{";
             var maskSuffix = "}[^\\]]*?\\]";
 
             result = years > 0 ? result.Replace($"{nameof(DateTimeInterval.Year)}", $"{years}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Year) + maskSuffix, string.Empty);
             result = months > 0 ? result.Replace($"{nameof(DateTimeInterval.Month)}", $"{months}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Month) + maskSuffix, string.Empty);
-            int weeks = ((totalDays % 365) % 30) / 7;
+            var weeks = ((totalDays % 365) % 30) / 7;
             result = weeks > 0 ? result.Replace($"{nameof(DateTimeInterval.Week)}", $"{weeks}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Week) + maskSuffix, string.Empty);
             result = days > 0 ? result.Replace($"{nameof(DateTimeInterval.Day)}", $"{days}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Day) + maskSuffix, string.Empty);
             result = hours > 0 ? result.Replace($"{nameof(DateTimeInterval.Hour)}", $"{hours}") : Regex.Replace(result, maskPrefix + nameof(DateTimeInterval.Hour) + maskSuffix, string.Empty);
@@ -585,55 +585,55 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРѕР»РЅС‹Р№ РІСЂРµРјРµРЅРЅРѕР№ РїРµСЂРёРѕРґ, РѕС…РІР°С‚С‹РІР°СЋС‰РёР№ РІСЃРµ РїРµСЂРµРґР°РЅРЅС‹Рµ РґР°С‚С‹,
-        /// СЃ РїСЂРёРІРµРґРµРЅРёРµРј РЅР°С‡Р°Р»Р° Рє РЅР°С‡Р°Р»Сѓ РґРЅСЏ Рё РєРѕРЅС†Р° вЂ” Рє РєРѕРЅС†Сѓ РґРЅСЏ.
+        /// Возвращает полный временной период, охватывающий все переданные даты,
+        /// с приведением начала к началу дня и конца — к концу дня.
         /// </summary>
-        /// <param name="dates">РќР°Р±РѕСЂ Р·РЅР°С‡РµРЅРёР№ <see cref="DateTime" />, РґР»СЏ РєРѕС‚РѕСЂС‹С… РЅРµРѕР±С…РѕРґРёРјРѕ РѕРїСЂРµРґРµР»РёС‚СЊ РѕР±С‰РёР№ РїРµСЂРёРѕРґ.</param>
-        /// <returns>РљРѕСЂС‚РµР¶, СЃРѕРґРµСЂР¶Р°С‰РёР№:
-        /// <list type="bullet"><item><description><c>From</c> вЂ” РЅР°С‡Р°Р»Рѕ РґРЅСЏ РјРёРЅРёРјР°Р»СЊРЅРѕР№ РґР°С‚С‹;</description></item><item><description><c>To</c> вЂ” РєРѕРЅРµС† РґРЅСЏ РјР°РєСЃРёРјР°Р»СЊРЅРѕР№ РґР°С‚С‹.</description></item></list></returns>
-        /// <exception cref="ArgumentNullException">Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё <paramref name="dates" /> СЂР°РІРµРЅ <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё <paramref name="dates" /> РЅРµ СЃРѕРґРµСЂР¶РёС‚ РЅРё РѕРґРЅРѕРіРѕ СЌР»РµРјРµРЅС‚Р°.</exception>
-        /// <remarks>РњРµС‚РѕРґ РёСЃРїРѕР»СЊР·СѓРµС‚ С„СѓРЅРєС†РёРё <see cref="Min(DateTime[])" /> Рё <see cref="Max(DateTime[])" />,
-        /// Р° С‚Р°РєР¶Рµ РІСЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Рµ РјРµС‚РѕРґС‹ <c>BeginDay</c> Рё <c>EndDay</c>,
-        /// РєРѕС‚РѕСЂС‹Рµ РїСЂРёРІРѕРґСЏС‚ РґР°С‚Сѓ РєРѕ РІСЂРµРјРµРЅРё 00:00:00 Рё 23:59:59.999вЂ¦ СЃРѕРѕС‚РІРµС‚СЃС‚РІРµРЅРЅРѕ.</remarks>
+        /// <param name="dates">Набор значений <see cref="DateTime" />, для которых необходимо определить общий период.</param>
+        /// <returns>Кортеж, содержащий:
+        /// <list type="bullet"><item><description><c>From</c> — начало дня минимальной даты;</description></item><item><description><c>To</c> — конец дня максимальной даты.</description></item></list></returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="dates" /> равен <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">Выбрасывается, если <paramref name="dates" /> не содержит ни одного элемента.</exception>
+        /// <remarks>Метод использует функции <see cref="Min(DateTime[])" /> и <see cref="Max(DateTime[])" />,
+        /// а также вспомогательные методы <c>BeginDay</c> и <c>EndDay</c>,
+        /// которые приводят дату ко времени 00:00:00 и 23:59:59.999… соответственно.</remarks>
         public static (DateTime From, DateTime to) GetFullPeriod(params DateTime[] dates) => (BeginDay(Min(dates)), EndDay(Max(dates)));
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РІСЂРµРјРµРЅРЅРѕР№ РїРµСЂРёРѕРґ, РѕС…РІР°С‚С‹РІР°СЋС‰РёР№ РІСЃРµ РїРµСЂРµРґР°РЅРЅС‹Рµ РґР°С‚С‹,
-        /// Р±РµР· РёР·РјРµРЅРµРЅРёСЏ РІСЂРµРјРµРЅРё РЅР°С‡Р°Р»Р° Рё РѕРєРѕРЅС‡Р°РЅРёСЏ.
+        /// Возвращает временной период, охватывающий все переданные даты,
+        /// без изменения времени начала и окончания.
         /// </summary>
-        /// <param name="dates">РќР°Р±РѕСЂ Р·РЅР°С‡РµРЅРёР№ <see cref="DateTime" />, РґР»СЏ РєРѕС‚РѕСЂС‹С… РЅРµРѕР±С…РѕРґРёРјРѕ РѕРїСЂРµРґРµР»РёС‚СЊ РїРµСЂРёРѕРґ.</param>
-        /// <returns>РљРѕСЂС‚РµР¶, СЃРѕРґРµСЂР¶Р°С‰РёР№:
-        /// <list type="bullet"><item><description><c>From</c> вЂ” РјРёРЅРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ РёР· РЅР°Р±РѕСЂР° РґР°С‚;</description></item><item><description><c>To</c> вЂ” РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ РёР· РЅР°Р±РѕСЂР° РґР°С‚.</description></item></list></returns>
-        /// <exception cref="ArgumentNullException">Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё <paramref name="dates" /> СЂР°РІРµРЅ <c>null</c>.</exception>
-        /// <exception cref="ArgumentException">Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё <paramref name="dates" /> РЅРµ СЃРѕРґРµСЂР¶РёС‚ РЅРё РѕРґРЅРѕРіРѕ СЌР»РµРјРµРЅС‚Р°.</exception>
-        /// <remarks>Р’ РѕС‚Р»РёС‡РёРµ РѕС‚ <see cref="GetFullPeriod(DateTime[])" />, РјРµС‚РѕРґ РЅРµ РІС‹РїРѕР»РЅСЏРµС‚
-        /// РЅРѕСЂРјР°Р»РёР·Р°С†РёСЋ РІСЂРµРјРµРЅРё Рё РІРѕР·РІСЂР°С‰Р°РµС‚ С„Р°РєС‚РёС‡РµСЃРєРёРµ РјРёРЅРёРјР°Р»СЊРЅРѕРµ Рё РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёСЏ.</remarks>
+        /// <param name="dates">Набор значений <see cref="DateTime" />, для которых необходимо определить период.</param>
+        /// <returns>Кортеж, содержащий:
+        /// <list type="bullet"><item><description><c>From</c> — минимальное значение из набора дат;</description></item><item><description><c>To</c> — максимальное значение из набора дат.</description></item></list></returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="dates" /> равен <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">Выбрасывается, если <paramref name="dates" /> не содержит ни одного элемента.</exception>
+        /// <remarks>В отличие от <see cref="GetFullPeriod(DateTime[])" />, метод не выполняет
+        /// нормализацию времени и возвращает фактические минимальное и максимальное значения.</remarks>
         public static (DateTime From, DateTime to) GetPeriod(params DateTime[] dates) => (Min(dates), Max(dates));
 
         /// <summary>
-        /// РџСЂРѕРІРµСЂСЏРµС‚, СЃРѕРґРµСЂР¶РёС‚ Р»Рё DateTime РєРѕРјРїРѕРЅРµРЅС‚ РІСЂРµРјРµРЅРё (РЅРµ СЂР°РІРЅРѕ 00:00:00).
+        /// Проверяет, содержит ли DateTime компонент времени (не равно 00:00:00).
         /// </summary>
-        /// <param name="d">РџСЂРѕРІРµСЂСЏРµРјР°СЏ РґР°С‚Р°.</param>
-        /// <returns>True, РµСЃР»Рё РІСЂРµРјСЏ РЅРµ СЂР°РІРЅРѕ 00:00:00.</returns>
+        /// <param name="d">Проверяемая дата.</param>
+        /// <returns>True, если время не равно 00:00:00.</returns>
         public static bool HasTime(DateTime d) => d.TimeOfDay != TimeSpan.Zero;
 
         /// <summary>
-        /// РџСЂРѕРІРµСЂСЏРµС‚, СЃРѕРґРµСЂР¶РёС‚ Р»Рё nullable DateTime РєРѕРјРїРѕРЅРµРЅС‚ РІСЂРµРјРµРЅРё (РЅРµ СЂР°РІРЅРѕ 00:00:00).
+        /// Проверяет, содержит ли nullable DateTime компонент времени (не равно 00:00:00).
         /// </summary>
-        /// <param name="d">РџСЂРѕРІРµСЂСЏРµРјР°СЏ nullable РґР°С‚Р°.</param>
-        /// <returns>True, РµСЃР»Рё РґР°С‚Р° РЅРµ null Рё РІСЂРµРјСЏ РЅРµ СЂР°РІРЅРѕ 00:00:00.</returns>
+        /// <param name="d">Проверяемая nullable дата.</param>
+        /// <returns>True, если дата не null и время не равно 00:00:00.</returns>
         public static bool HasTime(DateTime? d) => d.HasValue && d.Value.TimeOfDay != TimeSpan.Zero;
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ <see cref="DateTime" /> РёР· РїРµСЂРµРґР°РЅРЅРѕРіРѕ РЅР°Р±РѕСЂР°.
+        /// Возвращает максимальное значение <see cref="DateTime" /> из переданного набора.
         /// </summary>
-        /// <param name="dates">РќР°Р±РѕСЂ Р·РЅР°С‡РµРЅРёР№ <see cref="DateTime" />, СЃСЂРµРґРё РєРѕС‚РѕСЂС‹С… РЅРµРѕР±С…РѕРґРёРјРѕ РѕРїСЂРµРґРµР»РёС‚СЊ РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ.</param>
-        /// <returns>РњР°РєСЃРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ <see cref="DateTime" /> РёР· РјР°СЃСЃРёРІР° <paramref name="dates" />.</returns>
+        /// <param name="dates">Набор значений <see cref="DateTime" />, среди которых необходимо определить максимальное.</param>
+        /// <returns>Максимальное значение <see cref="DateTime" /> из массива <paramref name="dates" />.</returns>
         /// <exception cref="System.ArgumentNullException">dates.</exception>
         /// <exception cref="System.ArgumentException">At least one DateTime value is required. - dates.</exception>
-        /// <remarks>РЎСЂР°РІРЅРµРЅРёРµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ СЃ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹С… РѕРїРµСЂР°С‚РѕСЂРѕРІ СЃСЂР°РІРЅРµРЅРёСЏ
-        /// <see cref="DateTime" />, СѓС‡РёС‚С‹РІР°СЋС‰РёС… С‚РёРєРё Рё С‚РёРї РІСЂРµРјРµРЅРё (<see cref="DateTime.Kind" />).</remarks>
+        /// <remarks>Сравнение выполняется с использованием стандартных операторов сравнения
+        /// <see cref="DateTime" />, учитывающих тики и тип времени (<see cref="DateTime.Kind" />).</remarks>
         public static DateTime Max(params DateTime[] dates)
         {
             if (dates == null)
@@ -646,9 +646,9 @@ namespace RuntimeStuff.Helpers
                 throw new ArgumentException("At least one DateTime value is required.", nameof(dates));
             }
 
-            DateTime max = dates[0];
+            var max = dates[0];
 
-            for (int i = 1; i < dates.Length; i++)
+            for (var i = 1; i < dates.Length; i++)
             {
                 if (dates[i] > max)
                 {
@@ -660,14 +660,14 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РјРёРЅРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ <see cref="DateTime" /> РёР· РїРµСЂРµРґР°РЅРЅРѕРіРѕ РЅР°Р±РѕСЂР°.
+        /// Возвращает минимальное значение <see cref="DateTime" /> из переданного набора.
         /// </summary>
-        /// <param name="dates">РќР°Р±РѕСЂ Р·РЅР°С‡РµРЅРёР№ <see cref="DateTime" />, СЃСЂРµРґРё РєРѕС‚РѕСЂС‹С… РЅРµРѕР±С…РѕРґРёРјРѕ РѕРїСЂРµРґРµР»РёС‚СЊ РјРёРЅРёРјР°Р»СЊРЅРѕРµ.</param>
-        /// <returns>РњРёРЅРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ <see cref="DateTime" /> РёР· РјР°СЃСЃРёРІР° <paramref name="dates" />.</returns>
+        /// <param name="dates">Набор значений <see cref="DateTime" />, среди которых необходимо определить минимальное.</param>
+        /// <returns>Минимальное значение <see cref="DateTime" /> из массива <paramref name="dates" />.</returns>
         /// <exception cref="System.ArgumentNullException">dates.</exception>
         /// <exception cref="System.ArgumentException">At least one DateTime value is required. - dates.</exception>
-        /// <remarks>РЎСЂР°РІРЅРµРЅРёРµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ СЃ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµРј СЃС‚Р°РЅРґР°СЂС‚РЅС‹С… РѕРїРµСЂР°С‚РѕСЂРѕРІ СЃСЂР°РІРЅРµРЅРёСЏ
-        /// <see cref="DateTime" />, СѓС‡РёС‚С‹РІР°СЋС‰РёС… С‚РёРєРё Рё С‚РёРї РІСЂРµРјРµРЅРё (<see cref="DateTime.Kind" />).</remarks>
+        /// <remarks>Сравнение выполняется с использованием стандартных операторов сравнения
+        /// <see cref="DateTime" />, учитывающих тики и тип времени (<see cref="DateTime.Kind" />).</remarks>
         public static DateTime Min(params DateTime[] dates)
         {
             if (dates == null)
@@ -680,9 +680,9 @@ namespace RuntimeStuff.Helpers
                 throw new ArgumentException("At least one DateTime value is required.", nameof(dates));
             }
 
-            DateTime min = dates[0];
+            var min = dates[0];
 
-            for (int i = 1; i < dates.Length; i++)
+            for (var i = 1; i < dates.Length; i++)
             {
                 if (dates[i] < min)
                 {
@@ -694,25 +694,25 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// РџСЂРµРѕР±СЂР°Р·СѓРµС‚ СЃС‚СЂРѕРєРѕРІРѕРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ РґР°С‚С‹ Рё РІСЂРµРјРµРЅРё РІ Р·РЅР°С‡РµРЅРёРµ <see cref="DateTime" />.
+        /// Преобразует строковое представление даты и времени в значение <see cref="DateTime" />.
         /// </summary>
-        /// <param name="dateTimeString">РЎС‚СЂРѕРєРѕРІРѕРµ РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ РґР°С‚С‹ Рё РІСЂРµРјРµРЅРё, РїРѕРґР»РµР¶Р°С‰РµРµ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЋ.</param>
-        /// <returns>Р—РЅР°С‡РµРЅРёРµ <see cref="DateTime" />, РїРѕР»СѓС‡РµРЅРЅРѕРµ РІ СЂРµР·СѓР»СЊС‚Р°С‚Рµ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ,
-        /// Р»РёР±Рѕ <c>null</c>, РµСЃР»Рё СЃС‚СЂРѕРєР° РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РёРЅС‚РµСЂРїСЂРµС‚РёСЂРѕРІР°РЅР° РєР°Рє РґР°С‚Р° Рё РІСЂРµРјСЏ.</returns>
-        /// <remarks>РњРµС‚РѕРґ РёСЃРїРѕР»СЊР·СѓРµС‚ РІРЅСѓС‚СЂРµРЅРЅРёР№ РєРѕРЅРІРµСЂС‚РµСЂ <c>StringToDateTimeConverter</c>,
-        /// РєРѕС‚РѕСЂС‹Р№ РёРЅРєР°РїСЃСѓР»РёСЂСѓРµС‚ Р»РѕРіРёРєСѓ СЂР°Р·Р±РѕСЂР° СЃС‚СЂРѕРєРё Рё РѕР±СЂР°Р±РѕС‚РєРё РѕС€РёР±РѕРє.
-        /// Р’ РѕС‚Р»РёС‡РёРµ РѕС‚ СЃС‚Р°РЅРґР°СЂС‚РЅС‹С… РјРµС‚РѕРґРѕРІ <see cref="DateTime.Parse(string)" /> Рё
+        /// <param name="dateTimeString">Строковое представление даты и времени, подлежащее преобразованию.</param>
+        /// <returns>Значение <see cref="DateTime" />, полученное в результате преобразования,
+        /// либо <c>null</c>, если строка не может быть интерпретирована как дата и время.</returns>
+        /// <remarks>Метод использует внутренний конвертер <c>StringToDateTimeConverter</c>,
+        /// который инкапсулирует логику разбора строки и обработки ошибок.
+        /// В отличие от стандартных методов <see cref="DateTime.Parse(string)" /> и
         /// <see cref="DateTime.TryParse(string, out DateTime)" />,
-        /// РґР°РЅРЅС‹Р№ РјРµС‚РѕРґ РЅРµ РІС‹Р±СЂР°СЃС‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёСЏ РїСЂРё РЅРµРєРѕСЂСЂРµРєС‚РЅРѕРј С„РѕСЂРјР°С‚Рµ РІС…РѕРґРЅС‹С… РґР°РЅРЅС‹С….</remarks>
+        /// данный метод не выбрасывает исключения при некорректном формате входных данных.</remarks>
         public static DateTime? ParseDate(string dateTimeString) => StringToDateTimeConverter(dateTimeString);
 
         /// <summary>
-        /// РџР°СЂСЃРёС‚ СЃС‚СЂРѕРєСѓ РІ РјР°СЃСЃРёРІ TimeSpan. РџСЂРёРјРµСЂ: "1d -12m +3M -100s +6y".
+        /// Парсит строку в массив TimeSpan. Пример: "1d -12m +3M -100s +6y".
         /// </summary>
-        /// <param name="s">РЎС‚СЂРѕРєР° РґР»СЏ РїР°СЂСЃРёРЅРіР°. РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ С„РѕСЂРјР°С‚С‹:
-        /// Yy - РіРѕРґ (365 РґРЅРµР№), M - РјРµСЃСЏС† (30 РґРЅРµР№), Ww - РЅРµРґРµР»Рё, Dd - РґРµРЅСЊ,
-        /// Hh - С‡Р°СЃ, m - РјРёРЅСѓС‚С‹, Ss - СЃРµРєСѓРЅРґС‹, Ff - РјРёР»Р»РёСЃРµРєСѓРЅРґС‹.</param>
-        /// <returns>РњР°СЃСЃРёРІ TimeSpan.</returns>
+        /// <param name="s">Строка для парсинга. Поддерживаемые форматы:
+        /// Yy - год (365 дней), M - месяц (30 дней), Ww - недели, Dd - день,
+        /// Hh - час, m - минуты, Ss - секунды, Ff - миллисекунды.</param>
+        /// <returns>Массив TimeSpan.</returns>
         public static TimeSpan[] ParseTimeSpan(string s)
         {
             var result = new List<TimeSpan>();
@@ -767,33 +767,33 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РІС‡РµСЂР°С€РЅСЋСЋ РґР°С‚Сѓ (РЅР°С‡Р°Р»Рѕ РґРЅСЏ).
+        /// Возвращает вчерашнюю дату (начало дня).
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° РїСЂРµРґС‹РґСѓС‰РµРіРѕ РґРЅСЏ СЃ РІСЂРµРјРµРЅРµРј 00:00:00.</returns>
+        /// <param name="date">Исходная дата.</param>
+        /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
         public static DateTime Yesterday(DateTime date) => BeginDay(date.AddDays(-1));
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РІС‡РµСЂР°С€РЅСЋСЋ РґР°С‚Сѓ (РЅР°С‡Р°Р»Рѕ РґРЅСЏ) РґР»СЏ nullable РґР°С‚С‹.
+        /// Возвращает вчерашнюю дату (начало дня) для nullable даты.
         /// </summary>
-        /// <param name="date">РСЃС…РѕРґРЅР°СЏ nullable РґР°С‚Р°.</param>
-        /// <returns>Р”Р°С‚Р° РїСЂРµРґС‹РґСѓС‰РµРіРѕ РґРЅСЏ СЃ РІСЂРµРјРµРЅРµРј 00:00:00.</returns>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
         public static DateTime Yesterday(DateTime? date) => date != null
                 ? BeginDay(date?.AddDays(-1))
                 : throw new ArgumentNullException(nameof(date));
 
         /// <summary>
-        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РґР°С‚Сѓ Рё РІСЂРµРјСЏ, СЃРјРµС‰С‘РЅРЅС‹Рµ РЅР° Р·Р°РґР°РЅРЅС‹Р№ С€Р°Рі РїРѕ СѓРєР°Р·Р°РЅРЅРѕРјСѓ РёРЅС‚РµСЂРІР°Р»Сѓ.
+        /// Возвращает дату и время, смещённые на заданный шаг по указанному интервалу.
         /// </summary>
-        /// <param name="value">РСЃС…РѕРґРЅР°СЏ РґР°С‚Р° Рё РІСЂРµРјСЏ.</param>
-        /// <param name="step">Р—РЅР°С‡РµРЅРёРµ СЃРјРµС‰РµРЅРёСЏ. РњРѕР¶РµС‚ Р±С‹С‚СЊ РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹Рј (РґРІРёР¶РµРЅРёРµ РІРїРµСЂС‘Рґ) РёР»Рё РѕС‚СЂРёС†Р°С‚РµР»СЊРЅС‹Рј (РґРІРёР¶РµРЅРёРµ РЅР°Р·Р°Рґ).</param>
-        /// <param name="interval">РўРёРї РІСЂРµРјРµРЅРЅРѕРіРѕ РёРЅС‚РµСЂРІР°Р»Р°, РЅР° РєРѕС‚РѕСЂС‹Р№ РЅРµРѕР±С…РѕРґРёРјРѕ СЃРјРµСЃС‚РёС‚СЊ РґР°С‚Сѓ.</param>
-        /// <returns>РќРѕРІРѕРµ Р·РЅР°С‡РµРЅРёРµ <see cref="DateTime" />, РїРѕР»СѓС‡РµРЅРЅРѕРµ РїРѕСЃР»Рµ СЃРјРµС‰РµРЅРёСЏ РЅР° <paramref name="step" />
-        /// РµРґРёРЅРёС† <paramref name="interval" /> РѕС‚ РёСЃС…РѕРґРЅРѕР№ РґР°С‚С‹ <paramref name="value" />.</returns>
+        /// <param name="value">Исходная дата и время.</param>
+        /// <param name="step">Значение смещения. Может быть положительным (движение вперёд) или отрицательным (движение назад).</param>
+        /// <param name="interval">Тип временного интервала, на который необходимо сместить дату.</param>
+        /// <returns>Новое значение <see cref="DateTime" />, полученное после смещения на <paramref name="step" />
+        /// единиц <paramref name="interval" /> от исходной даты <paramref name="value" />.</returns>
         /// <exception cref="System.ArgumentOutOfRangeException">interval - null.</exception>
-        /// <remarks>РџРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ СЃР»РµРґСѓСЋС‰РёРµ РёРЅС‚РµСЂРІР°Р»С‹:
-        /// <list type="bullet"><item><description><see cref="DateTimeInterval.Millisecond" /> вЂ” РјРёР»Р»РёСЃРµРєСѓРЅРґС‹;</description></item><item><description><see cref="DateTimeInterval.Second" /> вЂ” СЃРµРєСѓРЅРґС‹;</description></item><item><description><see cref="DateTimeInterval.Minute" /> вЂ” РјРёРЅСѓС‚С‹;</description></item><item><description><see cref="DateTimeInterval.Hour" /> вЂ” С‡Р°СЃС‹;</description></item><item><description><see cref="DateTimeInterval.Day" /> вЂ” РґРЅРё;</description></item><item><description><see cref="DateTimeInterval.Month" /> вЂ” РјРµСЃСЏС†С‹;</description></item><item><description><see cref="DateTimeInterval.Year" /> вЂ” РіРѕРґС‹.</description></item></list>
-        /// РњРµС‚РѕРґ СѓС‡РёС‚С‹РІР°РµС‚ РѕСЃРѕР±РµРЅРЅРѕСЃС‚Рё РєР°Р»РµРЅРґР°СЂСЏ .NET (РЅР°РїСЂРёРјРµСЂ, СЂР°Р·РЅСѓСЋ РґР»РёРЅСѓ РјРµСЃСЏС†РµРІ Рё РІРёСЃРѕРєРѕСЃРЅС‹Рµ РіРѕРґС‹).</remarks>
+        /// <remarks>Поддерживаются следующие интервалы:
+        /// <list type="bullet"><item><description><see cref="DateTimeInterval.Millisecond" /> — миллисекунды;</description></item><item><description><see cref="DateTimeInterval.Second" /> — секунды;</description></item><item><description><see cref="DateTimeInterval.Minute" /> — минуты;</description></item><item><description><see cref="DateTimeInterval.Hour" /> — часы;</description></item><item><description><see cref="DateTimeInterval.Day" /> — дни;</description></item><item><description><see cref="DateTimeInterval.Month" /> — месяцы;</description></item><item><description><see cref="DateTimeInterval.Year" /> — годы.</description></item></list>
+        /// Метод учитывает особенности календаря .NET (например, разную длину месяцев и високосные годы).</remarks>
         private static DateTime AddInterval(DateTime value, int step, DateTimeInterval interval)
         {
             switch (interval)
@@ -832,9 +832,9 @@ namespace RuntimeStuff.Helpers
             Func<DateTime, int, bool> includeDate,
             Func<DateTime, int, bool> excludeDate)
         {
-            bool forward = step > 0;
+            var forward = step > 0;
 
-            // РїСЂРѕРІРµСЂРєР° РЅР°РїСЂР°РІР»РµРЅРёСЏ
+            // проверка направления
             if (forward && startDate > endDate)
             {
                 yield break;
@@ -845,12 +845,12 @@ namespace RuntimeStuff.Helpers
                 yield break;
             }
 
-            DateTime current = startDate;
-            int index = 0;
+            var current = startDate;
+            var index = 0;
 
             while (forward ? current <= endDate : current >= endDate)
             {
-                bool include =
+                var include =
                     (includeDate == null || includeDate(current, index)) &&
                     (excludeDate == null || !excludeDate(current, index));
 
@@ -879,7 +879,7 @@ namespace RuntimeStuff.Helpers
                 return -1;
             }
 
-            // Р•СЃР»Рё РёСЃС…РѕРґРЅР°СЏ РєРѕР»Р»РµРєС†РёСЏ - РјР°СЃСЃРёРІ РёР»Рё IList<T>, РёСЃРїРѕР»СЊР·СѓРµРј РёРЅРґРµРєСЃР°С†РёСЋ
+            // Если исходная коллекция - массив или IList<T>, используем индексацию
             if (e is IList<T> list)
             {
                 if (!reverseSearch)
@@ -906,7 +906,7 @@ namespace RuntimeStuff.Helpers
                 return -1;
             }
 
-            // Р”Р»СЏ РѕСЃС‚Р°Р»СЊРЅС‹С… IEnumerable<T>
+            // Для остальных IEnumerable<T>
             if (!reverseSearch)
             {
                 var i = 0;
@@ -922,7 +922,7 @@ namespace RuntimeStuff.Helpers
             }
             else
             {
-                // Рљ СЃРѕР¶Р°Р»РµРЅРёСЋ, РґР»СЏ IEnumerable<T> Р±РµР· РёРЅРґРµРєСЃР°С†РёРё РїСЂРёРґС‘С‚СЃСЏ РјР°С‚РµСЂРёР°Р»РёР·РѕРІР°С‚СЊ РІ СЃРїРёСЃРѕРє
+                // К сожалению, для IEnumerable<T> без индексации придётся материализовать в список
                 var arr = e.ToArray();
                 for (var i = arr.Length - 1; i >= 0; i--)
                 {

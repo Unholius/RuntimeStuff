@@ -1,4 +1,4 @@
-п»ї// <copyright file="XmlHelperTests.cs" company="Rudnev Sergey">
+// <copyright file="XmlHelperTests.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
@@ -341,7 +341,7 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.AreEqual(2, result.Length);
-            Assert.AreEqual("Value1", result[0]); // Xml СЃРѕС…СЂР°РЅСЏРµС‚ РІР»РѕР¶РµРЅРЅС‹Р№ С‚РµРєСЃС‚
+            Assert.AreEqual("Value1", result[0]); // Xml сохраняет вложенный текст
             Assert.AreEqual("Value2", result[1]);
         }
 
@@ -466,7 +466,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var items = new List<string>();
-            for (int i = 0; i < 1000; i++)
+            for (var i = 0; i < 1000; i++)
             {
                 items.Add($"<item id='{i}' name='item{i}'/>");
             }
@@ -477,7 +477,7 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.AreEqual(1000, result.Length);
-            for (int i = 0; i < 1000; i++)
+            for (var i = 0; i < 1000; i++)
             {
                 Assert.AreEqual(i.ToString(), result[i]["id"]);
                 Assert.AreEqual($"item{i}", result[i]["name"]);
