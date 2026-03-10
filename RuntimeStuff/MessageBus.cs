@@ -1,4 +1,4 @@
-// <copyright file="MessageBus.cs" company="Rudnev Sergey">
+п»ї// <copyright file="MessageBus.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
@@ -13,12 +13,12 @@ namespace RuntimeStuff
     using System.Threading.Tasks;
 
     /// <summary>
-    /// Асинхронная шина сообщений для публикации и подписки на сообщения различных типов.
+    /// РђСЃРёРЅС…СЂРѕРЅРЅР°СЏ С€РёРЅР° СЃРѕРѕР±С‰РµРЅРёР№ РґР»СЏ РїСѓР±Р»РёРєР°С†РёРё Рё РїРѕРґРїРёСЃРєРё РЅР° СЃРѕРѕР±С‰РµРЅРёСЏ СЂР°Р·Р»РёС‡РЅС‹С… С‚РёРїРѕРІ.
     /// </summary>
     /// <remarks>
-    /// Позволяет подписчикам получать сообщения синхронно или через контекст синхронизации,
-    /// а также ожидать сообщения с возможностью фильтрации, таймаута и отмены.
-    /// Потокобезопасен для публикации и подписки.
+    /// РџРѕР·РІРѕР»СЏРµС‚ РїРѕРґРїРёСЃС‡РёРєР°Рј РїРѕР»СѓС‡Р°С‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ СЃРёРЅС…СЂРѕРЅРЅРѕ РёР»Рё С‡РµСЂРµР· РєРѕРЅС‚РµРєСЃС‚ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё,
+    /// Р° С‚Р°РєР¶Рµ РѕР¶РёРґР°С‚СЊ СЃРѕРѕР±С‰РµРЅРёСЏ СЃ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊСЋ С„РёР»СЊС‚СЂР°С†РёРё, С‚Р°Р№РјР°СѓС‚Р° Рё РѕС‚РјРµРЅС‹.
+    /// РџРѕС‚РѕРєРѕР±РµР·РѕРїР°СЃРµРЅ РґР»СЏ РїСѓР±Р»РёРєР°С†РёРё Рё РїРѕРґРїРёСЃРєРё.
     /// </remarks>
     public sealed partial class MessageBus : IDisposable
     {
@@ -34,10 +34,10 @@ namespace RuntimeStuff
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MessageBus"/> class.
-        /// Инициализирует новый экземпляр <see cref="MessageBus"/> с указанным количеством рабочих потоков.
+        /// РРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚ РЅРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="MessageBus"/> СЃ СѓРєР°Р·Р°РЅРЅС‹Рј РєРѕР»РёС‡РµСЃС‚РІРѕРј СЂР°Р±РѕС‡РёС… РїРѕС‚РѕРєРѕРІ.
         /// </summary>
-        /// <param name="workerCount">Количество потоков-воркеров для обработки сообщений.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Если <paramref name="workerCount"/> меньше или равно нулю.</exception>
+        /// <param name="workerCount">РљРѕР»РёС‡РµСЃС‚РІРѕ РїРѕС‚РѕРєРѕРІ-РІРѕСЂРєРµСЂРѕРІ РґР»СЏ РѕР±СЂР°Р±РѕС‚РєРё СЃРѕРѕР±С‰РµРЅРёР№.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Р•СЃР»Рё <paramref name="workerCount"/> РјРµРЅСЊС€Рµ РёР»Рё СЂР°РІРЅРѕ РЅСѓР»СЋ.</exception>
         public MessageBus(int workerCount)
             : this("MessageBusWorker", workerCount)
         {
@@ -45,11 +45,11 @@ namespace RuntimeStuff
 
         /// <summary>
         /// Initializes a new instance of the <see cref="MessageBus"/> class.
-        /// Инициализирует новый экземпляр <see cref="MessageBus"/> с именем потоков и их количеством.
+        /// РРЅРёС†РёР°Р»РёР·РёСЂСѓРµС‚ РЅРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="MessageBus"/> СЃ РёРјРµРЅРµРј РїРѕС‚РѕРєРѕРІ Рё РёС… РєРѕР»РёС‡РµСЃС‚РІРѕРј.
         /// </summary>
-        /// <param name="threadName">Базовое имя рабочих потоков.</param>
-        /// <param name="workerCount">Количество потоков-воркеров.</param>
-        /// <exception cref="ArgumentOutOfRangeException">Если <paramref name="workerCount"/> меньше или равно нулю.</exception>
+        /// <param name="threadName">Р‘Р°Р·РѕРІРѕРµ РёРјСЏ СЂР°Р±РѕС‡РёС… РїРѕС‚РѕРєРѕРІ.</param>
+        /// <param name="workerCount">РљРѕР»РёС‡РµСЃС‚РІРѕ РїРѕС‚РѕРєРѕРІ-РІРѕСЂРєРµСЂРѕРІ.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Р•СЃР»Рё <paramref name="workerCount"/> РјРµРЅСЊС€Рµ РёР»Рё СЂР°РІРЅРѕ РЅСѓР»СЋ.</exception>
         public MessageBus(string threadName = "MessageBusWorker", int workerCount = 1)
         {
             if (workerCount <= 0)
@@ -73,19 +73,19 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Глобальный экземпляр <see cref="MessageBus"/>, использующий количество потоков, равное числу процессоров.
+        /// Р“Р»РѕР±Р°Р»СЊРЅС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="MessageBus"/>, РёСЃРїРѕР»СЊР·СѓСЋС‰РёР№ РєРѕР»РёС‡РµСЃС‚РІРѕ РїРѕС‚РѕРєРѕРІ, СЂР°РІРЅРѕРµ С‡РёСЃР»Сѓ РїСЂРѕС†РµСЃСЃРѕСЂРѕРІ.
         /// </summary>
         public static MessageBus MultiThreaded { get; } =
             new MessageBus(workerCount: Environment.ProcessorCount);
 
         /// <summary>
-        /// Глобальный экземпляр <see cref="MessageBus"/> с одним рабочим потоком.
+        /// Р“Р»РѕР±Р°Р»СЊРЅС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="MessageBus"/> СЃ РѕРґРЅРёРј СЂР°Р±РѕС‡РёРј РїРѕС‚РѕРєРѕРј.
         /// </summary>
         public static MessageBus SingleThreaded { get; } =
             new MessageBus(workerCount: 1);
 
         /// <summary>
-        /// Имя текущей шины сообщений.
+        /// РРјСЏ С‚РµРєСѓС‰РµР№ С€РёРЅС‹ СЃРѕРѕР±С‰РµРЅРёР№.
         /// </summary>
         /// <value>The name.</value>
         public string Name { get; }
@@ -98,19 +98,19 @@ namespace RuntimeStuff
         public MessageBus this[string channelName] => Channels.GetOrAdd(channelName, x => new MessageBus(x, this.workers.Length));
 
         /// <summary>
-        /// Освобождает ресурсы и завершает работу всех рабочих потоков.
+        /// РћСЃРІРѕР±РѕР¶РґР°РµС‚ СЂРµСЃСѓСЂСЃС‹ Рё Р·Р°РІРµСЂС€Р°РµС‚ СЂР°Р±РѕС‚Сѓ РІСЃРµС… СЂР°Р±РѕС‡РёС… РїРѕС‚РѕРєРѕРІ.
         /// </summary>
         public void Dispose()
         {
             if (this.disposed)
             {
-                return; // безопасный повторный вызов
+                return; // Р±РµР·РѕРїР°СЃРЅС‹Р№ РїРѕРІС‚РѕСЂРЅС‹Р№ РІС‹Р·РѕРІ
             }
 
             this.StopAllServers();
             this.serverCts.Dispose();
 
-            // Останавливаем обработку очереди
+            // РћСЃС‚Р°РЅР°РІР»РёРІР°РµРј РѕР±СЂР°Р±РѕС‚РєСѓ РѕС‡РµСЂРµРґРё
             lock (RetryLock)
             {
                 retryTimer?.Dispose();
@@ -119,7 +119,7 @@ namespace RuntimeStuff
             this.disposed = true;
             this.running = false;
 
-            // Завершаем все ожидающие задачи
+            // Р—Р°РІРµСЂС€Р°РµРј РІСЃРµ РѕР¶РёРґР°СЋС‰РёРµ Р·Р°РґР°С‡Рё
             foreach (var handlersList in this.waitingHandlers.Select(kvp => kvp.Value))
             {
                 lock (handlersList)
@@ -128,12 +128,12 @@ namespace RuntimeStuff
                     {
                         try
                         {
-                            // Передаем ObjectDisposedException, чтобы завершить ожидающую задачу
+                            // РџРµСЂРµРґР°РµРј ObjectDisposedException, С‡С‚РѕР±С‹ Р·Р°РІРµСЂС€РёС‚СЊ РѕР¶РёРґР°СЋС‰СѓСЋ Р·Р°РґР°С‡Сѓ
                             handler(new ObjectDisposedException(nameof(MessageBus)));
                         }
                         catch
                         {
-                            // Игнорируем исключения при завершении
+                            // РРіРЅРѕСЂРёСЂСѓРµРј РёСЃРєР»СЋС‡РµРЅРёСЏ РїСЂРё Р·Р°РІРµСЂС€РµРЅРёРё
                         }
                     }
 
@@ -156,11 +156,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Публикует сообщение в шину.
+        /// РџСѓР±Р»РёРєСѓРµС‚ СЃРѕРѕР±С‰РµРЅРёРµ РІ С€РёРЅСѓ.
         /// </summary>
-        /// <typeparam name="T">Тип сообщения.</typeparam>
-        /// <param name="message">Сообщение для публикации.</param>
-        /// <exception cref="ObjectDisposedException">Если шина уже освобождена.</exception>
+        /// <typeparam name="T">РўРёРї СЃРѕРѕР±С‰РµРЅРёСЏ.</typeparam>
+        /// <param name="message">РЎРѕРѕР±С‰РµРЅРёРµ РґР»СЏ РїСѓР±Р»РёРєР°С†РёРё.</param>
+        /// <exception cref="ObjectDisposedException">Р•СЃР»Рё С€РёРЅР° СѓР¶Рµ РѕСЃРІРѕР±РѕР¶РґРµРЅР°.</exception>
         public void Publish<T>(T message)
         {
             if (!this.running)
@@ -173,12 +173,12 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Подписывает обработчик на сообщения указанного типа с необязательным фильтром.
+        /// РџРѕРґРїРёСЃС‹РІР°РµС‚ РѕР±СЂР°Р±РѕС‚С‡РёРє РЅР° СЃРѕРѕР±С‰РµРЅРёСЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР° СЃ РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рј С„РёР»СЊС‚СЂРѕРј.
         /// </summary>
-        /// <typeparam name="T">Тип сообщения.</typeparam>
-        /// <param name="handler">Делегат для обработки сообщений.</param>
-        /// <param name="messageFilter">Фильтр сообщений. Если <see langword="null"/>, вызывается для всех сообщений типа <typeparamref name="T"/>.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="handler"/> равен <see langword="null"/>.</exception>
+        /// <typeparam name="T">РўРёРї СЃРѕРѕР±С‰РµРЅРёСЏ.</typeparam>
+        /// <param name="handler">Р”РµР»РµРіР°С‚ РґР»СЏ РѕР±СЂР°Р±РѕС‚РєРё СЃРѕРѕР±С‰РµРЅРёР№.</param>
+        /// <param name="messageFilter">Р¤РёР»СЊС‚СЂ СЃРѕРѕР±С‰РµРЅРёР№. Р•СЃР»Рё <see langword="null"/>, РІС‹Р·С‹РІР°РµС‚СЃСЏ РґР»СЏ РІСЃРµС… СЃРѕРѕР±С‰РµРЅРёР№ С‚РёРїР° <typeparamref name="T"/>.</param>
+        /// <exception cref="ArgumentNullException">Р•СЃР»Рё <paramref name="handler"/> СЂР°РІРµРЅ <see langword="null"/>.</exception>
         public void Subscribe<T>(Action<T> handler, Func<T, bool> messageFilter = null)
         {
             if (handler == null)
@@ -203,13 +203,13 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Подписывает обработчик на сообщения указанного типа с выполнением в указанном контексте синхронизации и необязательным фильтром.
+        /// РџРѕРґРїРёСЃС‹РІР°РµС‚ РѕР±СЂР°Р±РѕС‚С‡РёРє РЅР° СЃРѕРѕР±С‰РµРЅРёСЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР° СЃ РІС‹РїРѕР»РЅРµРЅРёРµРј РІ СѓРєР°Р·Р°РЅРЅРѕРј РєРѕРЅС‚РµРєСЃС‚Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё Рё РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рј С„РёР»СЊС‚СЂРѕРј.
         /// </summary>
-        /// <typeparam name="T">Тип сообщения.</typeparam>
-        /// <param name="handler">Делегат для обработки сообщений.</param>
-        /// <param name="context">Контекст синхронизации. Если <see langword="null"/>, используется обычная подписка.</param>
-        /// <param name="messageFilter">Фильтр сообщений. Если <see langword="null"/>, вызывается для всех сообщений типа <typeparamref name="T"/>.</param>
-        /// <exception cref="ArgumentNullException">Если <paramref name="handler"/> равен <see langword="null"/>.</exception>
+        /// <typeparam name="T">РўРёРї СЃРѕРѕР±С‰РµРЅРёСЏ.</typeparam>
+        /// <param name="handler">Р”РµР»РµРіР°С‚ РґР»СЏ РѕР±СЂР°Р±РѕС‚РєРё СЃРѕРѕР±С‰РµРЅРёР№.</param>
+        /// <param name="context">РљРѕРЅС‚РµРєСЃС‚ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё. Р•СЃР»Рё <see langword="null"/>, РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РѕР±С‹С‡РЅР°СЏ РїРѕРґРїРёСЃРєР°.</param>
+        /// <param name="messageFilter">Р¤РёР»СЊС‚СЂ СЃРѕРѕР±С‰РµРЅРёР№. Р•СЃР»Рё <see langword="null"/>, РІС‹Р·С‹РІР°РµС‚СЃСЏ РґР»СЏ РІСЃРµС… СЃРѕРѕР±С‰РµРЅРёР№ С‚РёРїР° <typeparamref name="T"/>.</param>
+        /// <exception cref="ArgumentNullException">Р•СЃР»Рё <paramref name="handler"/> СЂР°РІРµРЅ <see langword="null"/>.</exception>
         public void Subscribe<T>(Action<T> handler, SynchronizationContext context, Func<T, bool> messageFilter = null)
         {
             if (handler == null)
@@ -248,10 +248,10 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Отписывает обработчик от сообщений указанного типа.
+        /// РћС‚РїРёСЃС‹РІР°РµС‚ РѕР±СЂР°Р±РѕС‚С‡РёРє РѕС‚ СЃРѕРѕР±С‰РµРЅРёР№ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°.
         /// </summary>
-        /// <typeparam name="T">Тип сообщения.</typeparam>
-        /// <param name="handler">Делегат для отписки.</param>
+        /// <typeparam name="T">РўРёРї СЃРѕРѕР±С‰РµРЅРёСЏ.</typeparam>
+        /// <param name="handler">Р”РµР»РµРіР°С‚ РґР»СЏ РѕС‚РїРёСЃРєРё.</param>
         public void Unsubscribe<T>(Action<T> handler)
         {
             if (!this.handlers.TryGetValue(typeof(T), out var list))
@@ -267,21 +267,21 @@ namespace RuntimeStuff
                 }
                 else
                 {
-                    // fallback для старого поведения без фильтра
+                    // fallback РґР»СЏ СЃС‚Р°СЂРѕРіРѕ РїРѕРІРµРґРµРЅРёСЏ Р±РµР· С„РёР»СЊС‚СЂР°
                     list.Remove(handler);
                 }
             }
         }
 
         /// <summary>
-        /// Асинхронно ожидает публикации сообщения указанного типа с возможностью фильтрации, таймаута и отмены.
+        /// РђСЃРёРЅС…СЂРѕРЅРЅРѕ РѕР¶РёРґР°РµС‚ РїСѓР±Р»РёРєР°С†РёРё СЃРѕРѕР±С‰РµРЅРёСЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР° СЃ РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊСЋ С„РёР»СЊС‚СЂР°С†РёРё, С‚Р°Р№РјР°СѓС‚Р° Рё РѕС‚РјРµРЅС‹.
         /// </summary>
-        /// <typeparam name="T">Тип сообщения.</typeparam>
-        /// <param name="messageFilter">Фильтр сообщений. Если <see langword="null"/>, принимается любое сообщение типа <typeparamref name="T"/>.</param>
-        /// <param name="timeout">Максимальное время ожидания в миллисекундах. Если <see langword="null"/>, ожидание неограниченно.</param>
-        /// <param name="cancellationToken">Токен отмены.</param>
-        /// <returns>Задача, которая завершится после получения сообщения или отмены.</returns>
-        /// <exception cref="ObjectDisposedException">Если шина уже освобождена.</exception>
+        /// <typeparam name="T">РўРёРї СЃРѕРѕР±С‰РµРЅРёСЏ.</typeparam>
+        /// <param name="messageFilter">Р¤РёР»СЊС‚СЂ СЃРѕРѕР±С‰РµРЅРёР№. Р•СЃР»Рё <see langword="null"/>, РїСЂРёРЅРёРјР°РµС‚СЃСЏ Р»СЋР±РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ С‚РёРїР° <typeparamref name="T"/>.</param>
+        /// <param name="timeout">РњР°РєСЃРёРјР°Р»СЊРЅРѕРµ РІСЂРµРјСЏ РѕР¶РёРґР°РЅРёСЏ РІ РјРёР»Р»РёСЃРµРєСѓРЅРґР°С…. Р•СЃР»Рё <see langword="null"/>, РѕР¶РёРґР°РЅРёРµ РЅРµРѕРіСЂР°РЅРёС‡РµРЅРЅРѕ.</param>
+        /// <param name="cancellationToken">РўРѕРєРµРЅ РѕС‚РјРµРЅС‹.</param>
+        /// <returns>Р—Р°РґР°С‡Р°, РєРѕС‚РѕСЂР°СЏ Р·Р°РІРµСЂС€РёС‚СЃСЏ РїРѕСЃР»Рµ РїРѕР»СѓС‡РµРЅРёСЏ СЃРѕРѕР±С‰РµРЅРёСЏ РёР»Рё РѕС‚РјРµРЅС‹.</returns>
+        /// <exception cref="ObjectDisposedException">Р•СЃР»Рё С€РёРЅР° СѓР¶Рµ РѕСЃРІРѕР±РѕР¶РґРµРЅР°.</exception>
         public Task<T> WaitForMessage<T>(
             Func<T, bool> messageFilter = null,
             int? timeout = null,
@@ -369,15 +369,15 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Асинхронно ожидает публикации сообщения указанного типа и возвращает результат в указанном контексте синхронизации.
+        /// РђСЃРёРЅС…СЂРѕРЅРЅРѕ РѕР¶РёРґР°РµС‚ РїСѓР±Р»РёРєР°С†РёРё СЃРѕРѕР±С‰РµРЅРёСЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР° Рё РІРѕР·РІСЂР°С‰Р°РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РІ СѓРєР°Р·Р°РЅРЅРѕРј РєРѕРЅС‚РµРєСЃС‚Рµ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё.
         /// </summary>
-        /// <typeparam name="T">Тип сообщения.</typeparam>
-        /// <param name="context">Контекст синхронизации, в котором будет завершена задача.</param>
-        /// <param name="messageFilter">Фильтр сообщений.</param>
-        /// <param name="timeout">Максимальное время ожидания в миллисекундах.</param>
-        /// <param name="cancellationToken">Токен отмены.</param>
-        /// <returns>Задача, которая завершится после получения сообщения, с учётом контекста синхронизации.</returns>
-        /// <exception cref="ArgumentNullException">Если <paramref name="context"/> равен <see langword="null"/>.</exception>
+        /// <typeparam name="T">РўРёРї СЃРѕРѕР±С‰РµРЅРёСЏ.</typeparam>
+        /// <param name="context">РљРѕРЅС‚РµРєСЃС‚ СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё, РІ РєРѕС‚РѕСЂРѕРј Р±СѓРґРµС‚ Р·Р°РІРµСЂС€РµРЅР° Р·Р°РґР°С‡Р°.</param>
+        /// <param name="messageFilter">Р¤РёР»СЊС‚СЂ СЃРѕРѕР±С‰РµРЅРёР№.</param>
+        /// <param name="timeout">РњР°РєСЃРёРјР°Р»СЊРЅРѕРµ РІСЂРµРјСЏ РѕР¶РёРґР°РЅРёСЏ РІ РјРёР»Р»РёСЃРµРєСѓРЅРґР°С….</param>
+        /// <param name="cancellationToken">РўРѕРєРµРЅ РѕС‚РјРµРЅС‹.</param>
+        /// <returns>Р—Р°РґР°С‡Р°, РєРѕС‚РѕСЂР°СЏ Р·Р°РІРµСЂС€РёС‚СЃСЏ РїРѕСЃР»Рµ РїРѕР»СѓС‡РµРЅРёСЏ СЃРѕРѕР±С‰РµРЅРёСЏ, СЃ СѓС‡С‘С‚РѕРј РєРѕРЅС‚РµРєСЃС‚Р° СЃРёРЅС…СЂРѕРЅРёР·Р°С†РёРё.</returns>
+        /// <exception cref="ArgumentNullException">Р•СЃР»Рё <paramref name="context"/> СЂР°РІРµРЅ <see langword="null"/>.</exception>
         public Task<T> WaitForMessage<T>(
             SynchronizationContext context,
             Func<T, bool> messageFilter = null,
@@ -432,7 +432,7 @@ namespace RuntimeStuff
 
             var type = message.GetType();
 
-            // Обычные подписчики
+            // РћР±С‹С‡РЅС‹Рµ РїРѕРґРїРёСЃС‡РёРєРё
             if (this.handlers.TryGetValue(type, out var list))
             {
                 Delegate[] snapshot;
@@ -454,7 +454,7 @@ namespace RuntimeStuff
                 }
             }
 
-            // Ожидающие задачи
+            // РћР¶РёРґР°СЋС‰РёРµ Р·Р°РґР°С‡Рё
             if (this.waitingHandlers.TryGetValue(type, out var waitList))
             {
                 Action<object>[] snapshot;
@@ -467,7 +467,7 @@ namespace RuntimeStuff
                 {
                     try
                     {
-                        handler(message); // вызываем обработчик, фильтр внутри проверит тип/условие
+                        handler(message); // РІС‹Р·С‹РІР°РµРј РѕР±СЂР°Р±РѕС‚С‡РёРє, С„РёР»СЊС‚СЂ РІРЅСѓС‚СЂРё РїСЂРѕРІРµСЂРёС‚ С‚РёРї/СѓСЃР»РѕРІРёРµ
                     }
                     catch (Exception ex)
                     {
