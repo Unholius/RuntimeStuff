@@ -17,11 +17,13 @@ namespace RuntimeStuff.Extensions
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Data;
     using System.Data.Common;
     using System.Linq.Expressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using RuntimeStuff.Collections;
     using RuntimeStuff.Data;
     using RuntimeStuff.Options;
 
@@ -744,7 +746,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="whereExpression">Условие отбора.</param>
         /// <param name="token">Токен отмены.</param>
         /// <returns>Задача, возвращающая максимальное значение.</returns>
-        public static Task<T> MaxAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, T>> columnSelector, Expression<Func<TFrom, bool>> whereExpression = null,  CancellationToken token = default)
+        public static Task<T> MaxAsync<TFrom, T>(this IDbConnection connection, Expression<Func<TFrom, T>> columnSelector, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default)
             where TFrom : class => connection.AsDbClient().MaxAsync(columnSelector, whereExpression, token);
 
         /// <summary>
@@ -937,6 +939,110 @@ namespace RuntimeStuff.Extensions
         {
             return Param(con, SqlProviderOptions.GetInstance(con).ConnectTimeoutParameterName, timeoutSeconds);
         }
+
+        /// <summary>
+        /// Выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа <typeparamref name="T" />.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
+        /// <returns>Список объектов типа <typeparamref name="T" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос синхронно с фильтрацией по выражению <paramref name="whereExpression" /> и
+        /// возвращает результат в виде списка.</remarks>
+        public static ObservableCollection<T> ToCollection<T>(
+            this IDbConnection connection,
+            Expression<Func<T, bool>> whereExpression,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbClient.DbValueConverter<T> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], T> itemFactory = null,
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollection<T>(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, orderByExpression);
+
+        /// <summary>
+        /// Асинхронно выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа
+        /// <typeparamref name="T" />.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="token">Токен отмены операции.</param>
+        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
+        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде коллекции.</remarks>
+        public static Task<ObservableCollection<T>> ToCollectionAsync<T>(
+            this IDbConnection connection,
+            Expression<Func<T, bool>> whereExpression,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbClient.DbValueConverter<T> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], T> itemFactory = null,
+            CancellationToken token = default,
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionAsync<T>(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, token, orderByExpression);
+
+        /// <summary>
+        /// Выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа <typeparamref name="T" />.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
+        /// <returns>Список объектов типа <typeparamref name="T" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос синхронно с фильтрацией по выражению <paramref name="whereExpression" /> и
+        /// возвращает результат в виде списка.</remarks>
+        public static ObservableCollectionEx<T> ToCollectionEx<T>(
+            this IDbConnection connection,
+            Expression<Func<T, bool>> whereExpression,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbClient.DbValueConverter<T> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], T> itemFactory = null,
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionEx<T>(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, orderByExpression);
+
+        /// <summary>
+        /// Асинхронно выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа
+        /// <typeparamref name="T" />.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="token">Токен отмены операции.</param>
+        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
+        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде коллекции.</remarks>
+        public static Task<ObservableCollectionEx<T>> ToCollectionExAsync<T>(
+            this IDbConnection connection,
+            Expression<Func<T, bool>> whereExpression,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbClient.DbValueConverter<T> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], T> itemFactory = null,
+            CancellationToken token = default,
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionExAsync<T>(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, token, orderByExpression);
 
         /// <summary>
         /// Преобразует результат запроса в DataTable.
