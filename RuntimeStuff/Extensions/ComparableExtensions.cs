@@ -30,7 +30,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="values">The values.</param>
         /// <param name="comparer">The comparer.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public static bool In<T>(this T item, IEnumerable<T> values, IEqualityComparer<T> comparer = null)
+        public static bool In<T>(this T item, IEnumerable<T> values, IEqualityComparer<T> comparer)
         {
             if (values == null)
             {

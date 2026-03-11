@@ -76,5 +76,15 @@ namespace RuntimeStuff.MSTests
 
             Assert.AreEqual("WHERE \"Name\" IN (1, 2, 3)", whereClause);
         }
+
+        [TestMethod]
+        public void WhereClause_Test_06()
+        {
+            var ids = new[] { 1, 2, 3 };
+            var whereClause =
+                SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(x => x.Id.In(ids), SqlProviderOptions.SqlServerOptions, false, out _);
+
+            Assert.AreEqual("WHERE \"Name\" IN (1, 2, 3)", whereClause);
+        }
     }
 }
