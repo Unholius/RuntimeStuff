@@ -4,7 +4,6 @@
 
 namespace RuntimeStuff
 {
-    using RuntimeStuff.Extensions;
     using System;
     using System.Collections;
     using System.Collections.Concurrent;
@@ -390,11 +389,39 @@ namespace RuntimeStuff
                 if (itemType == null)
                 {
                     throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}<{itemType.Name}>");
-                    item = New(itemType);
                 }
+
+                item = New(itemType);
             }
 
-            EnumerableExtensions.TryAdd(collection, item, index);
+            // Проверяем, поддерживает ли коллекция добавление
+            if (collection is IList list)
+            {
+                if (index == -1)
+                {
+                    list.Add(item);
+                }
+                else
+                {
+                    list.Insert(index, item);
+                }
+            }
+            else if (collection is IList<object> genericList)
+            {
+                if (index == -1)
+                {
+                    genericList.Add(item);
+                }
+                else
+                {
+                    genericList.Insert(index, item);
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("Коллекция не поддерживает добавление элементов.");
+            }
+
             return item;
         }
 
