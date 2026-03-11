@@ -569,42 +569,70 @@ namespace RuntimeStuff.Helpers
                 case UnaryExpression ue:
                     return VisitUnary(ue, options, useParams, cmdParams);
 
-                case MethodCallExpression mce when mce.Arguments.Count == 2 && mce.Arguments[0] is MemberExpression:
-                    return VisitMethodCall(mce, options, useParams, cmdParams);
+                case MethodCallExpression mce:
+                    if (mce.Arguments.Count >= 2)
+                    {
+                        return VisitMethodCall(mce, options, useParams, cmdParams);
+                    }
+
+                    break;
 
                 default:
                     throw new NotSupportedException($"Expression '{exp.NodeType}' is not supported.");
             }
+
+            throw new NotSupportedException($"Expression '{exp.NodeType}' is not supported.");
         }
 
         private static string VisitMethodCall(MethodCallExpression mce, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
-            switch (mce.Method.Name.ToLower())
-            {
-                case "in" when mce.Arguments[0] is MemberExpression me && mce.Arguments[1] is NewArrayExpression ae:
-                    var member = VisitMember(me, options, useParams, cmdParams);
-                    var vals = (ExpressionHelper.GetValue(ae) as IEnumerable)?.Cast<object>().ToArray() ?? Array.Empty<object>();
-                    if (useParams)
-                    {
-                        var sb = new StringBuilder($"{member} IN (");
-                        foreach (var val in vals)
-                        {
-                            var paramName = mce.Method.Name + "_" + (cmdParams.Count + 1);
-                            cmdParams[paramName] = val;
-                            sb.Append($"{options.ParamPrefix}{paramName}, ");
-                        }
+            var methodName = mce.Method.Name.ToLower();
+            MemberExpression propertyExpression = null;
+            Expression valueExpression = null;
 
-                        sb.Remove(sb.Length - 2, 2);
-                        sb.Append(')');
-                        return sb.ToString();
-                    }
-                    else
+            switch (methodName)
+            {
+                case "contains":
+                    valueExpression = mce.Arguments[0];
+                    propertyExpression = mce.Arguments[1] as MemberExpression;
+                    break;
+                case "op_implicit":
+                case "in":
+                    if (!(mce.Arguments[0] is MemberExpression))
                     {
-                        return $"{member} IN ({string.Join(", ", vals.Select(x => options.ValueFormatter.Format(x)))})";
+                        break;
                     }
+
+                    propertyExpression = mce.Arguments[0] as MemberExpression;
+                    valueExpression = mce.Arguments.Skip(1).FirstOrDefault(x => x is MemberExpression || x is ConstantExpression || x is NewArrayExpression);
+                    break;
             }
 
-            throw new NotImplementedException();
+            if (propertyExpression == null || valueExpression == null)
+            {
+                throw new NotImplementedException();
+            }
+
+            var member = VisitMember(propertyExpression, options, useParams, cmdParams);
+            var vals = (ExpressionHelper.GetValue(valueExpression) as IEnumerable)?.Cast<object>().ToArray() ?? Array.Empty<object>();
+            if (useParams)
+            {
+                var sb = new StringBuilder($"{member} IN (");
+                foreach (var val in vals)
+                {
+                    var paramName = mce.Method.Name + "_" + (cmdParams.Count + 1);
+                    cmdParams[paramName] = val;
+                    sb.Append($"{options.ParamPrefix}{paramName}, ");
+                }
+
+                sb.Remove(sb.Length - 2, 2);
+                sb.Append(')');
+                return sb.ToString();
+            }
+            else
+            {
+                return $"{member} IN ({string.Join(", ", vals.Select(x => options.ValueFormatter.Format(x)))})";
+            }
         }
 
         private static string VisitBinary(BinaryExpression be, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)

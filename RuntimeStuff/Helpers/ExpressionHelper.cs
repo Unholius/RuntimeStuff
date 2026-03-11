@@ -322,7 +322,14 @@ namespace RuntimeStuff.Helpers
 
                 if (member is MethodCallExpression mce)
                 {
-                    member = mce.Arguments[1];
+                    if (mce.Arguments.Count >= 2)
+                    {
+                        member = mce.Arguments[1];
+                    }
+                    else
+                    {
+                        member = mce.Arguments[0];
+                    }
                 }
 
                 if (member is UnaryExpression ue)

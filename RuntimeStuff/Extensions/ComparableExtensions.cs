@@ -52,7 +52,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="comparer">The comparer.</param>
         /// <param name="values">The values.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public static bool In<T>(this T item, IEqualityComparer<T> comparer, params T[] values) => item.In(values, comparer);
+        public static bool In<T>(this T item, IEqualityComparer<T> comparer, params T[] values) => In(item, values, comparer);
 
         /// <summary>
         /// Удобная перегрузка для массива значений (params) для коллекций.
@@ -61,7 +61,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="item">The item.</param>
         /// <param name="values">The values.</param>
         /// <returns><c>true</c> if XXXX, <c>false</c> otherwise.</returns>
-        public static bool In<T>(this T item, params T[] values) => item.In(null, values);
+        public static bool In<T>(this T item, params T[] values) => In(item, null, values);
 
         /// <summary>
         /// Проверяет, находится ли строка <paramref name="value" /> в диапазоне от <paramref name="from" /> до
