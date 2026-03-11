@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using RuntimeStuff.Extensions;
+using System.Collections.ObjectModel;
 
 namespace RuntimeStuff.MSTests
 {
@@ -696,6 +697,23 @@ namespace RuntimeStuff.MSTests
         //}
 
         #endregion Тесты для интерфейсов и наследования
+
+
+        [TestMethod]
+        public void MethodInfo_Tests_01()
+        {
+            var m1 = MemberCache.Create<ObservableObjectEx>();
+            Assert.IsNotNull(m1.OnPropertyChanged);
+            Assert.IsNotNull(m1.OnPropertyChanging);
+        }
+
+        [TestMethod]
+        public void MethodInfo_Tests_02()
+        {
+            var m1 = MemberCache.Create<ObservableCollection<int>>();
+            Assert.IsNotNull(m1.OnPropertyChanged);
+            Assert.IsNotNull(m1.OnCollectionChanged);
+        }
 
         [TestMethod]
         public void AnonymousType_Test()

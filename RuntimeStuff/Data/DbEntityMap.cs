@@ -10,7 +10,6 @@ namespace RuntimeStuff.Data
     using System.Reflection;
     using RuntimeStuff.Builders;
     using RuntimeStuff.Helpers;
-    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Представляет конфигурацию сопоставления CLR-типов (сущностей)

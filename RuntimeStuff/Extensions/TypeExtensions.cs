@@ -14,6 +14,8 @@
 namespace RuntimeStuff.Extensions
 {
     using System;
+    using System.ComponentModel;
+    using System.Linq;
     using System.Reflection;
     using RuntimeStuff;
 
@@ -218,5 +220,63 @@ namespace RuntimeStuff.Extensions
         /// <param name="name">The name.</param>
         /// <returns>PropertyInfo.</returns>
         public static PropertyInfo GetLowestProperty(this Type type, string name) => Obj.GetLowestProperty(type, name);
+
+        /// <summary>
+        /// Расширение для <see cref="Type"/>, возвращает методы типа, соответствующие указанным типам параметров.
+        /// </summary>
+        /// <param name="type">Тип, для которого выполняется поиск методов.</param>
+        /// <param name="args">Массив типов параметров для фильтрации методов.
+        /// Если массив пуст или равен <c>null</c>, возвращаются все методы типа.</param>
+        /// <returns>
+        /// Массив <see cref="MethodInfo"/> методов типа, совместимых с указанными типами параметров.
+        /// </returns>
+        /// <remarks>
+        /// Используется кэширование через <see cref="MemberCache"/> для ускорения повторных вызовов.
+        /// </remarks>
+        public static MethodInfo[] GetMethods(this Type type, params Type[] args) => MemberCache.Create(type).GetMethods(args);
+
+        /// <summary>
+        /// Уведомляет подписчиков о изменении одного или нескольких свойств объекта.
+        /// </summary>
+        /// <param name="observable">Объект, реализующий <see cref="INotifyPropertyChanged"/>.</param>
+        /// <param name="propertyNames">
+        /// Имена свойств, для которых необходимо отправить уведомление.
+        /// Если не указаны, уведомление будет отправлено для всех публичных свойств.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="observable"/> равен <c>null</c>.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если у типа объекта не найден метод <c>OnPropertyChanged</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод использует отражение и кэш <see cref="MemberCache"/> для поиска метода
+        /// <c>OnPropertyChanged</c> и его вызова.
+        /// </remarks>
+        public static void NotifyPropertyChanged(this INotifyPropertyChanged observable, params string[] propertyNames)
+        {
+            if (observable == null)
+            {
+                throw new ArgumentNullException(nameof(observable));
+            }
+
+            var type = MemberCache.Create(observable.GetType());
+
+            if (type.OnPropertyChanged == null)
+            {
+                throw new InvalidOperationException(
+                    $"Метод OnPropertyChanged не найден у типа {observable.GetType().FullName}.");
+            }
+
+            if (propertyNames == null || propertyNames.Length == 0)
+            {
+                propertyNames = type.PublicProperties.Select(x => x.Name).ToArray();
+            }
+
+            foreach (var property in propertyNames)
+            {
+                type.OnPropertyChanged.Invoke(observable, new object[] { new PropertyChangedEventArgs(property) });
+            }
+        }
     }
 }

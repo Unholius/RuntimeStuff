@@ -18,6 +18,7 @@ namespace RuntimeStuff.Extensions
     using System.Collections;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Collections.Specialized;
     using System.ComponentModel;
     using System.Data;
     using System.Globalization;
@@ -41,6 +42,47 @@ namespace RuntimeStuff.Extensions
     /// Передача null в качестве аргументов может вызвать исключения; подробности см. в документации к каждому методу.</remarks>
     public static class EnumerableExtensions
     {
+        /// <summary>
+        /// Принудительно уведомляет подписчиков о том, что коллекция была изменена.
+        /// </summary>
+        /// <param name="collection">Коллекция, реализующая <see cref="INotifyCollectionChanged"/>.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="collection"/> равен <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод вручную вызывает уведомления об изменении:
+        /// <list type="bullet">
+        /// <item>
+        /// <description><see cref="INotifyPropertyChanged.PropertyChanged"/> для свойств <c>Count</c> и <c>Item[]</c>.</description>
+        /// </item>
+        /// <item>
+        /// <description><see cref="INotifyCollectionChanged.CollectionChanged"/> с действием <see cref="NotifyCollectionChangedAction.Reset"/>.</description>
+        /// </item>
+        /// </list>
+        /// Используется отражение и кэширование через <see cref="MemberCache"/> для вызова
+        /// соответствующих методов уведомления, если они доступны у типа коллекции.
+        /// </remarks>
+        public static void NotifyCollectionChanged(this INotifyCollectionChanged collection)
+        {
+            if (collection == null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
+
+            var type = MemberCache.Create(collection.GetType());
+
+            if (type.OnCollectionChanged == null)
+            {
+                throw new InvalidOperationException(
+                    $"Метод OnCollectionChanged не найден у типа {collection.GetType().FullName}.");
+            }
+
+            // Вызываем найденные методы
+            type.OnPropertyChanged?.Invoke(collection, new object[] { new PropertyChangedEventArgs("Count") });
+            type.OnPropertyChanged?.Invoke(collection, new object[] { new PropertyChangedEventArgs("Item[]") });
+            type.OnCollectionChanged?.Invoke(collection, new object[] { new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset) });
+        }
+
         /// <summary>
         /// Добавляет набор элементов в коллекцию <see cref="ObservableCollection{T}"/>.
         /// </summary>

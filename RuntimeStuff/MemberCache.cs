@@ -9,6 +9,7 @@ namespace RuntimeStuff
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Collections.Specialized;
     using System.ComponentModel;
 #if DEBUG
     using System.Diagnostics;
@@ -71,6 +72,12 @@ namespace RuntimeStuff
         private FieldInfo[] memberFields;
         private PropertyInfo[] memberProperties;
         private MethodInfo[] memberMethods;
+        private MethodInfo onPropertyChanged;
+        private MethodInfo onPropertyChanging;
+        private MethodInfo onCollectionChanged;
+        private bool? hasOnPropertyChanged;
+        private bool? hasOnPropertyChanging;
+        private bool? hasOnCollectionChanged;
         private MemberCache[] pks;
         private MemberCache[] properties;
         private MemberCache[] publicBasicEnumerableProperties;
@@ -536,6 +543,60 @@ namespace RuntimeStuff
                     .ToArray();
 
                 return this.fks;
+            }
+        }
+
+        /// <summary>
+        /// Метод, вызываемый после изменения значения свойства.
+        /// </summary>
+        public MethodInfo OnPropertyChanged
+        {
+            get
+            {
+                if (this.onPropertyChanged != null || this.hasOnPropertyChanged == false)
+                {
+                    return this.onPropertyChanged;
+                }
+
+                this.onPropertyChanged = this.GetMethods(typeof(PropertyChangedEventArgs)).FirstOrDefault();
+                this.hasOnPropertyChanged = this.onPropertyChanged != null;
+                return this.onPropertyChanged;
+            }
+        }
+
+        /// <summary>
+        /// Метод, вызываемый перед изменением значения свойства.
+        /// </summary>
+        public MethodInfo OnPropertyChanging
+        {
+            get
+            {
+                if (this.onPropertyChanging != null || this.hasOnPropertyChanging == false)
+                {
+                    return this.onPropertyChanged;
+                }
+
+                this.onPropertyChanging = this.GetMethods(typeof(PropertyChangingEventArgs)).FirstOrDefault();
+                this.hasOnPropertyChanging = this.onPropertyChanging != null;
+                return this.onPropertyChanging;
+            }
+        }
+
+        /// <summary>
+        /// Метод, вызываемый при изменении коллекции (добавление, удаление, обновление элементов).
+        /// </summary>
+        public MethodInfo OnCollectionChanged
+        {
+            get
+            {
+                if (this.onCollectionChanged != null || this.hasOnCollectionChanged == false)
+                {
+                    return this.onCollectionChanged;
+                }
+
+                this.onCollectionChanged = this.GetMethods(typeof(NotifyCollectionChangedEventArgs)).FirstOrDefault();
+                this.hasOnCollectionChanged = this.hasOnCollectionChanged != null;
+                return this.onCollectionChanged;
             }
         }
 
@@ -1507,6 +1568,56 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Возвращает массив методов типа, которые соответствуют указанным типам параметров.
+        /// </summary>
+        /// <param name="args">Массив типов параметров для поиска подходящих методов.
+        /// Если массив пуст или равен <c>null</c>, возвращаются все методы типа.</param>
+        /// <returns>
+        /// Массив <see cref="MethodInfo"/> методов, у которых параметры совместимы с указанными типами.
+        /// </returns>
+        /// <remarks>
+        /// Метод использует <see cref="GetMethods()"/> для получения всех методов типа, включая методы базовых классов.
+        /// Совпадение параметров проверяется с помощью <see cref="Type.IsAssignableFrom"/>.
+        /// </remarks>
+        public MethodInfo[] GetMethods(params Type[] args)
+        {
+            if (args == null || args.Length == 0)
+            {
+                return this.GetMethods();
+            }
+
+            var methods = new List<MethodInfo>();
+
+            foreach (var method in this.GetMethods())
+            {
+                var skipMethod = false;
+                var methodParams = method.GetParameters();
+                if (methodParams.Length != args.Length)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < methodParams.Length; i++)
+                {
+                    if (args[i] != null && !methodParams[i].ParameterType.IsAssignableFrom(args[i]))
+                    {
+                        skipMethod = true;
+                        break;
+                    }
+                }
+
+                if (skipMethod)
+                {
+                    continue;
+                }
+
+                methods.Add(method);
+            }
+
+            return methods.ToArray();
+        }
+
+        /// <summary>
         /// Получает все атрибуты, примененные к текущему члену, включая атрибуты базовых типов.
         /// </summary>
         /// <returns>Массив атрибутов.</returns>
@@ -1863,9 +1974,16 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает все методы текущего типа.
+        /// Возвращает массив методов типа, включая методы базовых классов, кроме интерфейсов.
         /// </summary>
-        /// <returns>Массив методов.</returns>
+        /// <returns>
+        /// Массив <see cref="MethodInfo"/> всех методов типа и его базовых типов,
+        /// без дубликатов.
+        /// </returns>
+        /// <remarks>
+        /// Используются флаги <see cref="DefaultBindingFlags"/> для получения методов.
+        /// Результат кэшируется в поле <c>memberMethods</c> для последующих вызовов.
+        /// </remarks>
         public MethodInfo[] GetMethods()
         {
             if (this.memberMethods != null)
