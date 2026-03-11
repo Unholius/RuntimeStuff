@@ -87,6 +87,15 @@ namespace RuntimeStuff.Collections
         }
 
         /// <summary>
+        /// Генерирует единое событие CollectionChanged и уведомления о свойствах,
+        /// вызываемое после массового добавления или удаления элементов.
+        /// </summary>
+        public void NotifyCollectionChanged()
+        {
+            this.RaiseReset();
+        }
+
+        /// <summary>
         /// Удаление элемента с отпиской от <see cref="INotifyPropertyChanged"/>.
         /// </summary>
         /// <param name="item">Элемент для удаления.</param>
