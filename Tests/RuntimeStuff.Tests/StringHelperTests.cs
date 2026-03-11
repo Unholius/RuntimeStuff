@@ -170,7 +170,7 @@ namespace RuntimeStuff.MSTests
             var expected = "PASCAL_CASE";
 
             // Act
-            var result = StringHelper.ToUpperSnaceCase(input);
+            var result = StringHelper.ToUpperSnakeCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -312,7 +312,7 @@ namespace RuntimeStuff.MSTests
             {
                 // Assert
                 Assert.AreEqual("", StringHelper.ToSnakeCase(input));
-                Assert.AreEqual("", StringHelper.ToUpperSnaceCase(input));
+                Assert.AreEqual("", StringHelper.ToUpperSnakeCase(input));
                 Assert.AreEqual("", StringHelper.ToCamelCase(input));
                 Assert.AreEqual("", StringHelper.ToLowerCamelCase(input));
                 Assert.AreEqual("", StringHelper.ToKebabCase(input));

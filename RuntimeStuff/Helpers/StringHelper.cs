@@ -21,7 +21,6 @@ namespace RuntimeStuff.Helpers
     using System.Linq;
     using System.Text;
     using System.Text.RegularExpressions;
-    using RuntimeStuff.Extensions;
 
     /// <summary>
     /// Предоставляет набор статических методов для работы со строками и токенами, включая удаление суффикса, замену и
@@ -213,6 +212,124 @@ namespace RuntimeStuff.Helpers
             '\u2060', // Word Joiner
             '\uFEFF', // BOM (Zero Width No-Break Space)
         };
+
+        /// <summary>
+        /// Проверяет, содержит ли строка хотя бы одну из указанных подстрок.
+        /// </summary>
+        /// <param name="s">Исходная строка, в которой выполняется поиск.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк, используемый при поиске подстрок
+        /// (например, <see cref="StringComparison.OrdinalIgnoreCase"/>).
+        /// </param>
+        /// <param name="values">Массив подстрок, наличие которых необходимо проверить.</param>
+        /// <returns>
+        /// <c>true</c>, если строка содержит хотя бы одну из указанных подстрок;
+        /// иначе <c>false</c>.
+        /// Если исходная строка пуста, массив подстрок равен <c>null</c> или пуст,
+        /// метод возвращает <c>false</c>.
+        /// </returns>
+        public static bool StartsWithAny(this string s, StringComparison comparison, params string[] values)
+        {
+            if (string.IsNullOrEmpty(s) || values == null || values.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var value in values)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    continue;
+                }
+
+                if (s.StartsWith(value, comparison))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Удаляет указанную подстроку из начала и конца строки.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="trimString">Подстрока, которую необходимо удалить.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк при поиске подстроки.
+        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Строка без указанной подстроки в начале и конце.
+        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
+        /// </returns>
+        public static string Trim(this string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        {
+            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
+            {
+                return s;
+            }
+
+            return s.TrimStart(trimString, comparison)
+                .TrimEnd(trimString, comparison);
+        }
+
+        /// <summary>
+        /// Удаляет указанную подстроку из начала строки.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="trimString">Подстрока, которую необходимо удалить из начала строки.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк при проверке начала строки.
+        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Строка без указанной подстроки в начале.
+        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
+        /// </returns>
+        public static string TrimStart(this string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        {
+            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
+            {
+                return s;
+            }
+
+            while (s.StartsWith(trimString, comparison))
+            {
+                s = s.Substring(trimString.Length);
+            }
+
+            return s;
+        }
+
+        /// <summary>
+        /// Удаляет указанную подстроку из конца строки.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="trimString">Подстрока, которую необходимо удалить из конца строки.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк при проверке конца строки.
+        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Строка без указанной подстроки в конце.
+        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
+        /// </returns>
+        public static string TrimEnd(this string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        {
+            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
+            {
+                return s;
+            }
+
+            while (s.EndsWith(trimString, comparison))
+            {
+                s = s.Substring(0, s.Length - trimString.Length);
+            }
+
+            return s;
+        }
 
         /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
@@ -1574,39 +1691,10 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="s">Исходная строка.</param>
         /// <returns>Строка в формате <c>UPPER_SNAKE_CASE</c>.</returns>
-        public static string ToUpperSnaceCase(string s)
+        public static string ToUpperSnakeCase(string s)
         {
             var words = SplitWords(s);
             return string.Join("_", words).ToUpperInvariant();
-        }
-
-        /// <summary>
-        /// Метод удаляет указанный суффикс с конца строки, если он существует.
-        /// </summary>
-        /// <param name="s">Исходная строка, из которой нужно удалить суффикс.</param>
-        /// <param name="subStr">Строка-суффикс, которую нужно удалить с конца.</param>
-        /// <param name="comparison">Тип сравнения строк при проверке суффикса.</param>
-        /// <returns>Строка без указанного суффикса в конце, если он был найден.</returns>
-        /// <remarks>Метод проверяет, заканчивается ли исходная строка указанным суффиксом.
-        /// Если суффикс найден, возвращается строка без этого суффикса.
-        /// Если суффикс не найден или параметры пустые, возвращается исходная строка.</remarks>
-        public static string TrimEnd(string s, string subStr, StringComparison comparison = StringComparison.Ordinal)
-        {
-            // Проверка на пустые входные данные
-            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(subStr))
-            {
-                return s;
-            }
-
-            // Проверка наличия суффикса в конце строки
-            if (s.EndsWith(subStr, comparison))
-            {
-                // Возвращаем строку без суффикса
-                return s.Substring(0, s.Length - subStr.Length);
-            }
-
-            // Если суффикс не найден, возвращаем исходную строку
-            return s;
         }
 
         /// <summary>
@@ -1843,14 +1931,14 @@ namespace RuntimeStuff.Helpers
                 }
 
                 var start = IndexOf(s, prefix, index, -1);
-                var count = s.Count((x, i) => x == '"' && i < index);
+                var count = Count(s, (x, i) => x == '"' && i < index);
                 if (start < 0 || count % 2 == 0)
                 {
                     continue;
                 }
 
                 var end = IndexOf(s, suffix, index, 1);
-                count = s.Count((x, i) => x == '"' && i > index);
+                count = Count(s, (x, i) => x == '"' && i > index);
                 if (end >= 0 && index < end && count % 2 != 0)
                 {
                     return true;
@@ -1858,6 +1946,34 @@ namespace RuntimeStuff.Helpers
             }
 
             return false;
+        }
+
+        private static int Count<T>(IEnumerable<T> source, Func<T, int, bool> predicate)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (predicate == null)
+            {
+                throw new ArgumentNullException(nameof(predicate));
+            }
+
+            var count = 0;
+            var index = 0;
+
+            foreach (var item in source)
+            {
+                if (predicate(item, index))
+                {
+                    count++;
+                }
+
+                index++;
+            }
+
+            return count;
         }
 
         private static double JaroDistance(string s1, string s2)

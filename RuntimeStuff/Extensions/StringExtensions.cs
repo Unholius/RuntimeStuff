@@ -485,6 +485,61 @@ namespace RuntimeStuff.Extensions
         public static List<T> SplitToList<T>(this string s, string[] propertyMap, string[] columnSeparators, string[] lineSeparators) => StringHelper.SplitToList<T>(s, propertyMap, columnSeparators, lineSeparators);
 
         /// <summary>
+        /// Проверяет, начинается ли строка хотя бы одной из указанных подстрок.
+        /// </summary>
+        /// <param name="s">Исходная строка, в которой выполняется поиск.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк, используемый при поиске подстрок
+        /// (например, <see cref="StringComparison.OrdinalIgnoreCase"/>).
+        /// </param>
+        /// <param name="values">Массив подстрок, наличие которых необходимо проверить.</param>
+        /// <returns>
+        /// <c>true</c>, если строка начинается хотя бы одной из указанных подстрок;
+        /// иначе <c>false</c>.
+        /// Если исходная строка пуста, массив подстрок равен <c>null</c> или пуст,
+        /// метод возвращает <c>false</c>.
+        /// </returns>
+        public static bool StartsWithAny(this string s, StringComparison comparison, params string[] values) => StringHelper.StartsWithAny(s, comparison, values);
+
+        /// <summary>
+        /// Проверяет, заканчивается ли строка хотя бы одной из указанных подстрок.
+        /// </summary>
+        /// <param name="s">Исходная строка, для которой выполняется проверка.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк, используемый при проверке окончания строки
+        /// (например, <see cref="StringComparison.OrdinalIgnoreCase"/>).
+        /// </param>
+        /// <param name="values">Массив подстрок, окончания которых необходимо проверить.</param>
+        /// <returns>
+        /// <c>true</c>, если строка заканчивается хотя бы одной из указанных подстрок;
+        /// иначе <c>false</c>.
+        /// Если исходная строка пуста, массив подстрок равен <c>null</c> или пуст,
+        /// метод возвращает <c>false</c>.
+        /// </returns>
+        public static bool EndsWithAny(this string s, StringComparison comparison, params string[] values)
+        {
+            if (string.IsNullOrEmpty(s) || values == null || values.Length == 0)
+            {
+                return false;
+            }
+
+            foreach (var value in values)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    continue;
+                }
+
+                if (s.EndsWith(value, comparison))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Преобразует строку в строку Base64 с использованием кодировки UTF-8.
         /// </summary>
         /// <param name="s">Исходная строка.</param>
@@ -496,6 +551,36 @@ namespace RuntimeStuff.Extensions
         /// в текстовом виде.
         /// </remarks>
         public static string ToBase64(this string s, Encoding encoding = null) => Convert.ToBase64String((encoding ?? Encoding.UTF8).GetBytes(s));
+
+        /// <summary>
+        /// Удаляет указанную подстроку из начала и конца строки.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="trimString">Подстрока, которую необходимо удалить.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк при поиске подстроки.
+        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Строка без указанной подстроки в начале и конце.
+        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
+        /// </returns>
+        public static string Trim(this string s, string trimString, StringComparison comparison = StringComparison.Ordinal) => StringHelper.Trim(s, trimString, comparison);
+
+        /// <summary>
+        /// Удаляет указанную подстроку из начала строки.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="trimString">Подстрока, которую необходимо удалить из начала строки.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк при проверке начала строки.
+        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Строка без указанной подстроки в начале.
+        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
+        /// </returns>
+        public static string TrimStart(this string s, string trimString, StringComparison comparison = StringComparison.Ordinal) => StringHelper.TrimStart(s, trimString, comparison);
 
         /// <summary>
         /// Метод удаляет указанный суффикс с конца строки, если он существует.

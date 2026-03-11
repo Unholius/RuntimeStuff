@@ -1,4 +1,4 @@
-// <copyright file="XmlHelperTests.cs" company="Rudnev Sergey">
+п»ї// <copyright file="XmlHelperTests.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
@@ -341,7 +341,7 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.AreEqual(2, result.Length);
-            Assert.AreEqual("Value1", result[0]); // Xml сохраняет вложенный текст
+            Assert.AreEqual("Value1", result[0]); // Xml СЃРѕС…СЂР°РЅСЏРµС‚ РІР»РѕР¶РµРЅРЅС‹Р№ С‚РµРєСЃС‚
             Assert.AreEqual("Value2", result[1]);
         }
 

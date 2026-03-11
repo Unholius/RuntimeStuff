@@ -18,24 +18,24 @@ namespace RuntimeStuff
 
     /// <summary>
     /// v.2026.02.08 (RS) COPY-PASTE READY<br />
-    /// Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
-    /// Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
-    /// Особенности:
+    /// Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Р№ РєР»Р°СЃСЃ РґР»СЏ Р±С‹СЃС‚СЂРѕРіРѕ РґРѕСЃС‚СѓРїР° Рє СЃРІРѕР№СЃС‚РІР°Рј РѕР±СЉРµРєС‚РѕРІ СЃ РїРѕРјРѕС‰СЊСЋ СЃРєРѕРјРїРёР»РёСЂРѕРІР°РЅРЅС‹С… РґРµР»РµРіР°С‚РѕРІ.<br />
+    /// РџРѕР·РІРѕР»СЏРµС‚ РїРѕР»СѓС‡Р°С‚СЊ Рё РёР·РјРµРЅСЏС‚СЊ Р·РЅР°С‡РµРЅРёСЏ СЃРІРѕР№СЃС‚РІ РїРѕ РёРјРµРЅРё Р±РµР· РїРѕСЃС‚РѕСЏРЅРЅРѕРіРѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ Reflection.<br />
+    /// РћСЃРѕР±РµРЅРЅРѕСЃС‚Рё:
     /// <list type="bullet"><item>
-    /// Создает делегаты-геттеры (<see cref="Func{T,Object}" />) и сеттеры (<see cref="Action{T, Object}" />)
-    /// для указанных свойств.
+    /// РЎРѕР·РґР°РµС‚ РґРµР»РµРіР°С‚С‹-РіРµС‚С‚РµСЂС‹ (<see cref="Func{T,Object}" />) Рё СЃРµС‚С‚РµСЂС‹ (<see cref="Action{T, Object}" />)
+    /// РґР»СЏ СѓРєР°Р·Р°РЅРЅС‹С… СЃРІРѕР№СЃС‚РІ.
     /// </item><item>
-    /// Использует кеширование для повторного использования скомпилированных выражений, что обеспечивает высокую
-    /// производительность.
+    /// РСЃРїРѕР»СЊР·СѓРµС‚ РєРµС€РёСЂРѕРІР°РЅРёРµ РґР»СЏ РїРѕРІС‚РѕСЂРЅРѕРіРѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ СЃРєРѕРјРїРёР»РёСЂРѕРІР°РЅРЅС‹С… РІС‹СЂР°Р¶РµРЅРёР№, С‡С‚Рѕ РѕР±РµСЃРїРµС‡РёРІР°РµС‚ РІС‹СЃРѕРєСѓСЋ
+    /// РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ.
     /// </item><item>
-    /// Поддерживает работу как со ссылочными, так и со значимыми типами свойств (boxing выполняется
-    /// автоматически).
+    /// РџРѕРґРґРµСЂР¶РёРІР°РµС‚ СЂР°Р±РѕС‚Сѓ РєР°Рє СЃРѕ СЃСЃС‹Р»РѕС‡РЅС‹РјРё, С‚Р°Рє Рё СЃРѕ Р·РЅР°С‡РёРјС‹РјРё С‚РёРїР°РјРё СЃРІРѕР№СЃС‚РІ (boxing РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ
+    /// Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё).
     /// </item></list>
     /// </summary>
     public static class Obj
     {
         /// <summary>
-        /// Кеширование типов по сборкам.
+        /// РљРµС€РёСЂРѕРІР°РЅРёРµ С‚РёРїРѕРІ РїРѕ СЃР±РѕСЂРєР°Рј.
         /// </summary>
         private static readonly ConcurrentDictionary<Assembly, Type[]> AssemblyTypesCache = new ConcurrentDictionary<Assembly, Type[]>();
 
@@ -44,7 +44,7 @@ namespace RuntimeStuff
         /// </summary>
         private static readonly string[] DateFormats =
         {
-            // --- Только дата ---
+            // --- РўРѕР»СЊРєРѕ РґР°С‚Р° ---
             "yyyy-MM-dd",
             "dd.MM.yyyy",
             "MM/dd/yyyy",
@@ -60,19 +60,19 @@ namespace RuntimeStuff
             "dd/MM/yy",
             "MM/dd/yy",
 
-            // --- Дата + время ---
+            // --- Р”Р°С‚Р° + РІСЂРµРјСЏ ---
             "yyyy-MM-dd HH:mm:ss",
             "dd.MM.yyyy HH:mm:ss",
             "MM/dd/yyyy HH:mm:ss",
             "yyyy/MM/dd HH:mm:ss",
             "dd-MM-yyyy HH:mm:ss",
 
-            // --- Дата + время + миллисекунды ---
+            // --- Р”Р°С‚Р° + РІСЂРµРјСЏ + РјРёР»Р»РёСЃРµРєСѓРЅРґС‹ ---
             "yyyy-MM-dd HH:mm:ss.fff",
             "dd.MM.yyyy HH:mm:ss.fff",
             "MM/dd/yyyy HH:mm:ss.fff",
 
-            // --- ISO и с часовым поясом ---
+            // --- ISO Рё СЃ С‡Р°СЃРѕРІС‹Рј РїРѕСЏСЃРѕРј ---
             "yyyy-MM-ddTHH:mm:ss",
             "yyyy-MM-ddTHH:mm:ssZ",
             "yyyy-MM-ddTHH:mm:ss.fffZ",
@@ -81,14 +81,14 @@ namespace RuntimeStuff
             "o", // ISO 8601 Round-trip
             "s", // Sortable
 
-            // --- Только время ---
+            // --- РўРѕР»СЊРєРѕ РІСЂРµРјСЏ ---
             "HH:mm",
             "HH:mm:ss",
             "HH:mm:ss.fff",
         };
 
         /// <summary>
-        /// Словарь соответствий интерфейсов и фабрик по умолчанию для их реализации.
+        /// РЎР»РѕРІР°СЂСЊ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёР№ РёРЅС‚РµСЂС„РµР№СЃРѕРІ Рё С„Р°Р±СЂРёРє РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РґР»СЏ РёС… СЂРµР°Р»РёР·Р°С†РёРё.
         /// </summary>
         private static readonly Dictionary<Type, Func<Type[], object>> DefaultInterfaceMappings = new Dictionary<Type, Func<Type[], object>>()
         {
@@ -122,9 +122,9 @@ namespace RuntimeStuff
         private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> PropertiesCache = new ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>>();
 
         /// <summary>
-        /// Универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
-        /// Пытается распарсить дату из строки, используя набор фиксированных форматов. Если не получается, то пытается угадать
-        /// формат.
+        /// РЈРЅРёРІРµСЂСЃР°Р»СЊРЅС‹Р№ РєРѕРЅРІРµСЂС‚РµСЂ СЃС‚СЂРѕРєРё РІ DateTime?, РЅРµ Р·Р°РІРёСЃСЏС‰РёР№ РѕС‚ СЂРµРіРёРѕРЅР°Р»СЊРЅС‹С… РЅР°СЃС‚СЂРѕРµРє.
+        /// РџС‹С‚Р°РµС‚СЃСЏ СЂР°СЃРїР°СЂСЃРёС‚СЊ РґР°С‚Сѓ РёР· СЃС‚СЂРѕРєРё, РёСЃРїРѕР»СЊР·СѓСЏ РЅР°Р±РѕСЂ С„РёРєСЃРёСЂРѕРІР°РЅРЅС‹С… С„РѕСЂРјР°С‚РѕРІ. Р•СЃР»Рё РЅРµ РїРѕР»СѓС‡Р°РµС‚СЃСЏ, С‚Рѕ РїС‹С‚Р°РµС‚СЃСЏ СѓРіР°РґР°С‚СЊ
+        /// С„РѕСЂРјР°С‚.
         /// </summary>
         private static readonly Converter<string, DateTime?> StringToDateTimeConverter = s =>
         {
@@ -140,7 +140,7 @@ namespace RuntimeStuff
                 return result;
             }
 
-            // Пробуем угадать формат:
+            // РџСЂРѕР±СѓРµРј СѓРіР°РґР°С‚СЊ С„РѕСЂРјР°С‚:
             if (DateTime.TryParse(s, CultureInfo.CurrentCulture, DateTimeStyles.AssumeLocal, out var d))
             {
                 return d;
@@ -197,7 +197,7 @@ namespace RuntimeStuff
         };
 
         /// <summary>
-        /// Кеширование типов по имени.
+        /// РљРµС€РёСЂРѕРІР°РЅРёРµ С‚РёРїРѕРІ РїРѕ РёРјРµРЅРё.
         /// </summary>
         private static readonly ConcurrentDictionary<string, Type> TypeCache = new ConcurrentDictionary<string, Type>(OrdinalIgnoreCaseComparer);
 
@@ -241,25 +241,25 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Gets набор основных типов: числа, логические, строки, даты, Guid, Enum и др.
+        /// Gets РЅР°Р±РѕСЂ РѕСЃРЅРѕРІРЅС‹С… С‚РёРїРѕРІ: С‡РёСЃР»Р°, Р»РѕРіРёС‡РµСЃРєРёРµ, СЃС‚СЂРѕРєРё, РґР°С‚С‹, Guid, Enum Рё РґСЂ.
         /// </summary>
         /// <value>The basic types.</value>
         public static Type[] BasicTypes { get; }
 
         /// <summary>
-        /// Gets типы, представляющие логические значения.
+        /// Gets С‚РёРїС‹, РїСЂРµРґСЃС‚Р°РІР»СЏСЋС‰РёРµ Р»РѕРіРёС‡РµСЃРєРёРµ Р·РЅР°С‡РµРЅРёСЏ.
         /// </summary>
         /// <value>The bool types.</value>
         public static HashSet<Type> BoolTypes { get; }
 
         /// <summary>
-        /// Gets хранилище пользовательских конвертеров типов. Ключ первого уровня — исходный тип, ключ второго уровня —
-        /// целевой тип, значение — функция преобразования.
+        /// Gets С…СЂР°РЅРёР»РёС‰Рµ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёС… РєРѕРЅРІРµСЂС‚РµСЂРѕРІ С‚РёРїРѕРІ. РљР»СЋС‡ РїРµСЂРІРѕРіРѕ СѓСЂРѕРІРЅСЏ вЂ” РёСЃС…РѕРґРЅС‹Р№ С‚РёРї, РєР»СЋС‡ РІС‚РѕСЂРѕРіРѕ СѓСЂРѕРІРЅСЏ вЂ”
+        /// С†РµР»РµРІРѕР№ С‚РёРї, Р·РЅР°С‡РµРЅРёРµ вЂ” С„СѓРЅРєС†РёСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ.
         /// </summary>
         public static Dictionary<Type, Dictionary<Type, Func<object, object>>> CustomTypeConverters { get; } = new Dictionary<Type, Dictionary<Type, Func<object, object>>>();
 
         /// <summary>
-        /// Gets типы, представляющие дату и время.
+        /// Gets С‚РёРїС‹, РїСЂРµРґСЃС‚Р°РІР»СЏСЋС‰РёРµ РґР°С‚Сѓ Рё РІСЂРµРјСЏ.
         /// </summary>
         /// <value>The date types.</value>
         public static HashSet<Type> DateTypes { get; } = new HashSet<Type>
@@ -268,7 +268,7 @@ namespace RuntimeStuff
         };
 
         /// <summary>
-        /// Gets флаги для поиска членов класса по умолчанию.
+        /// Gets С„Р»Р°РіРё РґР»СЏ РїРѕРёСЃРєР° С‡Р»РµРЅРѕРІ РєР»Р°СЃСЃР° РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.
         /// </summary>
         /// <value>The default binding flags.</value>
         public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
@@ -287,13 +287,13 @@ namespace RuntimeStuff
         public static ConcurrentDictionary<FieldInfo, Action<object, object>> FieldSetterCache { get; } = new ConcurrentDictionary<FieldInfo, Action<object, object>>();
 
         /// <summary>
-        /// Gets типы с плавающей запятой (float, double, decimal).
+        /// Gets С‚РёРїС‹ СЃ РїР»Р°РІР°СЋС‰РµР№ Р·Р°РїСЏС‚РѕР№ (float, double, decimal).
         /// </summary>
         /// <value>The float number types.</value>
         public static HashSet<Type> FloatNumberTypes { get; }
 
         /// <summary>
-        /// Gets целочисленные типы (byte, int, long и т.д. с nullable и без).
+        /// Gets С†РµР»РѕС‡РёСЃР»РµРЅРЅС‹Рµ С‚РёРїС‹ (byte, int, long Рё С‚.Рґ. СЃ nullable Рё Р±РµР·).
         /// </summary>
         /// <value>The int number types.</value>
         public static HashSet<Type> IntNumberTypes { get; }
@@ -305,13 +305,13 @@ namespace RuntimeStuff
         public static ConcurrentDictionary<string, MemberInfo> MemberInfoCache { get; } = new ConcurrentDictionary<string, MemberInfo>();
 
         /// <summary>
-        /// Gets значения, трактуемые как null (null, DBNull, NaN).
+        /// Gets Р·РЅР°С‡РµРЅРёСЏ, С‚СЂР°РєС‚СѓРµРјС‹Рµ РєР°Рє null (null, DBNull, NaN).
         /// </summary>
         /// <value>The null values.</value>
         public static object[] NullValues { get; } = new object[] { null, DBNull.Value, double.NaN, float.NaN };
 
         /// <summary>
-        /// Gets все числовые типы: целочисленные и с плавающей точкой.
+        /// Gets РІСЃРµ С‡РёСЃР»РѕРІС‹Рµ С‚РёРїС‹: С†РµР»РѕС‡РёСЃР»РµРЅРЅС‹Рµ Рё СЃ РїР»Р°РІР°СЋС‰РµР№ С‚РѕС‡РєРѕР№.
         /// </summary>
         /// <value>The number types.</value>
         public static HashSet<Type> NumberTypes { get; }
@@ -334,14 +334,14 @@ namespace RuntimeStuff
         private static ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache { get; } = new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
 
         /// <summary>
-        /// Регистрирует пользовательский конвертер между двумя типами.
+        /// Р РµРіРёСЃС‚СЂРёСЂСѓРµС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёР№ РєРѕРЅРІРµСЂС‚РµСЂ РјРµР¶РґСѓ РґРІСѓРјСЏ С‚РёРїР°РјРё.
         /// </summary>
-        /// <typeparam name="TFrom">Исходный тип.</typeparam>
-        /// <typeparam name="TTo">Целевой тип.</typeparam>
-        /// <param name="converter">Функция преобразования значения из <typeparamref name="TFrom" />
-        /// в <typeparamref name="TTo" />.</param>
-        /// <remarks>Если конвертер для указанной пары типов уже существует,
-        /// он будет перезаписан.</remarks>
+        /// <typeparam name="TFrom">РСЃС…РѕРґРЅС‹Р№ С‚РёРї.</typeparam>
+        /// <typeparam name="TTo">Р¦РµР»РµРІРѕР№ С‚РёРї.</typeparam>
+        /// <param name="converter">Р¤СѓРЅРєС†РёСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ Р·РЅР°С‡РµРЅРёСЏ РёР· <typeparamref name="TFrom" />
+        /// РІ <typeparamref name="TTo" />.</param>
+        /// <remarks>Р•СЃР»Рё РєРѕРЅРІРµСЂС‚РµСЂ РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕР№ РїР°СЂС‹ С‚РёРїРѕРІ СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚,
+        /// РѕРЅ Р±СѓРґРµС‚ РїРµСЂРµР·Р°РїРёСЃР°РЅ.</remarks>
         public static void AddCustomTypeConverter<TFrom, TTo>(Func<TFrom, TTo> converter)
         {
             if (!CustomTypeConverters.TryGetValue(typeof(TFrom), out var typeConverters) || typeConverters == null)
@@ -355,16 +355,16 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Преобразует значение к указанному типу.
+        /// РџСЂРµРѕР±СЂР°Р·СѓРµС‚ Р·РЅР°С‡РµРЅРёРµ Рє СѓРєР°Р·Р°РЅРЅРѕРјСѓ С‚РёРїСѓ.
         /// </summary>
-        /// <param name="value">Значение для преобразования.</param>
-        /// <param name="toType">Тип, в который нужно преобразовать.</param>
-        /// <param name="formatProvider">Провайдер формата (по умолчанию <see cref="CultureInfo.InvariantCulture" />).</param>
-        /// <returns>Преобразованное значение.</returns>
-        /// <exception cref="System.Exception">Ошибка преобразования значения '{value}' ({fromType.Name}) в ({toType.Name})!.</exception>
-        /// <exception cref="InvalidCastException">Если преобразование невозможно.</exception>
-        /// <exception cref="FormatException">Если формат значения некорректен.</exception>
-        /// <exception cref="ArgumentNullException">Если <paramref name="toType" /> равен null.</exception>
+        /// <param name="value">Р—РЅР°С‡РµРЅРёРµ РґР»СЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ.</param>
+        /// <param name="toType">РўРёРї, РІ РєРѕС‚РѕСЂС‹Р№ РЅСѓР¶РЅРѕ РїСЂРµРѕР±СЂР°Р·РѕРІР°С‚СЊ.</param>
+        /// <param name="formatProvider">РџСЂРѕРІР°Р№РґРµСЂ С„РѕСЂРјР°С‚Р° (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ <see cref="CultureInfo.InvariantCulture" />).</param>
+        /// <returns>РџСЂРµРѕР±СЂР°Р·РѕРІР°РЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ.</returns>
+        /// <exception cref="System.Exception">РћС€РёР±РєР° РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ Р·РЅР°С‡РµРЅРёСЏ '{value}' ({fromType.Name}) РІ ({toType.Name})!.</exception>
+        /// <exception cref="InvalidCastException">Р•СЃР»Рё РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РЅРµРІРѕР·РјРѕР¶РЅРѕ.</exception>
+        /// <exception cref="FormatException">Р•СЃР»Рё С„РѕСЂРјР°С‚ Р·РЅР°С‡РµРЅРёСЏ РЅРµРєРѕСЂСЂРµРєС‚РµРЅ.</exception>
+        /// <exception cref="ArgumentNullException">Р•СЃР»Рё <paramref name="toType" /> СЂР°РІРµРЅ null.</exception>
         public static object ChangeType(object value, Type toType, IFormatProvider formatProvider = null)
         {
             if (value == null || (value.Equals(DBNull.Value) && IsNullable(toType)))
@@ -386,7 +386,7 @@ namespace RuntimeStuff
 
             var fromType = value.GetType();
 
-            // Быстрый возврат
+            // Р‘С‹СЃС‚СЂС‹Р№ РІРѕР·РІСЂР°С‚
             if (fromType == toType || toType.IsAssignableFrom(fromType))
             {
                 return value;
@@ -400,7 +400,7 @@ namespace RuntimeStuff
                     return customConverter(value);
                 }
 
-                // Преобразование в строку
+                // РџСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РІ СЃС‚СЂРѕРєСѓ
                 if (toType == typeof(string))
                 {
                     return string.Format(formatProvider, "{0}", value);
@@ -425,7 +425,7 @@ namespace RuntimeStuff
                     }
                 }
 
-                // Преобразование строк
+                // РџСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ СЃС‚СЂРѕРє
                 if (value is string s)
                 {
                     if (toType == typeof(bool))
@@ -458,13 +458,13 @@ namespace RuntimeStuff
 
                     if (IsNumeric(toType))
                     {
-                        // сначала пытаемся корректный parse
+                        // СЃРЅР°С‡Р°Р»Р° РїС‹С‚Р°РµРјСЃСЏ РєРѕСЂСЂРµРєС‚РЅС‹Р№ parse
                         if (decimal.TryParse(s, NumberStyles.Any, formatProvider, out var dec))
                         {
                             return Convert.ChangeType(dec, toType, CultureInfo.InvariantCulture);
                         }
 
-                        // fallback на замену, если формат "1,23"
+                        // fallback РЅР° Р·Р°РјРµРЅСѓ, РµСЃР»Рё С„РѕСЂРјР°С‚ "1,23"
                         s = s.Replace(",", ".");
                         return Convert.ChangeType(s, toType, CultureInfo.InvariantCulture);
                     }
@@ -481,41 +481,41 @@ namespace RuntimeStuff
                     return Activator.CreateInstance(toType, (bool)value);
                 }
 
-                // Универсальное приведение
+                // РЈРЅРёРІРµСЂСЃР°Р»СЊРЅРѕРµ РїСЂРёРІРµРґРµРЅРёРµ
                 return Convert.ChangeType(value, toType, CultureInfo.InvariantCulture);
             }
             catch (Exception ex)
             {
-                throw new InvalidCastException($"Ошибка преобразования значения '{value}' ({fromType.Name}) в ({toType.Name})!", ex);
+                throw new InvalidCastException($"РћС€РёР±РєР° РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ Р·РЅР°С‡РµРЅРёСЏ '{value}' ({fromType.Name}) РІ ({toType.Name})!", ex);
             }
         }
 
         /// <summary>
-        /// Преобразует значение к указанному типу.
+        /// РџСЂРµРѕР±СЂР°Р·СѓРµС‚ Р·РЅР°С‡РµРЅРёРµ Рє СѓРєР°Р·Р°РЅРЅРѕРјСѓ С‚РёРїСѓ.
         /// </summary>
-        /// <typeparam name="T">Тип, в который нужно преобразовать.</typeparam>
-        /// <param name="value">Значение для преобразования.</param>
-        /// <param name="formatProvider">Провайдер формата (по умолчанию <see cref="CultureInfo.InvariantCulture" />).</param>
-        /// <returns>Преобразованное значение.</returns>
+        /// <typeparam name="T">РўРёРї, РІ РєРѕС‚РѕСЂС‹Р№ РЅСѓР¶РЅРѕ РїСЂРµРѕР±СЂР°Р·РѕРІР°С‚СЊ.</typeparam>
+        /// <param name="value">Р—РЅР°С‡РµРЅРёРµ РґР»СЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ.</param>
+        /// <param name="formatProvider">РџСЂРѕРІР°Р№РґРµСЂ С„РѕСЂРјР°С‚Р° (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ <see cref="CultureInfo.InvariantCulture" />).</param>
+        /// <returns>РџСЂРµРѕР±СЂР°Р·РѕРІР°РЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ.</returns>
         public static T ChangeType<T>(object value, IFormatProvider formatProvider = null) => (T)ChangeType(value, typeof(T), formatProvider);
 
         /// <summary>
-        /// Копирует значения указанных членов из исходного объекта в целевой объект. Поддерживает копирование как между
-        /// отдельными объектами, так и между коллекциями объектов.
+        /// РљРѕРїРёСЂСѓРµС‚ Р·РЅР°С‡РµРЅРёСЏ СѓРєР°Р·Р°РЅРЅС‹С… С‡Р»РµРЅРѕРІ РёР· РёСЃС…РѕРґРЅРѕРіРѕ РѕР±СЉРµРєС‚Р° РІ С†РµР»РµРІРѕР№ РѕР±СЉРµРєС‚. РџРѕРґРґРµСЂР¶РёРІР°РµС‚ РєРѕРїРёСЂРѕРІР°РЅРёРµ РєР°Рє РјРµР¶РґСѓ
+        /// РѕС‚РґРµР»СЊРЅС‹РјРё РѕР±СЉРµРєС‚Р°РјРё, С‚Р°Рє Рё РјРµР¶РґСѓ РєРѕР»Р»РµРєС†РёСЏРјРё РѕР±СЉРµРєС‚РѕРІ.
         /// </summary>
-        /// <typeparam name="TSource">Тип исходного объекта, из которого копируются значения. Должен быть ссылочным типом.</typeparam>
-        /// <typeparam name="TTarget">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
-        /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
-        /// <param name="target">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
-        /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
-        /// свойства исходного объекта.</param>
+        /// <typeparam name="TSource">РўРёРї РёСЃС…РѕРґРЅРѕРіРѕ РѕР±СЉРµРєС‚Р°, РёР· РєРѕС‚РѕСЂРѕРіРѕ РєРѕРїРёСЂСѓСЋС‚СЃСЏ Р·РЅР°С‡РµРЅРёСЏ. Р”РѕР»Р¶РµРЅ Р±С‹С‚СЊ СЃСЃС‹Р»РѕС‡РЅС‹Рј С‚РёРїРѕРј.</typeparam>
+        /// <typeparam name="TTarget">РўРёРї С†РµР»РµРІРѕРіРѕ РѕР±СЉРµРєС‚Р°, РІ РєРѕС‚РѕСЂС‹Р№ РєРѕРїРёСЂСѓСЋС‚СЃСЏ Р·РЅР°С‡РµРЅРёСЏ. Р”РѕР»Р¶РµРЅ Р±С‹С‚СЊ СЃСЃС‹Р»РѕС‡РЅС‹Рј С‚РёРїРѕРј.</typeparam>
+        /// <param name="source">РСЃС…РѕРґРЅС‹Р№ РѕР±СЉРµРєС‚, Р·РЅР°С‡РµРЅРёСЏ С‡Р»РµРЅРѕРІ РєРѕС‚РѕСЂРѕРіРѕ Р±СѓРґСѓС‚ СЃРєРѕРїРёСЂРѕРІР°РЅС‹. РќРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ СЂР°РІРµРЅ null.</param>
+        /// <param name="target">Р¦РµР»РµРІРѕР№ РѕР±СЉРµРєС‚, РІ РєРѕС‚РѕСЂС‹Р№ Р±СѓРґСѓС‚ СЃРєРѕРїРёСЂРѕРІР°РЅС‹ Р·РЅР°С‡РµРЅРёСЏ С‡Р»РµРЅРѕРІ. РќРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ СЂР°РІРµРЅ null.</param>
+        /// <param name="memberNames">РњР°СЃСЃРёРІ РёРјРµРЅ С‡Р»РµРЅРѕРІ, РєРѕС‚РѕСЂС‹Рµ РЅРµРѕР±С…РѕРґРёРјРѕ СЃРєРѕРїРёСЂРѕРІР°С‚СЊ. Р•СЃР»Рё РЅРµ СѓРєР°Р·Р°РЅ РёР»Рё РїСѓСЃС‚, РєРѕРїРёСЂСѓСЋС‚СЃСЏ РІСЃРµ РґРѕСЃС‚СѓРїРЅС‹Рµ
+        /// СЃРІРѕР№СЃС‚РІР° РёСЃС…РѕРґРЅРѕРіРѕ РѕР±СЉРµРєС‚Р°.</param>
         /// <exception cref="System.ArgumentNullException">source.</exception>
         /// <exception cref="System.ArgumentNullException">targetination.</exception>
         /// <exception cref="System.InvalidOperationException">Targetination collection is not IList and cannot add new items.</exception>
-        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="target" />
-        /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
-        /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
-        /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
+        /// <remarks>Р•СЃР»Рё РѕР±Р° РїР°СЂР°РјРµС‚СЂР° <paramref name="source" /> Рё <paramref name="target" />
+        /// СЏРІР»СЏСЋС‚СЃСЏ РєРѕР»Р»РµРєС†РёСЏРјРё (РєСЂРѕРјРµ СЃС‚СЂРѕРє), РјРµС‚РѕРґ РєРѕРїРёСЂСѓРµС‚ Р·РЅР°С‡РµРЅРёСЏ РґР»СЏ РєР°Р¶РґРѕРіРѕ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРіРѕ СЌР»РµРјРµРЅС‚Р° РєРѕР»Р»РµРєС†РёРё.
+        /// РџСЂРё РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РЅРѕРІС‹Рµ СЌР»РµРјРµРЅС‚С‹ РґРѕР±Р°РІР»СЏСЋС‚СЃСЏ РІ С†РµР»РµРІСѓСЋ РєРѕР»Р»РµРєС†РёСЋ. РљРѕРїРёСЂРѕРІР°РЅРёРµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РїРѕ
+        /// СѓРєР°Р·Р°РЅРЅС‹Рј РёРјРµРЅР°Рј С‡Р»РµРЅРѕРІ РёР»Рё РїРѕ РІСЃРµРј СЃРІРѕР№СЃС‚РІР°Рј, РµСЃР»Рё РёРјРµРЅР° РЅРµ Р·Р°РґР°РЅС‹.</remarks>
         public static void Copy<TSource, TTarget>(TSource source, TTarget target, params string[] memberNames)
             where TSource : class
             where TTarget : class
@@ -666,10 +666,10 @@ namespace RuntimeStuff
                 var declaringType = fi.DeclaringType ?? throw new ArgumentException(@"Field has no declaring type", nameof(fi));
                 var fieldType = fi.FieldType;
 
-                // Проверяем, является ли поле константой
+                // РџСЂРѕРІРµСЂСЏРµРј, СЏРІР»СЏРµС‚СЃСЏ Р»Рё РїРѕР»Рµ РєРѕРЅСЃС‚Р°РЅС‚РѕР№
                 if (fi.IsLiteral && !fi.IsInitOnly)
                 {
-                    // Для const полей возвращаем делегат, который всегда возвращает значение константы
+                    // Р”Р»СЏ const РїРѕР»РµР№ РІРѕР·РІСЂР°С‰Р°РµРј РґРµР»РµРіР°С‚, РєРѕС‚РѕСЂС‹Р№ РІСЃРµРіРґР° РІРѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РєРѕРЅСЃС‚Р°РЅС‚С‹
                     var constValue = fi.GetRawConstantValue();
                     return _ => constValue;
                 }
@@ -683,73 +683,73 @@ namespace RuntimeStuff
 
                 var il = dm.GetILGenerator();
 
-                // Для статических полей (не констант)
+                // Р”Р»СЏ СЃС‚Р°С‚РёС‡РµСЃРєРёС… РїРѕР»РµР№ (РЅРµ РєРѕРЅСЃС‚Р°РЅС‚)
                 if (fi.IsStatic)
                 {
-                    il.Emit(System.Reflection.Emit.OpCodes.Ldsfld, fi); // Загружаем статическое поле
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldsfld, fi); // Р—Р°РіСЂСѓР¶Р°РµРј СЃС‚Р°С‚РёС‡РµСЃРєРѕРµ РїРѕР»Рµ
                     if (fieldType.IsValueType)
                     {
-                        il.Emit(System.Reflection.Emit.OpCodes.Box, fieldType); // Боксим value type
+                        il.Emit(System.Reflection.Emit.OpCodes.Box, fieldType); // Р‘РѕРєСЃРёРј value type
                     }
 
                     il.Emit(System.Reflection.Emit.OpCodes.Ret);
                     return (Func<object, object>)dm.CreateDelegate(typeof(Func<object, object>));
                 }
 
-                // Для нестатических полей
+                // Р”Р»СЏ РЅРµСЃС‚Р°С‚РёС‡РµСЃРєРёС… РїРѕР»РµР№
                 if (!declaringType.IsValueType)
                 {
-                    // Для ссылочных типов
+                    // Р”Р»СЏ СЃСЃС‹Р»РѕС‡РЅС‹С… С‚РёРїРѕРІ
                     var lblOk = il.DefineLabel();
 
-                    // Проверяем целевой объект
+                    // РџСЂРѕРІРµСЂСЏРµРј С†РµР»РµРІРѕР№ РѕР±СЉРµРєС‚
                     il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
                     il.Emit(System.Reflection.Emit.OpCodes.Isinst, declaringType);
                     il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
 
-                    // Если тип не подходит, выбрасываем исключение
+                    // Р•СЃР»Рё С‚РёРї РЅРµ РїРѕРґС…РѕРґРёС‚, РІС‹Р±СЂР°СЃС‹РІР°РµРј РёСЃРєР»СЋС‡РµРЅРёРµ
                     il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                     il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                     il.MarkLabel(lblOk);
 
-                    // Загружаем целевой объект и приводим к правильному типу
+                    // Р—Р°РіСЂСѓР¶Р°РµРј С†РµР»РµРІРѕР№ РѕР±СЉРµРєС‚ Рё РїСЂРёРІРѕРґРёРј Рє РїСЂР°РІРёР»СЊРЅРѕРјСѓ С‚РёРїСѓ
                     il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
                     il.Emit(System.Reflection.Emit.OpCodes.Castclass, declaringType);
 
-                    // Загружаем поле
+                    // Р—Р°РіСЂСѓР¶Р°РµРј РїРѕР»Рµ
                     il.Emit(System.Reflection.Emit.OpCodes.Ldfld, fi);
                 }
                 else
                 {
-                    // Для value types (структур)
+                    // Р”Р»СЏ value types (СЃС‚СЂСѓРєС‚СѓСЂ)
 
-                    // Проверяем на null
+                    // РџСЂРѕРІРµСЂСЏРµРј РЅР° null
                     var lblNotNull = il.DefineLabel();
                     il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
                     il.Emit(System.Reflection.Emit.OpCodes.Dup);
                     il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
 
-                    // Если null, выбрасываем исключение
+                    // Р•СЃР»Рё null, РІС‹Р±СЂР°СЃС‹РІР°РµРј РёСЃРєР»СЋС‡РµРЅРёРµ
                     il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                     il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                     il.MarkLabel(lblNotNull);
 
-                    // Распаковываем структуру
+                    // Р Р°СЃРїР°РєРѕРІС‹РІР°РµРј СЃС‚СЂСѓРєС‚СѓСЂСѓ
                     il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, declaringType);
 
-                    // Создаем локальную переменную
+                    // РЎРѕР·РґР°РµРј Р»РѕРєР°Р»СЊРЅСѓСЋ РїРµСЂРµРјРµРЅРЅСѓСЋ
                     var local = il.DeclareLocal(declaringType);
                     il.Emit(System.Reflection.Emit.OpCodes.Stloc, local);
-                    il.Emit(System.Reflection.Emit.OpCodes.Ldloca_S, local); // Загружаем адрес
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldloca_S, local); // Р—Р°РіСЂСѓР¶Р°РµРј Р°РґСЂРµСЃ
 
-                    // Загружаем поле
-                    il.Emit(System.Reflection.Emit.OpCodes.Ldflda, fi); // Загружаем адрес поля
-                    il.Emit(System.Reflection.Emit.OpCodes.Ldobj, fieldType); // Загружаем значение по адресу
+                    // Р—Р°РіСЂСѓР¶Р°РµРј РїРѕР»Рµ
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldflda, fi); // Р—Р°РіСЂСѓР¶Р°РµРј Р°РґСЂРµСЃ РїРѕР»СЏ
+                    il.Emit(System.Reflection.Emit.OpCodes.Ldobj, fieldType); // Р—Р°РіСЂСѓР¶Р°РµРј Р·РЅР°С‡РµРЅРёРµ РїРѕ Р°РґСЂРµСЃСѓ
                 }
 
-                // Боксим результат, если это value type
+                // Р‘РѕРєСЃРёРј СЂРµР·СѓР»СЊС‚Р°С‚, РµСЃР»Рё СЌС‚Рѕ value type
                 if (fieldType.IsValueType)
                 {
                     il.Emit(System.Reflection.Emit.OpCodes.Box, fieldType);
@@ -840,7 +840,7 @@ namespace RuntimeStuff
 
             var il = dm.GetILGenerator();
 
-            // Для статических методов
+            // Р”Р»СЏ СЃС‚Р°С‚РёС‡РµСЃРєРёС… РјРµС‚РѕРґРѕРІ
             if (getter.IsStatic)
             {
                 il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
@@ -853,10 +853,10 @@ namespace RuntimeStuff
                 return (Func<object, object>)dm.CreateDelegate(typeof(Func<object, object>));
             }
 
-            // Для нестатических методов
+            // Р”Р»СЏ РЅРµСЃС‚Р°С‚РёС‡РµСЃРєРёС… РјРµС‚РѕРґРѕРІ
             if (!declaring.IsValueType)
             {
-                // Для ссылочных типов
+                // Р”Р»СЏ СЃСЃС‹Р»РѕС‡РЅС‹С… С‚РёРїРѕРІ
                 var lblOk = il.DefineLabel();
 
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
@@ -873,38 +873,38 @@ namespace RuntimeStuff
             }
             else
             {
-                // Для value types
-                // Создаем локальную переменную для хранения распакованной структуры
+                // Р”Р»СЏ value types
+                // РЎРѕР·РґР°РµРј Р»РѕРєР°Р»СЊРЅСѓСЋ РїРµСЂРµРјРµРЅРЅСѓСЋ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СЂР°СЃРїР°РєРѕРІР°РЅРЅРѕР№ СЃС‚СЂСѓРєС‚СѓСЂС‹
                 var local = il.DeclareLocal(declaring);
 
-                // Загружаем аргумент (упакованную структуру)
+                // Р—Р°РіСЂСѓР¶Р°РµРј Р°СЂРіСѓРјРµРЅС‚ (СѓРїР°РєРѕРІР°РЅРЅСѓСЋ СЃС‚СЂСѓРєС‚СѓСЂСѓ)
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
 
-                // Проверяем, что это не null (для упакованных структур)
+                // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚Рѕ СЌС‚Рѕ РЅРµ null (РґР»СЏ СѓРїР°РєРѕРІР°РЅРЅС‹С… СЃС‚СЂСѓРєС‚СѓСЂ)
                 var lblNotNull = il.DefineLabel();
                 il.Emit(System.Reflection.Emit.OpCodes.Dup);
                 il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
 
-                // Если null, выбрасываем исключение
+                // Р•СЃР»Рё null, РІС‹Р±СЂР°СЃС‹РІР°РµРј РёСЃРєР»СЋС‡РµРЅРёРµ
                 il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                 il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                 il.MarkLabel(lblNotNull);
 
-                // Распаковываем структуру
+                // Р Р°СЃРїР°РєРѕРІС‹РІР°РµРј СЃС‚СЂСѓРєС‚СѓСЂСѓ
                 il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, declaring);
 
-                // Сохраняем в локальную переменную
+                // РЎРѕС…СЂР°РЅСЏРµРј РІ Р»РѕРєР°Р»СЊРЅСѓСЋ РїРµСЂРµРјРµРЅРЅСѓСЋ
                 il.Emit(System.Reflection.Emit.OpCodes.Stloc, local);
 
-                // Загружаем адрес локальной переменной (для вызова метода структуры)
+                // Р—Р°РіСЂСѓР¶Р°РµРј Р°РґСЂРµСЃ Р»РѕРєР°Р»СЊРЅРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№ (РґР»СЏ РІС‹Р·РѕРІР° РјРµС‚РѕРґР° СЃС‚СЂСѓРєС‚СѓСЂС‹)
                 il.Emit(System.Reflection.Emit.OpCodes.Ldloca_S, local);
 
-                // Вызываем getter
+                // Р’С‹Р·С‹РІР°РµРј getter
                 il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
             }
 
-            // Бокс возвращаемого значения, если это value type
+            // Р‘РѕРєСЃ РІРѕР·РІСЂР°С‰Р°РµРјРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ, РµСЃР»Рё СЌС‚Рѕ value type
             if (propertyType.IsValueType)
             {
                 il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
@@ -947,10 +947,10 @@ namespace RuntimeStuff
 
             var il = dm.GetILGenerator();
 
-            // Для статических методов
+            // Р”Р»СЏ СЃС‚Р°С‚РёС‡РµСЃРєРёС… РјРµС‚РѕРґРѕРІ
             if (setter.IsStatic)
             {
-                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1); // Загружаем значение
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1); // Р—Р°РіСЂСѓР¶Р°РµРј Р·РЅР°С‡РµРЅРёРµ
                 if (propertyType.IsValueType)
                 {
                     il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, propertyType);
@@ -965,13 +965,13 @@ namespace RuntimeStuff
                 return (Action<object, object>)dm.CreateDelegate(typeof(Action<object, object>));
             }
 
-            // Для нестатических методов
+            // Р”Р»СЏ РЅРµСЃС‚Р°С‚РёС‡РµСЃРєРёС… РјРµС‚РѕРґРѕРІ
             if (!declaring.IsValueType)
             {
-                // Для ссылочных типов
+                // Р”Р»СЏ СЃСЃС‹Р»РѕС‡РЅС‹С… С‚РёРїРѕРІ
                 var lblOk = il.DefineLabel();
 
-                // Проверяем целевой объект (obj)
+                // РџСЂРѕРІРµСЂСЏРµРј С†РµР»РµРІРѕР№ РѕР±СЉРµРєС‚ (obj)
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
                 il.Emit(System.Reflection.Emit.OpCodes.Isinst, declaring);
                 il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
@@ -981,11 +981,11 @@ namespace RuntimeStuff
 
                 il.MarkLabel(lblOk);
 
-                // Загружаем целевой объект и приводим к правильному типу
+                // Р—Р°РіСЂСѓР¶Р°РµРј С†РµР»РµРІРѕР№ РѕР±СЉРµРєС‚ Рё РїСЂРёРІРѕРґРёРј Рє РїСЂР°РІРёР»СЊРЅРѕРјСѓ С‚РёРїСѓ
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
                 il.Emit(System.Reflection.Emit.OpCodes.Castclass, declaring);
 
-                // Загружаем значение
+                // Р—Р°РіСЂСѓР¶Р°РµРј Р·РЅР°С‡РµРЅРёРµ
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1);
                 if (propertyType.IsValueType)
                 {
@@ -1000,32 +1000,32 @@ namespace RuntimeStuff
             }
             else
             {
-                // Для value types (структур)
-                // Создаем локальную переменную для хранения распакованной структуры
+                // Р”Р»СЏ value types (СЃС‚СЂСѓРєС‚СѓСЂ)
+                // РЎРѕР·РґР°РµРј Р»РѕРєР°Р»СЊРЅСѓСЋ РїРµСЂРµРјРµРЅРЅСѓСЋ РґР»СЏ С…СЂР°РЅРµРЅРёСЏ СЂР°СЃРїР°РєРѕРІР°РЅРЅРѕР№ СЃС‚СЂСѓРєС‚СѓСЂС‹
                 var local = il.DeclareLocal(declaring);
 
-                // Проверяем целевой объект на null
+                // РџСЂРѕРІРµСЂСЏРµРј С†РµР»РµРІРѕР№ РѕР±СЉРµРєС‚ РЅР° null
                 var lblNotNull = il.DefineLabel();
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
                 il.Emit(System.Reflection.Emit.OpCodes.Dup);
                 il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
 
-                // Если null, выбрасываем исключение
+                // Р•СЃР»Рё null, РІС‹Р±СЂР°СЃС‹РІР°РµРј РёСЃРєР»СЋС‡РµРЅРёРµ
                 il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
                 il.Emit(System.Reflection.Emit.OpCodes.Throw);
 
                 il.MarkLabel(lblNotNull);
 
-                // Распаковываем структуру
+                // Р Р°СЃРїР°РєРѕРІС‹РІР°РµРј СЃС‚СЂСѓРєС‚СѓСЂСѓ
                 il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, declaring);
 
-                // Сохраняем в локальную переменную
+                // РЎРѕС…СЂР°РЅСЏРµРј РІ Р»РѕРєР°Р»СЊРЅСѓСЋ РїРµСЂРµРјРµРЅРЅСѓСЋ
                 il.Emit(System.Reflection.Emit.OpCodes.Stloc, local);
 
-                // Загружаем адрес локальной переменной
+                // Р—Р°РіСЂСѓР¶Р°РµРј Р°РґСЂРµСЃ Р»РѕРєР°Р»СЊРЅРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№
                 il.Emit(System.Reflection.Emit.OpCodes.Ldloca_S, local);
 
-                // Загружаем значение
+                // Р—Р°РіСЂСѓР¶Р°РµРј Р·РЅР°С‡РµРЅРёРµ
                 il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1);
                 if (propertyType.IsValueType)
                 {
@@ -1036,13 +1036,13 @@ namespace RuntimeStuff
                     il.Emit(System.Reflection.Emit.OpCodes.Castclass, propertyType);
                 }
 
-                // Вызываем setter
+                // Р’С‹Р·С‹РІР°РµРј setter
                 il.Emit(System.Reflection.Emit.OpCodes.Call, setter);
 
-                // Боксим структуру обратно в object (обновляем исходный объект)
+                // Р‘РѕРєСЃРёРј СЃС‚СЂСѓРєС‚СѓСЂСѓ РѕР±СЂР°С‚РЅРѕ РІ object (РѕР±РЅРѕРІР»СЏРµРј РёСЃС…РѕРґРЅС‹Р№ РѕР±СЉРµРєС‚)
                 il.Emit(System.Reflection.Emit.OpCodes.Ldloc, local);
                 il.Emit(System.Reflection.Emit.OpCodes.Box, declaring);
-                il.Emit(System.Reflection.Emit.OpCodes.Starg_S, 0); // Сохраняем обратно в первый аргумент
+                il.Emit(System.Reflection.Emit.OpCodes.Starg_S, 0); // РЎРѕС…СЂР°РЅСЏРµРј РѕР±СЂР°С‚РЅРѕ РІ РїРµСЂРІС‹Р№ Р°СЂРіСѓРјРµРЅС‚
             }
 
             il.Emit(System.Reflection.Emit.OpCodes.Ret);
@@ -1051,23 +1051,23 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает значение по умолчанию для указанного типа.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°.
         /// </summary>
-        /// <param name="type">Тип, для которого нужно получить значение по умолчанию.</param>
-        /// <returns>Значение по умолчанию для указанного типа.</returns>
+        /// <param name="type">РўРёРї, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РЅСѓР¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°.</returns>
         public static object Default(Type type) => type?.IsValueType == true ? Activator.CreateInstance(type) : null;
 
         /// <summary>
-        /// Находит конструктор указанного типа, параметры которого совместимы
-        /// с переданным набором аргументов.
+        /// РќР°С…РѕРґРёС‚ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°, РїР°СЂР°РјРµС‚СЂС‹ РєРѕС‚РѕСЂРѕРіРѕ СЃРѕРІРјРµСЃС‚РёРјС‹
+        /// СЃ РїРµСЂРµРґР°РЅРЅС‹Рј РЅР°Р±РѕСЂРѕРј Р°СЂРіСѓРјРµРЅС‚РѕРІ.
         /// </summary>
-        /// <param name="type">Тип, в котором требуется найти подходящий конструктор.</param>
-        /// <param name="args">Массив аргументов, по типам которых выполняется поиск конструктора.
-        /// Если элемент массива равен <c>null</c>, считается, что его тип — <see cref="object" />.</param>
-        /// <returns>Экземпляр <see cref="ConstructorInfo" />, представляющий первый найденный
-        /// конструктор, параметры которого по количеству и типам совместимы
-        /// с переданными аргументами.</returns>
-        /// <exception cref="InvalidOperationException">Выбрасывается, если подходящий конструктор не найден.</exception>
+        /// <param name="type">РўРёРї, РІ РєРѕС‚РѕСЂРѕРј С‚СЂРµР±СѓРµС‚СЃСЏ РЅР°Р№С‚Рё РїРѕРґС…РѕРґСЏС‰РёР№ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ.</param>
+        /// <param name="args">РњР°СЃСЃРёРІ Р°СЂРіСѓРјРµРЅС‚РѕРІ, РїРѕ С‚РёРїР°Рј РєРѕС‚РѕСЂС‹С… РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ РїРѕРёСЃРє РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°.
+        /// Р•СЃР»Рё СЌР»РµРјРµРЅС‚ РјР°СЃСЃРёРІР° СЂР°РІРµРЅ <c>null</c>, СЃС‡РёС‚Р°РµС‚СЃСЏ, С‡С‚Рѕ РµРіРѕ С‚РёРї вЂ” <see cref="object" />.</param>
+        /// <returns>Р­РєР·РµРјРїР»СЏСЂ <see cref="ConstructorInfo" />, РїСЂРµРґСЃС‚Р°РІР»СЏСЋС‰РёР№ РїРµСЂРІС‹Р№ РЅР°Р№РґРµРЅРЅС‹Р№
+        /// РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ, РїР°СЂР°РјРµС‚СЂС‹ РєРѕС‚РѕСЂРѕРіРѕ РїРѕ РєРѕР»РёС‡РµСЃС‚РІСѓ Рё С‚РёРїР°Рј СЃРѕРІРјРµСЃС‚РёРјС‹
+        /// СЃ РїРµСЂРµРґР°РЅРЅС‹РјРё Р°СЂРіСѓРјРµРЅС‚Р°РјРё.</returns>
+        /// <exception cref="InvalidOperationException">Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё РїРѕРґС…РѕРґСЏС‰РёР№ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ РЅРµ РЅР°Р№РґРµРЅ.</exception>
         public static ConstructorInfo FindConstructor(Type type, object[] args)
         {
             var argTypes = args.Select(a => a?.GetType() ?? typeof(object)).ToArray();
@@ -1094,14 +1094,14 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Выполняет поиск члена с указанным именем в заданном типе и возвращает информацию о найденном члене.
+        /// Р’С‹РїРѕР»РЅСЏРµС‚ РїРѕРёСЃРє С‡Р»РµРЅР° СЃ СѓРєР°Р·Р°РЅРЅС‹Рј РёРјРµРЅРµРј РІ Р·Р°РґР°РЅРЅРѕРј С‚РёРїРµ Рё РІРѕР·РІСЂР°С‰Р°РµС‚ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РЅР°Р№РґРµРЅРЅРѕРј С‡Р»РµРЅРµ.
         /// </summary>
-        /// <param name="type">Тип, в котором выполняется поиск члена. Не может быть равен null.</param>
-        /// <param name="name">Имя члена, который требуется найти. Поиск чувствителен к регистру.</param>
-        /// <returns>Объект типа MemberInfo, представляющий найденный член, или null, если член с указанным именем не найден.</returns>
-        /// <remarks>Метод использует внутреннее кэширование для повышения производительности повторных
-        /// запросов. Если член не найден в кэше, выполняется поиск с различными параметрами привязки. Может возвращать
-        /// члены, объявленные как в самом типе, так и унаследованные.</remarks>
+        /// <param name="type">РўРёРї, РІ РєРѕС‚РѕСЂРѕРј РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ РїРѕРёСЃРє С‡Р»РµРЅР°. РќРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ СЂР°РІРµРЅ null.</param>
+        /// <param name="name">РРјСЏ С‡Р»РµРЅР°, РєРѕС‚РѕСЂС‹Р№ С‚СЂРµР±СѓРµС‚СЃСЏ РЅР°Р№С‚Рё. РџРѕРёСЃРє С‡СѓРІСЃС‚РІРёС‚РµР»РµРЅ Рє СЂРµРіРёСЃС‚СЂСѓ.</param>
+        /// <returns>РћР±СЉРµРєС‚ С‚РёРїР° MemberInfo, РїСЂРµРґСЃС‚Р°РІР»СЏСЋС‰РёР№ РЅР°Р№РґРµРЅРЅС‹Р№ С‡Р»РµРЅ, РёР»Рё null, РµСЃР»Рё С‡Р»РµРЅ СЃ СѓРєР°Р·Р°РЅРЅС‹Рј РёРјРµРЅРµРј РЅРµ РЅР°Р№РґРµРЅ.</returns>
+        /// <remarks>РњРµС‚РѕРґ РёСЃРїРѕР»СЊР·СѓРµС‚ РІРЅСѓС‚СЂРµРЅРЅРµРµ РєСЌС€РёСЂРѕРІР°РЅРёРµ РґР»СЏ РїРѕРІС‹С€РµРЅРёСЏ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚Рё РїРѕРІС‚РѕСЂРЅС‹С…
+        /// Р·Р°РїСЂРѕСЃРѕРІ. Р•СЃР»Рё С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ РІ РєСЌС€Рµ, РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ РїРѕРёСЃРє СЃ СЂР°Р·Р»РёС‡РЅС‹РјРё РїР°СЂР°РјРµС‚СЂР°РјРё РїСЂРёРІСЏР·РєРё. РњРѕР¶РµС‚ РІРѕР·РІСЂР°С‰Р°С‚СЊ
+        /// С‡Р»РµРЅС‹, РѕР±СЉСЏРІР»РµРЅРЅС‹Рµ РєР°Рє РІ СЃР°РјРѕРј С‚РёРїРµ, С‚Р°Рє Рё СѓРЅР°СЃР»РµРґРѕРІР°РЅРЅС‹Рµ.</remarks>
         public static MemberInfo FindMember(Type type, string name)
         {
             if (MemberInfoCache.TryGetValue(type.FullName + "." + name, out var memberInfo))
@@ -1115,18 +1115,18 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Ищет член типа (свойство, поле или метод) по его имени,
-        /// включая проверку в базовых типах и реализованных интерфейсах.
+        /// РС‰РµС‚ С‡Р»РµРЅ С‚РёРїР° (СЃРІРѕР№СЃС‚РІРѕ, РїРѕР»Рµ РёР»Рё РјРµС‚РѕРґ) РїРѕ РµРіРѕ РёРјРµРЅРё,
+        /// РІРєР»СЋС‡Р°СЏ РїСЂРѕРІРµСЂРєСѓ РІ Р±Р°Р·РѕРІС‹С… С‚РёРїР°С… Рё СЂРµР°Р»РёР·РѕРІР°РЅРЅС‹С… РёРЅС‚РµСЂС„РµР№СЃР°С….
         /// </summary>
-        /// <param name="type">Тип, в котором выполняется поиск.</param>
-        /// <param name="name">Имя члена, который необходимо найти.</param>
-        /// <param name="ignoreCase">Если <c>true</c>, поиск выполняется без учета регистра букв.</param>
-        /// <param name="bindingFlags">Набор флагов <see cref="BindingFlags" />, определяющих стратегию поиска.
-        /// Если не указан, используется значение <c>DefaultBindingFlags</c>.</param>
-        /// <returns>Объект <see cref="MemberInfo" />, соответствующий найденному члену,
-        /// либо <c>null</c>, если подходящий член не найден.</returns>
-        /// <remarks>Метод выполняет поиск в следующем порядке:
-        /// <list type="number"><item><description>Свойства типа;</description></item><item><description>Поля типа;</description></item><item><description>Свойства интерфейсов, реализованных данным типом;</description></item><item><description>Методы типа;</description></item><item><description>Рекурсивный поиск в базовом типе.</description></item></list></remarks>
+        /// <param name="type">РўРёРї, РІ РєРѕС‚РѕСЂРѕРј РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ РїРѕРёСЃРє.</param>
+        /// <param name="name">РРјСЏ С‡Р»РµРЅР°, РєРѕС‚РѕСЂС‹Р№ РЅРµРѕР±С…РѕРґРёРјРѕ РЅР°Р№С‚Рё.</param>
+        /// <param name="ignoreCase">Р•СЃР»Рё <c>true</c>, РїРѕРёСЃРє РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ Р±РµР· СѓС‡РµС‚Р° СЂРµРіРёСЃС‚СЂР° Р±СѓРєРІ.</param>
+        /// <param name="bindingFlags">РќР°Р±РѕСЂ С„Р»Р°РіРѕРІ <see cref="BindingFlags" />, РѕРїСЂРµРґРµР»СЏСЋС‰РёС… СЃС‚СЂР°С‚РµРіРёСЋ РїРѕРёСЃРєР°.
+        /// Р•СЃР»Рё РЅРµ СѓРєР°Р·Р°РЅ, РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ Р·РЅР°С‡РµРЅРёРµ <c>DefaultBindingFlags</c>.</param>
+        /// <returns>РћР±СЉРµРєС‚ <see cref="MemberInfo" />, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёР№ РЅР°Р№РґРµРЅРЅРѕРјСѓ С‡Р»РµРЅСѓ,
+        /// Р»РёР±Рѕ <c>null</c>, РµСЃР»Рё РїРѕРґС…РѕРґСЏС‰РёР№ С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ.</returns>
+        /// <remarks>РњРµС‚РѕРґ РІС‹РїРѕР»РЅСЏРµС‚ РїРѕРёСЃРє РІ СЃР»РµРґСѓСЋС‰РµРј РїРѕСЂСЏРґРєРµ:
+        /// <list type="number"><item><description>РЎРІРѕР№СЃС‚РІР° С‚РёРїР°;</description></item><item><description>РџРѕР»СЏ С‚РёРїР°;</description></item><item><description>РЎРІРѕР№СЃС‚РІР° РёРЅС‚РµСЂС„РµР№СЃРѕРІ, СЂРµР°Р»РёР·РѕРІР°РЅРЅС‹С… РґР°РЅРЅС‹Рј С‚РёРїРѕРј;</description></item><item><description>РњРµС‚РѕРґС‹ С‚РёРїР°;</description></item><item><description>Р РµРєСѓСЂСЃРёРІРЅС‹Р№ РїРѕРёСЃРє РІ Р±Р°Р·РѕРІРѕРј С‚РёРїРµ.</description></item></list></remarks>
         public static MemberInfo FindMember(Type type, string name, bool ignoreCase, BindingFlags? bindingFlags)
         {
             var flags = bindingFlags ?? DefaultBindingFlags;
@@ -1166,7 +1166,7 @@ namespace RuntimeStuff
                 return method;
             }
 
-            // 5. Base types (итерация вместо рекурсии)
+            // 5. Base types (РёС‚РµСЂР°С†РёСЏ РІРјРµСЃС‚Рѕ СЂРµРєСѓСЂСЃРёРё)
             var bt = type.BaseType;
             while (bt != null)
             {
@@ -1183,25 +1183,25 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Выполняет поиск типов в указанных сборках, удовлетворяющих заданному условию.
+        /// Р’С‹РїРѕР»РЅСЏРµС‚ РїРѕРёСЃРє С‚РёРїРѕРІ РІ СѓРєР°Р·Р°РЅРЅС‹С… СЃР±РѕСЂРєР°С…, СѓРґРѕРІР»РµС‚РІРѕСЂСЏСЋС‰РёС… Р·Р°РґР°РЅРЅРѕРјСѓ СѓСЃР»РѕРІРёСЋ.
         /// </summary>
         /// <param name="filter">
-        /// Делегат-фильтр для проверки типов.
-        /// Если <c>null</c>, будут возвращены все найденные типы.
+        /// Р”РµР»РµРіР°С‚-С„РёР»СЊС‚СЂ РґР»СЏ РїСЂРѕРІРµСЂРєРё С‚РёРїРѕРІ.
+        /// Р•СЃР»Рё <c>null</c>, Р±СѓРґСѓС‚ РІРѕР·РІСЂР°С‰РµРЅС‹ РІСЃРµ РЅР°Р№РґРµРЅРЅС‹Рµ С‚РёРїС‹.
         /// </param>
         /// <param name="assemblies">
-        /// Сборки, в которых выполняется поиск типов.
-        /// Если параметр не указан или равен <c>null</c>, используются все сборки,
-        /// загруженные в текущий домен приложения (<see cref="AppDomain.CurrentDomain"/>).
+        /// РЎР±РѕСЂРєРё, РІ РєРѕС‚РѕСЂС‹С… РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ РїРѕРёСЃРє С‚РёРїРѕРІ.
+        /// Р•СЃР»Рё РїР°СЂР°РјРµС‚СЂ РЅРµ СѓРєР°Р·Р°РЅ РёР»Рё СЂР°РІРµРЅ <c>null</c>, РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ РІСЃРµ СЃР±РѕСЂРєРё,
+        /// Р·Р°РіСЂСѓР¶РµРЅРЅС‹Рµ РІ С‚РµРєСѓС‰РёР№ РґРѕРјРµРЅ РїСЂРёР»РѕР¶РµРЅРёСЏ (<see cref="AppDomain.CurrentDomain"/>).
         /// </param>
         /// <returns>
-        /// Массив типов (<see cref="Type"/>), удовлетворяющих условию <paramref name="filter"/>.
+        /// РњР°СЃСЃРёРІ С‚РёРїРѕРІ (<see cref="Type"/>), СѓРґРѕРІР»РµС‚РІРѕСЂСЏСЋС‰РёС… СѓСЃР»РѕРІРёСЋ <paramref name="filter"/>.
         /// </returns>
         /// <remarks>
-        /// Для повышения производительности используется кэширование типов для каждой сборки.
-        /// Метод также безопасно обрабатывает исключение <see cref="ReflectionTypeLoadException"/>,
-        /// которое может возникнуть при вызове <see cref="Assembly.GetTypes()"/>.
-        /// В этом случае в кэш сохраняются только успешно загруженные типы.
+        /// Р”Р»СЏ РїРѕРІС‹С€РµРЅРёСЏ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚Рё РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РєСЌС€РёСЂРѕРІР°РЅРёРµ С‚РёРїРѕРІ РґР»СЏ РєР°Р¶РґРѕР№ СЃР±РѕСЂРєРё.
+        /// РњРµС‚РѕРґ С‚Р°РєР¶Рµ Р±РµР·РѕРїР°СЃРЅРѕ РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёРµ <see cref="ReflectionTypeLoadException"/>,
+        /// РєРѕС‚РѕСЂРѕРµ РјРѕР¶РµС‚ РІРѕР·РЅРёРєРЅСѓС‚СЊ РїСЂРё РІС‹Р·РѕРІРµ <see cref="Assembly.GetTypes()"/>.
+        /// Р’ СЌС‚РѕРј СЃР»СѓС‡Р°Рµ РІ РєСЌС€ СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ С‚РѕР»СЊРєРѕ СѓСЃРїРµС€РЅРѕ Р·Р°РіСЂСѓР¶РµРЅРЅС‹Рµ С‚РёРїС‹.
         /// </remarks>
         public static Type[] FindTypes(Func<Type, bool> filter, params Assembly[] assemblies)
         {
@@ -1244,19 +1244,19 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает значение поля или свойства объекта по имени члена.<br/>
-        /// Если указанный член не найден, метод пытается интерпретировать имя как путь к вложенному члену, разделённому точками, слэшами или обратными слэшами, например, "Address.Street.Name" или "Address/Street/Name".<br/>
-        /// Для максимальной производительности рекомендуется использовать кэширование делегатов доступа к членам, например, с помощью метода <see cref="GetMemberGetter(Type, string)"/>.<br/>
-        /// Если член не найден или объект равен <see langword="null" />, возвращается <see langword="null" />.<br/>
-        /// Если указано, возвращаемое значение приводится к заданному типу.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° РїРѕ РёРјРµРЅРё С‡Р»РµРЅР°.<br/>
+        /// Р•СЃР»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ, РјРµС‚РѕРґ РїС‹С‚Р°РµС‚СЃСЏ РёРЅС‚РµСЂРїСЂРµС‚РёСЂРѕРІР°С‚СЊ РёРјСЏ РєР°Рє РїСѓС‚СЊ Рє РІР»РѕР¶РµРЅРЅРѕРјСѓ С‡Р»РµРЅСѓ, СЂР°Р·РґРµР»С‘РЅРЅРѕРјСѓ С‚РѕС‡РєР°РјРё, СЃР»СЌС€Р°РјРё РёР»Рё РѕР±СЂР°С‚РЅС‹РјРё СЃР»СЌС€Р°РјРё, РЅР°РїСЂРёРјРµСЂ, "Address.Street.Name" РёР»Рё "Address/Street/Name".<br/>
+        /// Р”Р»СЏ РјР°РєСЃРёРјР°Р»СЊРЅРѕР№ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚Рё СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РєСЌС€РёСЂРѕРІР°РЅРёРµ РґРµР»РµРіР°С‚РѕРІ РґРѕСЃС‚СѓРїР° Рє С‡Р»РµРЅР°Рј, РЅР°РїСЂРёРјРµСЂ, СЃ РїРѕРјРѕС‰СЊСЋ РјРµС‚РѕРґР° <see cref="GetMemberGetter(Type, string)"/>.<br/>
+        /// Р•СЃР»Рё С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РѕР±СЉРµРєС‚ СЂР°РІРµРЅ <see langword="null" />, РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ <see langword="null" />.<br/>
+        /// Р•СЃР»Рё СѓРєР°Р·Р°РЅРѕ, РІРѕР·РІСЂР°С‰Р°РµРјРѕРµ Р·РЅР°С‡РµРЅРёРµ РїСЂРёРІРѕРґРёС‚СЃСЏ Рє Р·Р°РґР°РЅРЅРѕРјСѓ С‚РёРїСѓ.
         /// </summary>
-        /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
-        /// <param name="memberName">Имя поля или свойства.</param>
-        /// <param name="convertToType">Тип, в который требуется преобразовать значение.
-        /// Если не задан, возвращается исходное значение.</param>
-        /// <returns>Значение поля или свойства, приведённое к указанному типу,
-        /// либо <see langword="null" />, если объект равен <see langword="null" />
-        /// или член не найден.</returns>
+        /// <param name="instance">Р­РєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р°, РёР· РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ.</param>
+        /// <param name="memberName">РРјСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°.</param>
+        /// <param name="convertToType">РўРёРї, РІ РєРѕС‚РѕСЂС‹Р№ С‚СЂРµР±СѓРµС‚СЃСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°С‚СЊ Р·РЅР°С‡РµРЅРёРµ.
+        /// Р•СЃР»Рё РЅРµ Р·Р°РґР°РЅ, РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ РёСЃС…РѕРґРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°, РїСЂРёРІРµРґС‘РЅРЅРѕРµ Рє СѓРєР°Р·Р°РЅРЅРѕРјСѓ С‚РёРїСѓ,
+        /// Р»РёР±Рѕ <see langword="null" />, РµСЃР»Рё РѕР±СЉРµРєС‚ СЂР°РІРµРЅ <see langword="null" />
+        /// РёР»Рё С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ.</returns>
         public static object Get(object instance, string memberName, Type convertToType = null)
         {
             if (instance == null)
@@ -1283,19 +1283,19 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает значение вложенного поля или свойства объекта по указанному пути к члену.
+        /// РџРѕР»СѓС‡Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РІР»РѕР¶РµРЅРЅРѕРіРѕ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° РїРѕ СѓРєР°Р·Р°РЅРЅРѕРјСѓ РїСѓС‚Рё Рє С‡Р»РµРЅСѓ.
         /// </summary>
-        /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
-        /// <param name="pathToMemberName">Последовательность имён членов, описывающая путь
-        /// к конечному полю или свойству.</param>
-        /// <param name="convertToType">Тип, к которому необходимо привести полученное значение.
-        /// Если равен <see langword="null" />, преобразование не выполняется.</param>
-        /// <returns>Значение конечного члена объекта, приведённое к указанному типу,
-        /// либо <see langword="null" />, если объект равен <see langword="null" />,
-        /// путь некорректен или один из промежуточных членов имеет значение <see langword="null" />.</returns>
-        /// <remarks>Метод поддерживает рекурсивный доступ к вложенным членам.
-        /// Если на любом этапе пути значение равно <see langword="null" />,
-        /// дальнейший обход прекращается и возвращается <see langword="null" />.</remarks>
+        /// <param name="instance">Р­РєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р°, РёР· РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ.</param>
+        /// <param name="pathToMemberName">РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРјС‘РЅ С‡Р»РµРЅРѕРІ, РѕРїРёСЃС‹РІР°СЋС‰Р°СЏ РїСѓС‚СЊ
+        /// Рє РєРѕРЅРµС‡РЅРѕРјСѓ РїРѕР»СЋ РёР»Рё СЃРІРѕР№СЃС‚РІСѓ.</param>
+        /// <param name="convertToType">РўРёРї, Рє РєРѕС‚РѕСЂРѕРјСѓ РЅРµРѕР±С…РѕРґРёРјРѕ РїСЂРёРІРµСЃС‚Рё РїРѕР»СѓС‡РµРЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ.
+        /// Р•СЃР»Рё СЂР°РІРµРЅ <see langword="null" />, РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РЅРµ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ РєРѕРЅРµС‡РЅРѕРіРѕ С‡Р»РµРЅР° РѕР±СЉРµРєС‚Р°, РїСЂРёРІРµРґС‘РЅРЅРѕРµ Рє СѓРєР°Р·Р°РЅРЅРѕРјСѓ С‚РёРїСѓ,
+        /// Р»РёР±Рѕ <see langword="null" />, РµСЃР»Рё РѕР±СЉРµРєС‚ СЂР°РІРµРЅ <see langword="null" />,
+        /// РїСѓС‚СЊ РЅРµРєРѕСЂСЂРµРєС‚РµРЅ РёР»Рё РѕРґРёРЅ РёР· РїСЂРѕРјРµР¶СѓС‚РѕС‡РЅС‹С… С‡Р»РµРЅРѕРІ РёРјРµРµС‚ Р·РЅР°С‡РµРЅРёРµ <see langword="null" />.</returns>
+        /// <remarks>РњРµС‚РѕРґ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ СЂРµРєСѓСЂСЃРёРІРЅС‹Р№ РґРѕСЃС‚СѓРї Рє РІР»РѕР¶РµРЅРЅС‹Рј С‡Р»РµРЅР°Рј.
+        /// Р•СЃР»Рё РЅР° Р»СЋР±РѕРј СЌС‚Р°РїРµ РїСѓС‚Рё Р·РЅР°С‡РµРЅРёРµ СЂР°РІРЅРѕ <see langword="null" />,
+        /// РґР°Р»СЊРЅРµР№С€РёР№ РѕР±С…РѕРґ РїСЂРµРєСЂР°С‰Р°РµС‚СЃСЏ Рё РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ <see langword="null" />.</remarks>
         public static object Get(object instance, IEnumerable<string> pathToMemberName, Type convertToType = null)
         {
             if (instance == null)
@@ -1319,38 +1319,38 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает значение поля или свойства объекта по имени члена, приведённое к указанному типу.
-        /// Если указанный член не найден, метод пытается интерпретировать имя как путь к вложенному члену, разделённому точками, слэшами или обратными слэшами, например, "Address.Street.Name" или "Address/Street/Name".<br/>
-        /// Для максимальной производительности рекомендуется использовать кэширование делегатов доступа к членам, например, с помощью метода <see cref="GetMemberGetter(Type, string)"/>.<br/>
-        /// Если член не найден или объект равен <see langword="null" />, возвращается <see langword="null" />.<br/>
-        /// Если указано, возвращаемое значение приводится к заданному типу.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° РїРѕ РёРјРµРЅРё С‡Р»РµРЅР°, РїСЂРёРІРµРґС‘РЅРЅРѕРµ Рє СѓРєР°Р·Р°РЅРЅРѕРјСѓ С‚РёРїСѓ.
+        /// Р•СЃР»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ, РјРµС‚РѕРґ РїС‹С‚Р°РµС‚СЃСЏ РёРЅС‚РµСЂРїСЂРµС‚РёСЂРѕРІР°С‚СЊ РёРјСЏ РєР°Рє РїСѓС‚СЊ Рє РІР»РѕР¶РµРЅРЅРѕРјСѓ С‡Р»РµРЅСѓ, СЂР°Р·РґРµР»С‘РЅРЅРѕРјСѓ С‚РѕС‡РєР°РјРё, СЃР»СЌС€Р°РјРё РёР»Рё РѕР±СЂР°С‚РЅС‹РјРё СЃР»СЌС€Р°РјРё, РЅР°РїСЂРёРјРµСЂ, "Address.Street.Name" РёР»Рё "Address/Street/Name".<br/>
+        /// Р”Р»СЏ РјР°РєСЃРёРјР°Р»СЊРЅРѕР№ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚Рё СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РєСЌС€РёСЂРѕРІР°РЅРёРµ РґРµР»РµРіР°С‚РѕРІ РґРѕСЃС‚СѓРїР° Рє С‡Р»РµРЅР°Рј, РЅР°РїСЂРёРјРµСЂ, СЃ РїРѕРјРѕС‰СЊСЋ РјРµС‚РѕРґР° <see cref="GetMemberGetter(Type, string)"/>.<br/>
+        /// Р•СЃР»Рё С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РѕР±СЉРµРєС‚ СЂР°РІРµРЅ <see langword="null" />, РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ <see langword="null" />.<br/>
+        /// Р•СЃР»Рё СѓРєР°Р·Р°РЅРѕ, РІРѕР·РІСЂР°С‰Р°РµРјРѕРµ Р·РЅР°С‡РµРЅРёРµ РїСЂРёРІРѕРґРёС‚СЃСЏ Рє Р·Р°РґР°РЅРЅРѕРјСѓ С‚РёРїСѓ.
         /// </summary>
-        /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
-        /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
-        /// <param name="pathToMemberName">Путь к полю или свойству.</param>
-        /// <returns>Значение поля или свойства, приведённое к типу <typeparamref name="T" />.</returns>
+        /// <typeparam name="T">РўРёРї РІРѕР·РІСЂР°С‰Р°РµРјРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ.</typeparam>
+        /// <param name="instance">Р­РєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р°, РёР· РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ.</param>
+        /// <param name="pathToMemberName">РџСѓС‚СЊ Рє РїРѕР»СЋ РёР»Рё СЃРІРѕР№СЃС‚РІСѓ.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°, РїСЂРёРІРµРґС‘РЅРЅРѕРµ Рє С‚РёРїСѓ <typeparamref name="T" />.</returns>
         public static T Get<T>(object instance, IEnumerable<string> pathToMemberName) => (T)Get(instance, pathToMemberName, typeof(T));
 
         /// <summary>
-        /// Возвращает значение поля или свойства объекта по имени члена, приведённое к указанному типу.
-        /// Если указанный член не найден, метод пытается интерпретировать имя как путь к вложенному члену, разделённому точками, слэшами или обратными слэшами, например, "Address.Street.Name" или "Address/Street/Name".<br/>
-        /// Для максимальной производительности рекомендуется использовать кэширование делегатов доступа к членам, например, с помощью метода <see cref="GetMemberGetter(Type, string)"/>.<br/>
-        /// Если член не найден или объект равен <see langword="null" />, возвращается <see langword="null" />.<br/>
-        /// Если указано, возвращаемое значение приводится к заданному типу.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° РїРѕ РёРјРµРЅРё С‡Р»РµРЅР°, РїСЂРёРІРµРґС‘РЅРЅРѕРµ Рє СѓРєР°Р·Р°РЅРЅРѕРјСѓ С‚РёРїСѓ.
+        /// Р•СЃР»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ, РјРµС‚РѕРґ РїС‹С‚Р°РµС‚СЃСЏ РёРЅС‚РµСЂРїСЂРµС‚РёСЂРѕРІР°С‚СЊ РёРјСЏ РєР°Рє РїСѓС‚СЊ Рє РІР»РѕР¶РµРЅРЅРѕРјСѓ С‡Р»РµРЅСѓ, СЂР°Р·РґРµР»С‘РЅРЅРѕРјСѓ С‚РѕС‡РєР°РјРё, СЃР»СЌС€Р°РјРё РёР»Рё РѕР±СЂР°С‚РЅС‹РјРё СЃР»СЌС€Р°РјРё, РЅР°РїСЂРёРјРµСЂ, "Address.Street.Name" РёР»Рё "Address/Street/Name".<br/>
+        /// Р”Р»СЏ РјР°РєСЃРёРјР°Р»СЊРЅРѕР№ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚Рё СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РєСЌС€РёСЂРѕРІР°РЅРёРµ РґРµР»РµРіР°С‚РѕРІ РґРѕСЃС‚СѓРїР° Рє С‡Р»РµРЅР°Рј, РЅР°РїСЂРёРјРµСЂ, СЃ РїРѕРјРѕС‰СЊСЋ РјРµС‚РѕРґР° <see cref="GetMemberGetter(Type, string)"/>.<br/>
+        /// Р•СЃР»Рё С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РѕР±СЉРµРєС‚ СЂР°РІРµРЅ <see langword="null" />, РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ <see langword="null" />.<br/>
+        /// Р•СЃР»Рё СѓРєР°Р·Р°РЅРѕ, РІРѕР·РІСЂР°С‰Р°РµРјРѕРµ Р·РЅР°С‡РµРЅРёРµ РїСЂРёРІРѕРґРёС‚СЃСЏ Рє Р·Р°РґР°РЅРЅРѕРјСѓ С‚РёРїСѓ.
         /// </summary>
-        /// <typeparam name="T">Тип возвращаемого значения.</typeparam>
-        /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
-        /// <param name="memberName">Имя поля или свойства.</param>
-        /// <returns>Значение поля или свойства, приведённое к типу <typeparamref name="T" />.</returns>
+        /// <typeparam name="T">РўРёРї РІРѕР·РІСЂР°С‰Р°РµРјРѕРіРѕ Р·РЅР°С‡РµРЅРёСЏ.</typeparam>
+        /// <param name="instance">Р­РєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р°, РёР· РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ.</param>
+        /// <param name="memberName">РРјСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°, РїСЂРёРІРµРґС‘РЅРЅРѕРµ Рє С‚РёРїСѓ <typeparamref name="T" />.</returns>
         public static T Get<T>(object instance, string memberName) => (T)Get(instance, memberName, typeof(T));
 
         /// <summary>
-        /// Получает цепочку базовых типов и/или интерфейсов.
+        /// РџРѕР»СѓС‡Р°РµС‚ С†РµРїРѕС‡РєСѓ Р±Р°Р·РѕРІС‹С… С‚РёРїРѕРІ Рё/РёР»Рё РёРЅС‚РµСЂС„РµР№СЃРѕРІ.
         /// </summary>
-        /// <param name="type">Тип, для которого нужно получить базовые типы.</param>
-        /// <param name="includeThis">Включать ли текущий тип в результат.</param>
-        /// <param name="getInterfaces">Включать ли интерфейсы в результат.</param>
-        /// <returns>Массив базовых типов и/или интерфейсов.</returns>
+        /// <param name="type">РўРёРї, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РЅСѓР¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊ Р±Р°Р·РѕРІС‹Рµ С‚РёРїС‹.</param>
+        /// <param name="includeThis">Р’РєР»СЋС‡Р°С‚СЊ Р»Рё С‚РµРєСѓС‰РёР№ С‚РёРї РІ СЂРµР·СѓР»СЊС‚Р°С‚.</param>
+        /// <param name="getInterfaces">Р’РєР»СЋС‡Р°С‚СЊ Р»Рё РёРЅС‚РµСЂС„РµР№СЃС‹ РІ СЂРµР·СѓР»СЊС‚Р°С‚.</param>
+        /// <returns>РњР°СЃСЃРёРІ Р±Р°Р·РѕРІС‹С… С‚РёРїРѕРІ Рё/РёР»Рё РёРЅС‚РµСЂС„РµР№СЃРѕРІ.</returns>
         public static Type[] GetBaseTypes(Type type, bool includeThis = false, bool getInterfaces = false)
         {
             var baseTypes = new List<Type>();
@@ -1375,43 +1375,43 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Определяет тип элемента коллекции для указанного типа.
+        /// РћРїСЂРµРґРµР»СЏРµС‚ С‚РёРї СЌР»РµРјРµРЅС‚Р° РєРѕР»Р»РµРєС†РёРё РґР»СЏ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°.
         /// </summary>
         /// <param name="type">
-        /// Тип, для которого необходимо определить тип элемента коллекции.
+        /// РўРёРї, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РЅРµРѕР±С…РѕРґРёРјРѕ РѕРїСЂРµРґРµР»РёС‚СЊ С‚РёРї СЌР»РµРјРµРЅС‚Р° РєРѕР»Р»РµРєС†РёРё.
         /// </param>
         /// <returns>
-        /// Тип элемента коллекции:
+        /// РўРёРї СЌР»РµРјРµРЅС‚Р° РєРѕР»Р»РµРєС†РёРё:
         /// <list type="bullet">
         /// <item>
         /// <description>
-        /// Для массива — тип элемента массива.
+        /// Р”Р»СЏ РјР°СЃСЃРёРІР° вЂ” С‚РёРї СЌР»РµРјРµРЅС‚Р° РјР°СЃСЃРёРІР°.
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// Для <c>IDictionary&lt;TKey, TValue&gt;</c> — тип значения (<c>TValue</c>).
+        /// Р”Р»СЏ <c>IDictionary&lt;TKey, TValue&gt;</c> вЂ” С‚РёРї Р·РЅР°С‡РµРЅРёСЏ (<c>TValue</c>).
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// Для <c>IEnumerable&lt;T&gt;</c> — тип элемента перечисления (<c>T</c>).
+        /// Р”Р»СЏ <c>IEnumerable&lt;T&gt;</c> вЂ” С‚РёРї СЌР»РµРјРµРЅС‚Р° РїРµСЂРµС‡РёСЃР»РµРЅРёСЏ (<c>T</c>).
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// Для <c>string</c> — <c>char</c>.
+        /// Р”Р»СЏ <c>string</c> вЂ” <c>char</c>.
         /// </description>
         /// </item>
         /// </list>
-        /// Если тип не является коллекцией или равен <c>null</c>, возвращается <c>null</c>.
+        /// Р•СЃР»Рё С‚РёРї РЅРµ СЏРІР»СЏРµС‚СЃСЏ РєРѕР»Р»РµРєС†РёРµР№ РёР»Рё СЂР°РІРµРЅ <c>null</c>, РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ <c>null</c>.
         /// </returns>
         /// <remarks>
-        /// Метод анализирует реализуемые интерфейсы типа для поиска
-        /// обобщённых интерфейсов <c>IDictionary&lt;TKey, TValue&gt;</c>
-        /// и <c>IEnumerable&lt;T&gt;</c>.
-        /// Приоритет проверки следующий:
-        /// <c>string</c>, массив, словарь, затем перечисление.
+        /// РњРµС‚РѕРґ Р°РЅР°Р»РёР·РёСЂСѓРµС‚ СЂРµР°Р»РёР·СѓРµРјС‹Рµ РёРЅС‚РµСЂС„РµР№СЃС‹ С‚РёРїР° РґР»СЏ РїРѕРёСЃРєР°
+        /// РѕР±РѕР±С‰С‘РЅРЅС‹С… РёРЅС‚РµСЂС„РµР№СЃРѕРІ <c>IDictionary&lt;TKey, TValue&gt;</c>
+        /// Рё <c>IEnumerable&lt;T&gt;</c>.
+        /// РџСЂРёРѕСЂРёС‚РµС‚ РїСЂРѕРІРµСЂРєРё СЃР»РµРґСѓСЋС‰РёР№:
+        /// <c>string</c>, РјР°СЃСЃРёРІ, СЃР»РѕРІР°СЂСЊ, Р·Р°С‚РµРј РїРµСЂРµС‡РёСЃР»РµРЅРёРµ.
         /// </remarks>
         public static Type GetCollectionItemType(Type type)
         {
@@ -1458,17 +1458,17 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Ищет и возвращает первый пользовательский атрибут по имени типа на указанном <see cref="MemberInfo" />.
-        /// Метод сравнивает имя типа атрибута с заданным значением <paramref name="attributeName" /> с использованием
-        /// указанного <paramref name="stringComparison" />.
-        /// Удобен для случаев, когда тип атрибута известен только по имени (например, при работе с внешними библиотеками или
-        /// динамическими сценариями).
+        /// РС‰РµС‚ Рё РІРѕР·РІСЂР°С‰Р°РµС‚ РїРµСЂРІС‹Р№ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёР№ Р°С‚СЂРёР±СѓС‚ РїРѕ РёРјРµРЅРё С‚РёРїР° РЅР° СѓРєР°Р·Р°РЅРЅРѕРј <see cref="MemberInfo" />.
+        /// РњРµС‚РѕРґ СЃСЂР°РІРЅРёРІР°РµС‚ РёРјСЏ С‚РёРїР° Р°С‚СЂРёР±СѓС‚Р° СЃ Р·Р°РґР°РЅРЅС‹Рј Р·РЅР°С‡РµРЅРёРµРј <paramref name="attributeName" /> СЃ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµРј
+        /// СѓРєР°Р·Р°РЅРЅРѕРіРѕ <paramref name="stringComparison" />.
+        /// РЈРґРѕР±РµРЅ РґР»СЏ СЃР»СѓС‡Р°РµРІ, РєРѕРіРґР° С‚РёРї Р°С‚СЂРёР±СѓС‚Р° РёР·РІРµСЃС‚РµРЅ С‚РѕР»СЊРєРѕ РїРѕ РёРјРµРЅРё (РЅР°РїСЂРёРјРµСЂ, РїСЂРё СЂР°Р±РѕС‚Рµ СЃ РІРЅРµС€РЅРёРјРё Р±РёР±Р»РёРѕС‚РµРєР°РјРё РёР»Рё
+        /// РґРёРЅР°РјРёС‡РµСЃРєРёРјРё СЃС†РµРЅР°СЂРёСЏРјРё).
         /// </summary>
-        /// <param name="member">Член, на котором производится поиск атрибута.</param>
-        /// <param name="attributeName">Имя типа атрибута для поиска (например, "KeyAttribute").</param>
-        /// <param name="stringComparison">Способ сравнения строк для имени атрибута. По умолчанию
+        /// <param name="member">Р§Р»РµРЅ, РЅР° РєРѕС‚РѕСЂРѕРј РїСЂРѕРёР·РІРѕРґРёС‚СЃСЏ РїРѕРёСЃРє Р°С‚СЂРёР±СѓС‚Р°.</param>
+        /// <param name="attributeName">РРјСЏ С‚РёРїР° Р°С‚СЂРёР±СѓС‚Р° РґР»СЏ РїРѕРёСЃРєР° (РЅР°РїСЂРёРјРµСЂ, "KeyAttribute").</param>
+        /// <param name="stringComparison">РЎРїРѕСЃРѕР± СЃСЂР°РІРЅРµРЅРёСЏ СЃС‚СЂРѕРє РґР»СЏ РёРјРµРЅРё Р°С‚СЂРёР±СѓС‚Р°. РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
         /// <see cref="StringComparison.OrdinalIgnoreCase" />.</param>
-        /// <returns>Первый найденный экземпляр <see cref="Attribute" />, либо <c>null</c>, если атрибут не найден.</returns>
+        /// <returns>РџРµСЂРІС‹Р№ РЅР°Р№РґРµРЅРЅС‹Р№ СЌРєР·РµРјРїР»СЏСЂ <see cref="Attribute" />, Р»РёР±Рѕ <c>null</c>, РµСЃР»Рё Р°С‚СЂРёР±СѓС‚ РЅРµ РЅР°Р№РґРµРЅ.</returns>
         public static Attribute GetCustomAttribute(MemberInfo member, string attributeName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
             var trimAttributeName = !attributeName.ToLower().EndsWith("attribute");
@@ -1491,23 +1491,23 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает пользовательский конвертер типов в строго типизированном виде.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёР№ РєРѕРЅРІРµСЂС‚РµСЂ С‚РёРїРѕРІ РІ СЃС‚СЂРѕРіРѕ С‚РёРїРёР·РёСЂРѕРІР°РЅРЅРѕРј РІРёРґРµ.
         /// </summary>
-        /// <typeparam name="TFrom">Исходный тип.</typeparam>
-        /// <typeparam name="TTo">Целевой тип.</typeparam>
-        /// <returns>Функция преобразования из <typeparamref name="TFrom" /> в <typeparamref name="TTo" />,
-        /// либо <see langword="null" />, если конвертер не зарегистрирован.</returns>
+        /// <typeparam name="TFrom">РСЃС…РѕРґРЅС‹Р№ С‚РёРї.</typeparam>
+        /// <typeparam name="TTo">Р¦РµР»РµРІРѕР№ С‚РёРї.</typeparam>
+        /// <returns>Р¤СѓРЅРєС†РёСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ РёР· <typeparamref name="TFrom" /> РІ <typeparamref name="TTo" />,
+        /// Р»РёР±Рѕ <see langword="null" />, РµСЃР»Рё РєРѕРЅРІРµСЂС‚РµСЂ РЅРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ.</returns>
         public static Func<TFrom, TTo> GetCustomTypeConverter<TFrom, TTo>() => (from) => (TTo)GetCustomTypeConverter(typeof(TFrom), typeof(TTo))(from);
 
         /// <summary>
-        /// Возвращает пользовательский конвертер между двумя типами.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёР№ РєРѕРЅРІРµСЂС‚РµСЂ РјРµР¶РґСѓ РґРІСѓРјСЏ С‚РёРїР°РјРё.
         /// </summary>
-        /// <param name="typeFrom">Исходный тип.</param>
-        /// <param name="typeTo">Целевой тип.</param>
-        /// <returns>Функция преобразования значения,
-        /// либо <see langword="null" />, если конвертер не найден.</returns>
-        /// <remarks>Возвращаемая функция принимает и возвращает значения типа
-        /// <see cref="object" /> и требует явного приведения типов.</remarks>
+        /// <param name="typeFrom">РСЃС…РѕРґРЅС‹Р№ С‚РёРї.</param>
+        /// <param name="typeTo">Р¦РµР»РµРІРѕР№ С‚РёРї.</param>
+        /// <returns>Р¤СѓРЅРєС†РёСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ Р·РЅР°С‡РµРЅРёСЏ,
+        /// Р»РёР±Рѕ <see langword="null" />, РµСЃР»Рё РєРѕРЅРІРµСЂС‚РµСЂ РЅРµ РЅР°Р№РґРµРЅ.</returns>
+        /// <remarks>Р’РѕР·РІСЂР°С‰Р°РµРјР°СЏ С„СѓРЅРєС†РёСЏ РїСЂРёРЅРёРјР°РµС‚ Рё РІРѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёСЏ С‚РёРїР°
+        /// <see cref="object" /> Рё С‚СЂРµР±СѓРµС‚ СЏРІРЅРѕРіРѕ РїСЂРёРІРµРґРµРЅРёСЏ С‚РёРїРѕРІ.</remarks>
         public static Func<object, object> GetCustomTypeConverter(Type typeFrom, Type typeTo)
         {
             if (!CustomTypeConverters.TryGetValue(typeFrom, out var typeConverters) || typeConverters == null)
@@ -1524,16 +1524,16 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает тип реализации по умолчанию для заданного интерфейса.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ С‚РёРї СЂРµР°Р»РёР·Р°С†РёРё РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РґР»СЏ Р·Р°РґР°РЅРЅРѕРіРѕ РёРЅС‚РµСЂС„РµР№СЃР°.
         /// </summary>
-        /// <param name="type">Тип интерфейса, для которого необходимо получить реализацию.</param>
-        /// <returns>Если <paramref name="type" /> не является интерфейсом, возвращает сам <paramref name="type" />.
-        /// Для известных generic-интерфейсов (<see cref="IEnumerable{T}" />, <see cref="IList{T}" />,
-        /// <see cref="ICollection{T}" />, <see cref="IDictionary{TKey, TValue}" />) возвращает соответствующий конкретный тип:
+        /// <param name="type">РўРёРї РёРЅС‚РµСЂС„РµР№СЃР°, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РЅРµРѕР±С…РѕРґРёРјРѕ РїРѕР»СѓС‡РёС‚СЊ СЂРµР°Р»РёР·Р°С†РёСЋ.</param>
+        /// <returns>Р•СЃР»Рё <paramref name="type" /> РЅРµ СЏРІР»СЏРµС‚СЃСЏ РёРЅС‚РµСЂС„РµР№СЃРѕРј, РІРѕР·РІСЂР°С‰Р°РµС‚ СЃР°Рј <paramref name="type" />.
+        /// Р”Р»СЏ РёР·РІРµСЃС‚РЅС‹С… generic-РёРЅС‚РµСЂС„РµР№СЃРѕРІ (<see cref="IEnumerable{T}" />, <see cref="IList{T}" />,
+        /// <see cref="ICollection{T}" />, <see cref="IDictionary{TKey, TValue}" />) РІРѕР·РІСЂР°С‰Р°РµС‚ СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёР№ РєРѕРЅРєСЂРµС‚РЅС‹Р№ С‚РёРї:
         /// <list type="bullet"><item><description><see cref="IEnumerable{T}" /> ? <see cref="List{T}" /></description></item><item><description><see cref="IList{T}" /> ? <see cref="List{T}" /></description></item><item><description><see cref="ICollection{T}" /> ? <see cref="List{T}" /></description></item><item><description><see cref="IDictionary{TKey, TValue}" /> ? <see cref="Dictionary{TKey, TValue}" /></description></item></list></returns>
         /// <exception cref="System.InvalidOperationException">Cannot create an instance of interface {type}.</exception>
-        /// <remarks>Метод использует словарь <see cref="DefaultInterfaceMappings" /> для поиска фабрик конкретных реализаций.
-        /// Если тип не найден в словаре, метод пытается обработать известные generic-интерфейсы вручную.</remarks>
+        /// <remarks>РњРµС‚РѕРґ РёСЃРїРѕР»СЊР·СѓРµС‚ СЃР»РѕРІР°СЂСЊ <see cref="DefaultInterfaceMappings" /> РґР»СЏ РїРѕРёСЃРєР° С„Р°Р±СЂРёРє РєРѕРЅРєСЂРµС‚РЅС‹С… СЂРµР°Р»РёР·Р°С†РёР№.
+        /// Р•СЃР»Рё С‚РёРї РЅРµ РЅР°Р№РґРµРЅ РІ СЃР»РѕРІР°СЂРµ, РјРµС‚РѕРґ РїС‹С‚Р°РµС‚СЃСЏ РѕР±СЂР°Р±РѕС‚Р°С‚СЊ РёР·РІРµСЃС‚РЅС‹Рµ generic-РёРЅС‚РµСЂС„РµР№СЃС‹ РІСЂСѓС‡РЅСѓСЋ.</remarks>
         public static Type GetDefaultImplementation(Type type)
         {
             if (!type.IsInterface)
@@ -1554,11 +1554,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает поле по условию фильтрации.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРѕР»Рµ РїРѕ СѓСЃР»РѕРІРёСЋ С„РёР»СЊС‚СЂР°С†РёРё.
         /// </summary>
-        /// <param name="type">Тип, в котором нужно найти поле.</param>
-        /// <param name="matchCriteria">Условие фильтрации полей.</param>
-        /// <returns>Найденное поле или null, если поле не найдено.</returns>
+        /// <param name="type">РўРёРї, РІ РєРѕС‚РѕСЂРѕРј РЅСѓР¶РЅРѕ РЅР°Р№С‚Рё РїРѕР»Рµ.</param>
+        /// <param name="matchCriteria">РЈСЃР»РѕРІРёРµ С„РёР»СЊС‚СЂР°С†РёРё РїРѕР»РµР№.</param>
+        /// <returns>РќР°Р№РґРµРЅРЅРѕРµ РїРѕР»Рµ РёР»Рё null, РµСЃР»Рё РїРѕР»Рµ РЅРµ РЅР°Р№РґРµРЅРѕ.</returns>
         public static FieldInfo GetField(Type type, Func<FieldInfo, bool> matchCriteria)
         {
             var fieldMap = GetFieldsMap(type);
@@ -1566,46 +1566,46 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Пытается определить поле, связанное с аксессором get-свойства.
+        /// РџС‹С‚Р°РµС‚СЃСЏ РѕРїСЂРµРґРµР»РёС‚СЊ РїРѕР»Рµ, СЃРІСЏР·Р°РЅРЅРѕРµ СЃ Р°РєСЃРµСЃСЃРѕСЂРѕРј get-СЃРІРѕР№СЃС‚РІР°.
         /// </summary>
         /// <param name="accessor">
-        /// Метод-аксессор свойства (обычно метод с именем вида <c>get_PropertyName</c>).
+        /// РњРµС‚РѕРґ-Р°РєСЃРµСЃСЃРѕСЂ СЃРІРѕР№СЃС‚РІР° (РѕР±С‹С‡РЅРѕ РјРµС‚РѕРґ СЃ РёРјРµРЅРµРј РІРёРґР° <c>get_PropertyName</c>).
         /// </param>
         /// <returns>
-        /// Экземпляр <see cref="FieldInfo"/>, соответствующий полю,
-        /// используемому данным свойством, либо <see langword="null"/>,
-        /// если поле не удалось определить.
+        /// Р­РєР·РµРјРїР»СЏСЂ <see cref="FieldInfo"/>, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёР№ РїРѕР»СЋ,
+        /// РёСЃРїРѕР»СЊР·СѓРµРјРѕРјСѓ РґР°РЅРЅС‹Рј СЃРІРѕР№СЃС‚РІРѕРј, Р»РёР±Рѕ <see langword="null"/>,
+        /// РµСЃР»Рё РїРѕР»Рµ РЅРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ.
         /// </returns>
         /// <exception cref="ArgumentNullException">
-        /// Генерируется, если <paramref name="accessor"/> равен <see langword="null"/>.
+        /// Р“РµРЅРµСЂРёСЂСѓРµС‚СЃСЏ, РµСЃР»Рё <paramref name="accessor"/> СЂР°РІРµРЅ <see langword="null"/>.
         /// </exception>
         /// <exception cref="ArgumentException">
-        /// Генерируется, если метод не имеет объявляющего типа
-        /// или не является get-аксессором свойства.
+        /// Р“РµРЅРµСЂРёСЂСѓРµС‚СЃСЏ, РµСЃР»Рё РјРµС‚РѕРґ РЅРµ РёРјРµРµС‚ РѕР±СЉСЏРІР»СЏСЋС‰РµРіРѕ С‚РёРїР°
+        /// РёР»Рё РЅРµ СЏРІР»СЏРµС‚СЃСЏ get-Р°РєСЃРµСЃСЃРѕСЂРѕРј СЃРІРѕР№СЃС‚РІР°.
         /// </exception>
         /// <remarks>
-        /// Метод выполняет поиск поля в несколько этапов:
+        /// РњРµС‚РѕРґ РІС‹РїРѕР»РЅСЏРµС‚ РїРѕРёСЃРє РїРѕР»СЏ РІ РЅРµСЃРєРѕР»СЊРєРѕ СЌС‚Р°РїРѕРІ:
         /// <list type="number">
         /// <item>
         /// <description>
-        /// Поиск автоматически сгенерированного backing-поля автосвойства
-        /// (шаблон <c>&lt;PropertyName&gt;k__BackingField</c>) в объявляющем типе.
+        /// РџРѕРёСЃРє Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅРЅРѕРіРѕ backing-РїРѕР»СЏ Р°РІС‚РѕСЃРІРѕР№СЃС‚РІР°
+        /// (С€Р°Р±Р»РѕРЅ <c>&lt;PropertyName&gt;k__BackingField</c>) РІ РѕР±СЉСЏРІР»СЏСЋС‰РµРј С‚РёРїРµ.
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// Поиск такого же backing-поля в базовых типах.
+        /// РџРѕРёСЃРє С‚Р°РєРѕРіРѕ Р¶Рµ backing-РїРѕР»СЏ РІ Р±Р°Р·РѕРІС‹С… С‚РёРїР°С….
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// Анализ IL-кода get-аксессора для определения используемого поля.
+        /// РђРЅР°Р»РёР· IL-РєРѕРґР° get-Р°РєСЃРµСЃСЃРѕСЂР° РґР»СЏ РѕРїСЂРµРґРµР»РµРЅРёСЏ РёСЃРїРѕР»СЊР·СѓРµРјРѕРіРѕ РїРѕР»СЏ.
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// Поиск поля по распространённым шаблонам именования
-        /// (например, <c>_propertyName</c>, <c>propertyName</c> и т.п.).
+        /// РџРѕРёСЃРє РїРѕР»СЏ РїРѕ СЂР°СЃРїСЂРѕСЃС‚СЂР°РЅС‘РЅРЅС‹Рј С€Р°Р±Р»РѕРЅР°Рј РёРјРµРЅРѕРІР°РЅРёСЏ
+        /// (РЅР°РїСЂРёРјРµСЂ, <c>_propertyName</c>, <c>propertyName</c> Рё С‚.Рї.).
         /// </description>
         /// </item>
         /// </list>
@@ -1620,7 +1620,7 @@ namespace RuntimeStuff
             var declaringType = accessor.DeclaringType ?? throw new ArgumentException(@"Method has no declaring type", nameof(accessor));
             var propertyName = accessor.Name.Substring(4);
 
-            // Вариант 1: Поиск автоматически сгенерированного поля для автосвойств
+            // Р’Р°СЂРёР°РЅС‚ 1: РџРѕРёСЃРє Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅРЅРѕРіРѕ РїРѕР»СЏ РґР»СЏ Р°РІС‚РѕСЃРІРѕР№СЃС‚РІ
             var autoBackingFieldName = $"<{propertyName}>k__BackingField";
             var field = declaringType.GetField(autoBackingFieldName, DefaultBindingFlags);
 
@@ -1629,7 +1629,7 @@ namespace RuntimeStuff
                 return field;
             }
 
-            // Вариант 2: Поиск в базовых типах
+            // Р’Р°СЂРёР°РЅС‚ 2: РџРѕРёСЃРє РІ Р±Р°Р·РѕРІС‹С… С‚РёРїР°С…
             var baseType = declaringType.BaseType;
             while (baseType != null && baseType != typeof(object))
             {
@@ -1643,29 +1643,29 @@ namespace RuntimeStuff
                 baseType = baseType.BaseType;
             }
 
-            // Вариант 3: Анализ IL-кода
+            // Р’Р°СЂРёР°РЅС‚ 3: РђРЅР°Р»РёР· IL-РєРѕРґР°
             field = GetBackingFieldFromIl(accessor);
             if (field != null)
             {
                 return field;
             }
 
-            // Вариант 4: Поиск по стандартным шаблонам именования
+            // Р’Р°СЂРёР°РЅС‚ 4: РџРѕРёСЃРє РїРѕ СЃС‚Р°РЅРґР°СЂС‚РЅС‹Рј С€Р°Р±Р»РѕРЅР°Рј РёРјРµРЅРѕРІР°РЅРёСЏ
             return FindFieldByNamingPatterns(declaringType, propertyName);
         }
 
         /// <summary>
-        /// Возвращает отображение имён полей типа на объекты <see cref="FieldInfo" />.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ РёРјС‘РЅ РїРѕР»РµР№ С‚РёРїР° РЅР° РѕР±СЉРµРєС‚С‹ <see cref="FieldInfo" />.
         /// </summary>
-        /// <typeparam name="T">Тип, поля которого требуется получить.</typeparam>
-        /// <returns>Словарь «имя поля ? FieldInfo».</returns>
+        /// <typeparam name="T">РўРёРї, РїРѕР»СЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ.</typeparam>
+        /// <returns>РЎР»РѕРІР°СЂСЊ В«РёРјСЏ РїРѕР»СЏ ? FieldInfoВ».</returns>
         public static Dictionary<string, FieldInfo> GetFieldsMap<T>() => GetFieldsMap(typeof(T));
 
         /// <summary>
-        /// Возвращает отображение имён полей указанного типа на объекты <see cref="FieldInfo" />.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ РёРјС‘РЅ РїРѕР»РµР№ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР° РЅР° РѕР±СЉРµРєС‚С‹ <see cref="FieldInfo" />.
         /// </summary>
-        /// <param name="type">Тип, поля которого требуется получить.</param>
-        /// <returns>Словарь «имя поля ? FieldInfo».</returns>
+        /// <param name="type">РўРёРї, РїРѕР»СЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ.</param>
+        /// <returns>РЎР»РѕРІР°СЂСЊ В«РёРјСЏ РїРѕР»СЏ ? FieldInfoВ».</returns>
         public static Dictionary<string, FieldInfo> GetFieldsMap(Type type)
         {
             if (FieldsCache.TryGetValue(type, out var cached))
@@ -1685,12 +1685,12 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает все типы из указанной сборки (или из сборки вызывающего кода),
-        /// которые реализуют интерфейс или наследуются от указанного базового типа.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РІСЃРµ С‚РёРїС‹ РёР· СѓРєР°Р·Р°РЅРЅРѕР№ СЃР±РѕСЂРєРё (РёР»Рё РёР· СЃР±РѕСЂРєРё РІС‹Р·С‹РІР°СЋС‰РµРіРѕ РєРѕРґР°),
+        /// РєРѕС‚РѕСЂС‹Рµ СЂРµР°Р»РёР·СѓСЋС‚ РёРЅС‚РµСЂС„РµР№СЃ РёР»Рё РЅР°СЃР»РµРґСѓСЋС‚СЃСЏ РѕС‚ СѓРєР°Р·Р°РЅРЅРѕРіРѕ Р±Р°Р·РѕРІРѕРіРѕ С‚РёРїР°.
         /// </summary>
-        /// <param name="baseType">Базовый тип или интерфейс для поиска реализаций.</param>
-        /// <param name="fromAssembly">Сборка для поиска типов. Если не указана, используется сборка вызывающего кода.</param>
-        /// <returns>Массив типов, удовлетворяющих условию.</returns>
+        /// <param name="baseType">Р‘Р°Р·РѕРІС‹Р№ С‚РёРї РёР»Рё РёРЅС‚РµСЂС„РµР№СЃ РґР»СЏ РїРѕРёСЃРєР° СЂРµР°Р»РёР·Р°С†РёР№.</param>
+        /// <param name="fromAssembly">РЎР±РѕСЂРєР° РґР»СЏ РїРѕРёСЃРєР° С‚РёРїРѕРІ. Р•СЃР»Рё РЅРµ СѓРєР°Р·Р°РЅР°, РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃР±РѕСЂРєР° РІС‹Р·С‹РІР°СЋС‰РµРіРѕ РєРѕРґР°.</param>
+        /// <returns>РњР°СЃСЃРёРІ С‚РёРїРѕРІ, СѓРґРѕРІР»РµС‚РІРѕСЂСЏСЋС‰РёС… СѓСЃР»РѕРІРёСЋ.</returns>
         public static Type[] GetImplementationsOf(Type baseType, Assembly fromAssembly)
         {
             var assembly = fromAssembly ?? Assembly.GetCallingAssembly();
@@ -1701,11 +1701,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает все типы из всех загруженных в домен приложений сборок,
-        /// которые реализуют интерфейс или наследуются от указанного базового типа.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РІСЃРµ С‚РёРїС‹ РёР· РІСЃРµС… Р·Р°РіСЂСѓР¶РµРЅРЅС‹С… РІ РґРѕРјРµРЅ РїСЂРёР»РѕР¶РµРЅРёР№ СЃР±РѕСЂРѕРє,
+        /// РєРѕС‚РѕСЂС‹Рµ СЂРµР°Р»РёР·СѓСЋС‚ РёРЅС‚РµСЂС„РµР№СЃ РёР»Рё РЅР°СЃР»РµРґСѓСЋС‚СЃСЏ РѕС‚ СѓРєР°Р·Р°РЅРЅРѕРіРѕ Р±Р°Р·РѕРІРѕРіРѕ С‚РёРїР°.
         /// </summary>
-        /// <param name="baseType">Базовый тип или интерфейс для поиска реализаций.</param>
-        /// <returns>Массив типов, удовлетворяющих условию.</returns>
+        /// <param name="baseType">Р‘Р°Р·РѕРІС‹Р№ С‚РёРї РёР»Рё РёРЅС‚РµСЂС„РµР№СЃ РґР»СЏ РїРѕРёСЃРєР° СЂРµР°Р»РёР·Р°С†РёР№.</param>
+        /// <returns>РњР°СЃСЃРёРІ С‚РёРїРѕРІ, СѓРґРѕРІР»РµС‚РІРѕСЂСЏСЋС‰РёС… СѓСЃР»РѕРІРёСЋ.</returns>
         public static Type[] GetImplementationsOf(Type baseType) => AppDomain.CurrentDomain
                 .GetAssemblies()
                 .SelectMany(a =>
@@ -1716,7 +1716,7 @@ namespace RuntimeStuff
                     }
                     catch (ReflectionTypeLoadException ex)
                     {
-                        // Если часть типов не загружается, используем только доступные
+                        // Р•СЃР»Рё С‡Р°СЃС‚СЊ С‚РёРїРѕРІ РЅРµ Р·Р°РіСЂСѓР¶Р°РµС‚СЃСЏ, РёСЃРїРѕР»СЊР·СѓРµРј С‚РѕР»СЊРєРѕ РґРѕСЃС‚СѓРїРЅС‹Рµ
                         return ex.Types.Where(t => t != null);
                     }
                 })
@@ -1724,11 +1724,11 @@ namespace RuntimeStuff
                 .ToArray();
 
         /// <summary>
-        /// Получает событие с наименьшего уровня иерархии.
+        /// РџРѕР»СѓС‡Р°РµС‚ СЃРѕР±С‹С‚РёРµ СЃ РЅР°РёРјРµРЅСЊС€РµРіРѕ СѓСЂРѕРІРЅСЏ РёРµСЂР°СЂС…РёРё.
         /// </summary>
-        /// <param name="type">Тип, с которого начинается поиск.</param>
-        /// <param name="name">Имя события.</param>
-        /// <returns>Найденное событие или null, если событие не найдено.</returns>
+        /// <param name="type">РўРёРї, СЃ РєРѕС‚РѕСЂРѕРіРѕ РЅР°С‡РёРЅР°РµС‚СЃСЏ РїРѕРёСЃРє.</param>
+        /// <param name="name">РРјСЏ СЃРѕР±С‹С‚РёСЏ.</param>
+        /// <returns>РќР°Р№РґРµРЅРЅРѕРµ СЃРѕР±С‹С‚РёРµ РёР»Рё null, РµСЃР»Рё СЃРѕР±С‹С‚РёРµ РЅРµ РЅР°Р№РґРµРЅРѕ.</returns>
         public static EventInfo GetLowestEvent(Type type, string name)
         {
             while (type != null)
@@ -1746,11 +1746,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает поле с наименьшего уровня иерархии.
+        /// РџРѕР»СѓС‡Р°РµС‚ РїРѕР»Рµ СЃ РЅР°РёРјРµРЅСЊС€РµРіРѕ СѓСЂРѕРІРЅСЏ РёРµСЂР°СЂС…РёРё.
         /// </summary>
-        /// <param name="type">Тип, с которого начинается поиск.</param>
-        /// <param name="name">Имя поля.</param>
-        /// <returns>Найденное поле или null, если поле не найдено.</returns>
+        /// <param name="type">РўРёРї, СЃ РєРѕС‚РѕСЂРѕРіРѕ РЅР°С‡РёРЅР°РµС‚СЃСЏ РїРѕРёСЃРє.</param>
+        /// <param name="name">РРјСЏ РїРѕР»СЏ.</param>
+        /// <returns>РќР°Р№РґРµРЅРЅРѕРµ РїРѕР»Рµ РёР»Рё null, РµСЃР»Рё РїРѕР»Рµ РЅРµ РЅР°Р№РґРµРЅРѕ.</returns>
         public static FieldInfo GetLowestField(Type type, string name)
         {
             while (type != null)
@@ -1768,11 +1768,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает метод с наименьшего уровня иерархии.
+        /// РџРѕР»СѓС‡Р°РµС‚ РјРµС‚РѕРґ СЃ РЅР°РёРјРµРЅСЊС€РµРіРѕ СѓСЂРѕРІРЅСЏ РёРµСЂР°СЂС…РёРё.
         /// </summary>
-        /// <param name="type">Тип, с которого начинается поиск.</param>
-        /// <param name="name">Имя метода.</param>
-        /// <returns>Найденный метод или null, если метод не найден.</returns>
+        /// <param name="type">РўРёРї, СЃ РєРѕС‚РѕСЂРѕРіРѕ РЅР°С‡РёРЅР°РµС‚СЃСЏ РїРѕРёСЃРє.</param>
+        /// <param name="name">РРјСЏ РјРµС‚РѕРґР°.</param>
+        /// <returns>РќР°Р№РґРµРЅРЅС‹Р№ РјРµС‚РѕРґ РёР»Рё null, РµСЃР»Рё РјРµС‚РѕРґ РЅРµ РЅР°Р№РґРµРЅ.</returns>
         public static MethodInfo GetLowestMethod(Type type, string name)
         {
             while (type != null)
@@ -1790,11 +1790,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает свойство с наименьшего уровня иерархии.
+        /// РџРѕР»СѓС‡Р°РµС‚ СЃРІРѕР№СЃС‚РІРѕ СЃ РЅР°РёРјРµРЅСЊС€РµРіРѕ СѓСЂРѕРІРЅСЏ РёРµСЂР°СЂС…РёРё.
         /// </summary>
-        /// <param name="type">Тип, с которого начинается поиск.</param>
-        /// <param name="name">Имя свойства.</param>
-        /// <returns>Найденное свойство или null, если свойство не найдено.</returns>
+        /// <param name="type">РўРёРї, СЃ РєРѕС‚РѕСЂРѕРіРѕ РЅР°С‡РёРЅР°РµС‚СЃСЏ РїРѕРёСЃРє.</param>
+        /// <param name="name">РРјСЏ СЃРІРѕР№СЃС‚РІР°.</param>
+        /// <returns>РќР°Р№РґРµРЅРЅРѕРµ СЃРІРѕР№СЃС‚РІРѕ РёР»Рё null, РµСЃР»Рё СЃРІРѕР№СЃС‚РІРѕ РЅРµ РЅР°Р№РґРµРЅРѕ.</returns>
         public static PropertyInfo GetLowestProperty(Type type, string name)
         {
             while (type != null)
@@ -1812,29 +1812,29 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает делегат, позволяющий получить значение указанного поля или свойства объекта заданного типа по
-        /// имени.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РґРµР»РµРіР°С‚, РїРѕР·РІРѕР»СЏСЋС‰РёР№ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° Р·Р°РґР°РЅРЅРѕРіРѕ С‚РёРїР° РїРѕ
+        /// РёРјРµРЅРё.
         /// </summary>
-        /// <typeparam name="T">Тип объекта, содержащего поле или свойство, к которому требуется получить доступ.</typeparam>
-        /// <param name="memberName">Имя поля или свойства, значение которого необходимо получить. Не может быть null или пустой строкой.</param>
-        /// <returns>Делегат, принимающий объект типа <typeparamref name="T" /> и возвращающий значение указанного поля или
-        /// свойства. Возвращает null, если член с заданным именем не найден.</returns>
-        /// <remarks>Если указанный член не существует или не поддерживается для чтения, возвращаемое
-        /// значение будет null. Метод поддерживает все поля и свойства. Делегат не выполняет проверку
-        /// типов во время выполнения; некорректное использование может привести к исключениям.</remarks>
+        /// <typeparam name="T">РўРёРї РѕР±СЉРµРєС‚Р°, СЃРѕРґРµСЂР¶Р°С‰РµРіРѕ РїРѕР»Рµ РёР»Рё СЃРІРѕР№СЃС‚РІРѕ, Рє РєРѕС‚РѕСЂРѕРјСѓ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ РґРѕСЃС‚СѓРї.</typeparam>
+        /// <param name="memberName">РРјСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°, Р·РЅР°С‡РµРЅРёРµ РєРѕС‚РѕСЂРѕРіРѕ РЅРµРѕР±С…РѕРґРёРјРѕ РїРѕР»СѓС‡РёС‚СЊ. РќРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ null РёР»Рё РїСѓСЃС‚РѕР№ СЃС‚СЂРѕРєРѕР№.</param>
+        /// <returns>Р”РµР»РµРіР°С‚, РїСЂРёРЅРёРјР°СЋС‰РёР№ РѕР±СЉРµРєС‚ С‚РёРїР° <typeparamref name="T" /> Рё РІРѕР·РІСЂР°С‰Р°СЋС‰РёР№ Р·РЅР°С‡РµРЅРёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РїРѕР»СЏ РёР»Рё
+        /// СЃРІРѕР№СЃС‚РІР°. Р’РѕР·РІСЂР°С‰Р°РµС‚ null, РµСЃР»Рё С‡Р»РµРЅ СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј РЅРµ РЅР°Р№РґРµРЅ.</returns>
+        /// <remarks>Р•СЃР»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ РёР»Рё РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ РґР»СЏ С‡С‚РµРЅРёСЏ, РІРѕР·РІСЂР°С‰Р°РµРјРѕРµ
+        /// Р·РЅР°С‡РµРЅРёРµ Р±СѓРґРµС‚ null. РњРµС‚РѕРґ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ РІСЃРµ РїРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°. Р”РµР»РµРіР°С‚ РЅРµ РІС‹РїРѕР»РЅСЏРµС‚ РїСЂРѕРІРµСЂРєСѓ
+        /// С‚РёРїРѕРІ РІРѕ РІСЂРµРјСЏ РІС‹РїРѕР»РЅРµРЅРёСЏ; РЅРµРєРѕСЂСЂРµРєС‚РЅРѕРµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ РјРѕР¶РµС‚ РїСЂРёРІРµСЃС‚Рё Рє РёСЃРєР»СЋС‡РµРЅРёСЏРј.</remarks>
         public static Func<object, object> GetMemberGetter<T>(string memberName) => GetMemberGetter(typeof(T), memberName);
 
         /// <summary>
-        /// Возвращает делегат, позволяющий получить значение указанного поля или свойства объекта заданного типа по
-        /// имени.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РґРµР»РµРіР°С‚, РїРѕР·РІРѕР»СЏСЋС‰РёР№ РїРѕР»СѓС‡РёС‚СЊ Р·РЅР°С‡РµРЅРёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° Р·Р°РґР°РЅРЅРѕРіРѕ С‚РёРїР° РїРѕ
+        /// РёРјРµРЅРё.
         /// </summary>
-        /// <param name="type">Тип объекта, содержащего поле или свойство, к которому требуется получить доступ.</param>
-        /// <param name="memberName">Имя поля или свойства, значение которого необходимо получить. Не может быть null или пустой строкой.</param>
-        /// <returns>Делегат, принимающий объект типа и возвращающий значение указанного поля или
-        /// свойства. Возвращает null, если член с заданным именем не найден.</returns>
-        /// <remarks>Если указанный член не существует или не поддерживается для чтения, возвращаемое
-        /// значение будет null. Метод поддерживает все поля и свойства. Делегат не выполняет проверку
-        /// типов во время выполнения; некорректное использование может привести к исключениям.</remarks>
+        /// <param name="type">РўРёРї РѕР±СЉРµРєС‚Р°, СЃРѕРґРµСЂР¶Р°С‰РµРіРѕ РїРѕР»Рµ РёР»Рё СЃРІРѕР№СЃС‚РІРѕ, Рє РєРѕС‚РѕСЂРѕРјСѓ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ РґРѕСЃС‚СѓРї.</param>
+        /// <param name="memberName">РРјСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°, Р·РЅР°С‡РµРЅРёРµ РєРѕС‚РѕСЂРѕРіРѕ РЅРµРѕР±С…РѕРґРёРјРѕ РїРѕР»СѓС‡РёС‚СЊ. РќРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ null РёР»Рё РїСѓСЃС‚РѕР№ СЃС‚СЂРѕРєРѕР№.</param>
+        /// <returns>Р”РµР»РµРіР°С‚, РїСЂРёРЅРёРјР°СЋС‰РёР№ РѕР±СЉРµРєС‚ С‚РёРїР° Рё РІРѕР·РІСЂР°С‰Р°СЋС‰РёР№ Р·РЅР°С‡РµРЅРёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РїРѕР»СЏ РёР»Рё
+        /// СЃРІРѕР№СЃС‚РІР°. Р’РѕР·РІСЂР°С‰Р°РµС‚ null, РµСЃР»Рё С‡Р»РµРЅ СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј РЅРµ РЅР°Р№РґРµРЅ.</returns>
+        /// <remarks>Р•СЃР»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚ РёР»Рё РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ РґР»СЏ С‡С‚РµРЅРёСЏ, РІРѕР·РІСЂР°С‰Р°РµРјРѕРµ
+        /// Р·РЅР°С‡РµРЅРёРµ Р±СѓРґРµС‚ null. РњРµС‚РѕРґ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ РІСЃРµ РїРѕР»СЏ Рё СЃРІРѕР№СЃС‚РІР°. Р”РµР»РµРіР°С‚ РЅРµ РІС‹РїРѕР»РЅСЏРµС‚ РїСЂРѕРІРµСЂРєСѓ
+        /// С‚РёРїРѕРІ РІРѕ РІСЂРµРјСЏ РІС‹РїРѕР»РЅРµРЅРёСЏ; РЅРµРєРѕСЂСЂРµРєС‚РЅРѕРµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ РјРѕР¶РµС‚ РїСЂРёРІРµСЃС‚Рё Рє РёСЃРєР»СЋС‡РµРЅРёСЏРј.</remarks>
         public static Func<object, object> GetMemberGetter(Type type, string memberName)
         {
             var member = FindMember(type, memberName);
@@ -1842,28 +1842,28 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает делегат для получения значения поля или свойства.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РґРµР»РµРіР°С‚ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ Р·РЅР°С‡РµРЅРёСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°.
         /// </summary>
         /// <param name="memberInfo">
-        /// Информация о члене типа, для которого требуется получить геттер.
-        /// Поддерживаются поля (<see cref="FieldInfo"/>) и свойства (<see cref="PropertyInfo"/>).
+        /// РРЅС„РѕСЂРјР°С†РёСЏ Рѕ С‡Р»РµРЅРµ С‚РёРїР°, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ РіРµС‚С‚РµСЂ.
+        /// РџРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ РїРѕР»СЏ (<see cref="FieldInfo"/>) Рё СЃРІРѕР№СЃС‚РІР° (<see cref="PropertyInfo"/>).
         /// </param>
         /// <returns>
-        /// Делегат вида <c>Func&lt;object, object&gt;</c>, принимающий экземпляр объекта
-        /// (или <c>null</c> для статических членов) и возвращающий значение члена.
+        /// Р”РµР»РµРіР°С‚ РІРёРґР° <c>Func&lt;object, object&gt;</c>, РїСЂРёРЅРёРјР°СЋС‰РёР№ СЌРєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р°
+        /// (РёР»Рё <c>null</c> РґР»СЏ СЃС‚Р°С‚РёС‡РµСЃРєРёС… С‡Р»РµРЅРѕРІ) Рё РІРѕР·РІСЂР°С‰Р°СЋС‰РёР№ Р·РЅР°С‡РµРЅРёРµ С‡Р»РµРЅР°.
         ///
-        /// Если переданный член не является полем или свойством,
-        /// возвращается <c>null</c>.
+        /// Р•СЃР»Рё РїРµСЂРµРґР°РЅРЅС‹Р№ С‡Р»РµРЅ РЅРµ СЏРІР»СЏРµС‚СЃСЏ РїРѕР»РµРј РёР»Рё СЃРІРѕР№СЃС‚РІРѕРј,
+        /// РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ <c>null</c>.
         /// </returns>
         /// <remarks>
-        /// Для повышения производительности используются кэши
-        /// делегатов геттеров, что позволяет избежать повторного
-        /// создания выражений или динамического кода.
+        /// Р”Р»СЏ РїРѕРІС‹С€РµРЅРёСЏ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚Рё РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ РєСЌС€Рё
+        /// РґРµР»РµРіР°С‚РѕРІ РіРµС‚С‚РµСЂРѕРІ, С‡С‚Рѕ РїРѕР·РІРѕР»СЏРµС‚ РёР·Р±РµР¶Р°С‚СЊ РїРѕРІС‚РѕСЂРЅРѕРіРѕ
+        /// СЃРѕР·РґР°РЅРёСЏ РІС‹СЂР°Р¶РµРЅРёР№ РёР»Рё РґРёРЅР°РјРёС‡РµСЃРєРѕРіРѕ РєРѕРґР°.
         ///
-        /// Метод не выполняет проверку доступности члена
-        /// (например, <c>private</c>) и не гарантирует успешное
-        /// получение значения при ошибках приведения типов
-        /// или отсутствии геттера у свойства.
+        /// РњРµС‚РѕРґ РЅРµ РІС‹РїРѕР»РЅСЏРµС‚ РїСЂРѕРІРµСЂРєСѓ РґРѕСЃС‚СѓРїРЅРѕСЃС‚Рё С‡Р»РµРЅР°
+        /// (РЅР°РїСЂРёРјРµСЂ, <c>private</c>) Рё РЅРµ РіР°СЂР°РЅС‚РёСЂСѓРµС‚ СѓСЃРїРµС€РЅРѕРµ
+        /// РїРѕР»СѓС‡РµРЅРёРµ Р·РЅР°С‡РµРЅРёСЏ РїСЂРё РѕС€РёР±РєР°С… РїСЂРёРІРµРґРµРЅРёСЏ С‚РёРїРѕРІ
+        /// РёР»Рё РѕС‚СЃСѓС‚СЃС‚РІРёРё РіРµС‚С‚РµСЂР° Сѓ СЃРІРѕР№СЃС‚РІР°.
         /// </remarks>
         public static Func<object, object> GetMemberGetter(MemberInfo memberInfo)
         {
@@ -1881,7 +1881,7 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получить свойство указанное в выражении.
+        /// РџРѕР»СѓС‡РёС‚СЊ СЃРІРѕР№СЃС‚РІРѕ СѓРєР°Р·Р°РЅРЅРѕРµ РІ РІС‹СЂР°Р¶РµРЅРёРё.
         /// </summary>
         /// <param name="expr">The expr.</param>
         /// <returns>MemberInfo.</returns>
@@ -1905,28 +1905,28 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает тип значения, который возвращает указанный член типа.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ С‚РёРї Р·РЅР°С‡РµРЅРёСЏ, РєРѕС‚РѕСЂС‹Р№ РІРѕР·РІСЂР°С‰Р°РµС‚ СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ С‚РёРїР°.
         /// </summary>
         /// <param name="memberInfo">
-        /// Метаданные члена типа (<see cref="PropertyInfo"/> или <see cref="FieldInfo"/>),
-        /// для которого требуется определить возвращаемый тип.
+        /// РњРµС‚Р°РґР°РЅРЅС‹Рµ С‡Р»РµРЅР° С‚РёРїР° (<see cref="PropertyInfo"/> РёР»Рё <see cref="FieldInfo"/>),
+        /// РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РѕРїСЂРµРґРµР»РёС‚СЊ РІРѕР·РІСЂР°С‰Р°РµРјС‹Р№ С‚РёРї.
         /// </param>
         /// <returns>
-        /// Тип значения члена:
+        /// РўРёРї Р·РЅР°С‡РµРЅРёСЏ С‡Р»РµРЅР°:
         /// <list type="bullet">
         /// <item>
-        /// <description><see cref="PropertyInfo.PropertyType"/> — если передан объект <see cref="PropertyInfo"/>.</description>
+        /// <description><see cref="PropertyInfo.PropertyType"/> вЂ” РµСЃР»Рё РїРµСЂРµРґР°РЅ РѕР±СЉРµРєС‚ <see cref="PropertyInfo"/>.</description>
         /// </item>
         /// <item>
-        /// <description><see cref="FieldInfo.FieldType"/> — если передан объект <see cref="FieldInfo"/>.</description>
+        /// <description><see cref="FieldInfo.FieldType"/> вЂ” РµСЃР»Рё РїРµСЂРµРґР°РЅ РѕР±СЉРµРєС‚ <see cref="FieldInfo"/>.</description>
         /// </item>
         /// <item>
-        /// <description><see cref="MethodInfo.ReturnType"/> — если передан объект <see cref="MethodInfo"/>.</description>
+        /// <description><see cref="MethodInfo.ReturnType"/> вЂ” РµСЃР»Рё РїРµСЂРµРґР°РЅ РѕР±СЉРµРєС‚ <see cref="MethodInfo"/>.</description>
         /// </item>
         /// </list>
         /// <para>
-        /// Возвращает <c>null</c>, если <paramref name="memberInfo"/> равен <c>null</c>
-        /// либо если тип члена не поддерживается.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ <c>null</c>, РµСЃР»Рё <paramref name="memberInfo"/> СЂР°РІРµРЅ <c>null</c>
+        /// Р»РёР±Рѕ РµСЃР»Рё С‚РёРї С‡Р»РµРЅР° РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ.
         /// </para>
         /// </returns>
         public static Type GetMemberReturnType(MemberInfo memberInfo)
@@ -1953,32 +1953,32 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает делегат для установки значения поля или свойства.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РґРµР»РµРіР°С‚ РґР»СЏ СѓСЃС‚Р°РЅРѕРІРєРё Р·РЅР°С‡РµРЅРёСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°.
         /// </summary>
         /// <param name="memberInfo">
-        /// Информация о члене типа, для которого требуется получить сеттер.
-        /// Поддерживаются поля (<see cref="FieldInfo"/>) и свойства (<see cref="PropertyInfo"/>).
+        /// РРЅС„РѕСЂРјР°С†РёСЏ Рѕ С‡Р»РµРЅРµ С‚РёРїР°, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ СЃРµС‚С‚РµСЂ.
+        /// РџРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ РїРѕР»СЏ (<see cref="FieldInfo"/>) Рё СЃРІРѕР№СЃС‚РІР° (<see cref="PropertyInfo"/>).
         /// </param>
         /// <returns>
-        /// Делегат вида <c>Action&lt;object, object&gt;</c>, принимающий:
+        /// Р”РµР»РµРіР°С‚ РІРёРґР° <c>Action&lt;object, object&gt;</c>, РїСЂРёРЅРёРјР°СЋС‰РёР№:
         /// <list type="bullet">
-        /// <item><description>Экземпляр объекта (или <c>null</c> для статических членов);</description></item>
-        /// <item><description>Значение, которое необходимо установить.</description></item>
+        /// <item><description>Р­РєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р° (РёР»Рё <c>null</c> РґР»СЏ СЃС‚Р°С‚РёС‡РµСЃРєРёС… С‡Р»РµРЅРѕРІ);</description></item>
+        /// <item><description>Р—РЅР°С‡РµРЅРёРµ, РєРѕС‚РѕСЂРѕРµ РЅРµРѕР±С…РѕРґРёРјРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ.</description></item>
         /// </list>
         ///
-        /// Если переданный член не является полем или свойством,
-        /// возвращается <c>null</c>.
+        /// Р•СЃР»Рё РїРµСЂРµРґР°РЅРЅС‹Р№ С‡Р»РµРЅ РЅРµ СЏРІР»СЏРµС‚СЃСЏ РїРѕР»РµРј РёР»Рё СЃРІРѕР№СЃС‚РІРѕРј,
+        /// РІРѕР·РІСЂР°С‰Р°РµС‚СЃСЏ <c>null</c>.
         /// </returns>
         /// <remarks>
-        /// Для повышения производительности используются внутренние кэши
-        /// делегатов сеттеров.
+        /// Р”Р»СЏ РїРѕРІС‹С€РµРЅРёСЏ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚Рё РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ РІРЅСѓС‚СЂРµРЅРЅРёРµ РєСЌС€Рё
+        /// РґРµР»РµРіР°С‚РѕРІ СЃРµС‚С‚РµСЂРѕРІ.
         ///
-        /// Создание делегата обычно выполняется с применением выражений
-        /// (<see cref="System.Linq.Expressions"/>) или динамической генерации кода,
-        /// что значительно быстрее прямого использования Reflection при повторных вызовах.
+        /// РЎРѕР·РґР°РЅРёРµ РґРµР»РµРіР°С‚Р° РѕР±С‹С‡РЅРѕ РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ СЃ РїСЂРёРјРµРЅРµРЅРёРµРј РІС‹СЂР°Р¶РµРЅРёР№
+        /// (<see cref="System.Linq.Expressions"/>) РёР»Рё РґРёРЅР°РјРёС‡РµСЃРєРѕР№ РіРµРЅРµСЂР°С†РёРё РєРѕРґР°,
+        /// С‡С‚Рѕ Р·РЅР°С‡РёС‚РµР»СЊРЅРѕ Р±С‹СЃС‚СЂРµРµ РїСЂСЏРјРѕРіРѕ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ Reflection РїСЂРё РїРѕРІС‚РѕСЂРЅС‹С… РІС‹Р·РѕРІР°С….
         ///
-        /// Метод не выполняет проверку доступности члена (например, <c>private</c>)
-        /// и не гарантирует успешную установку значения при несовпадении типов.
+        /// РњРµС‚РѕРґ РЅРµ РІС‹РїРѕР»РЅСЏРµС‚ РїСЂРѕРІРµСЂРєСѓ РґРѕСЃС‚СѓРїРЅРѕСЃС‚Рё С‡Р»РµРЅР° (РЅР°РїСЂРёРјРµСЂ, <c>private</c>)
+        /// Рё РЅРµ РіР°СЂР°РЅС‚РёСЂСѓРµС‚ СѓСЃРїРµС€РЅСѓСЋ СѓСЃС‚Р°РЅРѕРІРєСѓ Р·РЅР°С‡РµРЅРёСЏ РїСЂРё РЅРµСЃРѕРІРїР°РґРµРЅРёРё С‚РёРїРѕРІ.
         /// </remarks>
         public static Action<object, object> GetMemberSetter(MemberInfo memberInfo)
         {
@@ -1995,17 +1995,17 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает делегат, позволяющий установить значение указанного поля или свойства объекта типа по имени члена.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РґРµР»РµРіР°С‚, РїРѕР·РІРѕР»СЏСЋС‰РёР№ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° С‚РёРїР° РїРѕ РёРјРµРЅРё С‡Р»РµРЅР°.
         /// </summary>
-        /// <param name="type">Тип в котором искать свойство или поле.</param>
-        /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
-        /// <param name="memberType">Тип свойства или поля.</param>
-        /// <returns>Делегат Action{object, object}, который устанавливает значение указанного члена для объекта.
-        /// Возвращает <see langword="null" />, если член с заданным именем не найден или
-        /// не поддерживает установку значения.</returns>
-        /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
-        /// значение будет <see langword="null" />. Делегат использует отражение и может иметь меньшую производительность
-        /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
+        /// <param name="type">РўРёРї РІ РєРѕС‚РѕСЂРѕРј РёСЃРєР°С‚СЊ СЃРІРѕР№СЃС‚РІРѕ РёР»Рё РїРѕР»Рµ.</param>
+        /// <param name="memberName">РРјСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°, Р·РЅР°С‡РµРЅРёРµ РєРѕС‚РѕСЂРѕРіРѕ РЅРµРѕР±С…РѕРґРёРјРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ. РќРµ С‡СѓРІСЃС‚РІРёС‚РµР»СЊРЅРѕ Рє СЂРµРіРёСЃС‚СЂСѓ.</param>
+        /// <param name="memberType">РўРёРї СЃРІРѕР№СЃС‚РІР° РёР»Рё РїРѕР»СЏ.</param>
+        /// <returns>Р”РµР»РµРіР°С‚ Action{object, object}, РєРѕС‚РѕСЂС‹Р№ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ Р·РЅР°С‡РµРЅРёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‡Р»РµРЅР° РґР»СЏ РѕР±СЉРµРєС‚Р°.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ <see langword="null" />, РµСЃР»Рё С‡Р»РµРЅ СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј РЅРµ РЅР°Р№РґРµРЅ РёР»Рё
+        /// РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ СѓСЃС‚Р°РЅРѕРІРєСѓ Р·РЅР°С‡РµРЅРёСЏ.</returns>
+        /// <remarks>Р•СЃР»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ СЏРІР»СЏРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РґР»СЏ С‡С‚РµРЅРёСЏ РёР»Рё РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚, РІРѕР·РІСЂР°С‰Р°РµРјРѕРµ
+        /// Р·РЅР°С‡РµРЅРёРµ Р±СѓРґРµС‚ <see langword="null" />. Р”РµР»РµРіР°С‚ РёСЃРїРѕР»СЊР·СѓРµС‚ РѕС‚СЂР°Р¶РµРЅРёРµ Рё РјРѕР¶РµС‚ РёРјРµС‚СЊ РјРµРЅСЊС€СѓСЋ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ
+        /// РїРѕ СЃСЂР°РІРЅРµРЅРёСЋ СЃ РїСЂСЏРјС‹Рј РґРѕСЃС‚СѓРїРѕРј. РќРµ СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РґР»СЏ С‡Р°СЃС‚Рѕ РІС‹Р·С‹РІР°РµРјС‹С… РѕРїРµСЂР°С†РёР№.</remarks>
         public static Action<object, object> GetMemberSetter(Type type, string memberName, out Type memberType)
         {
             var member = FindMember(type, memberName);
@@ -2025,27 +2025,27 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает делегат, позволяющий установить значение указанного поля или свойства объекта типа по имени члена.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РґРµР»РµРіР°С‚, РїРѕР·РІРѕР»СЏСЋС‰РёР№ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° С‚РёРїР° РїРѕ РёРјРµРЅРё С‡Р»РµРЅР°.
         /// </summary>
         /// <typeparam name="T">Type.</typeparam>
-        /// <param name="memberName">Имя поля или свойства, значение которого необходимо установить. Не чувствительно к регистру.</param>
-        /// <param name="memberType">Тип свойства или поля.</param>
-        /// <returns>Делегат, который устанавливает значение указанного члена для объекта
-        /// типа <typeparamref name="T" />. Возвращает <see langword="null" />, если член с заданным именем не найден или
-        /// не поддерживает установку значения.</returns>
-        /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
-        /// значение будет <see langword="null" />. Делегат использует отражение и может иметь меньшую производительность
-        /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
+        /// <param name="memberName">РРјСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°, Р·РЅР°С‡РµРЅРёРµ РєРѕС‚РѕСЂРѕРіРѕ РЅРµРѕР±С…РѕРґРёРјРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ. РќРµ С‡СѓРІСЃС‚РІРёС‚РµР»СЊРЅРѕ Рє СЂРµРіРёСЃС‚СЂСѓ.</param>
+        /// <param name="memberType">РўРёРї СЃРІРѕР№СЃС‚РІР° РёР»Рё РїРѕР»СЏ.</param>
+        /// <returns>Р”РµР»РµРіР°С‚, РєРѕС‚РѕСЂС‹Р№ СѓСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ Р·РЅР°С‡РµРЅРёРµ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‡Р»РµРЅР° РґР»СЏ РѕР±СЉРµРєС‚Р°
+        /// С‚РёРїР° <typeparamref name="T" />. Р’РѕР·РІСЂР°С‰Р°РµС‚ <see langword="null" />, РµСЃР»Рё С‡Р»РµРЅ СЃ Р·Р°РґР°РЅРЅС‹Рј РёРјРµРЅРµРј РЅРµ РЅР°Р№РґРµРЅ РёР»Рё
+        /// РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ СѓСЃС‚Р°РЅРѕРІРєСѓ Р·РЅР°С‡РµРЅРёСЏ.</returns>
+        /// <remarks>Р•СЃР»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ СЏРІР»СЏРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РґР»СЏ С‡С‚РµРЅРёСЏ РёР»Рё РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚, РІРѕР·РІСЂР°С‰Р°РµРјРѕРµ
+        /// Р·РЅР°С‡РµРЅРёРµ Р±СѓРґРµС‚ <see langword="null" />. Р”РµР»РµРіР°С‚ РёСЃРїРѕР»СЊР·СѓРµС‚ РѕС‚СЂР°Р¶РµРЅРёРµ Рё РјРѕР¶РµС‚ РёРјРµС‚СЊ РјРµРЅСЊС€СѓСЋ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚СЊ
+        /// РїРѕ СЃСЂР°РІРЅРµРЅРёСЋ СЃ РїСЂСЏРјС‹Рј РґРѕСЃС‚СѓРїРѕРј. РќРµ СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РґР»СЏ С‡Р°СЃС‚Рѕ РІС‹Р·С‹РІР°РµРјС‹С… РѕРїРµСЂР°С†РёР№.</remarks>
         public static Action<object, object> GetMemberSetter<T>(string memberName, out Type memberType) => GetMemberSetter(typeof(T), memberName, out memberType);
 
         /// <summary>
-        /// Получает значения всех полей и свойств типа T из объекта TClass.
+        /// РџРѕР»СѓС‡Р°РµС‚ Р·РЅР°С‡РµРЅРёСЏ РІСЃРµС… РїРѕР»РµР№ Рё СЃРІРѕР№СЃС‚РІ С‚РёРїР° T РёР· РѕР±СЉРµРєС‚Р° TClass.
         /// </summary>
-        /// <typeparam name="T">Тип члена, который ищем.</typeparam>
-        /// <param name="obj">Объект, из которого извлекаем значения.</param>
-        /// <param name="memberFilter">Опциональный фильтр значений.</param>
-        /// <param name="recursive">Если true, рекурсивно обходит вложенные объекты.</param>
-        /// <param name="searchInCollections">Если true, рекурсивно ищет элементы типа T в коллекциях.</param>
+        /// <typeparam name="T">РўРёРї С‡Р»РµРЅР°, РєРѕС‚РѕСЂС‹Р№ РёС‰РµРј.</typeparam>
+        /// <param name="obj">РћР±СЉРµРєС‚, РёР· РєРѕС‚РѕСЂРѕРіРѕ РёР·РІР»РµРєР°РµРј Р·РЅР°С‡РµРЅРёСЏ.</param>
+        /// <param name="memberFilter">РћРїС†РёРѕРЅР°Р»СЊРЅС‹Р№ С„РёР»СЊС‚СЂ Р·РЅР°С‡РµРЅРёР№.</param>
+        /// <param name="recursive">Р•СЃР»Рё true, СЂРµРєСѓСЂСЃРёРІРЅРѕ РѕР±С…РѕРґРёС‚ РІР»РѕР¶РµРЅРЅС‹Рµ РѕР±СЉРµРєС‚С‹.</param>
+        /// <param name="searchInCollections">Р•СЃР»Рё true, СЂРµРєСѓСЂСЃРёРІРЅРѕ РёС‰РµС‚ СЌР»РµРјРµРЅС‚С‹ С‚РёРїР° T РІ РєРѕР»Р»РµРєС†РёСЏС….</param>
         /// <returns>IEnumerable&lt;T&gt;.</returns>
         /// <exception cref="System.ArgumentNullException">obj.</exception>
         public static IEnumerable<T> GetMembersOfType<T>(this object obj, Func<T, bool> memberFilter = null, bool recursive = false, bool searchInCollections = false)
@@ -2060,15 +2060,15 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Возвращает значение по ключу из словаря или добавляет его, если ключ отсутствует.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕ РєР»СЋС‡Сѓ РёР· СЃР»РѕРІР°СЂСЏ РёР»Рё РґРѕР±Р°РІР»СЏРµС‚ РµРіРѕ, РµСЃР»Рё РєР»СЋС‡ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.
         /// </summary>
-        /// <typeparam name="TKey">Тип ключа словаря.</typeparam>
-        /// <typeparam name="TValue">Тип значения словаря.</typeparam>
-        /// <param name="dictionary">Словарь, в котором выполняется поиск или добавление.</param>
-        /// <param name="key">Ключ для поиска или добавления значения.</param>
-        /// <param name="valueFactory">Функция, создающая значение, если ключ отсутствует.</param>
-        /// <returns>Значение, соответствующее ключу.</returns>
-        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="dictionary" /> равен <c>null</c>.</exception>
+        /// <typeparam name="TKey">РўРёРї РєР»СЋС‡Р° СЃР»РѕРІР°СЂСЏ.</typeparam>
+        /// <typeparam name="TValue">РўРёРї Р·РЅР°С‡РµРЅРёСЏ СЃР»РѕРІР°СЂСЏ.</typeparam>
+        /// <param name="dictionary">РЎР»РѕРІР°СЂСЊ, РІ РєРѕС‚РѕСЂРѕРј РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ РїРѕРёСЃРє РёР»Рё РґРѕР±Р°РІР»РµРЅРёРµ.</param>
+        /// <param name="key">РљР»СЋС‡ РґР»СЏ РїРѕРёСЃРєР° РёР»Рё РґРѕР±Р°РІР»РµРЅРёСЏ Р·РЅР°С‡РµРЅРёСЏ.</param>
+        /// <param name="valueFactory">Р¤СѓРЅРєС†РёСЏ, СЃРѕР·РґР°СЋС‰Р°СЏ Р·РЅР°С‡РµРЅРёРµ, РµСЃР»Рё РєР»СЋС‡ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРµ РєР»СЋС‡Сѓ.</returns>
+        /// <exception cref="ArgumentNullException">Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё <paramref name="dictionary" /> СЂР°РІРµРЅ <c>null</c>.</exception>
         public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, Func<TValue> valueFactory)
         {
             if (dictionary.TryGetValue(key, out var val))
@@ -2082,34 +2082,34 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает все публичные свойства типа <typeparamref name="T" />.
-        /// Использует внутренний кеш для ускорения повторных вызовов.
+        /// РџРѕР»СѓС‡Р°РµС‚ РІСЃРµ РїСѓР±Р»РёС‡РЅС‹Рµ СЃРІРѕР№СЃС‚РІР° С‚РёРїР° <typeparamref name="T" />.
+        /// РСЃРїРѕР»СЊР·СѓРµС‚ РІРЅСѓС‚СЂРµРЅРЅРёР№ РєРµС€ РґР»СЏ СѓСЃРєРѕСЂРµРЅРёСЏ РїРѕРІС‚РѕСЂРЅС‹С… РІС‹Р·РѕРІРѕРІ.
         /// </summary>
-        /// <typeparam name="T">Тип, для которого нужно получить свойства.</typeparam>
-        /// <returns>Массив <see cref="PropertyInfo" /> всех публичных свойств.</returns>
+        /// <typeparam name="T">РўРёРї, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РЅСѓР¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊ СЃРІРѕР№СЃС‚РІР°.</typeparam>
+        /// <returns>РњР°СЃСЃРёРІ <see cref="PropertyInfo" /> РІСЃРµС… РїСѓР±Р»РёС‡РЅС‹С… СЃРІРѕР№СЃС‚РІ.</returns>
         public static PropertyInfo[] GetProperties<T>()
             where T : class => GetProperties(typeof(T));
 
         /// <summary>
-        /// Получает все публичные свойства указанного типа.
-        /// Использует внутренний кеш для ускорения повторных вызовов.
+        /// РџРѕР»СѓС‡Р°РµС‚ РІСЃРµ РїСѓР±Р»РёС‡РЅС‹Рµ СЃРІРѕР№СЃС‚РІР° СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°.
+        /// РСЃРїРѕР»СЊР·СѓРµС‚ РІРЅСѓС‚СЂРµРЅРЅРёР№ РєРµС€ РґР»СЏ СѓСЃРєРѕСЂРµРЅРёСЏ РїРѕРІС‚РѕСЂРЅС‹С… РІС‹Р·РѕРІРѕРІ.
         /// </summary>
-        /// <param name="type">Тип, для которого нужно получить свойства.</param>
-        /// <returns>Массив <see cref="PropertyInfo" /> всех публичных свойств.</returns>
+        /// <param name="type">РўРёРї, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РЅСѓР¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊ СЃРІРѕР№СЃС‚РІР°.</param>
+        /// <returns>РњР°СЃСЃРёРІ <see cref="PropertyInfo" /> РІСЃРµС… РїСѓР±Р»РёС‡РЅС‹С… СЃРІРѕР№СЃС‚РІ.</returns>
         public static PropertyInfo[] GetProperties(Type type) => GetPropertiesMap(type).Values.ToArray();
 
         /// <summary>
-        /// Возвращает отображение имён свойств типа на объекты <see cref="PropertyInfo" />.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ РёРјС‘РЅ СЃРІРѕР№СЃС‚РІ С‚РёРїР° РЅР° РѕР±СЉРµРєС‚С‹ <see cref="PropertyInfo" />.
         /// </summary>
-        /// <typeparam name="T">Тип, свойства которого требуется получить.</typeparam>
-        /// <returns>Словарь «имя свойства ? PropertyInfo».</returns>
+        /// <typeparam name="T">РўРёРї, СЃРІРѕР№СЃС‚РІР° РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ.</typeparam>
+        /// <returns>РЎР»РѕРІР°СЂСЊ В«РёРјСЏ СЃРІРѕР№СЃС‚РІР° ? PropertyInfoВ».</returns>
         public static Dictionary<string, PropertyInfo> GetPropertiesMap<T>() => GetPropertiesMap(typeof(T));
 
         /// <summary>
-        /// Возвращает отображение имён свойств указанного типа на объекты <see cref="PropertyInfo" />.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ РёРјС‘РЅ СЃРІРѕР№СЃС‚РІ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР° РЅР° РѕР±СЉРµРєС‚С‹ <see cref="PropertyInfo" />.
         /// </summary>
-        /// <param name="type">Тип, свойства которого требуется получить.</param>
-        /// <returns>Словарь «имя свойства ? PropertyInfo».</returns>
+        /// <param name="type">РўРёРї, СЃРІРѕР№СЃС‚РІР° РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїРѕР»СѓС‡РёС‚СЊ.</param>
+        /// <returns>РЎР»РѕРІР°СЂСЊ В«РёРјСЏ СЃРІРѕР№СЃС‚РІР° ? PropertyInfoВ».</returns>
         public static Dictionary<string, PropertyInfo> GetPropertiesMap(Type type)
         {
             if (PropertiesCache.TryGetValue(type, out var cached))
@@ -2129,11 +2129,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получить свойство по его имени.
+        /// РџРѕР»СѓС‡РёС‚СЊ СЃРІРѕР№СЃС‚РІРѕ РїРѕ РµРіРѕ РёРјРµРЅРё.
         /// </summary>
-        /// <param name="type">Тип в котором искать свойство.</param>
-        /// <param name="propertyName">Имя свойства.</param>
-        /// <param name="stringComparison">Сравнение имен.</param>
+        /// <param name="type">РўРёРї РІ РєРѕС‚РѕСЂРѕРј РёСЃРєР°С‚СЊ СЃРІРѕР№СЃС‚РІРѕ.</param>
+        /// <param name="propertyName">РРјСЏ СЃРІРѕР№СЃС‚РІР°.</param>
+        /// <param name="stringComparison">РЎСЂР°РІРЅРµРЅРёРµ РёРјРµРЅ.</param>
         /// <returns>PropertyInfo.</returns>
         public static PropertyInfo GetProperty(Type type, string propertyName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
         {
@@ -2146,49 +2146,49 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получить свойство указанное в выражении.
+        /// РџРѕР»СѓС‡РёС‚СЊ СЃРІРѕР№СЃС‚РІРѕ СѓРєР°Р·Р°РЅРЅРѕРµ РІ РІС‹СЂР°Р¶РµРЅРёРё.
         /// </summary>
         /// <param name="expr">The expr.</param>
         /// <returns>PropertyInfo.</returns>
         public static PropertyInfo GetProperty(Expression expr) => GetMemberInfo(expr) as PropertyInfo;
 
         /// <summary>
-        /// Получает имена всех публичных свойств типа <typeparamref name="T" />.
+        /// РџРѕР»СѓС‡Р°РµС‚ РёРјРµРЅР° РІСЃРµС… РїСѓР±Р»РёС‡РЅС‹С… СЃРІРѕР№СЃС‚РІ С‚РёРїР° <typeparamref name="T" />.
         /// </summary>
-        /// <typeparam name="T">Тип, для которого нужно получить имена свойств.</typeparam>
-        /// <returns>Массив имен свойств.</returns>
+        /// <typeparam name="T">РўРёРї, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РЅСѓР¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊ РёРјРµРЅР° СЃРІРѕР№СЃС‚РІ.</typeparam>
+        /// <returns>РњР°СЃСЃРёРІ РёРјРµРЅ СЃРІРѕР№СЃС‚РІ.</returns>
         public static string[] GetPropertyNames<T>() => GetPropertyNames(typeof(T));
 
         /// <summary>
-        /// Получает имена всех публичных свойств указанного типа.
-        /// Использует внутренний кеш для ускорения повторных вызовов.
+        /// РџРѕР»СѓС‡Р°РµС‚ РёРјРµРЅР° РІСЃРµС… РїСѓР±Р»РёС‡РЅС‹С… СЃРІРѕР№СЃС‚РІ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°.
+        /// РСЃРїРѕР»СЊР·СѓРµС‚ РІРЅСѓС‚СЂРµРЅРЅРёР№ РєРµС€ РґР»СЏ СѓСЃРєРѕСЂРµРЅРёСЏ РїРѕРІС‚РѕСЂРЅС‹С… РІС‹Р·РѕРІРѕРІ.
         /// </summary>
-        /// <param name="type">Тип, для которого нужно получить имена свойств.</param>
-        /// <returns>Массив имен свойств.</returns>
+        /// <param name="type">РўРёРї, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ РЅСѓР¶РЅРѕ РїРѕР»СѓС‡РёС‚СЊ РёРјРµРЅР° СЃРІРѕР№СЃС‚РІ.</param>
+        /// <returns>РњР°СЃСЃРёРІ РёРјРµРЅ СЃРІРѕР№СЃС‚РІ.</returns>
         public static string[] GetPropertyNames(Type type) => GetPropertiesMap(type).Keys.ToArray();
 
         /// <summary>
-        /// Ищет тип или интерфейс по указанному имени во всех сборках, загруженных в текущий <see cref="AppDomain" />.
-        /// Результаты поиска кэшируются для ускорения последующих вызовов.
+        /// РС‰РµС‚ С‚РёРї РёР»Рё РёРЅС‚РµСЂС„РµР№СЃ РїРѕ СѓРєР°Р·Р°РЅРЅРѕРјСѓ РёРјРµРЅРё РІРѕ РІСЃРµС… СЃР±РѕСЂРєР°С…, Р·Р°РіСЂСѓР¶РµРЅРЅС‹С… РІ С‚РµРєСѓС‰РёР№ <see cref="AppDomain" />.
+        /// Р РµР·СѓР»СЊС‚Р°С‚С‹ РїРѕРёСЃРєР° РєСЌС€РёСЂСѓСЋС‚СЃСЏ РґР»СЏ СѓСЃРєРѕСЂРµРЅРёСЏ РїРѕСЃР»РµРґСѓСЋС‰РёС… РІС‹Р·РѕРІРѕРІ.
         /// </summary>
-        /// <param name="typeOrInterfaceName">Полное или короткое имя типа (например, <c>"System.String"</c> или <c>"String"</c>).</param>
-        /// <returns>Объект <see cref="Type" />, если тип найден; в противном случае <see langword="null" />.</returns>
+        /// <param name="typeOrInterfaceName">РџРѕР»РЅРѕРµ РёР»Рё РєРѕСЂРѕС‚РєРѕРµ РёРјСЏ С‚РёРїР° (РЅР°РїСЂРёРјРµСЂ, <c>"System.String"</c> РёР»Рё <c>"String"</c>).</param>
+        /// <returns>РћР±СЉРµРєС‚ <see cref="Type" />, РµСЃР»Рё С‚РёРї РЅР°Р№РґРµРЅ; РІ РїСЂРѕС‚РёРІРЅРѕРј СЃР»СѓС‡Р°Рµ <see langword="null" />.</returns>
         /// <exception cref="System.ArgumentException">Type name cannot be null or empty. - typeOrInterfaceName.</exception>
         /// <example>
-        /// Пример использования:
+        /// РџСЂРёРјРµСЂ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ:
         /// <code language="csharp">
         /// var type1 = TypeHelper.GetTypeByName("System.String");
-        /// Console.WriteLine(type1); // Вывод: System.String
+        /// Console.WriteLine(type1); // Р’С‹РІРѕРґ: System.String
         /// var type2 = TypeHelper.GetTypeByName("String");
-        /// Console.WriteLine(type2); // Вывод: System.String
+        /// Console.WriteLine(type2); // Р’С‹РІРѕРґ: System.String
         /// var type3 = TypeHelper.GetTypeByName("IEnumerable");
-        /// Console.WriteLine(type3); // Вывод: System.Collections.IEnumerable
-        /// // Повторный вызов — берётся из кэша, без обхода сборок
+        /// Console.WriteLine(type3); // Р’С‹РІРѕРґ: System.Collections.IEnumerable
+        /// // РџРѕРІС‚РѕСЂРЅС‹Р№ РІС‹Р·РѕРІ вЂ” Р±РµСЂС‘С‚СЃСЏ РёР· РєСЌС€Р°, Р±РµР· РѕР±С…РѕРґР° СЃР±РѕСЂРѕРє
         /// var cached = TypeHelper.GetTypeByName("System.String");
         /// Console.WriteLine(ReferenceEquals(type1, cached)); // True
         /// </code></example>
-        /// <remarks>Поиск выполняется без учёта регистра, сравниваются <see cref="Type.FullName" /> и Type.Name.
-        /// При первом вызове метод перебирает все загруженные сборки, затем кэширует результат.</remarks>
+        /// <remarks>РџРѕРёСЃРє РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ Р±РµР· СѓС‡С‘С‚Р° СЂРµРіРёСЃС‚СЂР°, СЃСЂР°РІРЅРёРІР°СЋС‚СЃСЏ <see cref="Type.FullName" /> Рё Type.Name.
+        /// РџСЂРё РїРµСЂРІРѕРј РІС‹Р·РѕРІРµ РјРµС‚РѕРґ РїРµСЂРµР±РёСЂР°РµС‚ РІСЃРµ Р·Р°РіСЂСѓР¶РµРЅРЅС‹Рµ СЃР±РѕСЂРєРё, Р·Р°С‚РµРј РєСЌС€РёСЂСѓРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚.</remarks>
         public static Type GetTypeByName(string typeOrInterfaceName)
         {
             if (string.IsNullOrWhiteSpace(typeOrInterfaceName))
@@ -2196,7 +2196,7 @@ namespace RuntimeStuff
                 throw new ArgumentException(@"Type name cannot be null or empty.", nameof(typeOrInterfaceName));
             }
 
-            // Проверяем кэш
+            // РџСЂРѕРІРµСЂСЏРµРј РєСЌС€
             if (TypeCache.TryGetValue(typeOrInterfaceName, out var cachedType))
             {
                 return cachedType;
@@ -2240,27 +2240,27 @@ namespace RuntimeStuff
                 }
             }
 
-            // Кэшируем результат (в том числе null, чтобы избежать повторных обходов)
+            // РљСЌС€РёСЂСѓРµРј СЂРµР·СѓР»СЊС‚Р°С‚ (РІ С‚РѕРј С‡РёСЃР»Рµ null, С‡С‚РѕР±С‹ РёР·Р±РµР¶Р°С‚СЊ РїРѕРІС‚РѕСЂРЅС‹С… РѕР±С…РѕРґРѕРІ)
             TypeCache[typeOrInterfaceName] = foundType;
 
             return foundType;
         }
 
         /// <summary>
-        /// Возвращает значение по ключу из коллекции пар ключ-значение или значение по умолчанию, если ключ отсутствует.
+        /// Р’РѕР·РІСЂР°С‰Р°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕ РєР»СЋС‡Сѓ РёР· РєРѕР»Р»РµРєС†РёРё РїР°СЂ РєР»СЋС‡-Р·РЅР°С‡РµРЅРёРµ РёР»Рё Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ, РµСЃР»Рё РєР»СЋС‡ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚.
         /// </summary>
-        /// <typeparam name="TKey">Тип ключа.</typeparam>
-        /// <typeparam name="TValue">Тип значения.</typeparam>
-        /// <param name="dictionary">Коллекция пар ключ-значение.</param>
-        /// <param name="key">Ключ для поиска.</param>
-        /// <param name="comparer">Компаратор для сравнения ключей.
-        /// Если <c>null</c>, используется стандартное сравнение по <see cref="EqualityComparer{TKey}.Default" />.</param>
-        /// <returns>Значение, соответствующее ключу, или значение по умолчанию для <typeparamref name="TValue" />, если ключ не найден.</returns>
+        /// <typeparam name="TKey">РўРёРї РєР»СЋС‡Р°.</typeparam>
+        /// <typeparam name="TValue">РўРёРї Р·РЅР°С‡РµРЅРёСЏ.</typeparam>
+        /// <param name="dictionary">РљРѕР»Р»РµРєС†РёСЏ РїР°СЂ РєР»СЋС‡-Р·РЅР°С‡РµРЅРёРµ.</param>
+        /// <param name="key">РљР»СЋС‡ РґР»СЏ РїРѕРёСЃРєР°.</param>
+        /// <param name="comparer">РљРѕРјРїР°СЂР°С‚РѕСЂ РґР»СЏ СЃСЂР°РІРЅРµРЅРёСЏ РєР»СЋС‡РµР№.
+        /// Р•СЃР»Рё <c>null</c>, РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃС‚Р°РЅРґР°СЂС‚РЅРѕРµ СЃСЂР°РІРЅРµРЅРёРµ РїРѕ <see cref="EqualityComparer{TKey}.Default" />.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРµ РєР»СЋС‡Сѓ, РёР»Рё Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РґР»СЏ <typeparamref name="TValue" />, РµСЃР»Рё РєР»СЋС‡ РЅРµ РЅР°Р№РґРµРЅ.</returns>
         /// <exception cref="System.ArgumentNullException">dic.</exception>
-        /// <remarks>Метод выбирает стратегию поиска в зависимости от наличия компаратора и размера коллекции:
-        /// <list type="number"><item><description>Если компаратор не задан — выполняется линейный поиск.</description></item><item><description>Если коллекция небольшая (<c>Count &lt; ThresholdForSorted</c>) — также линейный поиск.</description></item><item><description>
-        /// Если коллекция большая — создаётся кэшированный <see cref="SortedDictionary{TKey, TValue}" />
-        /// для быстрого поиска.
+        /// <remarks>РњРµС‚РѕРґ РІС‹Р±РёСЂР°РµС‚ СЃС‚СЂР°С‚РµРіРёСЋ РїРѕРёСЃРєР° РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РЅР°Р»РёС‡РёСЏ РєРѕРјРїР°СЂР°С‚РѕСЂР° Рё СЂР°Р·РјРµСЂР° РєРѕР»Р»РµРєС†РёРё:
+        /// <list type="number"><item><description>Р•СЃР»Рё РєРѕРјРїР°СЂР°С‚РѕСЂ РЅРµ Р·Р°РґР°РЅ вЂ” РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ Р»РёРЅРµР№РЅС‹Р№ РїРѕРёСЃРє.</description></item><item><description>Р•СЃР»Рё РєРѕР»Р»РµРєС†РёСЏ РЅРµР±РѕР»СЊС€Р°СЏ (<c>Count &lt; ThresholdForSorted</c>) вЂ” С‚Р°РєР¶Рµ Р»РёРЅРµР№РЅС‹Р№ РїРѕРёСЃРє.</description></item><item><description>
+        /// Р•СЃР»Рё РєРѕР»Р»РµРєС†РёСЏ Р±РѕР»СЊС€Р°СЏ вЂ” СЃРѕР·РґР°С‘С‚СЃСЏ РєСЌС€РёСЂРѕРІР°РЅРЅС‹Р№ <see cref="SortedDictionary{TKey, TValue}" />
+        /// РґР»СЏ Р±С‹СЃС‚СЂРѕРіРѕ РїРѕРёСЃРєР°.
         /// </description></item></list></remarks>
         public static TValue GetValueOrDefault<TKey, TValue>(
             this IEnumerable<KeyValuePair<TKey, TValue>> dictionary,
@@ -2272,7 +2272,7 @@ namespace RuntimeStuff
                 throw new ArgumentNullException(nameof(dictionary));
             }
 
-            // 1. Компаратор не задан — стандартное сравнение
+            // 1. РљРѕРјРїР°СЂР°С‚РѕСЂ РЅРµ Р·Р°РґР°РЅ вЂ” СЃС‚Р°РЅРґР°СЂС‚РЅРѕРµ СЃСЂР°РІРЅРµРЅРёРµ
             if (comparer == null)
             {
                 return dictionary
@@ -2281,7 +2281,7 @@ namespace RuntimeStuff
                     .FirstOrDefault();
             }
 
-            // 2. Компаратор задан
+            // 2. РљРѕРјРїР°СЂР°С‚РѕСЂ Р·Р°РґР°РЅ
             return dictionary
                 .Where(kv => comparer.Compare(kv.Key, key) == 0)
                 .Select(kv => kv.Value)
@@ -2289,11 +2289,11 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает значения свойств объекта в указанном порядке.
+        /// РџРѕР»СѓС‡Р°РµС‚ Р·РЅР°С‡РµРЅРёСЏ СЃРІРѕР№СЃС‚РІ РѕР±СЉРµРєС‚Р° РІ СѓРєР°Р·Р°РЅРЅРѕРј РїРѕСЂСЏРґРєРµ.
         /// </summary>
         /// <typeparam name="TObject">The type of the t object.</typeparam>
-        /// <param name="source">Исходный объект.</param>
-        /// <param name="memberNames">Имена свойств объекта с учетом регистра.</param>
+        /// <param name="source">РСЃС…РѕРґРЅС‹Р№ РѕР±СЉРµРєС‚.</param>
+        /// <param name="memberNames">РРјРµРЅР° СЃРІРѕР№СЃС‚РІ РѕР±СЉРµРєС‚Р° СЃ СѓС‡РµС‚РѕРј СЂРµРіРёСЃС‚СЂР°.</param>
         /// <returns>System.Object[].</returns>
         public static object[] GetValues<TObject>(TObject source, params string[] memberNames)
             where TObject : class
@@ -2310,36 +2310,36 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает значения свойств объекта в указанном порядке и преобразует в указанный тип через
+        /// РџРѕР»СѓС‡Р°РµС‚ Р·РЅР°С‡РµРЅРёСЏ СЃРІРѕР№СЃС‚РІ РѕР±СЉРµРєС‚Р° РІ СѓРєР°Р·Р°РЅРЅРѕРј РїРѕСЂСЏРґРєРµ Рё РїСЂРµРѕР±СЂР°Р·СѓРµС‚ РІ СѓРєР°Р·Р°РЅРЅС‹Р№ С‚РёРї С‡РµСЂРµР·
         /// <see cref="Obj.ChangeType{T}(object, IFormatProvider)" />.
         /// </summary>
         /// <typeparam name="TObject">The type of the t object.</typeparam>
         /// <typeparam name="TValue">The type of the t value.</typeparam>
-        /// <param name="source">Исходный объект.</param>
-        /// <param name="memberNames">Имена свойств объекта с учетом регистра.</param>
+        /// <param name="source">РСЃС…РѕРґРЅС‹Р№ РѕР±СЉРµРєС‚.</param>
+        /// <param name="memberNames">РРјРµРЅР° СЃРІРѕР№СЃС‚РІ РѕР±СЉРµРєС‚Р° СЃ СѓС‡РµС‚РѕРј СЂРµРіРёСЃС‚СЂР°.</param>
         /// <returns>TValue[].</returns>
         public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames)
             where TObject : class => GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
 
         /// <summary>
-        /// Проверяет, является ли тип простым (базовым).
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї РїСЂРѕСЃС‚С‹Рј (Р±Р°Р·РѕРІС‹Рј).
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип является базовым, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ Р±Р°Р·РѕРІС‹Рј, РёРЅР°С‡Рµ False.</returns>
         public static bool IsBasic(Type t) => t != null && (t.IsEnum || BasicTypes.Contains(t));
 
         /// <summary>
-        /// Проверяет, является ли тип логическим.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї Р»РѕРіРёС‡РµСЃРєРёРј.
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип является логическим, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ Р»РѕРіРёС‡РµСЃРєРёРј, РёРЅР°С‡Рµ False.</returns>
         public static bool IsBoolean(Type t) => BoolTypes.Contains(t);
 
         /// <summary>
-        /// Проверяет, является ли тип коллекцией.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї РєРѕР»Р»РµРєС†РёРµР№.
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип является коллекцией, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ РєРѕР»Р»РµРєС†РёРµР№, РёРЅР°С‡Рµ False.</returns>
         public static bool IsCollection(Type t)
         {
             if (t.IsArray)
@@ -2356,34 +2356,34 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Проверяет, является ли тип датой/временем.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї РґР°С‚РѕР№/РІСЂРµРјРµРЅРµРј.
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип представляет дату/время, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї РїСЂРµРґСЃС‚Р°РІР»СЏРµС‚ РґР°С‚Сѓ/РІСЂРµРјСЏ, РёРЅР°С‡Рµ False.</returns>
         public static bool IsDate(Type t) => DateTypes.Contains(t);
 
         /// <summary>
-        /// Проверяет, является ли тип делегатом.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї РґРµР»РµРіР°С‚РѕРј.
         /// </summary>
-        /// <param name="type">Тип для проверки.</param>
-        /// <returns>True, если тип является делегатом, иначе False.</returns>
+        /// <param name="type">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ РґРµР»РµРіР°С‚РѕРј, РёРЅР°С‡Рµ False.</returns>
         public static bool IsDelegate(Type type) => typeof(MulticastDelegate).IsAssignableFrom(type.BaseType);
 
         /// <summary>
-        /// Проверяет, является ли тип словарём.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї СЃР»РѕРІР°СЂС‘Рј.
         /// </summary>
-        /// <param name="type">Тип для проверки.</param>
-        /// <returns>True, если тип является словарём, иначе False.</returns>
+        /// <param name="type">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ СЃР»РѕРІР°СЂС‘Рј, РёРЅР°С‡Рµ False.</returns>
         public static bool IsDictionary(Type type) => IsImplements<IDictionary>(type) ||
                    (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>)) || type
                        .GetInterfaces()
                        .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
 
         /// <summary>
-        /// Проверяет, является ли тип числом с плавающей точкой.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї С‡РёСЃР»РѕРј СЃ РїР»Р°РІР°СЋС‰РµР№ С‚РѕС‡РєРѕР№.
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип является числом с плавающей точкой, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ С‡РёСЃР»РѕРј СЃ РїР»Р°РІР°СЋС‰РµР№ С‚РѕС‡РєРѕР№, РёРЅР°С‡Рµ False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsFloat(Type t)
         {
@@ -2393,10 +2393,10 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Проверяет, является ли тип типизированной коллекцией.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї С‚РёРїРёР·РёСЂРѕРІР°РЅРЅРѕР№ РєРѕР»Р»РµРєС†РёРµР№.
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип является коллекцией, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ РєРѕР»Р»РµРєС†РёРµР№, РёРЅР°С‡Рµ False.</returns>
         public static bool IsGenericCollection(Type t)
         {
             var hasGenericType = t.GenericTypeArguments.Length > 0;
@@ -2404,35 +2404,35 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Определяет, реализует ли указанный тип заданный интерфейс или наследуется ли он от указанного базового типа.
-        /// Сам тип <paramref name="implementType"/> не считается реализующим самого себя.
+        /// РћРїСЂРµРґРµР»СЏРµС‚, СЂРµР°Р»РёР·СѓРµС‚ Р»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‚РёРї Р·Р°РґР°РЅРЅС‹Р№ РёРЅС‚РµСЂС„РµР№СЃ РёР»Рё РЅР°СЃР»РµРґСѓРµС‚СЃСЏ Р»Рё РѕРЅ РѕС‚ СѓРєР°Р·Р°РЅРЅРѕРіРѕ Р±Р°Р·РѕРІРѕРіРѕ С‚РёРїР°.
+        /// РЎР°Рј С‚РёРї <paramref name="implementType"/> РЅРµ СЃС‡РёС‚Р°РµС‚СЃСЏ СЂРµР°Р»РёР·СѓСЋС‰РёРј СЃР°РјРѕРіРѕ СЃРµР±СЏ.
         /// </summary>
-        /// <param name="t">Тип, который необходимо проверить.</param>
-        /// <param name="implementType">Интерфейс или базовый тип, наличие реализации или наследования которого требуется проверить.</param>
+        /// <param name="t">РўРёРї, РєРѕС‚РѕСЂС‹Р№ РЅРµРѕР±С…РѕРґРёРјРѕ РїСЂРѕРІРµСЂРёС‚СЊ.</param>
+        /// <param name="implementType">РРЅС‚РµСЂС„РµР№СЃ РёР»Рё Р±Р°Р·РѕРІС‹Р№ С‚РёРї, РЅР°Р»РёС‡РёРµ СЂРµР°Р»РёР·Р°С†РёРё РёР»Рё РЅР°СЃР»РµРґРѕРІР°РЅРёСЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїСЂРѕРІРµСЂРёС‚СЊ.</param>
         /// <returns>
-        /// <see langword="true"/>, если тип <paramref name="t"/> реализует интерфейс или наследуется от <paramref name="implementType"/>,
-        /// и при этом не совпадает с ним напрямую; иначе — <see langword="false"/>.
+        /// <see langword="true"/>, РµСЃР»Рё С‚РёРї <paramref name="t"/> СЂРµР°Р»РёР·СѓРµС‚ РёРЅС‚РµСЂС„РµР№СЃ РёР»Рё РЅР°СЃР»РµРґСѓРµС‚СЃСЏ РѕС‚ <paramref name="implementType"/>,
+        /// Рё РїСЂРё СЌС‚РѕРј РЅРµ СЃРѕРІРїР°РґР°РµС‚ СЃ РЅРёРј РЅР°РїСЂСЏРјСѓСЋ; РёРЅР°С‡Рµ вЂ” <see langword="false"/>.
         /// </returns>
         public static bool IsImplements(Type t, Type implementType) =>
             implementType.IsAssignableFrom(t) && t != implementType;
 
         /// <summary>
-        /// Определяет, реализует ли указанный тип интерфейс или наследуется ли от типа <typeparamref name="T"/>.
-        /// Сам тип <typeparamref name="T"/> не считается реализующим самого себя.
+        /// РћРїСЂРµРґРµР»СЏРµС‚, СЂРµР°Р»РёР·СѓРµС‚ Р»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‚РёРї РёРЅС‚РµСЂС„РµР№СЃ РёР»Рё РЅР°СЃР»РµРґСѓРµС‚СЃСЏ Р»Рё РѕС‚ С‚РёРїР° <typeparamref name="T"/>.
+        /// РЎР°Рј С‚РёРї <typeparamref name="T"/> РЅРµ СЃС‡РёС‚Р°РµС‚СЃСЏ СЂРµР°Р»РёР·СѓСЋС‰РёРј СЃР°РјРѕРіРѕ СЃРµР±СЏ.
         /// </summary>
-        /// <typeparam name="T">Интерфейс или базовый тип, наличие реализации или наследования которого требуется проверить.</typeparam>
-        /// <param name="t">Тип, который необходимо проверить.</param>
+        /// <typeparam name="T">РРЅС‚РµСЂС„РµР№СЃ РёР»Рё Р±Р°Р·РѕРІС‹Р№ С‚РёРї, РЅР°Р»РёС‡РёРµ СЂРµР°Р»РёР·Р°С†РёРё РёР»Рё РЅР°СЃР»РµРґРѕРІР°РЅРёСЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїСЂРѕРІРµСЂРёС‚СЊ.</typeparam>
+        /// <param name="t">РўРёРї, РєРѕС‚РѕСЂС‹Р№ РЅРµРѕР±С…РѕРґРёРјРѕ РїСЂРѕРІРµСЂРёС‚СЊ.</param>
         /// <returns>
-        /// <see langword="true"/>, если тип <paramref name="t"/> реализует интерфейс или наследуется от <typeparamref name="T"/>,
-        /// и при этом не совпадает с ним напрямую; иначе — <see langword="false"/>.
+        /// <see langword="true"/>, РµСЃР»Рё С‚РёРї <paramref name="t"/> СЂРµР°Р»РёР·СѓРµС‚ РёРЅС‚РµСЂС„РµР№СЃ РёР»Рё РЅР°СЃР»РµРґСѓРµС‚СЃСЏ РѕС‚ <typeparamref name="T"/>,
+        /// Рё РїСЂРё СЌС‚РѕРј РЅРµ СЃРѕРІРїР°РґР°РµС‚ СЃ РЅРёРј РЅР°РїСЂСЏРјСѓСЋ; РёРЅР°С‡Рµ вЂ” <see langword="false"/>.
         /// </returns>
         public static bool IsImplements<T>(Type t) => IsImplements(t, typeof(T));
 
         /// <summary>
-        /// Проверяет, является ли тип целым числом.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї С†РµР»С‹Рј С‡РёСЃР»РѕРј.
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип является целым числом, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ С†РµР»С‹Рј С‡РёСЃР»РѕРј, РёРЅР°С‡Рµ False.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsNaturalNumeric(Type t)
         {
@@ -2447,79 +2447,79 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Проверяет, является ли тип nullable.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї nullable.
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <returns>True, если тип является nullable, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ nullable, РёРЅР°С‡Рµ False.</returns>
         public static bool IsNullable(Type t) => !t.IsValueType || Nullable.GetUnderlyingType(t) != null || t == typeof(object);
 
         /// <summary>
-        /// Проверяет, является ли тип числовым.
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї С‡РёСЃР»РѕРІС‹Рј.
         /// </summary>
-        /// <param name="t">Тип для проверки.</param>
-        /// <param name="includeFloatTypes">Включать ли типы с плавающей точкой.</param>
-        /// <returns>True, если тип является числовым, иначе False.</returns>
+        /// <param name="t">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <param name="includeFloatTypes">Р’РєР»СЋС‡Р°С‚СЊ Р»Рё С‚РёРїС‹ СЃ РїР»Р°РІР°СЋС‰РµР№ С‚РѕС‡РєРѕР№.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ С‡РёСЃР»РѕРІС‹Рј, РёРЅР°С‡Рµ False.</returns>
         public static bool IsNumeric(Type t, bool includeFloatTypes = true) => includeFloatTypes ? IsFloat(t) || IsNaturalNumeric(t) : IsNaturalNumeric(t);
 
         /// <summary>
-        /// Определяет, является ли указанный член типа приватным (<c>private</c>).
+        /// РћРїСЂРµРґРµР»СЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ С‚РёРїР° РїСЂРёРІР°С‚РЅС‹Рј (<c>private</c>).
         /// </summary>
         /// <param name="memberInfo">
-        /// Метаданные члена типа, для которого требуется проверить уровень доступа.
-        /// Поддерживаются следующие типы:
+        /// РњРµС‚Р°РґР°РЅРЅС‹Рµ С‡Р»РµРЅР° С‚РёРїР°, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїСЂРѕРІРµСЂРёС‚СЊ СѓСЂРѕРІРµРЅСЊ РґРѕСЃС‚СѓРїР°.
+        /// РџРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ СЃР»РµРґСѓСЋС‰РёРµ С‚РёРїС‹:
         /// <see cref="PropertyInfo"/>, <see cref="FieldInfo"/>, <see cref="MethodInfo"/>,
         /// <see cref="EventInfo"/>, <see cref="Type"/>, <see cref="ConstructorInfo"/>.
         /// </param>
         /// <returns>
-        /// <c>true</c>, если член типа имеет модификатор доступа <c>private</c>;
-        /// <c>false</c> — в противном случае.
+        /// <c>true</c>, РµСЃР»Рё С‡Р»РµРЅ С‚РёРїР° РёРјРµРµС‚ РјРѕРґРёС„РёРєР°С‚РѕСЂ РґРѕСЃС‚СѓРїР° <c>private</c>;
+        /// <c>false</c> вЂ” РІ РїСЂРѕС‚РёРІРЅРѕРј СЃР»СѓС‡Р°Рµ.
         /// </returns>
         /// <exception cref="NotSupportedException">
-        /// Выбрасывается, если тип <paramref name="memberInfo"/> не поддерживается
-        /// для проверки модификатора доступа.
+        /// Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё С‚РёРї <paramref name="memberInfo"/> РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ
+        /// РґР»СЏ РїСЂРѕРІРµСЂРєРё РјРѕРґРёС„РёРєР°С‚РѕСЂР° РґРѕСЃС‚СѓРїР°.
         /// </exception>
         /// <remarks>
         /// <para>
-        /// Логика определения приватности:
+        /// Р›РѕРіРёРєР° РѕРїСЂРµРґРµР»РµРЅРёСЏ РїСЂРёРІР°С‚РЅРѕСЃС‚Рё:
         /// </para>
         /// <list type="bullet">
         /// <item>
         /// <description>
-        /// <see cref="PropertyInfo"/> — проверяется наличие хотя бы одного приватного аксессора
-        /// (getter или setter).
+        /// <see cref="PropertyInfo"/> вЂ” РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РЅР°Р»РёС‡РёРµ С…РѕС‚СЏ Р±С‹ РѕРґРЅРѕРіРѕ РїСЂРёРІР°С‚РЅРѕРіРѕ Р°РєСЃРµСЃСЃРѕСЂР°
+        /// (getter РёР»Рё setter).
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="FieldInfo"/> — используется свойство FieldInfo.IsPrivate.
+        /// <see cref="FieldInfo"/> вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРІРѕР№СЃС‚РІРѕ FieldInfo.IsPrivate.
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="MethodInfo"/> — используется свойство MethodInfo.IsPrivate.
+        /// <see cref="MethodInfo"/> вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРІРѕР№СЃС‚РІРѕ MethodInfo.IsPrivate.
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="EventInfo"/> — проверяется приватность методов добавления или удаления обработчика
+        /// <see cref="EventInfo"/> вЂ” РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РїСЂРёРІР°С‚РЅРѕСЃС‚СЊ РјРµС‚РѕРґРѕРІ РґРѕР±Р°РІР»РµРЅРёСЏ РёР»Рё СѓРґР°Р»РµРЅРёСЏ РѕР±СЂР°Р±РѕС‚С‡РёРєР°
         /// (<c>add</c>/<c>remove</c>).
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="Type"/> — считается приватным, если тип не является публичным
-        /// (<see cref="Type.IsPublic"/> равен <c>false</c>).
+        /// <see cref="Type"/> вЂ” СЃС‡РёС‚Р°РµС‚СЃСЏ РїСЂРёРІР°С‚РЅС‹Рј, РµСЃР»Рё С‚РёРї РЅРµ СЏРІР»СЏРµС‚СЃСЏ РїСѓР±Р»РёС‡РЅС‹Рј
+        /// (<see cref="Type.IsPublic"/> СЂР°РІРµРЅ <c>false</c>).
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="ConstructorInfo"/> — используется свойство ConstructorInfo.IsPrivate.
+        /// <see cref="ConstructorInfo"/> вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРІРѕР№СЃС‚РІРѕ ConstructorInfo.IsPrivate.
         /// </description>
         /// </item>
         /// </list>
         /// <para>
-        /// Обратите внимание, что для вложенных типов приватность также может определяться
-        /// через <see cref="Type.IsNestedPrivate"/>.
+        /// РћР±СЂР°С‚РёС‚Рµ РІРЅРёРјР°РЅРёРµ, С‡С‚Рѕ РґР»СЏ РІР»РѕР¶РµРЅРЅС‹С… С‚РёРїРѕРІ РїСЂРёРІР°С‚РЅРѕСЃС‚СЊ С‚Р°РєР¶Рµ РјРѕР¶РµС‚ РѕРїСЂРµРґРµР»СЏС‚СЊСЃСЏ
+        /// С‡РµСЂРµР· <see cref="Type.IsNestedPrivate"/>.
         /// </para>
         /// </remarks>
         public static bool IsPrivate(MemberInfo memberInfo)
@@ -2549,57 +2549,57 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Определяет, является ли указанный член типа публичным (<c>public</c>).
+        /// РћРїСЂРµРґРµР»СЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё СѓРєР°Р·Р°РЅРЅС‹Р№ С‡Р»РµРЅ С‚РёРїР° РїСѓР±Р»РёС‡РЅС‹Рј (<c>public</c>).
         /// </summary>
         /// <param name="memberInfo">
-        /// Метаданные члена типа, для которого требуется проверить уровень доступа.
-        /// Поддерживаются следующие типы:
+        /// РњРµС‚Р°РґР°РЅРЅС‹Рµ С‡Р»РµРЅР° С‚РёРїР°, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ С‚СЂРµР±СѓРµС‚СЃСЏ РїСЂРѕРІРµСЂРёС‚СЊ СѓСЂРѕРІРµРЅСЊ РґРѕСЃС‚СѓРїР°.
+        /// РџРѕРґРґРµСЂР¶РёРІР°СЋС‚СЃСЏ СЃР»РµРґСѓСЋС‰РёРµ С‚РёРїС‹:
         /// <see cref="PropertyInfo"/>, <see cref="FieldInfo"/>, <see cref="MethodInfo"/>,
         /// <see cref="EventInfo"/>, <see cref="Type"/>, <see cref="ConstructorInfo"/>.
         /// </param>
         /// <returns>
-        /// <c>true</c>, если член типа является публичным;
-        /// <c>false</c> — если член не является публичным.
+        /// <c>true</c>, РµСЃР»Рё С‡Р»РµРЅ С‚РёРїР° СЏРІР»СЏРµС‚СЃСЏ РїСѓР±Р»РёС‡РЅС‹Рј;
+        /// <c>false</c> вЂ” РµСЃР»Рё С‡Р»РµРЅ РЅРµ СЏРІР»СЏРµС‚СЃСЏ РїСѓР±Р»РёС‡РЅС‹Рј.
         /// </returns>
         /// <exception cref="NotSupportedException">
-        /// Выбрасывается, если тип <paramref name="memberInfo"/> не поддерживается
-        /// для проверки модификатора доступа.
+        /// Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё С‚РёРї <paramref name="memberInfo"/> РЅРµ РїРѕРґРґРµСЂР¶РёРІР°РµС‚СЃСЏ
+        /// РґР»СЏ РїСЂРѕРІРµСЂРєРё РјРѕРґРёС„РёРєР°С‚РѕСЂР° РґРѕСЃС‚СѓРїР°.
         /// </exception>
         /// <remarks>
         /// <para>
-        /// Логика определения публичности:
+        /// Р›РѕРіРёРєР° РѕРїСЂРµРґРµР»РµРЅРёСЏ РїСѓР±Р»РёС‡РЅРѕСЃС‚Рё:
         /// </para>
         /// <list type="bullet">
         /// <item>
         /// <description>
-        /// <see cref="PropertyInfo"/> — проверяется наличие хотя бы одного публичного аксессора
-        /// (getter или setter).
+        /// <see cref="PropertyInfo"/> вЂ” РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РЅР°Р»РёС‡РёРµ С…РѕС‚СЏ Р±С‹ РѕРґРЅРѕРіРѕ РїСѓР±Р»РёС‡РЅРѕРіРѕ Р°РєСЃРµСЃСЃРѕСЂР°
+        /// (getter РёР»Рё setter).
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="FieldInfo"/> — используется свойство <see cref="FieldInfo.IsPublic"/>.
+        /// <see cref="FieldInfo"/> вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРІРѕР№СЃС‚РІРѕ <see cref="FieldInfo.IsPublic"/>.
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="MethodInfo"/> — используется свойство MethodInfo.IsPublic.
+        /// <see cref="MethodInfo"/> вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРІРѕР№СЃС‚РІРѕ MethodInfo.IsPublic.
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="EventInfo"/> — проверяется публичность методов добавления или удаления обработчика
+        /// <see cref="EventInfo"/> вЂ” РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РїСѓР±Р»РёС‡РЅРѕСЃС‚СЊ РјРµС‚РѕРґРѕРІ РґРѕР±Р°РІР»РµРЅРёСЏ РёР»Рё СѓРґР°Р»РµРЅРёСЏ РѕР±СЂР°Р±РѕС‚С‡РёРєР°
         /// (<c>add</c>/<c>remove</c>).
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="Type"/> — используется свойство <see cref="Type.IsPublic"/>.
+        /// <see cref="Type"/> вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРІРѕР№СЃС‚РІРѕ <see cref="Type.IsPublic"/>.
         /// </description>
         /// </item>
         /// <item>
         /// <description>
-        /// <see cref="ConstructorInfo"/> — используется свойство ConstructorInfo.IsPublic.
+        /// <see cref="ConstructorInfo"/> вЂ” РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ СЃРІРѕР№СЃС‚РІРѕ ConstructorInfo.IsPublic.
         /// </description>
         /// </item>
         /// </list>
@@ -2631,10 +2631,10 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Проверяет, является ли тип кортежем (ValueTuple/Tuple).
+        /// РџСЂРѕРІРµСЂСЏРµС‚, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С‚РёРї РєРѕСЂС‚РµР¶РµРј (ValueTuple/Tuple).
         /// </summary>
-        /// <param name="type">Тип для проверки.</param>
-        /// <returns>True, если тип является кортежем, иначе False.</returns>
+        /// <param name="type">РўРёРї РґР»СЏ РїСЂРѕРІРµСЂРєРё.</param>
+        /// <returns>True, РµСЃР»Рё С‚РёРї СЏРІР»СЏРµС‚СЃСЏ РєРѕСЂС‚РµР¶РµРј, РёРЅР°С‡Рµ False.</returns>
         public static bool IsTuple(Type type)
         {
             var baseTypes = GetBaseTypes(type, true, true);
@@ -2644,38 +2644,38 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Создаёт новый экземпляр типа <typeparamref name="T" />
-        /// с использованием заранее сгенерированного делегата конструктора.
+        /// РЎРѕР·РґР°С‘С‚ РЅРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ С‚РёРїР° <typeparamref name="T" />
+        /// СЃ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµРј Р·Р°СЂР°РЅРµРµ СЃРіРµРЅРµСЂРёСЂРѕРІР°РЅРЅРѕРіРѕ РґРµР»РµРіР°С‚Р° РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°.
         /// </summary>
-        /// <typeparam name="T">Тип создаваемого объекта.
-        /// Требует наличия конструктора без параметров.</typeparam>
+        /// <typeparam name="T">РўРёРї СЃРѕР·РґР°РІР°РµРјРѕРіРѕ РѕР±СЉРµРєС‚Р°.
+        /// РўСЂРµР±СѓРµС‚ РЅР°Р»РёС‡РёСЏ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° Р±РµР· РїР°СЂР°РјРµС‚СЂРѕРІ.</typeparam>
         /// <param name="args">The arguments.</param>
-        /// <returns>Новый экземпляр типа <typeparamref name="T" />.</returns>
-        /// <exception cref="InvalidOperationException">Выбрасывается, если тип не имеет конструктора по умолчанию.</exception>
-        /// <remarks>Метод является быстрым способом создания объектов, так как использует
-        /// предварительно скомпилированный делегат конструктора, полученный через IL-генерацию.</remarks>
+        /// <returns>РќРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ С‚РёРїР° <typeparamref name="T" />.</returns>
+        /// <exception cref="InvalidOperationException">Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё С‚РёРї РЅРµ РёРјРµРµС‚ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</exception>
+        /// <remarks>РњРµС‚РѕРґ СЏРІР»СЏРµС‚СЃСЏ Р±С‹СЃС‚СЂС‹Рј СЃРїРѕСЃРѕР±РѕРј СЃРѕР·РґР°РЅРёСЏ РѕР±СЉРµРєС‚РѕРІ, С‚Р°Рє РєР°Рє РёСЃРїРѕР»СЊР·СѓРµС‚
+        /// РїСЂРµРґРІР°СЂРёС‚РµР»СЊРЅРѕ СЃРєРѕРјРїРёР»РёСЂРѕРІР°РЅРЅС‹Р№ РґРµР»РµРіР°С‚ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР°, РїРѕР»СѓС‡РµРЅРЅС‹Р№ С‡РµСЂРµР· IL-РіРµРЅРµСЂР°С†РёСЋ.</remarks>
         public static T New<T>(params object[] args) => (T)New(typeof(T), args);
 
         /// <summary>
-        /// Создает новый экземпляр указанного типа и приводит его к типу <typeparamref name="T" />.
+        /// РЎРѕР·РґР°РµС‚ РЅРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР° Рё РїСЂРёРІРѕРґРёС‚ РµРіРѕ Рє С‚РёРїСѓ <typeparamref name="T" />.
         /// </summary>
-        /// <typeparam name="T">Тип, к которому приводится создаваемый объект.</typeparam>
-        /// <param name="type">Тип создаваемого объекта. Должен иметь конструктор без параметров.</param>
-        /// <returns>Новый экземпляр типа <typeparamref name="T" />.</returns>
-        /// <exception cref="InvalidOperationException">Выбрасывается, если тип не имеет конструктора по умолчанию.</exception>
+        /// <typeparam name="T">РўРёРї, Рє РєРѕС‚РѕСЂРѕРјСѓ РїСЂРёРІРѕРґРёС‚СЃСЏ СЃРѕР·РґР°РІР°РµРјС‹Р№ РѕР±СЉРµРєС‚.</typeparam>
+        /// <param name="type">РўРёРї СЃРѕР·РґР°РІР°РµРјРѕРіРѕ РѕР±СЉРµРєС‚Р°. Р”РѕР»Р¶РµРЅ РёРјРµС‚СЊ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ Р±РµР· РїР°СЂР°РјРµС‚СЂРѕРІ.</param>
+        /// <returns>РќРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ С‚РёРїР° <typeparamref name="T" />.</returns>
+        /// <exception cref="InvalidOperationException">Р’С‹Р±СЂР°СЃС‹РІР°РµС‚СЃСЏ, РµСЃР»Рё С‚РёРї РЅРµ РёРјРµРµС‚ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂР° РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</exception>
         public static T New<T>(Type type) => (T)New(type);
 
         /// <summary>
-        /// Создаёт новый экземпляр указанного типа, используя конструктор,
-        /// соответствующий переданным аргументам.
+        /// РЎРѕР·РґР°С‘С‚ РЅРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°, РёСЃРїРѕР»СЊР·СѓСЏ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ,
+        /// СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёР№ РїРµСЂРµРґР°РЅРЅС‹Рј Р°СЂРіСѓРјРµРЅС‚Р°Рј.
         /// </summary>
-        /// <param name="type">Тип создаваемого объекта.</param>
-        /// <param name="args">Аргументы, передаваемые в конструктор.</param>
-        /// <returns>Новый экземпляр указанного типа.</returns>
+        /// <param name="type">РўРёРї СЃРѕР·РґР°РІР°РµРјРѕРіРѕ РѕР±СЉРµРєС‚Р°.</param>
+        /// <param name="args">РђСЂРіСѓРјРµРЅС‚С‹, РїРµСЂРµРґР°РІР°РµРјС‹Рµ РІ РєРѕРЅСЃС‚СЂСѓРєС‚РѕСЂ.</param>
+        /// <returns>РќРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ СѓРєР°Р·Р°РЅРЅРѕРіРѕ С‚РёРїР°.</returns>
         /// <exception cref="System.InvalidOperationException">No constructor found for type {type}.</exception>
         public static object New(Type type, params object[] args)
         {
-            // если интерфейс, подставляем стандартную реализацию
+            // РµСЃР»Рё РёРЅС‚РµСЂС„РµР№СЃ, РїРѕРґСЃС‚Р°РІР»СЏРµРј СЃС‚Р°РЅРґР°СЂС‚РЅСѓСЋ СЂРµР°Р»РёР·Р°С†РёСЋ
             if (type.IsInterface)
             {
                 type = GetDefaultImplementation(type);
@@ -2693,10 +2693,10 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Создаёт новый экземпляр элемента, соответствующего типу элементов указанной коллекции.
+        /// РЎРѕР·РґР°С‘С‚ РЅРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ СЌР»РµРјРµРЅС‚Р°, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РµРіРѕ С‚РёРїСѓ СЌР»РµРјРµРЅС‚РѕРІ СѓРєР°Р·Р°РЅРЅРѕР№ РєРѕР»Р»РµРєС†РёРё.
         /// </summary>
-        /// <param name="list">Коллекция, тип элементов которой используется для создания нового экземпляра. Не может быть равна null.</param>
-        /// <returns>Новый экземпляр элемента того же типа, что и элементы коллекции <paramref name="list" />.</returns>
+        /// <param name="list">РљРѕР»Р»РµРєС†РёСЏ, С‚РёРї СЌР»РµРјРµРЅС‚РѕРІ РєРѕС‚РѕСЂРѕР№ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РґР»СЏ СЃРѕР·РґР°РЅРёСЏ РЅРѕРІРѕРіРѕ СЌРєР·РµРјРїР»СЏСЂР°. РќРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ СЂР°РІРЅР° null.</param>
+        /// <returns>РќРѕРІС‹Р№ СЌРєР·РµРјРїР»СЏСЂ СЌР»РµРјРµРЅС‚Р° С‚РѕРіРѕ Р¶Рµ С‚РёРїР°, С‡С‚Рѕ Рё СЌР»РµРјРµРЅС‚С‹ РєРѕР»Р»РµРєС†РёРё <paramref name="list" />.</returns>
         public static object NewItem(IEnumerable list)
         {
             var itemType = list.GetType().GetGenericArguments().FirstOrDefault();
@@ -2704,16 +2704,16 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Устанавливает значение поля или свойства объекта по имени члена.<br/>
-        /// Если в имени присутствует путь к вложенному члену (например, "Address.Street"), метод рекурсивно обрабатывает каждый уровень вложенности.<br/>
-        /// Для максимальной производительности рекомендуется использовать полученные делегаты сеттеров напрямую <see cref="GetMemberSetter(MemberInfo)"/> <see cref="GetMemberSetter{T}(string, out Type)"/>, так как этот метод выполняет поиск члена и преобразование типов при каждом вызове.
+        /// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ Р·РЅР°С‡РµРЅРёРµ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р° РїРѕ РёРјРµРЅРё С‡Р»РµРЅР°.<br/>
+        /// Р•СЃР»Рё РІ РёРјРµРЅРё РїСЂРёСЃСѓС‚СЃС‚РІСѓРµС‚ РїСѓС‚СЊ Рє РІР»РѕР¶РµРЅРЅРѕРјСѓ С‡Р»РµРЅСѓ (РЅР°РїСЂРёРјРµСЂ, "Address.Street"), РјРµС‚РѕРґ СЂРµРєСѓСЂСЃРёРІРЅРѕ РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚ РєР°Р¶РґС‹Р№ СѓСЂРѕРІРµРЅСЊ РІР»РѕР¶РµРЅРЅРѕСЃС‚Рё.<br/>
+        /// Р”Р»СЏ РјР°РєСЃРёРјР°Р»СЊРЅРѕР№ РїСЂРѕРёР·РІРѕРґРёС‚РµР»СЊРЅРѕСЃС‚Рё СЂРµРєРѕРјРµРЅРґСѓРµС‚СЃСЏ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РїРѕР»СѓС‡РµРЅРЅС‹Рµ РґРµР»РµРіР°С‚С‹ СЃРµС‚С‚РµСЂРѕРІ РЅР°РїСЂСЏРјСѓСЋ <see cref="GetMemberSetter(MemberInfo)"/> <see cref="GetMemberSetter{T}(string, out Type)"/>, С‚Р°Рє РєР°Рє СЌС‚РѕС‚ РјРµС‚РѕРґ РІС‹РїРѕР»РЅСЏРµС‚ РїРѕРёСЃРє С‡Р»РµРЅР° Рё РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ С‚РёРїРѕРІ РїСЂРё РєР°Р¶РґРѕРј РІС‹Р·РѕРІРµ.
         /// </summary>
-        /// <param name="instance">Экземпляр объекта, в котором требуется установить значение.</param>
-        /// <param name="memberName">Имя поля или свойства.</param>
-        /// <param name="value">Значение, которое необходимо установить.</param>
-        /// <returns><see langword="true" />, если значение успешно установлено;
-        /// <see langword="false" />, если объект равен <see langword="null" />,
-        /// член не найден или недоступен для записи.</returns>
+        /// <param name="instance">Р­РєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р°, РІ РєРѕС‚РѕСЂРѕРј С‚СЂРµР±СѓРµС‚СЃСЏ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ.</param>
+        /// <param name="memberName">РРјСЏ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР°.</param>
+        /// <param name="value">Р—РЅР°С‡РµРЅРёРµ, РєРѕС‚РѕСЂРѕРµ РЅРµРѕР±С…РѕРґРёРјРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ.</param>
+        /// <returns><see langword="true" />, РµСЃР»Рё Р·РЅР°С‡РµРЅРёРµ СѓСЃРїРµС€РЅРѕ СѓСЃС‚Р°РЅРѕРІР»РµРЅРѕ;
+        /// <see langword="false" />, РµСЃР»Рё РѕР±СЉРµРєС‚ СЂР°РІРµРЅ <see langword="null" />,
+        /// С‡Р»РµРЅ РЅРµ РЅР°Р№РґРµРЅ РёР»Рё РЅРµРґРѕСЃС‚СѓРїРµРЅ РґР»СЏ Р·Р°РїРёСЃРё.</returns>
         public static bool Set(object instance, string memberName, object value)
         {
             if (instance == null)
@@ -2738,19 +2738,19 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Устанавливает значение вложенного поля или свойства объекта
-        /// по указанному пути к члену.
+        /// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ Р·РЅР°С‡РµРЅРёРµ РІР»РѕР¶РµРЅРЅРѕРіРѕ РїРѕР»СЏ РёР»Рё СЃРІРѕР№СЃС‚РІР° РѕР±СЉРµРєС‚Р°
+        /// РїРѕ СѓРєР°Р·Р°РЅРЅРѕРјСѓ РїСѓС‚Рё Рє С‡Р»РµРЅСѓ.
         /// </summary>
-        /// <param name="instance">Экземпляр объекта, в котором требуется установить значение.</param>
-        /// <param name="pathToMemberName">Последовательность имён членов, описывающая путь
-        /// к конечному полю или свойству.</param>
-        /// <param name="value">Значение, которое необходимо установить.</param>
-        /// <returns><see langword="true" />, если значение успешно установлено;
-        /// <see langword="false" />, если объект равен <see langword="null" />,
-        /// путь некорректен либо один из членов не найден.</returns>
-        /// <remarks>Метод поддерживает установку значений во вложенные члены.
-        /// Если промежуточный объект отсутствует (<see langword="null" />),
-        /// он будет автоматически создан при возможности.</remarks>
+        /// <param name="instance">Р­РєР·РµРјРїР»СЏСЂ РѕР±СЉРµРєС‚Р°, РІ РєРѕС‚РѕСЂРѕРј С‚СЂРµР±СѓРµС‚СЃСЏ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ Р·РЅР°С‡РµРЅРёРµ.</param>
+        /// <param name="pathToMemberName">РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ РёРјС‘РЅ С‡Р»РµРЅРѕРІ, РѕРїРёСЃС‹РІР°СЋС‰Р°СЏ РїСѓС‚СЊ
+        /// Рє РєРѕРЅРµС‡РЅРѕРјСѓ РїРѕР»СЋ РёР»Рё СЃРІРѕР№СЃС‚РІСѓ.</param>
+        /// <param name="value">Р—РЅР°С‡РµРЅРёРµ, РєРѕС‚РѕСЂРѕРµ РЅРµРѕР±С…РѕРґРёРјРѕ СѓСЃС‚Р°РЅРѕРІРёС‚СЊ.</param>
+        /// <returns><see langword="true" />, РµСЃР»Рё Р·РЅР°С‡РµРЅРёРµ СѓСЃРїРµС€РЅРѕ СѓСЃС‚Р°РЅРѕРІР»РµРЅРѕ;
+        /// <see langword="false" />, РµСЃР»Рё РѕР±СЉРµРєС‚ СЂР°РІРµРЅ <see langword="null" />,
+        /// РїСѓС‚СЊ РЅРµРєРѕСЂСЂРµРєС‚РµРЅ Р»РёР±Рѕ РѕРґРёРЅ РёР· С‡Р»РµРЅРѕРІ РЅРµ РЅР°Р№РґРµРЅ.</returns>
+        /// <remarks>РњРµС‚РѕРґ РїРѕРґРґРµСЂР¶РёРІР°РµС‚ СѓСЃС‚Р°РЅРѕРІРєСѓ Р·РЅР°С‡РµРЅРёР№ РІРѕ РІР»РѕР¶РµРЅРЅС‹Рµ С‡Р»РµРЅС‹.
+        /// Р•СЃР»Рё РїСЂРѕРјРµР¶СѓС‚РѕС‡РЅС‹Р№ РѕР±СЉРµРєС‚ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ (<see langword="null" />),
+        /// РѕРЅ Р±СѓРґРµС‚ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё СЃРѕР·РґР°РЅ РїСЂРё РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё.</remarks>
         public static bool Set(object instance, IEnumerable<string> pathToMemberName, object value)
         {
             if (instance == null)
@@ -2761,7 +2761,7 @@ namespace RuntimeStuff
             var path = pathToMemberName as string[] ?? pathToMemberName.ToArray();
             if (path.Length == 1)
             {
-                // Конечный элемент пути
+                // РљРѕРЅРµС‡РЅС‹Р№ СЌР»РµРјРµРЅС‚ РїСѓС‚Рё
                 return Set(instance, path[0], value);
             }
 
@@ -2789,15 +2789,15 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Устанавливает реализацию по умолчанию для заданного интерфейса.
+        /// РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЂРµР°Р»РёР·Р°С†РёСЋ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РґР»СЏ Р·Р°РґР°РЅРЅРѕРіРѕ РёРЅС‚РµСЂС„РµР№СЃР°.
         /// </summary>
-        /// <param name="interfaceType">Тип интерфейса, для которого задаётся реализация.</param>
-        /// <param name="implementationType">Тип реализации интерфейса.</param>
+        /// <param name="interfaceType">РўРёРї РёРЅС‚РµСЂС„РµР№СЃР°, РґР»СЏ РєРѕС‚РѕСЂРѕРіРѕ Р·Р°РґР°С‘С‚СЃСЏ СЂРµР°Р»РёР·Р°С†РёСЏ.</param>
+        /// <param name="implementationType">РўРёРї СЂРµР°Р»РёР·Р°С†РёРё РёРЅС‚РµСЂС„РµР№СЃР°.</param>
         /// <exception cref="System.ArgumentNullException">interfaceType.</exception>
         /// <exception cref="System.ArgumentNullException">implementationType.</exception>
         /// <exception cref="System.ArgumentException">Both types must be generic definitions or both non-generic.</exception>
-        /// <remarks>Метод создаёт фабрику для нового типа и заменяет существующее соответствие в <see cref="DefaultInterfaceMappings" />.
-        /// Для generic-типов используется метод <see cref="Type.MakeGenericType" />.</remarks>
+        /// <remarks>РњРµС‚РѕРґ СЃРѕР·РґР°С‘С‚ С„Р°Р±СЂРёРєСѓ РґР»СЏ РЅРѕРІРѕРіРѕ С‚РёРїР° Рё Р·Р°РјРµРЅСЏРµС‚ СЃСѓС‰РµСЃС‚РІСѓСЋС‰РµРµ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРµ РІ <see cref="DefaultInterfaceMappings" />.
+        /// Р”Р»СЏ generic-С‚РёРїРѕРІ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ РјРµС‚РѕРґ <see cref="Type.MakeGenericType" />.</remarks>
         public static void SetDefaultImplementation(Type interfaceType, Type implementationType)
         {
             if (interfaceType == null)
@@ -2820,13 +2820,13 @@ namespace RuntimeStuff
                 throw new ArgumentException($"{implementationType} cannot be an interface", nameof(implementationType));
             }
 
-            // проверка generic-совместимости
+            // РїСЂРѕРІРµСЂРєР° generic-СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё
             if (interfaceType.IsGenericTypeDefinition != implementationType.IsGenericTypeDefinition)
             {
                 throw new ArgumentException("Both types must be generic definitions or both non-generic");
             }
 
-            // создаём фабрику
+            // СЃРѕР·РґР°С‘Рј С„Р°Р±СЂРёРєСѓ
             object Factory(Type[] genericArgs)
             {
                 var targetType = implementationType;
@@ -2842,18 +2842,18 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Преобразует указанный объект в тип. Если преобразование невозможно, возвращает
-        /// значение по умолчанию.
+        /// РџСЂРµРѕР±СЂР°Р·СѓРµС‚ СѓРєР°Р·Р°РЅРЅС‹Р№ РѕР±СЉРµРєС‚ РІ С‚РёРї. Р•СЃР»Рё РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РЅРµРІРѕР·РјРѕР¶РЅРѕ, РІРѕР·РІСЂР°С‰Р°РµС‚
+        /// Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.
         /// </summary>
-        /// <typeparam name="T">Тип, в который требуется выполнить преобразование.</typeparam>
-        /// <param name="value">Объект, который необходимо преобразовать.</param>
-        /// <param name="defaultValue">Значение, возвращаемое в случае неудачного преобразования. По умолчанию используется значение по умолчанию
-        /// для типа <typeparamref name="T" />.</param>
-        /// <param name="formatProvider">Объект, предоставляющий сведения о форматировании, используемые при преобразовании. Может быть равен null.</param>
-        /// <returns>Значение типа <typeparamref name="T" />, полученное в результате успешного преобразования, либо <paramref name="defaultValue" />, если преобразование не удалось.</returns>
-        /// <remarks>Метод не выбрасывает исключения при неудачном преобразовании, а возвращает указанное
-        /// значение по умолчанию. Это может быть полезно для безопасного преобразования типов без необходимости
-        /// обработки исключений.</remarks>
+        /// <typeparam name="T">РўРёРї, РІ РєРѕС‚РѕСЂС‹Р№ С‚СЂРµР±СѓРµС‚СЃСЏ РІС‹РїРѕР»РЅРёС‚СЊ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ.</typeparam>
+        /// <param name="value">РћР±СЉРµРєС‚, РєРѕС‚РѕСЂС‹Р№ РЅРµРѕР±С…РѕРґРёРјРѕ РїСЂРµРѕР±СЂР°Р·РѕРІР°С‚СЊ.</param>
+        /// <param name="defaultValue">Р—РЅР°С‡РµРЅРёРµ, РІРѕР·РІСЂР°С‰Р°РµРјРѕРµ РІ СЃР»СѓС‡Р°Рµ РЅРµСѓРґР°С‡РЅРѕРіРѕ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ. РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
+        /// РґР»СЏ С‚РёРїР° <typeparamref name="T" />.</param>
+        /// <param name="formatProvider">РћР±СЉРµРєС‚, РїСЂРµРґРѕСЃС‚Р°РІР»СЏСЋС‰РёР№ СЃРІРµРґРµРЅРёСЏ Рѕ С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёРё, РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ РїСЂРё РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРё. РњРѕР¶РµС‚ Р±С‹С‚СЊ СЂР°РІРµРЅ null.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ С‚РёРїР° <typeparamref name="T" />, РїРѕР»СѓС‡РµРЅРЅРѕРµ РІ СЂРµР·СѓР»СЊС‚Р°С‚Рµ СѓСЃРїРµС€РЅРѕРіРѕ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ, Р»РёР±Рѕ <paramref name="defaultValue" />, РµСЃР»Рё РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РЅРµ СѓРґР°Р»РѕСЃСЊ.</returns>
+        /// <remarks>РњРµС‚РѕРґ РЅРµ РІС‹Р±СЂР°СЃС‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёСЏ РїСЂРё РЅРµСѓРґР°С‡РЅРѕРј РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРё, Р° РІРѕР·РІСЂР°С‰Р°РµС‚ СѓРєР°Р·Р°РЅРЅРѕРµ
+        /// Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ. Р­С‚Рѕ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїРѕР»РµР·РЅРѕ РґР»СЏ Р±РµР·РѕРїР°СЃРЅРѕРіРѕ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ С‚РёРїРѕРІ Р±РµР· РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё
+        /// РѕР±СЂР°Р±РѕС‚РєРё РёСЃРєР»СЋС‡РµРЅРёР№.</remarks>
         public static T TryChangeType<T>(object value, T defaultValue = default, IFormatProvider formatProvider = null)
         {
             try
@@ -2867,17 +2867,17 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Пытается преобразовать заданное значение к указанному типу T.
+        /// РџС‹С‚Р°РµС‚СЃСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°С‚СЊ Р·Р°РґР°РЅРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ Рє СѓРєР°Р·Р°РЅРЅРѕРјСѓ С‚РёРїСѓ T.
         /// </summary>
-        /// <typeparam name="T">Тип, к которому требуется выполнить преобразование.</typeparam>
-        /// <param name="value">Значение, которое требуется преобразовать.</param>
-        /// <param name="result">Если преобразование выполнено успешно, содержит результат преобразования; в противном случае содержит
-        /// значение по умолчанию для типа T.</param>
-        /// <param name="formatProvider">Объект, предоставляющий сведения о форматировании, используемые при преобразовании. Может быть null для
-        /// использования форматирования по умолчанию.</param>
-        /// <returns>Значение <see langword="true" />, если преобразование прошло успешно; в противном случае — <see langword="false" />.</returns>
-        /// <remarks>Метод не выбрасывает исключения при неудачном преобразовании. Используйте этот метод,
-        /// если не требуется обработка исключений при ошибке преобразования.</remarks>
+        /// <typeparam name="T">РўРёРї, Рє РєРѕС‚РѕСЂРѕРјСѓ С‚СЂРµР±СѓРµС‚СЃСЏ РІС‹РїРѕР»РЅРёС‚СЊ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ.</typeparam>
+        /// <param name="value">Р—РЅР°С‡РµРЅРёРµ, РєРѕС‚РѕСЂРѕРµ С‚СЂРµР±СѓРµС‚СЃСЏ РїСЂРµРѕР±СЂР°Р·РѕРІР°С‚СЊ.</param>
+        /// <param name="result">Р•СЃР»Рё РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РІС‹РїРѕР»РЅРµРЅРѕ СѓСЃРїРµС€РЅРѕ, СЃРѕРґРµСЂР¶РёС‚ СЂРµР·СѓР»СЊС‚Р°С‚ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ; РІ РїСЂРѕС‚РёРІРЅРѕРј СЃР»СѓС‡Р°Рµ СЃРѕРґРµСЂР¶РёС‚
+        /// Р·РЅР°С‡РµРЅРёРµ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РґР»СЏ С‚РёРїР° T.</param>
+        /// <param name="formatProvider">РћР±СЉРµРєС‚, РїСЂРµРґРѕСЃС‚Р°РІР»СЏСЋС‰РёР№ СЃРІРµРґРµРЅРёСЏ Рѕ С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёРё, РёСЃРїРѕР»СЊР·СѓРµРјС‹Рµ РїСЂРё РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРё. РњРѕР¶РµС‚ Р±С‹С‚СЊ null РґР»СЏ
+        /// РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёСЏ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ.</param>
+        /// <returns>Р—РЅР°С‡РµРЅРёРµ <see langword="true" />, РµСЃР»Рё РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРµ РїСЂРѕС€Р»Рѕ СѓСЃРїРµС€РЅРѕ; РІ РїСЂРѕС‚РёРІРЅРѕРј СЃР»СѓС‡Р°Рµ вЂ” <see langword="false" />.</returns>
+        /// <remarks>РњРµС‚РѕРґ РЅРµ РІС‹Р±СЂР°СЃС‹РІР°РµС‚ РёСЃРєР»СЋС‡РµРЅРёСЏ РїСЂРё РЅРµСѓРґР°С‡РЅРѕРј РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёРё. РСЃРїРѕР»СЊР·СѓР№С‚Рµ СЌС‚РѕС‚ РјРµС‚РѕРґ,
+        /// РµСЃР»Рё РЅРµ С‚СЂРµР±СѓРµС‚СЃСЏ РѕР±СЂР°Р±РѕС‚РєР° РёСЃРєР»СЋС‡РµРЅРёР№ РїСЂРё РѕС€РёР±РєРµ РїСЂРµРѕР±СЂР°Р·РѕРІР°РЅРёСЏ.</remarks>
         public static bool TryChangeType<T>(object value, out T result, IFormatProvider formatProvider = null)
         {
             try
@@ -2908,18 +2908,18 @@ namespace RuntimeStuff
                 return null;
             }
 
-            // Стандартные шаблоны именования полей
+            // РЎС‚Р°РЅРґР°СЂС‚РЅС‹Рµ С€Р°Р±Р»РѕРЅС‹ РёРјРµРЅРѕРІР°РЅРёСЏ РїРѕР»РµР№
             var possibleFieldNames = new[]
             {
                 $"_{char.ToLower(propertyName[0])}{propertyName.Substring(1)}", // _propertyName
                 $"m_{propertyName}", // m_PropertyName
                 $"_{propertyName}", // _PropertyName
-                propertyName, // PropertyName (для публичных полей)
+                propertyName, // PropertyName (РґР»СЏ РїСѓР±Р»РёС‡РЅС‹С… РїРѕР»РµР№)
                 $"m{char.ToUpper(propertyName[0])}{propertyName.Substring(1)}", // mPropertyName
                 $"{propertyName.ToLower()}",
             };
 
-            // Поиск в текущем типе
+            // РџРѕРёСЃРє РІ С‚РµРєСѓС‰РµРј С‚РёРїРµ
             foreach (var fieldName in possibleFieldNames)
             {
                 var field = declaringType.GetField(fieldName, DefaultBindingFlags);
@@ -2930,7 +2930,7 @@ namespace RuntimeStuff
                 }
             }
 
-            // Поиск в базовых классах
+            // РџРѕРёСЃРє РІ Р±Р°Р·РѕРІС‹С… РєР»Р°СЃСЃР°С…
             var baseType = declaringType.BaseType;
             while (baseType != null && baseType != typeof(object))
             {
@@ -2971,22 +2971,22 @@ namespace RuntimeStuff
                     return null;
                 }
 
-                // Анализируем IL-байты
+                // РђРЅР°Р»РёР·РёСЂСѓРµРј IL-Р±Р°Р№С‚С‹
                 var i = 0;
                 while (i < ilBytes.Length)
                 {
                     short opCodeValue = ilBytes[i];
 
-                    // Проверяем двухбайтовые опкоды
+                    // РџСЂРѕРІРµСЂСЏРµРј РґРІСѓС…Р±Р°Р№С‚РѕРІС‹Рµ РѕРїРєРѕРґС‹
                     if (opCodeValue == 0xFE && i + 1 < ilBytes.Length)
                     {
                         opCodeValue = (short)((opCodeValue << 8) | ilBytes[i + 1]);
-                        i++; // Пропускаем второй байт
+                        i++; // РџСЂРѕРїСѓСЃРєР°РµРј РІС‚РѕСЂРѕР№ Р±Р°Р№С‚
                     }
 
                     if (OpCodes.TryGetValue(opCodeValue, out var opCode))
                     {
-                        // Проверяем инструкции загрузки поля
+                        // РџСЂРѕРІРµСЂСЏРµРј РёРЅСЃС‚СЂСѓРєС†РёРё Р·Р°РіСЂСѓР·РєРё РїРѕР»СЏ
                         if ((opCode == System.Reflection.Emit.OpCodes.Ldfld || opCode == System.Reflection.Emit.OpCodes.Ldsfld ||
                             opCode == System.Reflection.Emit.OpCodes.Ldflda || opCode == System.Reflection.Emit.OpCodes.Ldsflda) && i + 4 < ilBytes.Length)
                         {
@@ -3002,11 +3002,11 @@ namespace RuntimeStuff
                             }
                             catch
                             {
-                                // Игнорируем ошибки разрешения токена
+                                // РРіРЅРѕСЂРёСЂСѓРµРј РѕС€РёР±РєРё СЂР°Р·СЂРµС€РµРЅРёСЏ С‚РѕРєРµРЅР°
                             }
                         }
 
-                        // Пропускаем байты операнда в зависимости от типа операнда
+                        // РџСЂРѕРїСѓСЃРєР°РµРј Р±Р°Р№С‚С‹ РѕРїРµСЂР°РЅРґР° РІ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ С‚РёРїР° РѕРїРµСЂР°РЅРґР°
                         i += GetOperandSize(opCode.OperandType, ilBytes, i + 1);
                     }
 
@@ -3015,7 +3015,7 @@ namespace RuntimeStuff
             }
             catch
             {
-                // Игнорируем ошибки анализа IL
+                // РРіРЅРѕСЂРёСЂСѓРµРј РѕС€РёР±РєРё Р°РЅР°Р»РёР·Р° IL
             }
 
             return null;
@@ -3065,7 +3065,7 @@ namespace RuntimeStuff
 
             var type = obj.GetType();
 
-            // Для примитивов и строк обходим только если тип совпадает с T
+            // Р”Р»СЏ РїСЂРёРјРёС‚РёРІРѕРІ Рё СЃС‚СЂРѕРє РѕР±С…РѕРґРёРј С‚РѕР»СЊРєРѕ РµСЃР»Рё С‚РёРї СЃРѕРІРїР°РґР°РµС‚ СЃ T
             if (type.IsPrimitive || obj is string)
             {
                 if (obj is T tValue && (memberFilter == null || memberFilter(tValue)))
@@ -3081,7 +3081,7 @@ namespace RuntimeStuff
                 yield break;
             }
 
-            // Если коллекция и нужно искать в коллекциях
+            // Р•СЃР»Рё РєРѕР»Р»РµРєС†РёСЏ Рё РЅСѓР¶РЅРѕ РёСЃРєР°С‚СЊ РІ РєРѕР»Р»РµРєС†РёСЏС…
             if (searchInCollections && obj is IEnumerable enumerable)
             {
                 foreach (var item in enumerable)
@@ -3093,7 +3093,7 @@ namespace RuntimeStuff
                 }
             }
 
-            // Поля
+            // РџРѕР»СЏ
             var fields = GetFieldsMap(type).Values;
             foreach (var field in fields)
             {
@@ -3117,7 +3117,7 @@ namespace RuntimeStuff
                 }
             }
 
-            // Свойства
+            // РЎРІРѕР№СЃС‚РІР°
             var properties = GetPropertiesMap(type).Values.Where(p => p.GetMethod != null);
             foreach (var prop in properties)
             {
@@ -3128,7 +3128,7 @@ namespace RuntimeStuff
                 }
                 catch
                 {
-                    continue; // Пропускаем свойства с исключениями
+                    continue; // РџСЂРѕРїСѓСЃРєР°РµРј СЃРІРѕР№СЃС‚РІР° СЃ РёСЃРєР»СЋС‡РµРЅРёСЏРјРё
                 }
 
                 switch (value)
@@ -3213,7 +3213,7 @@ namespace RuntimeStuff
                 return -1;
             }
 
-            // Если исходная коллекция - массив или IList<T>, используем индексацию
+            // Р•СЃР»Рё РёСЃС…РѕРґРЅР°СЏ РєРѕР»Р»РµРєС†РёСЏ - РјР°СЃСЃРёРІ РёР»Рё IList<T>, РёСЃРїРѕР»СЊР·СѓРµРј РёРЅРґРµРєСЃР°С†РёСЋ
             if (e is IList<T> list)
             {
                 if (!reverseSearch)
@@ -3240,7 +3240,7 @@ namespace RuntimeStuff
                 return -1;
             }
 
-            // Для остальных IEnumerable<T>
+            // Р”Р»СЏ РѕСЃС‚Р°Р»СЊРЅС‹С… IEnumerable<T>
             if (!reverseSearch)
             {
                 var i = 0;
@@ -3256,7 +3256,7 @@ namespace RuntimeStuff
             }
             else
             {
-                // К сожалению, для IEnumerable<T> без индексации придётся материализовать в список
+                // Рљ СЃРѕР¶Р°Р»РµРЅРёСЋ, РґР»СЏ IEnumerable<T> Р±РµР· РёРЅРґРµРєСЃР°С†РёРё РїСЂРёРґС‘С‚СЃСЏ РјР°С‚РµСЂРёР°Р»РёР·РѕРІР°С‚СЊ РІ СЃРїРёСЃРѕРє
                 var arr = e.ToArray();
                 for (var i = arr.Length - 1; i >= 0; i--)
                 {
@@ -3299,13 +3299,13 @@ namespace RuntimeStuff
                 return false;
             }
 
-            // Поле должно быть приватным (или защищенным для базовых классов)
+            // РџРѕР»Рµ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РїСЂРёРІР°С‚РЅС‹Рј (РёР»Рё Р·Р°С‰РёС‰РµРЅРЅС‹Рј РґР»СЏ Р±Р°Р·РѕРІС‹С… РєР»Р°СЃСЃРѕРІ)
             if (!field.IsPrivate && !field.IsFamily && !field.IsAssembly && !field.IsFamilyOrAssembly)
             {
                 return false;
             }
 
-            // Поле должно принадлежать этому типу или его базовому типу
+            // РџРѕР»Рµ РґРѕР»Р¶РЅРѕ РїСЂРёРЅР°РґР»РµР¶Р°С‚СЊ СЌС‚РѕРјСѓ С‚РёРїСѓ РёР»Рё РµРіРѕ Р±Р°Р·РѕРІРѕРјСѓ С‚РёРїСѓ
             Debug.Assert(field.DeclaringType != null, "field.DeclaringType != null");
             if (!declaringType.IsAssignableFrom(field.DeclaringType) &&
                 !field.DeclaringType.IsAssignableFrom(declaringType))
