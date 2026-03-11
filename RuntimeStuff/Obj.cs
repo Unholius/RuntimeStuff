@@ -4,6 +4,7 @@
 
 namespace RuntimeStuff
 {
+    using RuntimeStuff.Extensions;
     using System;
     using System.Collections;
     using System.Collections.Concurrent;
@@ -352,6 +353,49 @@ namespace RuntimeStuff
 
             typeConverters[typeof(TTo)] =
                 (arg) => converter((TFrom)arg);
+        }
+
+        /// <summary>
+        /// Пытается добавить элемент в указанную коллекцию.
+        /// </summary>
+        /// <param name="collection">Коллекция, в которую необходимо добавить элемент.</param>
+        /// <param name="item">
+        /// Элемент для добавления. Если значение <c>null</c>, будет предпринята попытка
+        /// создать новый экземпляр типа элемента коллекции.
+        /// </param>
+        /// <param name="index">
+        /// Индекс, по которому необходимо вставить элемент.
+        /// Если значение меньше 0, элемент добавляется в конец коллекции.
+        /// </param>
+        /// <returns>
+        /// Добавленный элемент. Если элемент не был передан, возвращается созданный экземпляр.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="collection"/> равен <c>null</c>.
+        /// </exception>
+        /// <exception cref="Exception">
+        /// Выбрасывается, если невозможно определить тип элемента коллекции
+        /// для создания нового экземпляра.
+        /// </exception>
+        public static object TryAdd(object collection, object item = null, int index = -1)
+        {
+            if (collection == null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
+
+            if (item == null)
+            {
+                var itemType = collection.GetType().GenericTypeArguments.FirstOrDefault();
+                if (itemType == null)
+                {
+                    throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}<{itemType.Name}>");
+                    item = New(itemType);
+                }
+            }
+
+            EnumerableExtensions.TryAdd(collection, item, index);
+            return item;
         }
 
         /// <summary>
