@@ -1,4 +1,5 @@
-﻿using RuntimeStuff.Helpers;
+﻿using RuntimeStuff.Extensions;
+using RuntimeStuff.Helpers;
 using RuntimeStuff.MSTests.Models;
 using RuntimeStuff.Options;
 
@@ -65,6 +66,15 @@ namespace RuntimeStuff.MSTests
                 SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(x => x.Id == id && x.Name == name, SqlProviderOptions.SqlServerOptions, false, out _);
 
             Assert.AreEqual("WHERE ((\"Name\" = 3) AND (\"EventId\" = 'name'))", whereClause);
+        }
+
+        [TestMethod]
+        public void WhereClause_Test_05()
+        {
+            var whereClause =
+                SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(x => x.Id.In(1, 2, 3), SqlProviderOptions.SqlServerOptions, false, out _);
+
+            Assert.AreEqual("WHERE \"Name\" IN (1, 2, 3)", whereClause);
         }
     }
 }
