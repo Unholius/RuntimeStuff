@@ -262,6 +262,11 @@ namespace RuntimeStuff.Extensions
 
             var type = MemberCache.Create(observable.GetType());
 
+            if (propertyNames == null || propertyNames.Length == 0)
+            {
+                propertyNames = type.PublicProperties.Select(x => x.Name).ToArray();
+            }
+
             if (type.PropertyChanged?.GetValue(observable) is PropertyChangedEventHandler handler)
             {
                 foreach (var propertyName in propertyNames)

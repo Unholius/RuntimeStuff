@@ -228,7 +228,7 @@ namespace RuntimeStuff.Helpers
         /// Если исходная строка пуста, массив подстрок равен <c>null</c> или пуст,
         /// метод возвращает <c>false</c>.
         /// </returns>
-        public static bool StartsWithAny(this string s, StringComparison comparison, params string[] values)
+        public static bool StartsWithAny(string s, StringComparison comparison, params string[] values)
         {
             if (string.IsNullOrEmpty(s) || values == null || values.Length == 0)
             {
@@ -264,7 +264,7 @@ namespace RuntimeStuff.Helpers
         /// Строка без указанной подстроки в начале и конце.
         /// Если исходная строка или подстрока пустые, возвращается исходная строка.
         /// </returns>
-        public static string Trim(this string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        public static string Trim(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
         {
             if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
             {
@@ -288,7 +288,7 @@ namespace RuntimeStuff.Helpers
         /// Строка без указанной подстроки в начале.
         /// Если исходная строка или подстрока пустые, возвращается исходная строка.
         /// </returns>
-        public static string TrimStart(this string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        public static string TrimStart(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
         {
             if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
             {
@@ -316,7 +316,7 @@ namespace RuntimeStuff.Helpers
         /// Строка без указанной подстроки в конце.
         /// Если исходная строка или подстрока пустые, возвращается исходная строка.
         /// </returns>
-        public static string TrimEnd(this string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        public static string TrimEnd(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
         {
             if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
             {
@@ -1073,7 +1073,7 @@ namespace RuntimeStuff.Helpers
         /// Если <paramref name="subString"/> является пустой строкой,
         /// возвращается <paramref name="startIndex"/>.
         /// </remarks>
-        public static int IndexOf(this string s, string subString, int startIndex, int step, StringComparison comparison = StringComparison.Ordinal)
+        public static int IndexOf(string s, string subString, int startIndex, int step, StringComparison comparison = StringComparison.Ordinal)
         {
             if (s == null)
             {
