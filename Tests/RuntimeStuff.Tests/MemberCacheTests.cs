@@ -699,6 +699,17 @@ namespace RuntimeStuff.MSTests
 
         #endregion Тесты для интерфейсов и наследования
 
+        public class ObservableObjectEx2 : ObservableObjectEx
+        {
+            public int Id { get; set; }
+        }
+
+        [TestMethod]
+        public void MethodInfo_Tests_00()
+        {
+            var m1 = MemberCache.Create<ObservableObjectEx2>();
+            Assert.IsNotNull(m1.PropertyChanged);
+        }
 
         [TestMethod]
         public void MethodInfo_Tests_01()

@@ -988,7 +988,7 @@ namespace RuntimeStuff
                     return this.propertyChanged;
                 }
 
-                this.propertyChanged = this["PropertyChanged", MemberTypes.Field];
+                this.propertyChanged = this.Fields.FirstOrDefault(x => x.Name == "PropertyChanged") ?? this.Properties.FirstOrDefault(x => x.Name == "PropertyChanged");
                 this.hasPropertyChanged = this.propertyChanged != null;
                 return this.propertyChanged;
             }
