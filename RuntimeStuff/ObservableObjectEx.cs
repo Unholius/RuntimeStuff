@@ -14,12 +14,13 @@
 
 namespace RuntimeStuff
 {
-    using System;
-    using System.Collections.Concurrent;
-    using System.ComponentModel;
-    using System.Runtime.CompilerServices;
     using RuntimeStuff.Extensions;
     using RuntimeStuff.Internal;
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Базовый класс, предоставляющий реализацию интерфейсов <see cref="INotifyPropertyChanged" />, <see cref="INotifyPropertyChanging" /> и
@@ -83,7 +84,7 @@ namespace RuntimeStuff
         public object this[string propertyName]
         {
             get => this.Get(propertyName);
-            set => this.Set(value);
+            set => this.Set(value, propertyName);
         }
 
         /// <summary>
@@ -233,7 +234,7 @@ namespace RuntimeStuff
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
         public virtual bool Set<T>(ref T field, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
         {
-            if (Equals(field, value))
+            if (EqualityComparer<T>.Default.Equals(field, value))
             {
                 return false;
             }
@@ -257,7 +258,7 @@ namespace RuntimeStuff
         /// <returns><c>true</c>, если значение было изменено и было вызвано событие; иначе <c>false</c>.</returns>
         public virtual bool Set<T>(ref T field, T value, Action<T> onChanged, [CallerMemberName] string propertyName = null)
         {
-            if (Equals(field, value))
+            if (EqualityComparer<T>.Default.Equals(field, value))
             {
                 return false;
             }
@@ -270,51 +271,48 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Устанавливает значение свойства и уведомляет подписчиков
-        /// об изменении свойства.
+        /// Устанавливает значение свойства в хранилище и уведомляет об изменении,
+        /// если новое значение отличается от текущего.
         /// </summary>
-        /// <typeparam name="T">
-        /// Тип значения свойства.
-        /// </typeparam>
-        /// <param name="value">
-        /// Новое значение свойства.
-        /// </param>
+        /// <typeparam name="T">Тип значения свойства.</typeparam>
+        /// <param name="value">Новое значение свойства.</param>
         /// <param name="propertyName">
-        /// Имя свойства. Если не указано явно, подставляется имя вызывающего члена
-        /// с использованием атрибута <see cref="CallerMemberNameAttribute"/>.
+        /// Имя свойства. Обычно заполняется автоматически компилятором через
+        /// <see cref="System.Runtime.CompilerServices.CallerMemberNameAttribute"/>.
         /// </param>
+        /// <returns>
+        /// <see langword="true"/>, если значение было изменено и были вызваны
+        /// методы <c>OnPropertyChanging</c> и <c>OnPropertyChanged</c>;
+        /// <see langword="false"/>, если новое значение равно текущему и изменение не выполнялось.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="propertyName"/> равен <see langword="null"/>.
+        /// </exception>
         /// <remarks>
-        /// Метод сохраняет значение во внутреннем хранилище и инициирует вызов
-        /// <c>OnPropertyChanged</c> для указанного свойства.
-        /// Предназначен для использования в реализациях шаблона
-        /// <see cref="INotifyPropertyChanged"/>.
+        /// Значения свойств хранятся во внутреннем словаре.
+        /// Перед установкой нового значения выполняется сравнение с текущим значением
+        /// с использованием <see cref="EqualityComparer{T}.Default"/>.
+        /// Если значения равны, уведомления об изменении не вызываются.
         /// </remarks>
-        public virtual void Set<T>(T value, [CallerMemberName] string propertyName = null)
+        public virtual bool Set<T>(T value, [CallerMemberName] string propertyName = null)
         {
-            this.values[propertyName ?? throw new ArgumentNullException(nameof(propertyName))] = value;
-            this.OnPropertyChanged(propertyName);
-        }
-
-        /// <summary>
-        /// Комбинированная операция: сначала выполняет привязку обработчика изменения свойства у вложенного объекта,
-        /// затем устанавливает новое значение для свойства текущего объекта. Если значение изменилось и
-        /// <paramref name="thisPropertyChangeHandler" /> не равен <c>null</c>, он будет вызван.
-        /// </summary>
-        /// <typeparam name="T">Тип вложенного объекта, реализующего <see cref="INotifyPropertyChanged" />.</typeparam>
-        /// <param name="oldValue">Ссылка на текущее (старое) значение свойства (backing field).</param>
-        /// <param name="newValue">Новое значение, которое будет присвоено.</param>
-        /// <param name="childPropertyName">Имя свойства вложенного объекта, за изменением которого нужно следить.</param>
-        /// <param name="childPropertyChangeHandler">Действие, вызываемое при изменении <paramref name="childPropertyName" /> у вложенного объекта.</param>
-        /// <param name="thisPropertyChangeHandler">Действие, вызываемое после успешного изменения свойства текущего объекта.</param>
-        /// <param name="propertyName">Имя свойства текущего объекта. Если не задано, используется имя вызывающего члена.</param>
-        public void SetAndBindPropertyChange<T>(ref T oldValue, T newValue, string childPropertyName, Action childPropertyChangeHandler, Action<string> thisPropertyChangeHandler = null, [CallerMemberName] string propertyName = null)
-            where T : class, INotifyPropertyChanged
-        {
-            this.BindPropertyChange(ref oldValue, newValue, childPropertyName, childPropertyChangeHandler);
-            if (this.Set(ref oldValue, newValue, (Action)null, propertyName))
+            if (propertyName == null)
             {
-                thisPropertyChangeHandler?.Invoke(propertyName);
+                throw new ArgumentNullException(nameof(propertyName));
             }
+
+            if (this.values.TryGetValue(propertyName, out var oldValueObj) && oldValueObj is T oldValue)
+            {
+                if (EqualityComparer<T>.Default.Equals(oldValue, value))
+                {
+                    return false;
+                }
+            }
+
+            this.OnPropertyChanging(propertyName);
+            this.values[propertyName] = value;
+            this.OnPropertyChanged(propertyName);
+            return true;
         }
 
         /// <summary>

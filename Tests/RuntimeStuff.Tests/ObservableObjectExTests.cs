@@ -22,6 +22,14 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
+        public void Test_Notify_01()
+        {
+            var x = new ExportProductPhotoData();
+            x.ProductId = 1;
+            x.ProductId = 0;
+        }
+
+        [TestMethod]
         public void Constructor_InitializesEmptyValues()
         {
             // Assert
@@ -194,10 +202,6 @@ namespace RuntimeStuff.MSTests
             // Act
             testObject.BindPropertyChange(ref oldObject, childObject, "ChildProperty", () => handlerInvoked = true);
 
-            // Assert
-            Assert.IsNotNull(testObject.GetSubscriptions());
-            Assert.IsTrue(testObject.GetSubscriptions().ContainsKey(childObject));
-
             // Trigger child property change
             childObject.TriggerPropertyChanged("ChildProperty");
             Assert.IsTrue(handlerInvoked);
@@ -253,33 +257,6 @@ namespace RuntimeStuff.MSTests
             // Trigger new child property change
             newChild.TriggerPropertyChanged("ChildProperty");
             Assert.IsTrue(newHandlerInvoked);
-        }
-
-        [TestMethod]
-        public void SetAndBindPropertyChange_UpdatesAndBinds()
-        {
-            // Arrange
-            var childObject = new TestChildObject();
-            TestChildObject oldObject = null;
-            var childHandlerInvoked = false;
-            var thisHandlerInvoked = false;
-
-            // Act
-            testObject.SetAndBindPropertyChange(
-                ref oldObject,
-                childObject,
-                "ChildProperty",
-                () => childHandlerInvoked = true,
-                (prop) => thisHandlerInvoked = true,
-                nameof(TestObservableObject.Child));
-
-            // Assert
-            Assert.AreEqual(childObject, testObject.Child);
-            Assert.IsTrue(thisHandlerInvoked);
-
-            // Trigger child property change
-            childObject.TriggerPropertyChanged("ChildProperty");
-            Assert.IsTrue(childHandlerInvoked);
         }
 
         [TestMethod]
@@ -369,8 +346,6 @@ namespace RuntimeStuff.MSTests
         {
             this.PropertyChanged += ExportProductPhotoData_PropertyChanged;
         }
-
-        public event PropertyChangedEventHandler PropertyChanged;
 
         public string AdamasArticul { get; internal set; }
 

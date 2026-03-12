@@ -262,20 +262,12 @@ namespace RuntimeStuff.Extensions
 
             var type = MemberCache.Create(observable.GetType());
 
-            if (type.OnPropertyChanged == null)
+            if (type.PropertyChanged?.GetValue(observable) is PropertyChangedEventHandler handler)
             {
-                throw new InvalidOperationException(
-                    $"Метод OnPropertyChanged не найден у типа {observable.GetType().FullName}.");
-            }
-
-            if (propertyNames == null || propertyNames.Length == 0)
-            {
-                propertyNames = type.PublicProperties.Select(x => x.Name).ToArray();
-            }
-
-            foreach (var property in propertyNames)
-            {
-                type.OnPropertyChanged.Invoke(observable, new object[] { new PropertyChangedEventArgs(property) });
+                foreach (var propertyName in propertyNames)
+                {
+                    handler(observable, new PropertyChangedEventArgs(propertyName));
+                }
             }
         }
     }

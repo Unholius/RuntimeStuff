@@ -46,6 +46,7 @@ namespace RuntimeStuff.Extensions
         /// Принудительно уведомляет подписчиков о том, что коллекция была изменена.
         /// </summary>
         /// <param name="collection">Коллекция, реализующая <see cref="INotifyCollectionChanged"/>.</param>
+        /// <param name="action"><see cref="NotifyCollectionChangedAction"/>Действие.</param>
         /// <exception cref="ArgumentNullException">
         /// Выбрасывается, если <paramref name="collection"/> равен <c>null</c>.
         /// </exception>
@@ -62,7 +63,7 @@ namespace RuntimeStuff.Extensions
         /// Используется отражение и кэширование через <see cref="MemberCache"/> для вызова
         /// соответствующих методов уведомления, если они доступны у типа коллекции.
         /// </remarks>
-        public static void NotifyCollectionChanged(this INotifyCollectionChanged collection)
+        public static void NotifyCollectionChanged(this INotifyCollectionChanged collection, NotifyCollectionChangedAction action = NotifyCollectionChangedAction.Reset)
         {
             if (collection == null)
             {
@@ -71,16 +72,10 @@ namespace RuntimeStuff.Extensions
 
             var type = MemberCache.Create(collection.GetType());
 
-            if (type.OnCollectionChanged == null)
+            if (type.CollectionChanged?.GetValue(collection) is NotifyCollectionChangedEventHandler handler)
             {
-                throw new InvalidOperationException(
-                    $"Метод OnCollectionChanged не найден у типа {collection.GetType().FullName}.");
+                handler(collection, new NotifyCollectionChangedEventArgs(action));
             }
-
-            // Вызываем найденные методы
-            type.OnPropertyChanged?.Invoke(collection, new object[] { new PropertyChangedEventArgs("Count") });
-            type.OnPropertyChanged?.Invoke(collection, new object[] { new PropertyChangedEventArgs("Item[]") });
-            type.OnCollectionChanged?.Invoke(collection, new object[] { new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset) });
         }
 
         /// <summary>

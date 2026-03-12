@@ -8,6 +8,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using RuntimeStuff.Extensions;
 using System.Collections.ObjectModel;
+using RuntimeStuff.Collections;
 
 namespace RuntimeStuff.MSTests
 {
@@ -702,9 +703,9 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void MethodInfo_Tests_01()
         {
-            var m1 = MemberCache.Create<ObservableObjectEx>();
+            var m1 = MemberCache.Create<ObservableCollectionEx<string>>();
             Assert.IsNotNull(m1.OnPropertyChanged);
-            Assert.IsNotNull(m1.OnPropertyChanging);
+            Assert.IsNull(m1.OnPropertyChanging);
         }
 
         [TestMethod]

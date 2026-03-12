@@ -78,6 +78,10 @@ namespace RuntimeStuff
         private bool? hasOnPropertyChanged;
         private bool? hasOnPropertyChanging;
         private bool? hasOnCollectionChanged;
+        private bool? hasPropertyChanged;
+        private MemberCache propertyChanged;
+        private bool? hasCollectionChanged;
+        private MemberCache collectionChanged;
         private MemberCache[] pks;
         private MemberCache[] properties;
         private MemberCache[] publicBasicEnumerableProperties;
@@ -558,7 +562,7 @@ namespace RuntimeStuff
                     return this.onPropertyChanged;
                 }
 
-                this.onPropertyChanged = this.GetMethods(typeof(PropertyChangedEventArgs)).FirstOrDefault();
+                this.onPropertyChanged = this.GetMethods(typeof(PropertyChangedEventArgs)).FirstOrDefault() ?? this.GetMethods(typeof(object), typeof(PropertyChangedEventArgs)).FirstOrDefault();
                 this.hasOnPropertyChanged = this.onPropertyChanged != null;
                 return this.onPropertyChanged;
             }
@@ -956,6 +960,52 @@ namespace RuntimeStuff
 
                 this.publicEnumerableProperties = this.PublicProperties.Where(x => x.IsCollection).ToArray();
                 return this.publicEnumerableProperties;
+            }
+        }
+
+        /// <summary>
+        /// Возвращает кешированную информацию о поле <c>PropertyChanged</c>.
+        /// </summary>
+        /// <remarks>
+        /// Свойство выполняет ленивый поиск члена с именем <c>PropertyChanged</c>
+        /// среди полей типа (<see cref="MemberTypes.Field"/>). Результат поиска
+        /// кешируется, чтобы избежать повторного использования рефлексии.
+        ///
+        /// Если поле найдено, оно сохраняется в <see cref="propertyChanged"/>.
+        /// Флаг <see cref="hasPropertyChanged"/> используется для того, чтобы
+        /// запомнить факт выполнения поиска и не выполнять его повторно.
+        /// </remarks>
+        /// <value>
+        /// Экземпляр <see cref="MemberCache"/>, представляющий поле
+        /// <c>PropertyChanged</c>, если оно найдено; иначе — <see langword="null"/>.
+        /// </value>
+        public MemberCache PropertyChanged
+        {
+            get
+            {
+                if (this.propertyChanged != null || this.hasPropertyChanged == false)
+                {
+                    return this.propertyChanged;
+                }
+
+                this.propertyChanged = this["PropertyChanged", MemberTypes.Field];
+                this.hasPropertyChanged = this.propertyChanged != null;
+                return this.propertyChanged;
+            }
+        }
+
+        public MemberCache CollectionChanged
+        {
+            get
+            {
+                if (this.propertyChanged != null || this.hasPropertyChanged == false)
+                {
+                    return this.propertyChanged;
+                }
+
+                this.propertyChanged = this["PropertyChanged", MemberTypes.Field];
+                this.hasPropertyChanged = this.propertyChanged != null;
+                return this.propertyChanged;
             }
         }
 
@@ -1599,7 +1649,7 @@ namespace RuntimeStuff
 
                 for (int i = 0; i < methodParams.Length; i++)
                 {
-                    if (args[i] != null && !methodParams[i].ParameterType.IsAssignableFrom(args[i]))
+                    if ((args[i] != null && !methodParams[i].ParameterType.IsAssignableFrom(args[i])) || methodParams[i].ParameterType == typeof(object))
                     {
                         skipMethod = true;
                         break;
@@ -2133,6 +2183,7 @@ namespace RuntimeStuff
             else
             {
                 this.Setter(source, valueConverter == null ? Obj.ChangeType(value, this.Type) : valueConverter(value));
+                this.OnPropertyChanged?.Invoke(source, new object[] { new PropertyChangedEventArgs(this.Name) });
             }
         }
 

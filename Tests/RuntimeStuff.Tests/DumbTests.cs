@@ -160,22 +160,4 @@ public class DumbTests
     [TestMethod] public void Dumb_Test_153() => Assert.IsTrue(true);
     [TestMethod] public void Dumb_Test_154() => Assert.IsTrue(true);
     [TestMethod] public void Dumb_Test_155() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_156() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_157() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_158() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_159() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_160() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_161() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_162() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_163() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_164() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_165() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_166() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_167() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_168() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_169() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_170() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_171() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_172() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_173() => Assert.IsTrue(true);
  }
