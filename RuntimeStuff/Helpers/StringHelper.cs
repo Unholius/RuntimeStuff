@@ -271,8 +271,7 @@ namespace RuntimeStuff.Helpers
                 return s;
             }
 
-            return s.TrimStart(trimString, comparison)
-                .TrimEnd(trimString, comparison);
+            return TrimEnd(TrimStart(s, trimString, comparison), trimString, comparison);
         }
 
         /// <summary>
