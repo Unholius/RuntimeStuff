@@ -14,13 +14,13 @@
 
 namespace RuntimeStuff
 {
-    using RuntimeStuff.Extensions;
-    using RuntimeStuff.Internal;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Runtime.CompilerServices;
+    using RuntimeStuff.Extensions;
+    using RuntimeStuff.Internal;
 
     /// <summary>
     /// Базовый класс, предоставляющий реализацию интерфейсов <see cref="INotifyPropertyChanged" />, <see cref="INotifyPropertyChanging" /> и

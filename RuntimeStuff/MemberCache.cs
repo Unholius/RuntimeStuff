@@ -994,18 +994,34 @@ namespace RuntimeStuff
             }
         }
 
+        /// <summary>
+        /// Возвращает кешированную информацию о поле <c>CollectionChanged</c>.
+        /// </summary>
+        /// <remarks>
+        /// Свойство выполняет ленивый поиск члена с именем <c>CollectionChanged</c>
+        /// среди полей типа (<see cref="MemberTypes.Field"/>). Результат поиска
+        /// кешируется, чтобы избежать повторного использования рефлексии.
+        ///
+        /// Если поле найдено, оно сохраняется в <see cref="collectionChanged"/>.
+        /// Флаг <see cref="hasCollectionChanged"/> используется для того, чтобы
+        /// запомнить факт выполнения поиска и не выполнять его повторно.
+        /// </remarks>
+        /// <value>
+        /// Экземпляр <see cref="MemberCache"/>, представляющий поле
+        /// <c>CollectionChanged</c>, если оно найдено; иначе — <see langword="null"/>.
+        /// </value>
         public MemberCache CollectionChanged
         {
             get
             {
-                if (this.propertyChanged != null || this.hasPropertyChanged == false)
+                if (this.collectionChanged != null || this.hasCollectionChanged == false)
                 {
-                    return this.propertyChanged;
+                    return this.collectionChanged;
                 }
 
-                this.propertyChanged = this["PropertyChanged", MemberTypes.Field];
-                this.hasPropertyChanged = this.propertyChanged != null;
-                return this.propertyChanged;
+                this.collectionChanged = this["CollectionChanged", MemberTypes.Field];
+                this.hasCollectionChanged = this.collectionChanged != null;
+                return this.collectionChanged;
             }
         }
 
