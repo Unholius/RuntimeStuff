@@ -84,7 +84,7 @@ namespace RuntimeStuff
         public object this[string propertyName]
         {
             get => this.Get(propertyName);
-            set => this.Set(value, propertyName);
+            set => this.Set(value, null, propertyName);
         }
 
         /// <summary>
@@ -276,6 +276,7 @@ namespace RuntimeStuff
         /// </summary>
         /// <typeparam name="T">Тип значения свойства.</typeparam>
         /// <param name="value">Новое значение свойства.</param>
+        /// <param name="onChanged">Действие, которое будет выполнено после события PropertyChanged.</param>
         /// <param name="propertyName">
         /// Имя свойства. Обычно заполняется автоматически компилятором через
         /// <see cref="System.Runtime.CompilerServices.CallerMemberNameAttribute"/>.
@@ -294,7 +295,7 @@ namespace RuntimeStuff
         /// с использованием <see cref="EqualityComparer{T}.Default"/>.
         /// Если значения равны, уведомления об изменении не вызываются.
         /// </remarks>
-        public virtual bool Set<T>(T value, [CallerMemberName] string propertyName = null)
+        public virtual bool Set<T>(T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
         {
             if (propertyName == null)
             {
@@ -312,6 +313,8 @@ namespace RuntimeStuff
             this.OnPropertyChanging(propertyName);
             this.values[propertyName] = value;
             this.OnPropertyChanged(propertyName);
+            onChanged?.Invoke();
+
             return true;
         }
 
