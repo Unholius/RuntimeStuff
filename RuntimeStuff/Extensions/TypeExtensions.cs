@@ -25,6 +25,49 @@ namespace RuntimeStuff.Extensions
     public static class TypeExtensions
     {
         /// <summary>
+        /// Вызывает указанный метод через отражение, автоматически подставляя значения аргументов.
+        /// </summary>
+        /// <param name="methodInfo">
+        /// Объект <see cref="MethodInfo"/>, представляющий вызываемый метод.
+        /// </param>
+        /// <param name="instance">
+        /// Экземпляр объекта, для которого вызывается метод.
+        /// Для статических методов может быть <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// Результат выполнения метода. Если метод ничего не возвращает (<c>void</c>),
+        /// возвращаемое значение будет <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Для каждого параметра метода:
+        /// <list type="bullet">
+        /// <item>
+        /// Если параметр имеет значение по умолчанию, используется <see cref="Type.Missing"/>,
+        /// чтобы позволить механизму отражения применить значение по умолчанию.
+        /// </item>
+        /// <item>
+        /// Если значение по умолчанию отсутствует, используется значение по умолчанию
+        /// для типа параметра (например, <c>0</c> для числовых типов или <c>null</c> для ссылочных).
+        /// </item>
+        /// </list>
+        /// После подготовки аргументов метод вызывается через <see cref="MethodBase.Invoke(object, object[])"/>.
+        /// </remarks>
+        /// <exception cref="TargetInvocationException">
+        /// Возникает, если вызываемый метод выбрасывает исключение.
+        /// </exception>
+        /// <exception cref="TargetParameterCountException">
+        /// Возникает при несовпадении количества параметров.
+        /// </exception>
+        public static object InvokeDefault(this MethodInfo methodInfo, object instance)
+        {
+            var parameters = methodInfo.GetParameters();
+            var args = parameters
+                .Select(p => p.IsOptional ? Type.Missing : p.ParameterType.DefaultValue())
+                .ToArray();
+            return methodInfo.Invoke(instance, args);
+        }
+
+        /// <summary>
         /// Проверяет, является ли тип кортежем (ValueTuple/Tuple).
         /// </summary>
         /// <param name="type">The type.</param>
