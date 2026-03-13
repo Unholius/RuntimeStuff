@@ -180,12 +180,15 @@ namespace RuntimeStuff.Collections
         /// подавляются, после чего вызывается единое уведомление о сбросе состояния
         /// коллекции (<see cref="RaiseReset"/>).
         /// </remarks>
-        public void RemoveRange(Func<T, bool> filter)
+        /// <returns>Возвращает список удаленных элементов.</returns>
+        public IEnumerable<T> RemoveRange(Func<T, bool> filter)
         {
             if (filter == null)
             {
                 throw new ArgumentNullException(nameof(filter));
             }
+
+            var removedList = new List<T>();
 
             var oldSuppress = this.SuppressNotifyCollectionChange;
             this.SuppressNotifyCollectionChange = true;
@@ -205,6 +208,7 @@ namespace RuntimeStuff.Collections
                     this.Unsubscribe(item);
                     this.Items.RemoveAt(i);
                     removed = true;
+                    removedList.Add(item);
                 }
             }
             finally
@@ -215,10 +219,12 @@ namespace RuntimeStuff.Collections
                     this.RaiseReset();
                 }
             }
+
+            return removedList;
         }
 
         /// <summary>
-        /// <inheritdoc/>
+        /// <inheritdoc cref="ClearItems" />
         /// </summary>
         public new void Clear()
         {

@@ -447,7 +447,7 @@
 
 //        #endregion Remove Tests
 
-//        #region Clear Tests
+//        #region TryClear Tests
 
 //        [TestMethod]
 //        public void Clear_RemovesAllItems()
@@ -460,13 +460,13 @@
 //            cache.Get(3);
 
 //            // Act
-//            cache.Clear();
+//            cache.TryClear();
 
 //            // Assert
 //            Assert.AreEqual(0, cache.Count);
 //        }
 
-//        #endregion Clear Tests
+//        #endregion TryClear Tests
 
 //        #region Event Tests
 
@@ -637,7 +637,7 @@
 //            cache.Remove(1);
 //            Assert.AreEqual(1, cache.Count);
 
-//            cache.Clear();
+//            cache.TryClear();
 //            Assert.AreEqual(0, cache.Count);
 //        }
 
@@ -755,7 +755,7 @@
 //            cache.ItemAdded += key => addedKeys.Add(key);
 
 //            cache.Set("key1", 100);
-//            addedKeys.Clear();
+//            addedKeys.TryClear();
 
 //            // Act
 //            cache.Set("key1", 200);

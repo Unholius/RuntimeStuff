@@ -217,10 +217,10 @@
 //        /// Очистка всего кэша.
 //        /// Вызывает событие <see cref="ItemRemoved" /> для каждого элемента.
 //        /// </summary>
-//        public void Clear()
+//        public void TryClear()
 //        {
 //            var keys = this.cache.Keys.ToArray();
-//            this.cache.Clear();
+//            this.cache.TryClear();
 
 //            foreach (var key in keys)
 //            {

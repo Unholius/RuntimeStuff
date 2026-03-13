@@ -163,8 +163,8 @@ namespace RuntimeStuff.Extensions
         /// </summary>
         /// <param name="e">Коллекция, которую необходимо очистить.</param>
         /// <exception cref="System.ArgumentNullException">e.</exception>
-        /// <exception cref="System.InvalidOperationException">Коллекция не поддерживает Clear.</exception>
-        public static void Clear(this IEnumerable e)
+        /// <exception cref="System.InvalidOperationException">Коллекция не поддерживает TryClear.</exception>
+        public static void TryClear(this IEnumerable e)
         {
             if (e == null)
             {
@@ -182,7 +182,6 @@ namespace RuntimeStuff.Extensions
                     break;
 
                 case ICollection _:
-                    // ICollection не имеет Clear(), только Count, но IList наследует ICollection
                     throw new InvalidOperationException("Коллекция не поддерживает Clear.");
                 default:
                     throw new InvalidOperationException("Коллекция не поддерживает Clear.");
