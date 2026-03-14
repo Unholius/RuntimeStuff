@@ -41,12 +41,14 @@
             tabPage3 = new TabPage();
             chkOffline = new CheckBox();
             btnOpenForm2 = new Button();
+            btnStopServer = new Button();
             btnStart = new Button();
             btnSendMessage = new Button();
             listBox1 = new ListBox();
             tabPage4 = new TabPage();
             webView21 = new Microsoft.Web.WebView2.WinForms.WebView2();
-            btnStopServer = new Button();
+            textBox2 = new TextBox();
+            label1 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
@@ -60,7 +62,7 @@
             // btnMemberCacheAllMembers
             // 
             btnMemberCacheAllMembers.AutoSize = true;
-            btnMemberCacheAllMembers.Location = new Point(304, 3);
+            btnMemberCacheAllMembers.Location = new Point(3, 400);
             btnMemberCacheAllMembers.Name = "btnMemberCacheAllMembers";
             btnMemberCacheAllMembers.Size = new Size(159, 25);
             btnMemberCacheAllMembers.TabIndex = 0;
@@ -97,7 +99,10 @@
             flowLayoutPanel1.Controls.Add(btnMemberCacheAllMembers);
             flowLayoutPanel1.Controls.Add(textBox1);
             flowLayoutPanel1.Controls.Add(checkBox1);
+            flowLayoutPanel1.Controls.Add(textBox2);
+            flowLayoutPanel1.Controls.Add(label1);
             flowLayoutPanel1.Dock = DockStyle.Fill;
+            flowLayoutPanel1.FlowDirection = FlowDirection.TopDown;
             flowLayoutPanel1.Location = new Point(3, 3);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
             flowLayoutPanel1.Size = new Size(1231, 621);
@@ -112,7 +117,7 @@
             // 
             // textBox1
             // 
-            textBox1.Location = new Point(469, 3);
+            textBox1.Location = new Point(3, 431);
             textBox1.Name = "textBox1";
             textBox1.Size = new Size(100, 23);
             textBox1.TabIndex = 1;
@@ -121,7 +126,7 @@
             // checkBox1
             // 
             checkBox1.AutoSize = true;
-            checkBox1.Location = new Point(575, 3);
+            checkBox1.Location = new Point(3, 460);
             checkBox1.Name = "checkBox1";
             checkBox1.Size = new Size(70, 19);
             checkBox1.TabIndex = 3;
@@ -198,6 +203,16 @@
             btnOpenForm2.UseVisualStyleBackColor = true;
             btnOpenForm2.Click += btnOpenForm2_Click;
             // 
+            // btnStopServer
+            // 
+            btnStopServer.Location = new Point(11, 155);
+            btnStopServer.Name = "btnStopServer";
+            btnStopServer.Size = new Size(96, 25);
+            btnStopServer.TabIndex = 1;
+            btnStopServer.Text = "Stop Server";
+            btnStopServer.UseVisualStyleBackColor = true;
+            btnStopServer.Click += btnStopServer_Click;
+            // 
             // btnStart
             // 
             btnStart.Location = new Point(11, 93);
@@ -251,15 +266,21 @@
             webView21.TabIndex = 0;
             webView21.ZoomFactor = 1D;
             // 
-            // btnStopServer
+            // textBox2
             // 
-            btnStopServer.Location = new Point(11, 155);
-            btnStopServer.Name = "btnStopServer";
-            btnStopServer.Size = new Size(96, 25);
-            btnStopServer.TabIndex = 1;
-            btnStopServer.Text = "Stop Server";
-            btnStopServer.UseVisualStyleBackColor = true;
-            btnStopServer.Click += btnStopServer_Click;
+            textBox2.Location = new Point(3, 485);
+            textBox2.Name = "textBox2";
+            textBox2.Size = new Size(100, 23);
+            textBox2.TabIndex = 4;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(3, 511);
+            label1.Name = "label1";
+            label1.Size = new Size(38, 15);
+            label1.TabIndex = 5;
+            label1.Text = "label1";
             // 
             // Form1
             // 
@@ -304,5 +325,7 @@
         private ListBox listBox1;
         private CheckBox chkOffline;
         private Button btnStopServer;
+        private TextBox textBox2;
+        private Label label1;
     }
 }

@@ -291,6 +291,104 @@ namespace RuntimeStuff.Helpers
             eventInfo.RemoveEventHandler(obj, actionHandler);
         }
 
+        /// <summary>
+        /// Создает привязку между свойствами двух объектов с возможностью синхронизации их значений
+        /// через указанные события.
+        /// </summary>
+        /// <remarks>
+        /// Метод позволяет организовать одностороннюю или двустороннюю синхронизацию свойств.
+        /// Обновление происходит при возникновении указанных событий у исходного или целевого объекта.
+        /// При необходимости можно указать функции преобразования значений.
+        /// </remarks>
+        /// <param name="source">Исходный объект, содержащий свойство-источник.</param>
+        /// <param name="sourcePropertyName">Имя свойства исходного объекта.</param>
+        /// <param name="onSourceEvent">
+        /// Имя события исходного объекта, при возникновении которого значение
+        /// будет копироваться из источника в целевой объект.
+        /// </param>
+        /// <param name="target">Целевой объект, содержащий свойство-приемник.</param>
+        /// <param name="targetPropertyName">Имя свойства целевого объекта.</param>
+        /// <param name="onTargetEvent">
+        /// Имя события целевого объекта, при возникновении которого значение
+        /// будет копироваться из целевого объекта обратно в источник.
+        /// Если <see langword="null"/>, двусторонняя синхронизация не выполняется.
+        /// </param>
+        /// <param name="sourceToTargetValueConverter">
+        /// Функция преобразования значения из свойства источника в значение
+        /// свойства целевого объекта. Если <see langword="null"/>, используется
+        /// прямое присваивание.
+        /// </param>
+        /// <param name="targetToSourceValueConverter">
+        /// Функция преобразования значения из свойства целевого объекта
+        /// в значение свойства источника. Используется при двусторонней привязке.
+        /// </param>
+        /// <param name="onPropertyChanged">
+        /// Делегат, вызываемый после изменения значения любого из связанных свойств.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отменить привязку
+        /// и отписаться от всех подписанных событий.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> или <paramref name="target"/> равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если имена свойств или событий заданы пустой строкой или равны <see langword="null"/>.
+        /// </exception>
+        public static IDisposable BindProperties(object source, string sourcePropertyName, string onSourceEvent, object target, string targetPropertyName, string onTargetEvent = null, Func<object, object> sourceToTargetValueConverter = null, Func<object, object> targetToSourceValueConverter = null, Action onPropertyChanged = null)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (target == null)
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            if (string.IsNullOrEmpty(sourcePropertyName))
+            {
+                throw new ArgumentException("Value cannot be null or empty.", nameof(sourcePropertyName));
+            }
+
+            if (string.IsNullOrEmpty(targetPropertyName))
+            {
+                throw new ArgumentException("Value cannot be null or empty.", nameof(targetPropertyName));
+            }
+
+            if (string.IsNullOrEmpty(onSourceEvent))
+            {
+                throw new ArgumentException("Value cannot be null or empty.", nameof(onSourceEvent));
+            }
+
+            var sourceTypeCache = MemberCache.Create(source.GetType());
+            var targetTypeCache = MemberCache.Create(target.GetType());
+            var sourceEvent = sourceTypeCache.GetEvent(x => x.Name == onSourceEvent);
+            var targetEvent = targetTypeCache.GetEvent(x => x.Name == onTargetEvent);
+            var sourceProperty = sourceTypeCache.GetProperty(x => x.Name == sourcePropertyName);
+            var targetProperty = targetTypeCache.GetProperty(x => x.Name == targetPropertyName);
+
+            var pb = new PropertiesBinding<object, object, EventArgs, object, object, EventArgs>(source, sourceProperty, sourceEvent, (_, __) => true, target, targetProperty, targetEvent, (_, __) => true, sourceToTargetValueConverter, targetToSourceValueConverter, (_, __) => onPropertyChanged?.Invoke());
+            if (sourceEvent != null)
+            {
+                var eventHandlerType = sourceEvent.EventHandlerType;
+                var eventHandler = CreateEventHandlerDelegate<object, object>(eventHandlerType, pb.OnSourceEvent);
+                sourceEvent.AddEventHandler(source, eventHandler);
+                pb.SrcEventHandler = eventHandler;
+            }
+
+            if (targetEvent != null)
+            {
+                var eventHandlerType = targetEvent.EventHandlerType;
+                var eventHandler = CreateEventHandlerDelegate<object, object>(eventHandlerType, pb.OnTargetEvent);
+                targetEvent.AddEventHandler(target, eventHandler);
+                pb.DstEventHandler = eventHandler;
+            }
+
+            return pb;
+        }
+
         private sealed class EventBinding<TSource, TEventArgs> : IDisposable
         {
             private readonly Action<TSource, TEventArgs> action;
@@ -323,6 +421,9 @@ namespace RuntimeStuff.Helpers
 
                 this.eventInfo.RemoveEventHandler(this.target, this.ActionHandler);
                 this.disposed = true;
+
+                // Предотвращает вызов финализатора для этого объекта
+                GC.SuppressFinalize(this);
             }
 
             public void OnEvent(TSource source, TEventArgs args)

@@ -91,6 +91,89 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
+        /// Создает типобезопасную привязку между свойствами двух объектов с использованием выражений,
+        /// позволяя синхронизировать значения свойств при возникновении указанных событий.
+        /// </summary>
+        /// <remarks>
+        /// Метод поддерживает двустороннюю синхронизацию значений свойств.
+        /// При возникновении события у исходного объекта значение его свойства
+        /// передается в свойство целевого объекта. Аналогично, при возникновении
+        /// события у целевого объекта значение может быть передано обратно
+        /// в свойство источника.
+        ///
+        /// Для выбора свойств используются выражения (<see cref="Expression{TDelegate}"/>),
+        /// что обеспечивает проверку корректности свойств на этапе компиляции.
+        /// </remarks>
+        /// <typeparam name="TSource">Тип исходного объекта.</typeparam>
+        /// <typeparam name="TSourceProp">Тип свойства исходного объекта.</typeparam>
+        /// <typeparam name="TTarget">Тип целевого объекта.</typeparam>
+        /// <typeparam name="TTargetProp">Тип свойства целевого объекта.</typeparam>
+        /// <param name="source">Исходный объект.</param>
+        /// <param name="sourcePropertySelector">
+        /// Выражение, указывающее свойство исходного объекта,
+        /// значение которого будет синхронизироваться.
+        /// </param>
+        /// <param name="sourceEventName">
+        /// Имя события исходного объекта, при возникновении которого
+        /// значение свойства источника будет передано целевому объекту.
+        /// </param>
+        /// <param name="target">Целевой объект.</param>
+        /// <param name="targetPropertySelector">
+        /// Выражение, указывающее свойство целевого объекта,
+        /// значение которого будет синхронизироваться.
+        /// </param>
+        /// <param name="targetEventName">
+        /// Имя события целевого объекта, при возникновении которого
+        /// значение свойства целевого объекта будет передано обратно источнику.
+        /// </param>
+        /// <param name="sourcePropertyValueToTargetPropertyValueConverter">
+        /// Функция преобразования значения свойства источника в значение
+        /// свойства целевого объекта.
+        /// </param>
+        /// <param name="targetPropertyValueToSourcePropertyValueConverter">
+        /// Функция преобразования значения свойства целевого объекта
+        /// в значение свойства источника.
+        /// </param>
+        /// <param name="onPropertyChanged">
+        /// Делегат, вызываемый после изменения одного из связанных свойств.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отменить привязку
+        /// и отписаться от всех подписанных событий.
+        /// </returns>
+        public static IDisposable BindProperties<TSource, TSourceProp, TTarget, TTargetProp>(
+            this TSource source,
+            Expression<Func<TSource, TSourceProp>> sourcePropertySelector,
+            string sourceEventName,
+            TTarget target,
+            Expression<Func<TTarget, TTargetProp>> targetPropertySelector,
+            string targetEventName,
+            Func<TSourceProp, TTargetProp> sourcePropertyValueToTargetPropertyValueConverter,
+            Func<TTargetProp, TSourceProp> targetPropertyValueToSourcePropertyValueConverter,
+            Action<object, PropertyChangedEventArgs> onPropertyChanged = null)
+            where TSource : class
+            where TTarget : class
+        {
+            var srcProp = sourcePropertySelector.GetPropertyInfo();
+            var srcEvent = source.GetType().GetEvent(sourceEventName);
+            var targetProp = targetPropertySelector.GetPropertyInfo();
+            var targetEvent = target.GetType().GetEvent(targetEventName);
+
+            return EventHelper.BindProperties<TSource, TSourceProp, PropertyChangedEventArgs, TTarget, TTargetProp, PropertyChangedEventArgs>(
+                source,
+                srcProp,
+                srcEvent,
+                (s, e) => true,
+                target,
+                targetProp,
+                targetEvent,
+                (s, e) => true,
+                sourcePropertyValueToTargetPropertyValueConverter,
+                targetPropertyValueToSourcePropertyValueConverter,
+                onPropertyChanged);
+        }
+
+        /// <summary>
         /// Связывает свойства двух объектов с поддержкой уведомлений об изменении,
         /// обеспечивая синхронизацию значений между источником и целевым объектом.
         /// </summary>

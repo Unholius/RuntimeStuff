@@ -576,9 +576,6 @@ namespace RuntimeStuff.Helpers
                     }
 
                     break;
-
-                default:
-                    throw new NotSupportedException($"Expression '{exp.NodeType}' is not supported.");
             }
 
             throw new NotSupportedException($"Expression '{exp.NodeType}' is not supported.");

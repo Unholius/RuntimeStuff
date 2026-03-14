@@ -1,5 +1,6 @@
 using RuntimeStuff;
 using RuntimeStuff.Extensions;
+using RuntimeStuff.Helpers;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.SqlClient;
@@ -51,6 +52,8 @@ namespace TestWinFormsApp
             m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
             m.BindProperties(x => x.Number, m, x => x.Number);
             MessageBus.SingleThreaded.Subscribe<ServerMessage>(OnServerMessage, SynchronizationContext.Current);
+
+            EventHelper.BindProperties(textBox2, "Text", "TextChanged", label1, "Text");
         }
 
         private class ServerMessage

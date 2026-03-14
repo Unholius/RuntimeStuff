@@ -27,7 +27,6 @@ namespace RuntimeStuff.Collections
         /// Создаёт пустую коллекцию.
         /// </summary>
         public ObservableCollectionEx()
-            : base()
         {
         }
 

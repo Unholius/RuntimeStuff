@@ -1618,19 +1618,11 @@ namespace RuntimeStuff
         /// <summary>
         /// Получает метод по имени.
         /// </summary>
-        /// <param name="methodName">Имя метода.</param>
+        /// <param name="predicate">Имя метода.</param>
         /// <returns>MethodInfo или null, если метод не найден.</returns>
-        public MethodInfo GetMethod(string methodName)
+        public MethodInfo GetMethod(Func<MethodInfo, bool> predicate)
         {
-            if (string.IsNullOrWhiteSpace(methodName))
-            {
-                return null;
-            }
-
-            return this.memberMethodsMap.GetOrAdd(
-                methodName,
-                n => this.GetMethods().FirstOrDefault(x => x.Name.Equals(n)) ?? this.GetMethods().FirstOrDefault(x => x.Name.Equals(n, StringComparison.OrdinalIgnoreCase)),
-                a => a.Name);
+            return this.GetMethods().FirstOrDefault(predicate);
         }
 
         /// <summary>
@@ -1807,6 +1799,22 @@ namespace RuntimeStuff
         public override object[] GetCustomAttributes(Type attributeType, bool inherit) => this.MemberInfo.GetCustomAttributes(attributeType, inherit);
 
         /// <summary>
+        /// Возвращает первое событие текущего типа, удовлетворяющее указанному условию.
+        /// </summary>
+        /// <param name="predicate">
+        /// Условие отбора события. Функция должна возвращать <see langword="true"/>,
+        /// если событие подходит под критерий поиска.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="EventInfo"/>, удовлетворяющий условию,
+        /// либо <see langword="null"/>, если подходящее событие не найдено.
+        /// </returns>
+        public EventInfo GetEvent(Func<EventInfo, bool> predicate)
+        {
+            return this.GetEvents().FirstOrDefault(predicate);
+        }
+
+        /// <summary>
         /// Получает все события текущего типа.
         /// </summary>
         /// <returns>Массив событий.</returns>
@@ -1864,7 +1872,7 @@ namespace RuntimeStuff
             var childrenCache = Create(children);
             return childrenCache.ForeignKeys.FirstOrDefault(fk =>
             {
-                var nav = childrenCache.GetProperty(fk.ForeignKeyName);
+                var nav = childrenCache.GetProperty(x => x.Name == fk.ForeignKeyName);
                 return nav?.PropertyType == this.Type;
             });
         }
@@ -2114,9 +2122,9 @@ namespace RuntimeStuff
         /// <summary>
         /// Получает PropertyInfo для свойства с указанным именем.
         /// </summary>
-        /// <param name="propertyName">Имя свойства.</param>
+        /// <param name="predicate">Фильтр свойств.</param>
         /// <returns>PropertyInfo или null, если свойство не найдено.</returns>
-        public PropertyInfo GetProperty(string propertyName) => this[propertyName]?.AsPropertyInfo();
+        public MemberCache GetProperty(Func<MemberCache, bool> predicate) => this.Properties.FirstOrDefault(predicate);
 
         /// <summary>
         /// Получает все навигационные свойства (таблицы) текущего типа.

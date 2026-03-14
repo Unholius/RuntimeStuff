@@ -226,7 +226,7 @@ namespace RuntimeStuff
                 typeof(bool?),
             };
 
-            BasicTypes = new Type[]
+            BasicTypes = new[]
             {
                 typeof(object),
                 typeof(char), typeof(char?), typeof(string),
@@ -388,7 +388,7 @@ namespace RuntimeStuff
                 var itemType = collection.GetType().GenericTypeArguments.FirstOrDefault();
                 if (itemType == null)
                 {
-                    throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}<{itemType.Name}>");
+                    throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}");
                 }
 
                 item = New(itemType);
@@ -2883,12 +2883,12 @@ namespace RuntimeStuff
 
             if (!interfaceType.IsInterface)
             {
-                throw new ArgumentException($"{interfaceType} is not an interface", nameof(interfaceType));
+                throw new ArgumentException($@"{interfaceType} is not an interface", nameof(interfaceType));
             }
 
             if (implementationType.IsInterface)
             {
-                throw new ArgumentException($"{implementationType} cannot be an interface", nameof(implementationType));
+                throw new ArgumentException($@"{implementationType} cannot be an interface", nameof(implementationType));
             }
 
             // проверка generic-совместимости
