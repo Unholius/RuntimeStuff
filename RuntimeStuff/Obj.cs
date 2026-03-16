@@ -385,12 +385,7 @@ namespace RuntimeStuff
 
             if (item == null)
             {
-                var itemType = collection.GetType().GenericTypeArguments.FirstOrDefault();
-                if (itemType == null)
-                {
-                    throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}");
-                }
-
+                var itemType = collection.GetType().GenericTypeArguments.FirstOrDefault() ?? throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}");
                 item = New(itemType);
             }
 
@@ -898,6 +893,11 @@ namespace RuntimeStuff
         public static Func<object, object> CreatePropertyGetter(PropertyInfo pi)
         {
             var getter = pi.GetGetMethod(true);
+            if (getter == null)
+            {
+                return null;
+            }
+
             var declaring = pi.DeclaringType;
             var propertyType = pi.PropertyType;
 
@@ -1513,9 +1513,8 @@ namespace RuntimeStuff
                 return dictionaryInterface.GetGenericArguments()[1];
             }
 
-            // IEnumerable<T>
-            var enumerableInterface = type
-                .GetInterfaces()
+            var interfaces = type.GetInterfaces();
+            var enumerableInterface = interfaces
                 .FirstOrDefault(i =>
                     i.IsGenericType &&
                     i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
@@ -1523,6 +1522,16 @@ namespace RuntimeStuff
             if (enumerableInterface != null)
             {
                 return enumerableInterface.GetGenericArguments()[0];
+            }
+
+            enumerableInterface = interfaces
+                .FirstOrDefault(i =>
+                    i == typeof(IEnumerable));
+
+            var indexProperties = GetProperties(type).Where(p => p.GetIndexParameters().Length > 0 && p.PropertyType != typeof(object)).ToArray();
+            if (enumerableInterface != null && indexProperties.Length == 1)
+            {
+                return indexProperties[0].PropertyType;
             }
 
             return null;

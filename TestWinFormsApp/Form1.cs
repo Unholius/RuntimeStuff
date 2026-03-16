@@ -20,40 +20,42 @@ namespace TestWinFormsApp
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            var sw = new Stopwatch();
-            sw.Start();
-            var formCache = MemberCache.Create(this.GetType());
-            for (var i = 0; i < 1_000_000; i++)
-            {
-                formCache = MemberCache.Create(this.GetType());
-                var p = formCache["BackgroundImageLayout"];
-            }
-            sw.Stop();
-            var ms1 = sw.ElapsedMilliseconds;
+            //var sw = new Stopwatch();
+            //sw.Start();
+            //var formCache = MemberCache.Create(this.GetType());
+            //for (var i = 0; i < 1_000_000; i++)
+            //{
+            //    formCache = MemberCache.Create(this.GetType());
+            //    var p = formCache["BackgroundImageLayout"];
+            //}
+            //sw.Stop();
+            //var ms1 = sw.ElapsedMilliseconds;
 
-            sw.Restart();
-            var count1 = formCache.CachedMembersCount;
-            formCache.CreateInternalCaches();
-            formCache.CreateInternalCaches();
-            var count2 = formCache.CachedMembersCount;
-            sw.Stop();
-            var ms2 = sw.ElapsedMilliseconds;
-            btnMemberCacheAllMembers.BindEventToAction(nameof(Button.Click), BtnClick);
-            textBox1.BindEventToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, () => checkBox1.Checked);
-            m.BindPropertiesOnEvents("PropertyChanged", x => x.Text, textBox1, nameof(TextBox.TextChanged), x => x.Text, (s, e) => propertyGrid1.Refresh());
-            m.Text = "123";
-            propertyGrid1.SelectedObject = m;
-            var oc = new ObservableCollection<object>();
-            oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
-            textBox1.BindToPropertyOnEvent(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
+            //sw.Restart();
+            //var count1 = formCache.CachedMembersCount;
+            //formCache.CreateInternalCaches();
+            //formCache.CreateInternalCaches();
+            //var count2 = formCache.CachedMembersCount;
+            //sw.Stop();
+            //var ms2 = sw.ElapsedMilliseconds;
+            //btnMemberCacheAllMembers.BindEventToAction(nameof(Button.Click), BtnClick);
+            //textBox1.BindEventToAction(nameof(TextBox.EnabledChanged), TextBoxEnabledChanged, () => checkBox1.Checked);
+            //m.BindPropertiesOnEvents("PropertyChanged", x => x.Text, textBox1, nameof(TextBox.TextChanged), x => x.Text, (s, e) => propertyGrid1.Refresh());
+            //m.Text = "123";
+            //propertyGrid1.SelectedObject = m;
+            //var oc = new ObservableCollection<object>();
+            //oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
+            //textBox1.BindToPropertyOnEvent(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
 
-            Obj.Set(dataGridView1, "DoubleBuffered", true);
-            _ = m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled, x => !x);
-            m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
-            m.BindProperties(x => x.Number, m, x => x.Number);
-            MessageBus.SingleThreaded.Subscribe<ServerMessage>(OnServerMessage, SynchronizationContext.Current);
+            //Obj.Set(dataGridView1, "DoubleBuffered", true);
+            //_ = m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled, x => !x);
+            //m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
+            //m.BindProperties(x => x.Number, m, x => x.Number);
+            //MessageBus.SingleThreaded.Subscribe<ServerMessage>(OnServerMessage, SynchronizationContext.Current);
 
-            EventHelper.BindProperties(textBox2, "Text", "TextChanged", label1, "Text");
+            ////EventHelper.BindProperties(textBox2, "Text", "TextChanged", label1, "Text");
+            EventHelper.BindEventToAction(textBox2, "TextChanged", () => label1.Text = textBox2.Text);
+            EventHelper.BindProperties(dataGridView1, "SelectedCells.Count", "SelectionChanged", btnLoad, "Text");
         }
 
         private class ServerMessage
@@ -94,10 +96,6 @@ namespace TestWinFormsApp
             btnOpenForm2.Text = message;
         }
 
-        private void BindCollectionChangedToAction(object sender, object args)
-        {
-        }
-
         private readonly Model m = new();
 
         private void TextBoxEnabledChanged(object sender, object e)
@@ -124,16 +122,20 @@ namespace TestWinFormsApp
             {
                 m.IsFree = false;
                 var dt = new DataTable();
-                using (var con = new SqlConnection().Server("serv40").Database("Tamuz").TrustCertificate(true).IntegratedSecurity(true))
+                using (var con = new SqlConnection().Server("NAS\\RSSQLSERVER").Database("musiclib").TrustCertificate(true).IntegratedSecurity(true))
                 {
-                    dt = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
+                    dt = await con.ToDataTableAsync("select id,width,height,size from artwork", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
                     dataGridView1.DataSource = dt;
                 }
-                m.IsFree = true;
+
             }
             catch (Exception ex)
             {
                 throw; // TODO handle exception
+            }
+            finally
+            {
+                m.IsFree = true;
             }
         }
 
@@ -164,6 +166,11 @@ namespace TestWinFormsApp
         {
             MessageBus.SingleThreaded.StopServer(12345);
             listBox1.Items.Add("Server stopped");
+        }
+
+        private void dataGridView1_SelectionChanged(object sender, EventArgs e)
+        {
+
         }
     }
 

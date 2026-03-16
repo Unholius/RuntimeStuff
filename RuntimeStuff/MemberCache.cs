@@ -1378,6 +1378,39 @@ namespace RuntimeStuff
         }
 
         /// <summary>
+        /// Получает значения объектов по заданному пути к свойствам.
+        /// </summary>
+        /// <param name="source">Объект, из которого извлекаются значения.</param>
+        /// <param name="path">Массив <see cref="MemberCache"/>, представляющий последовательность свойств для извлечения.</param>
+        /// <returns>
+        /// Массив значений объектов, соответствующих каждому элементу пути.
+        /// Если хотя бы одно значение по пути равно <c>null</c>, возвращается пустой массив.
+        /// </returns>
+        /// <remarks>
+        /// Метод проходит по каждому элементу пути, вызывая <see cref="MemberCache.GetValue(object)"/> для текущего объекта.
+        /// Текущий объект обновляется на значение предыдущего элемента пути.
+        /// </remarks>
+        public static object[] GetValues(object source, MemberCache[] path)
+        {
+            var values = new object[path.Length];
+            var x = source;
+            var i = 0;
+            foreach (var pathItem in path)
+            {
+                var v = pathItem.GetValue(x);
+                if (v == null)
+                {
+                    return Array.Empty<object>();
+                }
+
+                values[i++] = v;
+                x = v;
+            }
+
+            return values;
+        }
+
+        /// <summary>
         /// Создает или получает из кэша экземпляр MemberCache для указанного MemberInfo.
         /// </summary>
         /// <param name="memberInfo">Информация о члене типа.</param>
@@ -2125,6 +2158,55 @@ namespace RuntimeStuff
         /// <param name="predicate">Фильтр свойств.</param>
         /// <returns>PropertyInfo или null, если свойство не найдено.</returns>
         public MemberCache GetProperty(Func<MemberCache, bool> predicate) => this.Properties.FirstOrDefault(predicate);
+
+        /// <summary>
+        /// Получает последовательность кэшей членов (MemberCache) по заданному пути к свойству.
+        /// </summary>
+        /// <param name="pathToProperty">Строка, представляющая путь к свойству, элементы пути разделены символом <paramref name="nameDelimiter"/>.</param>
+        /// <param name="nameDelimiter">Символ, используемый для разделения имен свойств в пути. По умолчанию '.'.</param>
+        /// <param name="returnIncompletePath">
+        /// Если <c>true</c>, возвращает путь до первого отсутствующего элемента, если <c>false</c>, возвращает пустой массив в случае отсутствия любого элемента.
+        /// </param>
+        /// <returns>Массив объектов <see cref="MemberCache"/> представляющий путь к свойству. Может быть пустым, если путь не найден и <paramref name="returnIncompletePath"/> = <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="pathToProperty"/> равен <c>null</c> или пустой строке.</exception>
+        /// <exception cref="ArgumentException">Выбрасывается, если <paramref name="nameDelimiter"/> является символом '\0'.</exception>
+        public MemberCache[] GetPath(string pathToProperty, char nameDelimiter = '.', bool returnIncompletePath = true)
+        {
+            if (string.IsNullOrEmpty(pathToProperty))
+            {
+                throw new ArgumentNullException(nameof(pathToProperty));
+            }
+
+            if (nameDelimiter == '\0')
+            {
+                throw new ArgumentException("Недопустимый разделитель имен", nameof(nameDelimiter));
+            }
+
+            var pathNames = pathToProperty.Split(nameDelimiter);
+            var p = this;
+            var path = new List<MemberCache>();
+            foreach (var name in pathNames)
+            {
+                if (p.IsCollection && int.TryParse(name, out var idx))
+                {
+                    p = p.ElementType;
+                    continue;
+                }
+                else
+                {
+                    p = p.GetProperty(x => x.Name == name);
+                }
+
+                if (p == null)
+                {
+                    return returnIncompletePath ? path.ToArray() : Array.Empty<MemberCache>();
+                }
+
+                path.Add(p);
+            }
+
+            return path.ToArray();
+        }
 
         /// <summary>
         /// Получает все навигационные свойства (таблицы) текущего типа.

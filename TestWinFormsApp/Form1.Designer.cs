@@ -35,6 +35,8 @@
             propertyGrid1 = new PropertyGrid();
             textBox1 = new TextBox();
             checkBox1 = new CheckBox();
+            textBox2 = new TextBox();
+            label1 = new Label();
             tabPage2 = new TabPage();
             dataGridView1 = new DataGridView();
             btnLoad = new Button();
@@ -47,8 +49,6 @@
             listBox1 = new ListBox();
             tabPage4 = new TabPage();
             webView21 = new Microsoft.Web.WebView2.WinForms.WebView2();
-            textBox2 = new TextBox();
-            label1 = new Label();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
@@ -133,6 +133,22 @@
             checkBox1.Text = "Четное?";
             checkBox1.UseVisualStyleBackColor = true;
             // 
+            // textBox2
+            // 
+            textBox2.Location = new Point(3, 485);
+            textBox2.Name = "textBox2";
+            textBox2.Size = new Size(100, 23);
+            textBox2.TabIndex = 4;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(3, 511);
+            label1.Name = "label1";
+            label1.Size = new Size(38, 15);
+            label1.TabIndex = 5;
+            label1.Text = "label1";
+            // 
             // tabPage2
             // 
             tabPage2.Controls.Add(dataGridView1);
@@ -153,6 +169,7 @@
             dataGridView1.Name = "dataGridView1";
             dataGridView1.Size = new Size(1231, 598);
             dataGridView1.TabIndex = 0;
+            dataGridView1.SelectionChanged += dataGridView1_SelectionChanged;
             dataGridView1.Click += dataGridView1_Click;
             // 
             // btnLoad
@@ -265,22 +282,6 @@
             webView21.Size = new Size(1231, 621);
             webView21.TabIndex = 0;
             webView21.ZoomFactor = 1D;
-            // 
-            // textBox2
-            // 
-            textBox2.Location = new Point(3, 485);
-            textBox2.Name = "textBox2";
-            textBox2.Size = new Size(100, 23);
-            textBox2.TabIndex = 4;
-            // 
-            // label1
-            // 
-            label1.AutoSize = true;
-            label1.Location = new Point(3, 511);
-            label1.Name = "label1";
-            label1.Size = new Size(38, 15);
-            label1.TabIndex = 5;
-            label1.Text = "label1";
             // 
             // Form1
             // 

@@ -7,6 +7,7 @@ namespace RuntimeStuff.Helpers
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
+    using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
 
@@ -166,7 +167,7 @@ namespace RuntimeStuff.Helpers
             where TSourceEventArgs : EventArgs
             where TTargetEventArgs : EventArgs
         {
-            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, sourceProperty, sourceEvent, canAcceptSourceEvent, target, targetProperty, targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter, onPropertyChanged);
+            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, new[] { (MemberCache)sourceProperty }, sourceEvent, canAcceptSourceEvent, target, new[] { (MemberCache)targetProperty }, targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter, onPropertyChanged);
             if (sourceEvent != null)
             {
                 var eventHandlerType = sourceEvent.EventHandlerType;
@@ -292,6 +293,90 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Подписывает указанное действие на событие объекта.
+        /// </summary>
+        /// <remarks>
+        /// Метод выполняет динамическую подписку на событие по его имени.
+        /// При возникновении события будет вызван указанный делегат <paramref name="action"/>.
+        /// Возвращаемый объект <see cref="IDisposable"/> позволяет отменить подписку
+        /// и корректно отписаться от события.
+        /// </remarks>
+        /// <param name="source">Объект, содержащий событие.</param>
+        /// <param name="eventName">Имя события, на которое необходимо подписаться.</param>
+        /// <param name="action">
+        /// Действие, которое будет вызвано при возникновении события.
+        /// Первый параметр — отправитель события (<c>sender</c>),
+        /// второй параметр — аргументы события.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отменить подписку
+        /// и удалить обработчик события.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> или <paramref name="action"/> равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если <paramref name="eventName"/> равен <see langword="null"/> или пустой строке.
+        /// </exception>
+        public static IDisposable BindEventToAction(object source, string eventName, Action action)
+        {
+            return BindEventToAction(source, eventName, (s, e) => action());
+        }
+
+        /// <summary>
+        /// Подписывает указанное действие на событие объекта.
+        /// </summary>
+        /// <remarks>
+        /// Метод выполняет динамическую подписку на событие по его имени.
+        /// При возникновении события будет вызван указанный делегат <paramref name="action"/>.
+        /// Возвращаемый объект <see cref="IDisposable"/> позволяет отменить подписку
+        /// и корректно отписаться от события.
+        /// </remarks>
+        /// <param name="source">Объект, содержащий событие.</param>
+        /// <param name="eventName">Имя события, на которое необходимо подписаться.</param>
+        /// <param name="action">
+        /// Действие, которое будет вызвано при возникновении события.
+        /// Первый параметр — отправитель события (<c>sender</c>),
+        /// второй параметр — аргументы события.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отменить подписку
+        /// и удалить обработчик события.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> или <paramref name="action"/> равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если <paramref name="eventName"/> равен <see langword="null"/> или пустой строке.
+        /// </exception>
+        public static IDisposable BindEventToAction(object source, string eventName, Action<object, object> action)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (string.IsNullOrEmpty(eventName))
+            {
+                throw new ArgumentException("Value cannot be null or empty.", nameof(eventName));
+            }
+
+            if (action == null)
+            {
+                throw new ArgumentNullException(nameof(action));
+            }
+
+            var sourceTypeCache = MemberCache.Create(source.GetType());
+            var sourceEvent = sourceTypeCache.GetEvent(x => x.Name == eventName);
+            var binding = new EventBinding<object, object>(source, sourceEvent, action, (_, __) => true);
+            var handler = CreateEventHandlerDelegate<object, object>(sourceEvent.EventHandlerType, binding.OnEvent);
+            binding.ActionHandler = handler;
+            sourceEvent.AddEventHandler(source, handler);
+
+            return binding;
+        }
+
+        /// <summary>
         /// Создает привязку между свойствами двух объектов с возможностью синхронизации их значений
         /// через указанные события.
         /// </summary>
@@ -366,8 +451,13 @@ namespace RuntimeStuff.Helpers
             var targetTypeCache = MemberCache.Create(target.GetType());
             var sourceEvent = sourceTypeCache.GetEvent(x => x.Name == onSourceEvent);
             var targetEvent = targetTypeCache.GetEvent(x => x.Name == onTargetEvent);
-            var sourceProperty = sourceTypeCache.GetProperty(x => x.Name == sourcePropertyName);
-            var targetProperty = targetTypeCache.GetProperty(x => x.Name == targetPropertyName);
+            var sourceProperty = sourceTypeCache.GetPath(sourcePropertyName, '.', false);
+            var targetProperty = targetTypeCache.GetPath(targetPropertyName, '.', false);
+
+            if (sourceProperty == null || sourceProperty.Length == 0)
+            {
+                throw new InvalidOperationException("Source property not found: " + sourcePropertyName);
+            }
 
             var pb = new PropertiesBinding<object, object, EventArgs, object, object, EventArgs>(source, sourceProperty, sourceEvent, (_, __) => true, target, targetProperty, targetEvent, (_, __) => true, sourceToTargetValueConverter, targetToSourceValueConverter, (_, __) => onPropertyChanged?.Invoke());
             if (sourceEvent != null)
@@ -449,20 +539,20 @@ namespace RuntimeStuff.Helpers
             private bool disposed;
             private WeakReference source;
             private EventInfo sourceEvent;
-            private PropertyInfo sourcePropertyInfo;
+            private MemberCache[] sourcePropertyInfo;
             private Func<TSrcValue, TTargetValue> sourceToTargetConverter;
             private WeakReference target;
             private EventInfo targetEvent;
-            private PropertyInfo targetPropertyInfo;
+            private MemberCache[] targetPropertyInfo;
             private Func<TTargetValue, TSrcValue> targetToSourceConverter;
 
             public PropertiesBinding(
                 object src,
-                PropertyInfo srcPropInfo,
+                MemberCache[] srcPropInfo,
                 EventInfo sourceEvent,
                 Func<TSrc, TSrcArgs, bool> canAcceptSourceEvent,
                 object target,
-                PropertyInfo targetPropInfo,
+                MemberCache[] targetPropInfo,
                 EventInfo targetEvent,
                 Func<TTarget, TTargetArgs, bool> canAcceptTargetEvent,
                 Func<TSrcValue, TTargetValue> sourceToTargetConverter,
@@ -531,7 +621,7 @@ namespace RuntimeStuff.Helpers
 
             internal void OnSourceEvent(object sender, object args)
             {
-                if (this.canAcceptSourceEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != this.sourcePropertyInfo.Name)
+                if (this.canAcceptSourceEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != this.sourcePropertyInfo[this.sourcePropertyInfo.Length - 1].Name)
                 {
                     return;
                 }
@@ -549,25 +639,25 @@ namespace RuntimeStuff.Helpers
 
                 if (this.target.Target != null)
                 {
-                    var senderValue = this.sourcePropertyInfo.GetValue(sender);
-                    var targetValue = this.targetPropertyInfo.GetValue(this.target.Target);
+                    var senderValue = MemberCache.GetValues(sender, this.sourcePropertyInfo);
+                    var targetValue = MemberCache.GetValues(this.target.Target, this.targetPropertyInfo);
                     var convertedValue = this.sourceToTargetConverter != null
-                        ? this.sourceToTargetConverter((TSrcValue)senderValue)
-                        : senderValue;
-                    if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue, (TTargetValue)convertedValue))
+                        ? this.sourceToTargetConverter((TSrcValue)senderValue.Last())
+                        : senderValue.Last();
+                    if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue.Last(), (TTargetValue)convertedValue))
                     {
                         return;
                     }
 
-                    this.targetPropertyInfo.SetValue(this.target.Target, convertedValue);
+                    this.targetPropertyInfo[this.targetPropertyInfo.Length - 1].SetValue(this.targetPropertyInfo.Length == 1 ? this.target.Target : targetValue[targetValue.Length - 2], convertedValue);
                 }
 
-                this.onPropertyChanged?.Invoke(this.target.Target, new PropertyChangedEventArgs(this.targetPropertyInfo.Name));
+                this.onPropertyChanged?.Invoke(this.target.Target, new PropertyChangedEventArgs(this.targetPropertyInfo[this.targetPropertyInfo.Length - 1].Name));
             }
 
             internal void OnTargetEvent(object sender, object args)
             {
-                if (this.canAcceptTargetEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != this.sourcePropertyInfo.Name)
+                if (this.canAcceptTargetEvent == null && args is PropertyChangedEventArgs pc && pc.PropertyName != this.sourcePropertyInfo[this.sourcePropertyInfo.Length - 1].Name)
                 {
                     return;
                 }
@@ -583,18 +673,18 @@ namespace RuntimeStuff.Helpers
                     return;
                 }
 
-                var senderValue = this.targetPropertyInfo.GetValue(sender);
-                var targetValue = this.sourcePropertyInfo.GetValue(this.source.Target);
+                var sourceValue = MemberCache.GetValues(sender, this.targetPropertyInfo);
+                var targetValue = MemberCache.GetValues(this.source.Target, this.sourcePropertyInfo);
                 var convertedValue = this.targetToSourceConverter != null
-                    ? this.targetToSourceConverter((TTargetValue)senderValue)
-                    : senderValue;
-                if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue, (TSrcValue)convertedValue))
+                    ? this.targetToSourceConverter((TTargetValue)sourceValue.Last())
+                    : sourceValue.Last();
+                if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue.Last(), (TSrcValue)convertedValue))
                 {
                     return;
                 }
 
-                this.sourcePropertyInfo.SetValue(this.source.Target, convertedValue);
-                this.onPropertyChanged?.Invoke(this.source.Target, new PropertyChangedEventArgs(this.sourcePropertyInfo.Name));
+                this.sourcePropertyInfo[this.sourcePropertyInfo.Length - 1].SetValue(this.sourcePropertyInfo.Length == 1 ? this.source.Target : sourceValue[sourceValue.Length - 2], convertedValue);
+                this.onPropertyChanged?.Invoke(this.source.Target, new PropertyChangedEventArgs(this.sourcePropertyInfo[this.sourcePropertyInfo.Length - 1].Name));
             }
         }
     }
