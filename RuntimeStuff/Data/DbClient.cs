@@ -232,7 +232,7 @@ namespace RuntimeStuff.Data
         public static DbClient<T> Create<T>(string connectionString, DbEntityMap map = null)
             where T : IDbConnection, new()
         {
-            var dbClient = DbClient<T>.Create(connectionString, map);
+            var dbClient = DbClient.Create<T>(connectionString, map);
             return dbClient;
         }
 
@@ -317,7 +317,7 @@ namespace RuntimeStuff.Data
 
             // Ищем параметры вида @ParamName
             // Исключаем @@Something
-            var pattern = $@"(?<!{escapedPrefix}){escapedPrefix}([A-Za-z_][A-Za-z0-9_]*)";
+            var pattern = $@"(?<!{escapedPrefix}){escapedPrefix}([A-Za-z0-9_]*)";
 
             var matches = Regex.Matches(sql, pattern);
             if (!returnWithPrefix)
@@ -657,57 +657,89 @@ namespace RuntimeStuff.Data
             cmd.CommandTimeout = commandTimeOut ?? this.DefaultCommandTimeout;
             cmd.CommandType = CommandType.Text;
             cmd.Transaction = dbTransaction;
-            var parameterNames = GetParameterNames(query, this.Options.ParamPrefix);
-            var parameters = this.GetParams(cmdParams, parameterNames);
 
-            if (cmdParams != null)
+            switch (cmdParams)
             {
-                if (!(cmdParams is IEnumerable<KeyValuePair<string, object>>))
-                {
-                    var cmdParamsCache = cmdParams.GetType().GetMemberCache();
-                    foreach (var arrProp in cmdParamsCache.PublicBasicEnumerableProperties)
-                    {
-                        var arr = (arrProp.Getter(cmdParams) as IEnumerable)?.Cast<object>();
-                        if (arr != null)
-                        {
-                            cmd.CommandText = cmd.CommandText.Replace("@" + arrProp.Name, string.Join(", ", arr.Select((x, i) => $"@{arrProp.Name}_{i}")));
-                        }
-                    }
-                }
+                case DbParameter dbp:
+                    cmd.Parameters.Add(dbp);
+                    break;
 
-                foreach (var cp in parameters)
-                {
-                    var p = cmd.CreateParameter();
-                    var paramTypeCache = p.GetType().GetMemberCache();
-                    p.ParameterName = cp.Key;
-                    var valueType = cp.Value?.GetType().GetMemberCache();
-                    if (valueType != null && valueType.IsClass)
+                case IEnumerable<DbParameter> dbParams:
+                    foreach (DbParameter dbParam in dbParams)
                     {
-                        if (valueType == typeof(DataTable))
-                        {
-                            try
-                            {
-                                p.Value = cp.Value;
-                                paramTypeCache["SqlDbType"].SetValue(p, SqlDbType.Structured, (x) => x);
-                                paramTypeCache["TypeName"].SetValue(p, ((DataTable)cp.Value).TableName.Coalesce(p.ParameterName), (x) => x);
-                            }
-                            catch (Exception ex)
-                            {
-                                Debug.WriteLine(ex);
-                            }
-                        }
-                        else
-                        {
-                            p.Value = cp.Value.ToString();
-                        }
-                    }
-                    else
-                    {
-                        p.Value = cp.Value ?? DBNull.Value;
+                        cmd.Parameters.Add(dbParam);
                     }
 
-                    cmd.Parameters.Add(p);
-                }
+                    break;
+
+                case DbParameterCollection dbParams:
+                    foreach (DbParameter dbParam in dbParams)
+                    {
+                        cmd.Parameters.Add(dbParam);
+                    }
+
+                    break;
+
+                default:
+                    var parameterNames = GetParameterNames(query, this.Options.ParamPrefix);
+                    var parameters = this.GetParams(cmdParams, parameterNames);
+
+                    if (parameterNames.Length == 0 && parameters.Count > 0)
+                    {
+                        cmd.CommandText += " " + string.Join(", ", parameters.Select(x => this.Options.ParamPrefix + x.Key + " = " + this.Options.ParamPrefix + x.Key));
+                    }
+
+                    if (cmdParams != null)
+                    {
+                        if (!(cmdParams is IEnumerable<KeyValuePair<string, object>>))
+                        {
+                            var cmdParamsCache = cmdParams.GetType().GetMemberCache();
+                            foreach (var arrProp in cmdParamsCache.PublicBasicEnumerableProperties)
+                            {
+                                var arr = (arrProp.Getter(cmdParams) as IEnumerable)?.Cast<object>();
+                                if (arr != null)
+                                {
+                                    cmd.CommandText = cmd.CommandText.Replace("@" + arrProp.Name, string.Join(", ", arr.Select((x, i) => $"@{arrProp.Name}_{i}")));
+                                }
+                            }
+                        }
+
+                        foreach (var cp in parameters)
+                        {
+                            var p = cmd.CreateParameter();
+                            var paramTypeCache = p.GetType().GetMemberCache();
+                            p.ParameterName = cp.Key;
+                            var valueType = cp.Value?.GetType().GetMemberCache();
+                            if (valueType != null && valueType.IsClass)
+                            {
+                                if (valueType == typeof(DataTable))
+                                {
+                                    try
+                                    {
+                                        p.Value = cp.Value;
+                                        paramTypeCache["SqlDbType"].SetValue(p, SqlDbType.Structured, (x) => x);
+                                        paramTypeCache["TypeName"].SetValue(p, ((DataTable)cp.Value).TableName.Coalesce(p.ParameterName), (x) => x);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Debug.WriteLine(ex);
+                                    }
+                                }
+                                else
+                                {
+                                    p.Value = cp.Value.ToString();
+                                }
+                            }
+                            else
+                            {
+                                p.Value = cp.Value ?? DBNull.Value;
+                            }
+
+                            cmd.Parameters.Add(p);
+                        }
+                    }
+
+                    break;
             }
 
             if (this.tr?.Value != null && cmd.Transaction == null)
@@ -1558,7 +1590,7 @@ namespace RuntimeStuff.Data
 
                         foreach (var i in e)
                         {
-                            parameters[key.GetValue<string>(i)] = val.GetValue(i);
+                            parameters[key.ConvertValue<string>(i)] = val.GetValue(i);
                         }
 
                         break;
@@ -1573,7 +1605,7 @@ namespace RuntimeStuff.Data
                             var val = memberCache["Value"] ??
                                       memberCache["Item2", MemberTypes.Field];
 
-                            parameters[key.GetValue<string>(cmdParams)] = val.GetValue(cmdParams);
+                            parameters[key.ConvertValue<string>(cmdParams)] = val.GetValue(cmdParams);
                         }
                         else
                         {
@@ -4011,9 +4043,10 @@ namespace RuntimeStuff.Data
         /// <param name="token">The token.</param>
         /// <param name="replacement">The replacement.</param>
         /// <returns>System.String.</returns>
-        private static string ReplaceParameterToken(string sql, string token, string replacement) => Regex.Replace(
+        private static string ReplaceParameterToken(string sql, string token, string replacement) =>
+            Regex.Replace(
                 sql,
-                $@"(?<![\w@]){Regex.Escape(token)}(?!\w)",
+                $@"(?<==\s*){Regex.Escape(token)}(?!\w)",
                 replacement,
                 RegexOptions.CultureInvariant);
 

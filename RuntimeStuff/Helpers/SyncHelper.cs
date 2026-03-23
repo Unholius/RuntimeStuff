@@ -1,418 +1,498 @@
-﻿//namespace RuntimeStuff.Helpers
-//{
-//    using System;
-//    using System.Collections.Concurrent;
-//    using System.Collections.Generic;
-//    using System.Linq;
-//    using System.Threading;
-//    using System.Threading.Tasks;
+﻿// <copyright file="SyncHelper.cs" company="Rudnev Sergey">
+// Copyright (c) Rudnev Sergey. All rights reserved.
+// </copyright>
 
-//    /// <summary>
-//    /// Provides synchronization helpers for waiting on events with typed status codes.
-//    /// Thread-safe implementation for managing async event waiters and parameters.
-//    /// </summary>
-//    /// <typeparam name="T">Enum type representing possible status values</typeparam>
-//    public static class SyncHelper<T> where T : struct, Enum
-//    {
-//        private static readonly ConcurrentDictionary<string, TaskCompletionSource<EventResult>> Waiters
-//            = new ConcurrentDictionary<string, TaskCompletionSource<EventResult>>();
+namespace RuntimeStuff.Helpers
+{
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading;
+    using System.Threading.Tasks;
 
-//        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, object>> EventParams
-//            = new ConcurrentDictionary<string, ConcurrentDictionary<string, object>>();
+    /// <summary>
+    /// Предоставляет статические методы для синхронизации и ожидания событий с поддержкой параметров и таймаутов.
+    /// </summary>
+    /// <typeparam name="T">Тип перечисления, определяющий возможные статусы события.</typeparam>
+    public static class SyncHelper<T>
+        where T : struct, Enum
+    {
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, object>> EventParams
+            = new ConcurrentDictionary<string, ConcurrentDictionary<string, object>>();
 
-//        /// <summary>
-//        /// Metrics and monitoring for the SyncHelper.
-//        /// </summary>
-//        public static class Metrics
-//        {
-//            /// <summary>Gets the number of active waiters.</summary>
-//            public static int ActiveWaitersCount => Waiters.Count;
+        private static readonly ConcurrentDictionary<string, TaskCompletionSource<EventResult>> Waiters
+                    = new ConcurrentDictionary<string, TaskCompletionSource<EventResult>>();
 
-//            /// <summary>Gets the number of active event parameters collections.</summary>
-//            public static int ActiveParamsCount => EventParams.Count;
+        /// <summary>
+        /// Отменяет все ожидающие события, соответствующие указанному предикату.
+        /// </summary>
+        /// <param name="eventIdPredicate">Предикат для фильтрации идентификаторов событий. Если null, отменяются все ожидания.</param>
+        /// <returns>Количество отмененных ожиданий.</returns>
+        public static int CancelAllWaiting(Func<string, bool> eventIdPredicate = null)
+        {
+            int count = 0;
+            var keysToRemove = Waiters.Keys
+                .Where(k => eventIdPredicate == null || eventIdPredicate(k))
+                .ToList();
 
-//            /// <summary>Occurs when a waiter completes successfully.</summary>
-//            public static event EventHandler<string> WaiterCompleted;
+            foreach (var key in keysToRemove)
+            {
+                if (Waiters.TryRemove(key, out var tcs))
+                {
+                    tcs.TrySetCanceled();
+                    CleanupEventParams(key);
+                    Metrics.OnWaiterCancelled(key);
+                    count++;
+                }
+            }
 
-//            /// <summary>Occurs when a waiter is cancelled.</summary>
-//            public static event EventHandler<string> WaiterCancelled;
+            return count;
+        }
 
-//            /// <summary>Occurs when a waiter times out.</summary>
-//            public static event EventHandler<string> WaiterTimedOut;
+        /// <summary>
+        /// Отменяет ожидание указанного события.
+        /// </summary>
+        /// <param name="eventId">Идентификатор события.</param>
+        /// <returns>true, если ожидание было успешно отменено; в противном случае false.</returns>
+        /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+        public static bool CancelWait(string eventId)
+        {
+            if (eventId == null)
+            {
+                throw new ArgumentNullException(nameof(eventId));
+            }
 
-//            internal static void OnWaiterCompleted(string eventId) =>
-//                WaiterCompleted?.Invoke(null, eventId);
+            if (Waiters.TryRemove(eventId, out var tcs))
+            {
+                CleanupEventParams(eventId);
+                var result = tcs.TrySetCanceled();
+                if (result)
+                {
+                    Metrics.OnWaiterCancelled(eventId);
+                }
 
-//            internal static void OnWaiterCancelled(string eventId) =>
-//                WaiterCancelled?.Invoke(null, eventId);
+                return result;
+            }
 
-//            internal static void OnWaiterTimedOut(string eventId) =>
-//                WaiterTimedOut?.Invoke(null, eventId);
-//        }
+            return false;
+        }
 
-//        /// <summary>
-//        /// Cancels a waiting operation for the specified event.
-//        /// </summary>
-//        /// <param name="eventId">Unique identifier for the event</param>
-//        /// <returns>True if the waiter was found and cancelled; otherwise, false</returns>
-//        /// <exception cref="ArgumentNullException">Thrown if eventId is null</exception>
-//        public static bool CancelWait(string eventId)
-//        {
-//            if (eventId == null)
-//                throw new ArgumentNullException(nameof(eventId));
+        /// <summary>
+        /// Очищает все ожидающие события и их параметры.
+        /// </summary>
+        public static void ClearAll()
+        {
+            var waitersSnapshot = Waiters.ToArray();
+            Waiters.Clear();
 
-//            if (Waiters.TryRemove(eventId, out var tcs))
-//            {
-//                CleanupEventParams(eventId);
-//                var result = tcs.TrySetCanceled();
-//                if (result)
-//                    Metrics.OnWaiterCancelled(eventId);
-//                return result;
-//            }
+            foreach (var kv in waitersSnapshot)
+            {
+                kv.Value.TrySetCanceled();
+                Metrics.OnWaiterCancelled(kv.Key);
+            }
 
-//            return false;
-//        }
+            var paramsSnapshot = EventParams.ToArray();
+            EventParams.Clear();
 
-//        /// <summary>
-//        /// Cancels all waiting operations that match the optional predicate.
-//        /// </summary>
-//        /// <param name="eventIdPredicate">Optional predicate to filter event IDs. If null, cancels all.</param>
-//        /// <returns>Number of cancelled waiters</returns>
-//        public static int CancelAllWaiting(Func<string, bool> eventIdPredicate = null)
-//        {
-//            int count = 0;
-//            var keysToRemove = Waiters.Keys
-//                .Where(k => eventIdPredicate == null || eventIdPredicate(k))
-//                .ToList();
+            foreach (var kv in paramsSnapshot)
+            {
+                kv.Value?.Clear();
+            }
+        }
 
-//            foreach (var key in keysToRemove)
-//            {
-//                if (Waiters.TryRemove(key, out var tcs))
-//                {
-//                    tcs.TrySetCanceled();
-//                    CleanupEventParams(key);
-//                    Metrics.OnWaiterCancelled(key);
-//                    count++;
-//                }
-//            }
+        /// <summary>
+        /// Возвращает коллекцию идентификаторов активных ожидающих событий.
+        /// </summary>
+        /// <returns>Коллекция идентификаторов событий, находящихся в ожидании.</returns>
+        public static IReadOnlyCollection<string> GetActiveWaiters()
+        {
+            return Waiters.Keys.ToList().AsReadOnly();
+        }
 
-//            return count;
-//        }
+        /// <summary>
+        /// Получает значение параметра события.
+        /// </summary>
+        /// <param name="eventId">Идентификатор события.</param>
+        /// <param name="paramName">Имя параметра.</param>
+        /// <param name="defaultValue">Значение по умолчанию, если параметр не найден.</param>
+        /// <returns>Значение параметра или defaultValue, если параметр не найден.</returns>
+        /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+        /// <exception cref="ArgumentException">Возникает, если paramName равен null или пустой строке.</exception>
+        public static object GetEventParam(string eventId, string paramName, object defaultValue = default)
+        {
+            return GetEventParam<object>(eventId, paramName, defaultValue);
+        }
 
-//        /// <summary>
-//        /// Clears all waiters and event parameters.
-//        /// </summary>
-//        public static void ClearAll()
-//        {
-//            // Atomic snapshot and clear of waiters
-//            var waitersSnapshot = Waiters.ToArray();
-//            Waiters.Clear();
+        /// <summary>
+        /// Получает типизированное значение параметра события.
+        /// </summary>
+        /// <typeparam name="TParam">Тип параметра.</typeparam>
+        /// <param name="eventId">Идентификатор события.</param>
+        /// <param name="paramName">Имя параметра.</param>
+        /// <param name="defaultValue">Значение по умолчанию, если параметр не найден или имеет неверный тип.</param>
+        /// <returns>Значение параметра, приведенное к типу TParam, или defaultValue в случае ошибки.</returns>
+        /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+        /// <exception cref="ArgumentException">Возникает, если paramName равен null или пустой строке.</exception>
+        public static TParam GetEventParam<TParam>(string eventId, string paramName, TParam defaultValue = default)
+        {
+            if (eventId == null)
+            {
+                throw new ArgumentNullException(nameof(eventId));
+            }
 
-//            foreach (var kv in waitersSnapshot)
-//            {
-//                kv.Value.TrySetCanceled();
-//                Metrics.OnWaiterCancelled(kv.Key);
-//            }
+            if (string.IsNullOrEmpty(paramName))
+            {
+                throw new ArgumentException("Имя параметра не может быть null или пустой строкой", nameof(paramName));
+            }
 
-//            // Atomic snapshot and clear of parameters
-//            var paramsSnapshot = EventParams.ToArray();
-//            EventParams.Clear();
+            if (!EventParams.TryGetValue(eventId, out var p))
+            {
+                return defaultValue;
+            }
 
-//            foreach (var kv in paramsSnapshot)
-//            {
-//                kv.Value?.Clear();
-//            }
-//        }
+            if (p.TryGetValue(paramName, out var value) && value != null)
+            {
+                try
+                {
+                    return (TParam)value;
+                }
+                catch (InvalidCastException)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Несоответствие типа для параметра {paramName}: ожидался {typeof(TParam)}, получен {value.GetType()}");
+                    return defaultValue;
+                }
+            }
 
-//        /// <summary>
-//        /// Gets a read-only collection of active waiter IDs.
-//        /// </summary>
-//        public static IReadOnlyCollection<string> GetActiveWaiters()
-//        {
-//            return Waiters.Keys.ToList().AsReadOnly();
-//        }
+            return defaultValue;
+        }
 
-//        /// <summary>
-//        /// Checks if an event has a specific parameter.
-//        /// </summary>
-//        /// <param name="eventId">Unique identifier for the event</param>
-//        /// <param name="paramName">Name of the parameter</param>
-//        /// <returns>True if the parameter exists; otherwise, false</returns>
-//        /// <exception cref="ArgumentNullException">Thrown if eventId is null</exception>
-//        /// <exception cref="ArgumentException">Thrown if paramName is null or empty</exception>
-//        public static bool HasParam(string eventId, string paramName)
-//        {
-//            if (eventId == null)
-//                throw new ArgumentNullException(nameof(eventId));
-//            if (string.IsNullOrEmpty(paramName))
-//                throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
+        /// <summary>
+        /// Проверяет наличие параметра у события.
+        /// </summary>
+        /// <param name="eventId">Идентификатор события.</param>
+        /// <param name="paramName">Имя параметра.</param>
+        /// <returns>true, если параметр существует; в противном случае false.</returns>
+        /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+        /// <exception cref="ArgumentException">Возникает, если paramName равен null или пустой строке.</exception>
+        public static bool HasParam(string eventId, string paramName)
+        {
+            if (eventId == null)
+            {
+                throw new ArgumentNullException(nameof(eventId));
+            }
 
-//            return EventParams.TryGetValue(eventId, out var p) && p.ContainsKey(paramName);
-//        }
+            if (string.IsNullOrEmpty(paramName))
+            {
+                throw new ArgumentException("Имя параметра не может быть null или пустой строкой", nameof(paramName));
+            }
 
-//        /// <summary>
-//        /// Gets an event parameter as object.
-//        /// </summary>
-//        /// <param name="eventId">Unique identifier for the event</param>
-//        /// <param name="paramName">Name of the parameter</param>
-//        /// <param name="defaultValue">Default value to return if parameter doesn't exist</param>
-//        /// <returns>Parameter value or default value</returns>
-//        public static object GetEventParam(string eventId, string paramName, object defaultValue = default)
-//        {
-//            return GetEventParam<object>(eventId, paramName, defaultValue);
-//        }
+            return EventParams.TryGetValue(eventId, out var p) && p.ContainsKey(paramName);
+        }
 
-//        /// <summary>
-//        /// Gets a typed event parameter.
-//        /// </summary>
-//        /// <typeparam name="TParam">Type of the parameter</typeparam>
-//        /// <param name="eventId">Unique identifier for the event</param>
-//        /// <param name="paramName">Name of the parameter</param>
-//        /// <param name="defaultValue">Default value to return if parameter doesn't exist or cast fails</param>
-//        /// <returns>Typed parameter value or default value</returns>
-//        /// <exception cref="ArgumentNullException">Thrown if eventId is null</exception>
-//        /// <exception cref="ArgumentException">Thrown if paramName is null or empty</exception>
-//        public static TParam GetEventParam<TParam>(string eventId, string paramName, TParam defaultValue = default)
-//        {
-//            if (eventId == null)
-//                throw new ArgumentNullException(nameof(eventId));
-//            if (string.IsNullOrEmpty(paramName))
-//                throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
+        /// <summary>
+        /// Устанавливает значение параметра события.
+        /// </summary>
+        /// <param name="eventId">Идентификатор события.</param>
+        /// <param name="paramName">Имя параметра.</param>
+        /// <param name="paramValue">Значение параметра.</param>
+        /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+        /// <exception cref="ArgumentException">Возникает, если paramName равен null или пустой строке.</exception>
+        public static void SetEventParam(string eventId, string paramName, object paramValue)
+        {
+            if (eventId == null)
+            {
+                throw new ArgumentNullException(nameof(eventId));
+            }
 
-//            if (!EventParams.TryGetValue(eventId, out var p))
-//                return defaultValue;
+            if (string.IsNullOrEmpty(paramName))
+            {
+                throw new ArgumentException("Имя параметра не может быть null или пустой строкой", nameof(paramName));
+            }
 
-//            if (p.TryGetValue(paramName, out var value) && value != null)
-//            {
-//                try
-//                {
-//                    return (TParam)value;
-//                }
-//                catch (InvalidCastException)
-//                {
-//                    // Log type mismatch if logging is available
-//                    System.Diagnostics.Debug.WriteLine($"Type mismatch for parameter {paramName}: expected {typeof(TParam)}, got {value.GetType()}");
-//                    return defaultValue;
-//                }
-//            }
+            var p = EventParams.GetOrAdd(eventId, _ => new ConcurrentDictionary<string, object>());
+            p[paramName] = paramValue;
+        }
 
-//            return defaultValue;
-//        }
+        /// <summary>
+        /// Пытается завершить указанное событие с заданным статусом и данными.
+        /// </summary>
+        /// <param name="eventId">Идентификатор события.</param>
+        /// <param name="status">Статус завершения события.</param>
+        /// <param name="eventData">Дополнительные данные события.</param>
+        /// <returns>true, если событие было успешно завершено; false, если событие не найдено в ожидающих.</returns>
+        /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+        public static bool TryComplete(string eventId, T status, object eventData = null)
+        {
+            if (eventId == null)
+            {
+                throw new ArgumentNullException(nameof(eventId));
+            }
 
-//        /// <summary>
-//        /// Sets an event parameter.
-//        /// </summary>
-//        /// <param name="eventId">Unique identifier for the event</param>
-//        /// <param name="paramName">Name of the parameter</param>
-//        /// <param name="paramValue">Value to set</param>
-//        /// <exception cref="ArgumentNullException">Thrown if eventId is null</exception>
-//        /// <exception cref="ArgumentException">Thrown if paramName is null or empty</exception>
-//        public static void SetEventParam(string eventId, string paramName, object paramValue)
-//        {
-//            if (eventId == null)
-//                throw new ArgumentNullException(nameof(eventId));
-//            if (string.IsNullOrEmpty(paramName))
-//                throw new ArgumentException("Parameter name cannot be null or empty", nameof(paramName));
+            if (Waiters.TryRemove(eventId, out var tcs))
+            {
+                var result = new EventResult(eventId, status, eventData);
+                tcs.SetResult(result);
+                CleanupEventParams(eventId);
+                Metrics.OnWaiterCompleted(eventId);
+                return true;
+            }
 
-//            var p = EventParams.GetOrAdd(eventId, _ => new ConcurrentDictionary<string, object>());
-//            p[paramName] = paramValue;
-//        }
+            return false;
+        }
 
-//        /// <summary>
-//        /// Tries to complete a waiting operation with the specified status and data.
-//        /// </summary>
-//        /// <param name="eventId">Unique identifier for the event</param>
-//        /// <param name="status">Status to set</param>
-//        /// <param name="eventData">Optional event data</param>
-//        /// <returns>True if the waiter was found and completed; otherwise, false</returns>
-//        /// <exception cref="ArgumentNullException">Thrown if eventId is null</exception>
-//        public static bool TryComplete(string eventId, T status, object eventData = null)
-//        {
-//            if (eventId == null)
-//                throw new ArgumentNullException(nameof(eventId));
+        /// <summary>
+        /// Асинхронно ожидает завершения события с указанным таймаутом.
+        /// </summary>
+        /// <param name="eventId">Идентификатор события.</param>
+        /// <param name="timeoutStatus">Статус, возвращаемый при истечении таймаута.</param>
+        /// <param name="maxMillisecondsToWait">Максимальное время ожидания в миллисекундах или Timeout.Infinite.</param>
+        /// <returns>Задача, представляющая результат ожидания события.</returns>
+        /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Возникает, если maxMillisecondsToWait меньше или равно 0 и не равно Timeout.Infinite.</exception>
+        public static Task<EventResult> WaitAsync(string eventId, T timeoutStatus, int maxMillisecondsToWait)
+        {
+            return WaitAsync(eventId, timeoutStatus, maxMillisecondsToWait, CancellationToken.None);
+        }
 
-//            if (Waiters.TryRemove(eventId, out var tcs))
-//            {
-//                var result = new EventResult(eventId, status, eventData);
-//                tcs.SetResult(result);
-//                CleanupEventParams(eventId);
-//                Metrics.OnWaiterCompleted(eventId);
-//                return true;
-//            }
+        /// <summary>
+        /// Асинхронно ожидает завершения события с указанным таймаутом и поддержкой отмены.
+        /// </summary>
+        /// <param name="eventId">Идентификатор события.</param>
+        /// <param name="timeoutStatus">Статус, возвращаемый при истечении таймаута.</param>
+        /// <param name="maxMillisecondsToWait">Максимальное время ожидания в миллисекундах или Timeout.Infinite.</param>
+        /// <param name="cancellationToken">Токен для отмены ожидания.</param>
+        /// <returns>Задача, представляющая результат ожидания события.</returns>
+        /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Возникает, если maxMillisecondsToWait меньше или равно 0 и не равно Timeout.Infinite.</exception>
+        public static Task<EventResult> WaitAsync(
+            string eventId,
+            T timeoutStatus,
+            int maxMillisecondsToWait,
+            CancellationToken cancellationToken)
+        {
+            if (eventId == null)
+            {
+                throw new ArgumentNullException(nameof(eventId));
+            }
 
-//            return false;
-//        }
+            if (maxMillisecondsToWait <= 0 && maxMillisecondsToWait != Timeout.Infinite)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxMillisecondsToWait), "Таймаут должен быть положительным или Timeout.Infinite");
+            }
 
-//        /// <summary>
-//        /// Waits asynchronously for an event to complete or timeout.
-//        /// </summary>
-//        /// <param name="eventId">Unique identifier for the event</param>
-//        /// <param name="timeoutStatus">Status to return on timeout</param>
-//        /// <param name="maxMillisecondsToWait">Maximum wait time in milliseconds. Use -1 for infinite.</param>
-//        /// <returns>Task representing the wait operation</returns>
-//        /// <exception cref="ArgumentNullException">Thrown if eventId is null</exception>
-//        /// <exception cref="ArgumentOutOfRangeException">Thrown if timeout is invalid</exception>
-//        public static Task<EventResult> WaitAsync(string eventId, T timeoutStatus, int maxMillisecondsToWait)
-//        {
-//            return WaitAsync(eventId, timeoutStatus, maxMillisecondsToWait, CancellationToken.None);
-//        }
+            var tcs = new TaskCompletionSource<EventResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-//        /// <summary>
-//        /// Waits asynchronously for an event to complete or timeout with cancellation support.
-//        /// </summary>
-//        /// <param name="eventId">Unique identifier for the event</param>
-//        /// <param name="timeoutStatus">Status to return on timeout</param>
-//        /// <param name="maxMillisecondsToWait">Maximum wait time in milliseconds. Use -1 for infinite.</param>
-//        /// <param name="cancellationToken">Cancellation token to cancel the wait</param>
-//        /// <returns>Task representing the wait operation</returns>
-//        /// <exception cref="ArgumentNullException">Thrown if eventId is null</exception>
-//        /// <exception cref="ArgumentOutOfRangeException">Thrown if timeout is invalid</exception>
-//        public static Task<EventResult> WaitAsync(
-//            string eventId,
-//            T timeoutStatus,
-//            int maxMillisecondsToWait,
-//            CancellationToken cancellationToken)
-//        {
-//            if (eventId == null)
-//                throw new ArgumentNullException(nameof(eventId));
+            var existingTcs = Waiters.AddOrUpdate(eventId, tcs, (key, existing) => existing);
 
-//            if (maxMillisecondsToWait <= 0 && maxMillisecondsToWait != Timeout.Infinite)
-//                throw new ArgumentOutOfRangeException(nameof(maxMillisecondsToWait),
-//                    "Timeout must be positive or Timeout.Infinite");
+            if (!ReferenceEquals(existingTcs, tcs))
+            {
+                return existingTcs.Task;
+            }
 
-//            // Atomic add or get existing
-//            var tcs = Waiters.AddOrUpdate(eventId,
-//                // Add new
-//                _ => new TaskCompletionSource<EventResult>(TaskCreationOptions.RunContinuationsAsynchronously),
-//                // Return existing if present
-//                (_, existing) => existing);
+            if (maxMillisecondsToWait != Timeout.Infinite)
+            {
+                SetupTimeoutAndCancellation(eventId, tcs, timeoutStatus, maxMillisecondsToWait, cancellationToken);
+            }
+            else if (cancellationToken.CanBeCanceled)
+            {
+                SetupCancellationOnly(eventId, tcs, cancellationToken);
+            }
 
-//            // If this is a new waiter, set up timeout handling
-//            if (tcs.Task.IsCompleted == false &&
-//                ReferenceEquals(GetExistingTcs(eventId), tcs) &&
-//                maxMillisecondsToWait != Timeout.Infinite)
-//            {
-//                SetupTimeoutAndCancellation(eventId, tcs, timeoutStatus, maxMillisecondsToWait, cancellationToken);
-//            }
+            return tcs.Task;
+        }
 
-//            return tcs.Task;
-//        }
+        private static void CleanupEventParams(string eventId)
+        {
+            if (EventParams.TryRemove(eventId, out var p))
+            {
+                p.Clear();
+            }
+        }
 
-//        /// <summary>
-//        /// Waits asynchronously with Task optimization for already completed tasks.
-//        /// </summary>
-//        public static Task<EventResult> WaitAsyncValue(
-//            string eventId,
-//            T timeoutStatus,
-//            int maxMillisecondsToWait,
-//            CancellationToken cancellationToken = default)
-//        {
-//            // Fast path: check if waiter already exists and is completed
-//            if (Waiters.TryGetValue(eventId, out var existing) && existing.IsCompleted)
-//            {
-//                return new Task<EventResult>(existing);
-//            }
+        private static void SetupCancellationOnly(
+            string eventId,
+            TaskCompletionSource<EventResult> tcs,
+            CancellationToken cancellationToken)
+        {
+            CancellationTokenRegistration registration = default;
+            registration = cancellationToken.Register(() =>
+            {
+                if (Waiters.TryRemove(eventId, out var removed))
+                {
+                    removed.TrySetCanceled(cancellationToken);
+                    Metrics.OnWaiterCancelled(eventId);
+                    CleanupEventParams(eventId);
+                }
 
-//            // Slow path: need to wait
-//            return new Task<EventResult>(WaitAsync(eventId, timeoutStatus, maxMillisecondsToWait, cancellationToken));
-//        }
+                registration.Dispose();
+            });
 
-//        private static TaskCompletionSource<EventResult> GetExistingTcs(string eventId)
-//        {
-//            Waiters.TryGetValue(eventId, out var tcs);
-//            return tcs;
-//        }
+            tcs.Task.ContinueWith(_ => registration.Dispose(), TaskContinuationOptions.ExecuteSynchronously);
+        }
 
-//        private static void SetupTimeoutAndCancellation(
-//            string eventId,
-//            TaskCompletionSource<EventResult> tcs,
-//            T timeoutStatus,
-//            int maxMillisecondsToWait,
-//            CancellationToken cancellationToken)
-//        {
-//            if (cancellationToken.CanBeCanceled || maxMillisecondsToWait > 0)
-//            {
-//                // Create timeout source if needed
-//                using var timeoutCts = maxMillisecondsToWait > 0
-//                    ? new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait))
-//                    : null;
+        private static void SetupTimeoutAndCancellation(
+            string eventId,
+            TaskCompletionSource<EventResult> tcs,
+            T timeoutStatus,
+            int maxMillisecondsToWait,
+            CancellationToken cancellationToken)
+        {
+            var timeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait));
 
-//                // Combine tokens if both exist
-//                var linkedCts = cancellationToken.CanBeCanceled && timeoutCts != null
-//                    ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCts.Token)
-//                    : null;
+            CancellationTokenRegistration registration;
 
-//                var token = linkedCts?.Token ?? timeoutCts?.Token ?? cancellationToken;
+            if (cancellationToken.CanBeCanceled)
+            {
+                var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    timeoutCts.Token);
 
-//                if (token.CanBeCanceled)
-//                {
-//                    var registration = token.Register(() =>
-//                    {
-//                        if (Waiters.TryRemove(eventId, out var removed))
-//                        {
-//                            if (cancellationToken.IsCancellationRequested)
-//                            {
-//                                removed.TrySetCanceled(cancellationToken);
-//                                Metrics.OnWaiterCancelled(eventId);
-//                            }
-//                            else // Timeout occurred
-//                            {
-//                                removed.TrySetResult(new EventResult(eventId, timeoutStatus, null));
-//                                Metrics.OnWaiterTimedOut(eventId);
-//                            }
-//                            CleanupEventParams(eventId);
-//                        }
-//                    });
+                registration = linkedCts.Token.Register(() =>
+                {
+                    if (Waiters.TryRemove(eventId, out var removed))
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            removed.TrySetCanceled(cancellationToken);
+                            Metrics.OnWaiterCancelled(eventId);
+                        }
+                        else
+                        {
+                            removed.TrySetResult(new EventResult(eventId, timeoutStatus, null));
+                            Metrics.OnWaiterTimedOut(eventId);
+                        }
 
-//                    // Clean up registration when task completes
-//                    tcs.Task.ContinueWith(_ =>
-//                    {
-//                        registration.Dispose();
-//                        linkedCts?.Dispose();
-//                        timeoutCts?.Dispose();
-//                    }, TaskContinuationOptions.ExecuteSynchronously);
-//                }
-//            }
-//        }
+                        CleanupEventParams(eventId);
+                    }
 
-//        private static void CleanupEventParams(string eventId)
-//        {
-//            if (EventParams.TryRemove(eventId, out var p))
-//            {
-//                p.Clear();
-//            }
-//        }
+                    registration.Dispose();
+                    linkedCts.Dispose();
+                    timeoutCts.Dispose();
+                });
+            }
+            else
+            {
+                registration = timeoutCts.Token.Register(() =>
+                {
+                    if (Waiters.TryRemove(eventId, out var removed))
+                    {
+                        removed.TrySetResult(new EventResult(eventId, timeoutStatus, null));
+                        Metrics.OnWaiterTimedOut(eventId);
+                        CleanupEventParams(eventId);
+                    }
 
-//        /// <summary>
-//        /// Represents the result of a wait operation.
-//        /// </summary>
-//        public class EventResult
-//        {
-//            internal EventResult(string eventId, T status, object data = null)
-//            {
-//                EventId = eventId ?? throw new ArgumentNullException(nameof(eventId));
-//                Status = status;
-//                Data = data;
-//            }
+                    registration.Dispose();
+                    timeoutCts.Dispose();
+                });
+            }
 
-//            /// <summary>Gets the event data.</summary>
-//            public object Data { get; }
+            tcs.Task.ContinueWith(
+                _ =>
+                {
+                    registration.Dispose();
+                    timeoutCts?.Dispose();
+                }, TaskContinuationOptions.ExecuteSynchronously);
+        }
 
-//            /// <summary>Gets the event identifier.</summary>
-//            public string EventId { get; }
+        /// <summary>
+        /// Предоставляет метрики и события для отслеживания состояния ожидающих событий.
+        /// </summary>
+        public static class Metrics
+        {
+            /// <summary>
+            /// Возникает при отмене ожидания события.
+            /// </summary>
+            public static event EventHandler<string> WaiterCancelled;
 
-//            /// <summary>Gets the status.</summary>
-//            public T Status { get; }
+            /// <summary>
+            /// Возникает при успешном завершении ожидания события.
+            /// </summary>
+            public static event EventHandler<string> WaiterCompleted;
 
-//            /// <summary>
-//            /// Deconstructs the result into its components.
-//            /// </summary>
-//            public void Deconstruct(out string eventId, out T status, out object data)
-//            {
-//                eventId = EventId;
-//                status = Status;
-//                data = Data;
-//            }
-//        }
-//    }
-//}
+            /// <summary>
+            /// Возникает при истечении таймаута ожидания события.
+            /// </summary>
+            public static event EventHandler<string> WaiterTimedOut;
+
+            /// <summary>
+            /// Получает количество активных параметров событий.
+            /// </summary>
+            public static int ActiveParamsCount => EventParams.Count;
+
+            /// <summary>
+            /// Получает количество активных ожидающих событий.
+            /// </summary>
+            public static int ActiveWaitersCount => Waiters.Count;
+
+            /// <summary>
+            /// Вызывает событие отмены ожидающего события.
+            /// </summary>
+            /// <param name="eventId">Идентификатор отмененного события.</param>
+            internal static void OnWaiterCancelled(string eventId) =>
+                WaiterCancelled?.Invoke(null, eventId);
+
+            /// <summary>
+            /// Вызывает событие успешного завершения ожидающего события.
+            /// </summary>
+            /// <param name="eventId">Идентификатор завершенного события.</param>
+            internal static void OnWaiterCompleted(string eventId) =>
+                WaiterCompleted?.Invoke(null, eventId);
+
+            /// <summary>
+            /// Вызывает событие истечения таймаута ожидающего события.
+            /// </summary>
+            /// <param name="eventId">Идентификатор события, у которого истек таймаут.</param>
+            internal static void OnWaiterTimedOut(string eventId) =>
+                WaiterTimedOut?.Invoke(null, eventId);
+        }
+
+        /// <summary>
+        /// Представляет результат ожидания события.
+        /// </summary>
+        public class EventResult
+        {
+            /// <summary>
+            /// Инициализирует новый экземпляр класса <see cref="EventResult"/>.
+            /// </summary>
+            /// <param name="eventId">Идентификатор события.</param>
+            /// <param name="status">Статус завершения события.</param>
+            /// <param name="data">Дополнительные данные события (необязательно).</param>
+            /// <exception cref="ArgumentNullException">Возникает, если eventId равен null.</exception>
+            internal EventResult(string eventId, T status, object data = null)
+            {
+                this.EventId = eventId ?? throw new ArgumentNullException(nameof(eventId));
+                this.Status = status;
+                this.Data = data;
+            }
+
+            /// <summary>
+            /// Получает дополнительные данные события.
+            /// </summary>
+            public object Data { get; }
+
+            /// <summary>
+            /// Получает идентификатор события.
+            /// </summary>
+            public string EventId { get; }
+
+            /// <summary>
+            /// Получает статус завершения события.
+            /// </summary>
+            public T Status { get; }
+
+            /// <summary>
+            /// Разлагает результат на компоненты.
+            /// </summary>
+            /// <param name="eventId">Идентификатор события.</param>
+            /// <param name="status">Статус завершения.</param>
+            /// <param name="data">Дополнительные данные.</param>
+            public void Deconstruct(out string eventId, out T status, out object data)
+            {
+                eventId = this.EventId;
+                status = this.Status;
+                data = this.Data;
+            }
+        }
+    }
+}

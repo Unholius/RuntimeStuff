@@ -12,6 +12,8 @@
 // <summary></summary>
 // ***********************************************************************
 
+using RuntimeStuff.Extensions;
+
 namespace RuntimeStuff
 {
     using System;
@@ -251,10 +253,22 @@ namespace RuntimeStuff
             // 5. DateTime
             if (underlyingType == typeof(DateTime))
             {
-                result = string.Format(
-                    culture,
-                    this.DateTimeFormat ?? "{0:G}",
-                    value);
+                var d = (DateTime)value;
+
+                if (d.TimeOfDay != TimeSpan.Zero)
+                {
+                    result = string.Format(
+                        culture,
+                        this.DateTimeFormat ?? "{0:dd.MM.yyyy HH:mm:ss}",
+                        value);
+                }
+                else
+                {
+                    result = string.Format(
+                        culture,
+                        this.DateFormat ?? "{0:dd.MM.yyyy}",
+                        value);
+                }
 
                 return this.Finalize(this.FinalizeNonNumeric(result, underlyingType));
             }

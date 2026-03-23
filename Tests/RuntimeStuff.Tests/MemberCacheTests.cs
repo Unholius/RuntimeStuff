@@ -589,7 +589,7 @@ namespace RuntimeStuff.MSTests
             var memberCache = MemberCache.Create(property);
 
             // Act
-            var value = memberCache.GetValue<int>(obj);
+            var value = memberCache.ConvertValue<int>(obj);
 
             // Assert
             Assert.AreEqual(42, value);

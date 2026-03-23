@@ -16,6 +16,7 @@ namespace RuntimeStuff.Helpers
 {
     using System;
     using System.Collections.Generic;
+    using System.Globalization;
     using System.IO;
     using System.IO.Compression;
     using System.Linq;
@@ -212,6 +213,54 @@ namespace RuntimeStuff.Helpers
             '\u2060', // Word Joiner
             '\uFEFF', // BOM (Zero Width No-Break Space)
         };
+
+        /// <summary>
+        /// Преобразует первую текстовую единицу строки (графему) в верхний регистр с учётом указанной культуры.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="culture">
+        /// Культура, используемая для преобразования регистра.
+        /// Если не указана, используется <see cref="CultureInfo.CurrentCulture"/>.
+        /// </param>
+        /// <returns>
+        /// Строка, в которой первая текстовая единица преобразована в верхний регистр,
+        /// а остальная часть остаётся без изменений.
+        /// Если строка равна <c>null</c> или пустая, возвращается исходное значение.
+        /// </returns>
+        /// <remarks>
+        /// В отличие от простого преобразования первого символа, метод корректно обрабатывает
+        /// составные Unicode-символы (например, символы с диакритическими знаками или эмодзи),
+        /// используя <see cref="StringInfo.GetTextElementEnumerator(string)"/>.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// "hello".Capitalize() → "Hello"
+        /// "ǆuro".Capitalize(new CultureInfo("hr-HR")) → "ǅuro"
+        /// </code>
+        /// </example>
+        public static string Capitalize(string s, CultureInfo culture = null)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return s;
+            }
+
+            if (culture == null)
+            {
+                culture = CultureInfo.CurrentCulture;
+            }
+
+            var enumerator = StringInfo.GetTextElementEnumerator(s);
+            if (!enumerator.MoveNext())
+            {
+                return s;
+            }
+
+            var first = enumerator.GetTextElement();
+            var restIndex = enumerator.ElementIndex + first.Length;
+
+            return culture.TextInfo.ToUpper(first) + s.Substring(restIndex);
+        }
 
         /// <summary>
         /// Проверяет, содержит ли строка хотя бы одну из указанных подстрок.
@@ -806,22 +855,26 @@ namespace RuntimeStuff.Helpers
         /// <returns>List&lt;Token&gt;.</returns>
         /// <exception cref="System.InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a child of another token.</exception>
         /// <exception cref="System.InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a next of {prevToken} token.</exception>
-        public static List<Token> GetTokens(string input, IEnumerable<TokenMask> tokenMasks, bool notMatchedAsTokens = false, Func<Token, object> notMatchedTokenSetTag = null, Func<Token, string> notMatchedContentTransformer = null)
+        public static List<Token> GetTokens(
+            string input,
+            IEnumerable<TokenMask> tokenMasks,
+            bool notMatchedAsTokens = false,
+            Func<Token, object> notMatchedTokenSetTag = null,
+            Func<Token, string> notMatchedContentTransformer = null)
         {
             Token.IdInternal = 1;
             var result = new List<Token>();
             var stack = new Stack<(Token Token, string Prefix, string Suffix, Func<Token, string> ContentTransformer)>();
 
-            // Сортируем маски один раз по убыванию длины префикса
             var masks = tokenMasks.OrderByDescending(m => m.Prefix.Length)
                 .Concat(tokenMasks.SelectMany(x => x.AllowedChildrenMasks))
                 .Distinct()
                 .ToArray();
 
-            var span = input.AsSpan();
             var i = 0;
+            var length = input.Length;
 
-            while (i < span.Length)
+            while (i < length)
             {
                 var matched = false;
                 var curChar = input[i];
@@ -833,18 +886,17 @@ namespace RuntimeStuff.Helpers
                         continue;
                     }
 
-                    if (i + tm.Prefix.Length <= span.Length && span.Slice(i, tm.Prefix.Length).SequenceEqual(tm.Prefix.AsSpan()))
+                    if (i + tm.Prefix.Length <= length &&
+                        string.Compare(input, i, tm.Prefix, 0, tm.Prefix.Length, StringComparison.Ordinal) == 0)
                     {
-                        // Если prefix == suffix и токен уже открыт этим же префиксом — НЕ открываем новый
                         if (stack.Count > 0 && tm.Prefix == tm.Suffix && stack.Peek().Prefix == tm.Prefix)
                         {
                             break;
                         }
 
-                        // Обработка запрета на добавление дочерних токенов
                         if (stack.Count > 0)
                         {
-                            var topToken = stack.Last().Token;
+                            var topToken = stack.Peek().Token;
 
                             if (!topToken.Mask.AllowChildrenTokens)
                             {
@@ -858,7 +910,8 @@ namespace RuntimeStuff.Helpers
                                 }
                             }
 
-                            if (topToken.Mask.AllowedChildrenMasks.Count > 0 && !topToken.Mask.AllowedChildrenMasks.Contains(tm))
+                            if (topToken.Mask.AllowedChildrenMasks.Count > 0 &&
+                                !topToken.Mask.AllowedChildrenMasks.Contains(tm))
                             {
                                 if (tm.ThrowExceptionOnNotAllowedToken)
                                 {
@@ -872,7 +925,8 @@ namespace RuntimeStuff.Helpers
                         }
 
                         var prevToken = result.LastOrDefault();
-                        if (prevToken?.Mask?.AllowedNextMasks.Count > 0 && !prevToken.Mask.AllowedNextMasks.Contains(tm))
+                        if (prevToken?.Mask?.AllowedNextMasks.Count > 0 &&
+                            !prevToken.Mask.AllowedNextMasks.Contains(tm))
                         {
                             if (tm.ThrowExceptionOnNotAllowedToken)
                             {
@@ -884,7 +938,7 @@ namespace RuntimeStuff.Helpers
                             }
                         }
 
-                        // === МГНОВЕННЫЙ ТОКЕН (Suffix == null) ===
+                        // === МГНОВЕННЫЙ ТОКЕН ===
                         if (tm.Suffix == null)
                         {
                             var instantToken = new Token
@@ -912,7 +966,6 @@ namespace RuntimeStuff.Helpers
                                 instantToken.ContentTransformers.Add(tm.ContentTransformer);
                             }
 
-                            // Добавление Previous/Next и добавление в дерево
                             if (instantToken.Parent != null)
                             {
                                 var list = instantToken.Parent.ChildrenInternal;
@@ -940,6 +993,7 @@ namespace RuntimeStuff.Helpers
 
                             instantToken.Tag = tm.SetTag?.Invoke(instantToken);
                             instantToken.Mask = tm;
+
                             i += tm.Prefix.Length;
                             matched = true;
                             break;
@@ -962,7 +1016,6 @@ namespace RuntimeStuff.Helpers
                             token.ContentTransformers.Add(tm.ContentTransformer);
                         }
 
-                        token.Mask = tm;
                         stack.Push((token, tm.Prefix, tm.Suffix, tm.ContentTransformer));
                         i += tm.Prefix.Length;
                         matched = true;
@@ -975,24 +1028,33 @@ namespace RuntimeStuff.Helpers
                     continue;
                 }
 
-                // Проверка конца токена
+                // === Закрытие токена ===
                 if (stack.Count > 0)
                 {
-                    var (topToken, topPrefix, topSuffix, _) = stack.Peek();
+                    var top = stack.Peek();
+                    var topToken = top.Token;
+                    var topPrefix = top.Prefix;
+                    var topSuffix = top.Suffix;
 
-                    if (i + topSuffix.Length <= span.Length && span.Slice(i, topSuffix.Length).SequenceEqual(topSuffix.AsSpan()))
+                    if (i + topSuffix.Length <= length &&
+                        string.Compare(input, i, topSuffix, 0, topSuffix.Length, StringComparison.Ordinal) == 0)
                     {
                         stack.Pop();
+
                         topToken.SourceEnd = i + topSuffix.Length - 1;
                         topToken.ParentEnd = topToken.Parent == null
                             ? i + 1
                             : topToken.SourceEnd - topToken.Parent.SourceStart;
 
-                        var bodySpan = span.Slice(topToken.SourceStart, topToken.SourceEnd - topToken.SourceStart + 1);
-                        topToken.Body = bodySpan.ToString();
-                        topToken.Text = bodySpan.Slice(topPrefix.Length, bodySpan.Length - topPrefix.Length - topSuffix.Length).ToString();
+                        var body = input.Substring(topToken.SourceStart, topToken.SourceEnd - topToken.SourceStart + 1);
+                        topToken.Body = body;
 
-                        // Добавление Previous / Next
+                        var textStart = topToken.SourceStart + topPrefix.Length;
+                        var textLength = body.Length - topPrefix.Length - topSuffix.Length;
+                        topToken.Text = textLength > 0
+                            ? input.Substring(textStart, textLength)
+                            : string.Empty;
+
                         if (topToken.Parent != null)
                         {
                             var list = topToken.Parent.ChildrenInternal;
@@ -1019,6 +1081,7 @@ namespace RuntimeStuff.Helpers
                         }
 
                         topToken.Tag = topToken.Mask.SetTag?.Invoke(topToken);
+
                         i += topSuffix.Length;
                         continue;
                     }

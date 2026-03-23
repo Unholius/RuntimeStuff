@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            DataGridViewCellStyle dataGridViewCellStyle1 = new DataGridViewCellStyle();
             btnMemberCacheAllMembers = new Button();
             tabControl1 = new TabControl();
             tabPage1 = new TabPage();
@@ -38,7 +39,7 @@
             textBox2 = new TextBox();
             label1 = new Label();
             tabPage2 = new TabPage();
-            dataGridView1 = new DataGridView();
+            dgv = new DataGridView();
             btnLoad = new Button();
             tabPage3 = new TabPage();
             chkOffline = new CheckBox();
@@ -48,15 +49,12 @@
             btnSendMessage = new Button();
             listBox1 = new ListBox();
             tabPage4 = new TabPage();
-            webView21 = new Microsoft.Web.WebView2.WinForms.WebView2();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
             tabPage2.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dgv).BeginInit();
             tabPage3.SuspendLayout();
-            tabPage4.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)webView21).BeginInit();
             SuspendLayout();
             // 
             // btnMemberCacheAllMembers
@@ -151,7 +149,7 @@
             // 
             // tabPage2
             // 
-            tabPage2.Controls.Add(dataGridView1);
+            tabPage2.Controls.Add(dgv);
             tabPage2.Controls.Add(btnLoad);
             tabPage2.Location = new Point(4, 24);
             tabPage2.Name = "tabPage2";
@@ -161,16 +159,17 @@
             tabPage2.Text = "tabPage2";
             tabPage2.UseVisualStyleBackColor = true;
             // 
-            // dataGridView1
+            // dgv
             // 
-            dataGridView1.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dataGridView1.Dock = DockStyle.Fill;
-            dataGridView1.Location = new Point(3, 26);
-            dataGridView1.Name = "dataGridView1";
-            dataGridView1.Size = new Size(1231, 598);
-            dataGridView1.TabIndex = 0;
-            dataGridView1.SelectionChanged += dataGridView1_SelectionChanged;
-            dataGridView1.Click += dataGridView1_Click;
+            dataGridViewCellStyle1.BackColor = Color.FromArgb(255, 255, 192);
+            dgv.AlternatingRowsDefaultCellStyle = dataGridViewCellStyle1;
+            dgv.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgv.Dock = DockStyle.Fill;
+            dgv.Location = new Point(3, 26);
+            dgv.Name = "dgv";
+            dgv.Size = new Size(1231, 598);
+            dgv.TabIndex = 2;
+            dgv.ColumnHeaderMouseClick += dgv_ColumnHeaderMouseClick;
             // 
             // btnLoad
             // 
@@ -262,7 +261,6 @@
             // 
             // tabPage4
             // 
-            tabPage4.Controls.Add(webView21);
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name = "tabPage4";
             tabPage4.Padding = new Padding(3);
@@ -271,25 +269,15 @@
             tabPage4.Text = "tabPage4";
             tabPage4.UseVisualStyleBackColor = true;
             // 
-            // webView21
-            // 
-            webView21.AllowExternalDrop = true;
-            webView21.CreationProperties = null;
-            webView21.DefaultBackgroundColor = Color.White;
-            webView21.Dock = DockStyle.Fill;
-            webView21.Location = new Point(3, 3);
-            webView21.Name = "webView21";
-            webView21.Size = new Size(1231, 621);
-            webView21.TabIndex = 0;
-            webView21.ZoomFactor = 1D;
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1245, 655);
             Controls.Add(tabControl1);
+            DoubleBuffered = true;
             Name = "Form1";
+            StartPosition = FormStartPosition.CenterScreen;
             Text = "Form1";
             Load += Form1_Load;
             tabControl1.ResumeLayout(false);
@@ -297,11 +285,9 @@
             flowLayoutPanel1.ResumeLayout(false);
             flowLayoutPanel1.PerformLayout();
             tabPage2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dgv).EndInit();
             tabPage3.ResumeLayout(false);
             tabPage3.PerformLayout();
-            tabPage4.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)webView21).EndInit();
             ResumeLayout(false);
         }
 
@@ -315,11 +301,9 @@
         private TextBox textBox1;
         private PropertyGrid propertyGrid1;
         private CheckBox checkBox1;
-        private DataGridView dataGridView1;
         private Button btnLoad;
         private TabPage tabPage3;
         private TabPage tabPage4;
-        private Microsoft.Web.WebView2.WinForms.WebView2 webView21;
         private Button btnOpenForm2;
         private Button btnStart;
         private Button btnSendMessage;
@@ -328,5 +312,6 @@
         private Button btnStopServer;
         private TextBox textBox2;
         private Label label1;
+        private DataGridView dgv;
     }
 }

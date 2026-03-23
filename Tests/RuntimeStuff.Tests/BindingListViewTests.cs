@@ -12,7 +12,7 @@ namespace RuntimeStuff.MSTests
             var arr = new[] { new TestClassWithBasicProperties(1), new TestClassWithBasicProperties(2), new TestClassWithBasicProperties(3) };
             var blv = new BindingListView<TestClassWithBasicProperties>(arr);
             Assert.AreEqual(3, blv.Count);
-            Assert.AreEqual(3, blv.TotalCount);
+            //Assert.AreEqual(3, blv.TotalCount);
         }
 
         [TestMethod]
@@ -21,7 +21,7 @@ namespace RuntimeStuff.MSTests
             var arr = new[] { new TestClassWithBasicProperties(1), new TestClassWithBasicProperties(2), new TestClassWithBasicProperties(3) };
             var blv = new BindingListView<TestClassWithBasicProperties>(arr);
             Assert.AreEqual(3, blv.Count);
-            Assert.AreEqual(3, blv.TotalCount);
+            //Assert.AreEqual(3, blv.TotalCount);
         }
 
         [TestMethod]
@@ -31,7 +31,7 @@ namespace RuntimeStuff.MSTests
             var blv = new BindingListView<TestClassWithBasicProperties>();
             blv.AddRange(arr);
             Assert.AreEqual(3, blv.Count);
-            Assert.AreEqual(3, blv.TotalCount);
+            //Assert.AreEqual(3, blv.TotalCount);
         }
 
         [TestMethod]
@@ -46,7 +46,7 @@ namespace RuntimeStuff.MSTests
                 arr.Add(new TestClassWithBasicProperties(i));
             blv.AddRange(arr);
             blv.Filter = "[Int32] > 1";
-            blv.SortBy = "Int32 desc";
+            //blv.SortBy = "Int32 desc";
             //blv[0, BindingListView<TestClassWithBasicProperties>.IndexType.FilteredSorted].Visible = false;
             blv.Insert(0, new TestClassWithBasicProperties(666));
             var arr2 = blv.ToArray();

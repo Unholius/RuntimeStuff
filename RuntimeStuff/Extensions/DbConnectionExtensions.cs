@@ -98,7 +98,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <returns>Типизированный клиент базы данных.</returns>
         public static DbClient<T> AsDbClient<T>(this T connection)
-            where T : IDbConnection, new() => DbClient<T>.Create(connection);
+            where T : IDbConnection, new() => (DbClient<T>)DbClient.Create(connection);
 
         /// <summary>
         /// Создает клиент базы данных для указанного подключения.
@@ -424,7 +424,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
         /// <param name="columns">Колонки для выборки (опционально).</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
         /// <returns>Первая запись.</returns>
@@ -434,9 +434,9 @@ namespace RuntimeStuff.Extensions
             object cmdParams = null,
             IEnumerable<string> columns = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int offsetRows = 0,
-            Func<object[], string[], T> itemFactory = null) => connection.AsDbClient().First(query, cmdParams, columns, columnToPropertyMap, converter, offsetRows, itemFactory);
+            Func<object[], string[], T> itemFactory = null) => connection.AsDbClient().First(query, cmdParams, columns, columnToPropertyMap, valueConverter, offsetRows, itemFactory);
 
         /// <summary>
         /// Возвращает первую запись по указанному условию.
@@ -445,7 +445,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="whereExpression">Условие WHERE.</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
         /// <param name="orderByExpression">Условия сортировки (опционально).</param>
@@ -454,10 +454,10 @@ namespace RuntimeStuff.Extensions
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().First(whereExpression, columnToPropertyMap, converter, offsetRows, itemFactory, orderByExpression);
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().First(whereExpression, columnToPropertyMap, valueConverter, offsetRows, itemFactory, orderByExpression);
 
         /// <summary>
         /// Асинхронно возвращает первую запись из результата запроса.
@@ -468,7 +468,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
         /// <param name="columns">Колонки для выборки (опционально).</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
         /// <returns>Задача, возвращающая первую запись.</returns>
@@ -478,9 +478,9 @@ namespace RuntimeStuff.Extensions
             object cmdParams = null,
             IEnumerable<string> columns = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int offsetRows = 0,
-            Func<object[], string[], T> itemFactory = null) => connection.AsDbClient().FirstAsync(query, cmdParams, columns, columnToPropertyMap, converter, offsetRows, itemFactory);
+            Func<object[], string[], T> itemFactory = null) => connection.AsDbClient().FirstAsync(query, cmdParams, columns, columnToPropertyMap, valueConverter, offsetRows, itemFactory);
 
         /// <summary>
         /// Асинхронно возвращает первую запись по указанному условию.
@@ -489,7 +489,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="whereExpression">Условие WHERE.</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
         /// <param name="ct">Токен отмены.</param>
@@ -499,11 +499,11 @@ namespace RuntimeStuff.Extensions
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
             CancellationToken ct = default,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().FirstAsync(whereExpression, columnToPropertyMap, converter, offsetRows, itemFactory, ct, orderByExpression);
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().FirstAsync(whereExpression, columnToPropertyMap, valueConverter, offsetRows, itemFactory, ct, orderByExpression);
 
         /// <summary>
         /// Возвращает агрегированные статистики для указанных колонок.
@@ -847,7 +847,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
         /// <param name="columns">Колонки для выборки (опционально).</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="fetchRows">Количество извлекаемых строк (-1 для всех).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
@@ -858,11 +858,11 @@ namespace RuntimeStuff.Extensions
             object cmdParams = null,
             IEnumerable<string> columns = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null)
-            where TList : ICollection<T>, IList, new() => connection.AsDbClient().Query<TList, T>(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory);
+            where TList : ICollection<T>, IList, new() => connection.AsDbClient().Query<TList, T>(query, cmdParams, columns, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory);
 
         /// <summary>
         /// Асинхронно выполняет запрос и возвращает типизированную коллекцию.
@@ -874,7 +874,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
         /// <param name="columns">Колонки для выборки (опционально).</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="fetchRows">Количество извлекаемых строк (-1 для всех).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
@@ -886,12 +886,40 @@ namespace RuntimeStuff.Extensions
             object cmdParams = null,
             IEnumerable<string> columns = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = -1,
             Func<object[], string[], T> itemFactory = null,
             CancellationToken ct = default)
-            where TList : ICollection<T>, IList, new() => connection.AsDbClient().QueryAsync<TList, T>(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, ct);
+            where TList : ICollection<T>, IList, new() => connection.AsDbClient().QueryAsync<TList, T>(query, cmdParams, columns, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, ct);
+
+        /// <summary>
+        /// Настраивает подключение к базе данных с использованием интегрированной аутентификации (Windows Authentication).
+        /// </summary>
+        /// <param name="con">Экземпляр соединения с базой данных.</param>
+        /// <param name="server">Имя или адрес сервера базы данных.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        /// <remarks>
+        /// Автоматически включает доверие к сертификату и интегрированную безопасность.
+        /// </remarks>
+        public static IDbConnection Connect(this IDbConnection con, string server, string database)
+            => Server(con, server).Database(database).TrustCertificate(true).IntegratedSecurity(true);
+
+        /// <summary>
+        /// Настраивает подключение к базе данных с использованием явных учетных данных (логин и пароль).
+        /// </summary>
+        /// <param name="con">Экземпляр соединения с базой данных.</param>
+        /// <param name="server">Имя или адрес сервера базы данных.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <param name="login">Имя пользователя для подключения.</param>
+        /// <param name="password">Пароль пользователя.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        /// <remarks>
+        /// Автоматически включает доверие к сертификату.
+        /// </remarks>
+        public static IDbConnection Connect(this IDbConnection con, string server, string database, string login, string password)
+            => Server(con, server).Database(database).User(login).Password(password).TrustCertificate(true);
 
         /// <summary>
         /// Добавляет параметр сервера базы данных в строку подключения.
@@ -947,7 +975,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="whereExpression">Выражение для фильтрации данных.</param>
         /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="valueConverter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
         /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
         /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
         /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
@@ -959,11 +987,11 @@ namespace RuntimeStuff.Extensions
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollection<T>(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, orderByExpression);
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollection<T>(whereExpression, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, orderByExpression);
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа
@@ -973,7 +1001,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="whereExpression">Выражение для фильтрации данных.</param>
         /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="valueConverter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
         /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
         /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
         /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
@@ -985,12 +1013,12 @@ namespace RuntimeStuff.Extensions
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
             CancellationToken token = default,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionAsync<T>(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, token, orderByExpression);
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionAsync<T>(whereExpression, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, token, orderByExpression);
 
         /// <summary>
         /// Выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа <typeparamref name="T" />.
@@ -999,7 +1027,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="whereExpression">Выражение для фильтрации данных.</param>
         /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="valueConverter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
         /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
         /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
         /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
@@ -1011,11 +1039,11 @@ namespace RuntimeStuff.Extensions
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionEx<T>(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, orderByExpression);
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionEx<T>(whereExpression, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, orderByExpression);
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа
@@ -1025,7 +1053,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="whereExpression">Выражение для фильтрации данных.</param>
         /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="valueConverter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
         /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
         /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
         /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
@@ -1037,12 +1065,12 @@ namespace RuntimeStuff.Extensions
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
             CancellationToken token = default,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionExAsync<T>(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, token, orderByExpression);
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToCollectionExAsync<T>(whereExpression, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, token, orderByExpression);
 
         /// <summary>
         /// Преобразует результат запроса в DataTable.
@@ -1188,7 +1216,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
         /// <param name="columns">Колонки для выборки (опционально).</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="fetchRows">Количество извлекаемых строк (-1 для всех).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
@@ -1199,10 +1227,10 @@ namespace RuntimeStuff.Extensions
             object cmdParams = null,
             IEnumerable<string> columns = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<TItem> converter = null,
+            DbClient.DbValueConverter<TItem> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
-            Func<object[], string[], TItem> itemFactory = null) => connection.AsDbClient().ToList(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory);
+            Func<object[], string[], TItem> itemFactory = null) => connection.AsDbClient().ToList(query, cmdParams, columns, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory);
 
         /// <summary>
         /// Преобразует результат запроса по условию в список сущностей.
@@ -1211,7 +1239,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="whereExpression">Условие WHERE.</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="fetchRows">Количество извлекаемых строк (-1 для всех).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
@@ -1221,11 +1249,11 @@ namespace RuntimeStuff.Extensions
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToList(whereExpression, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, orderByExpression);
+            params (Expression<Func<T, object>>, bool)[] orderByExpression) => connection.AsDbClient().ToList(whereExpression, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, orderByExpression);
 
         /// <summary>
         /// Асинхронно преобразует результат запроса в список сущностей.
@@ -1236,7 +1264,7 @@ namespace RuntimeStuff.Extensions
         /// <param name="cmdParams">Параметры запроса (опционально).</param>
         /// <param name="columns">Колонки для выборки (опционально).</param>
         /// <param name="columnToPropertyMap">Соответствие колонок свойствам (опционально).</param>
-        /// <param name="converter">Конвертер значений (опционально).</param>
+        /// <param name="valueConverter">Конвертер значений (опционально).</param>
         /// <param name="fetchRows">Количество извлекаемых строк (-1 для всех).</param>
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания объектов (опционально).</param>
@@ -1248,11 +1276,11 @@ namespace RuntimeStuff.Extensions
             object cmdParams = null,
             IEnumerable<string> columns = null,
             IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbClient.DbValueConverter<T> converter = null,
+            DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
-            CancellationToken ct = default) => connection.AsDbClient().ToListAsync(query, cmdParams, columns, columnToPropertyMap, converter, fetchRows, offsetRows, itemFactory, ct);
+            CancellationToken ct = default) => connection.AsDbClient().ToListAsync(query, cmdParams, columns, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, ct);
 
         /// <summary>
         /// Асинхронно преобразует результат запроса по условию в список сущностей.

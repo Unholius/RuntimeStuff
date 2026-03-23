@@ -171,12 +171,36 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Преобразовать текстовый фильтр в выражение.
+        /// </summary>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="filter">Текстовый фильтр.</param>
+        /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
+        public static Expression<Func<T, int, bool>> ToIndexedExpression<T>(string filter)
+        {
+            if (string.IsNullOrEmpty(filter))
+            {
+                return (x, i) => true;
+            }
+
+            return ToIndexedLambda<T>(Parse(filter));
+        }
+
+        /// <summary>
         /// Скомпилировать текстовый фильтр в предикат.
         /// </summary>
         /// <typeparam name="T">Type.</typeparam>
         /// <param name="filter">Текстовый фильтр, например: [EventId] &gt;= 1000 || [name] like '%h%l%o%'.</param>
         /// <returns>Func&lt;T, System.Boolean&gt;.</returns>
         public static Func<T, bool> ToPredicate<T>(string filter) => ToExpression<T>(filter).Compile();
+
+        /// <summary>
+        /// Скомпилировать текстовый фильтр в предикат.
+        /// </summary>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="filter">Текстовый фильтр, например: [EventId] &gt;= 1000 || [name] like '%h%l%o%'.</param>
+        /// <returns>Func&lt;T, System.Boolean&gt;.</returns>
+        public static Func<T, int, bool> ToIndexedPredicate<T>(string filter) => ToIndexedExpression<T>(filter).Compile();
 
         /// <summary>
         /// Разбирает текстовое выражение в синтаксическое дерево.
@@ -449,7 +473,7 @@ namespace RuntimeStuff.Helpers
             // property
             if (PropertyRegex.IsMatch(token))
             {
-                return new PropertyExpr(PropertyRegex.Match(token).Groups[1].Value);
+                return new PropertyExpr(PropertyRegex.Match(token).Groups[1].Value, null);
             }
 
             // дата
@@ -484,14 +508,22 @@ namespace RuntimeStuff.Helpers
                 return Expression.Constant(c.Value, c.Value?.GetType() ?? typeof(object));
             }
 
-            if (expr is PropertyExpr p)
+            if (expr is PropertyExpr pe)
             {
-                if (Obj.GetProperty(param.Type, p.Name) == null)
+                var p = Obj.GetProperty(param.Type, pe.Name);
+                if (p == null)
                 {
-                    throw new FormatException($"Свойство '{p.Name}' не существует в типе '{param.Type}'");
+                    throw new FormatException($"Свойство '{pe.Name}' не существует в типе '{param.Type}'");
                 }
 
-                return Expression.PropertyOrField(param, p.Name);
+                Expression result = Expression.PropertyOrField(param, pe.Name);
+
+                if (p.PropertyType == typeof(DateTime))
+                {
+                    result = Expression.Property(result, nameof(DateTime.Date));
+                }
+
+                return result;
             }
 
             if (expr is UnaryExpr u)
@@ -709,6 +741,20 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Converts to lambda.
+        /// </summary>
+        /// <typeparam name="T">Type.</typeparam>
+        /// <param name="expr">The expr.</param>
+        /// <returns>Expression&lt;Func&lt;T, System.Boolean&gt;&gt;.</returns>
+        private static Expression<Func<T, int, bool>> ToIndexedLambda<T>(IExpr expr)
+        {
+            var paramItem = Expression.Parameter(typeof(T), "x");
+            var paramIndex = Expression.Parameter(typeof(int), "i");
+            var body = ToExpression(expr, paramItem);
+            return Expression.Lambda<Func<T, int, bool>>(body, paramItem, paramIndex);
+        }
+
+        /// <summary>
         /// Оператор BETWEEN: [prop] BETWEEN a AND b.
         /// </summary>
         internal class BetweenExpr : IExpr
@@ -881,10 +927,14 @@ namespace RuntimeStuff.Helpers
             /// Initializes a new instance of the <see cref="PropertyExpr" /> class.
             /// </summary>
             /// <param name="name">The name.</param>
-            public PropertyExpr(string name)
+            /// <param name="type">The type.</param>
+            public PropertyExpr(string name, Type type)
             {
                 this.Name = name;
+                this.Type = type;
             }
+
+            public Type Type { get; }
 
             /// <summary>
             /// Gets the name.

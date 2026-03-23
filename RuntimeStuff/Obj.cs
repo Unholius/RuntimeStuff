@@ -892,6 +892,7 @@ namespace RuntimeStuff
         /// <returns>Func&lt;System.Object, System.Object&gt;.</returns>
         public static Func<object, object> CreatePropertyGetter(PropertyInfo pi)
         {
+            return CreatePropertyGetter<object, object>(pi);
             var getter = pi.GetGetMethod(true);
             if (getter == null)
             {
@@ -984,6 +985,102 @@ namespace RuntimeStuff
             il.Emit(System.Reflection.Emit.OpCodes.Ret);
 
             return (Func<object, object>)dm.CreateDelegate(typeof(Func<object, object>));
+        }
+
+        public static Func<TObject, TProperty> CreatePropertyGetter<TObject, TProperty>(PropertyInfo pi)
+        {
+            var getter = pi.GetGetMethod(true);
+            if (getter == null)
+            {
+                return null;
+            }
+
+            var declaring = pi.DeclaringType;
+            var propertyType = pi.PropertyType;
+
+            Debug.Assert(declaring?.Module != null, "declaring?.Module != null");
+            var dm = new DynamicMethod(
+                "get_" + pi.Name,
+                typeof(TObject),
+                new[] { typeof(TProperty) },
+                declaring.Module,
+                true);
+
+            var il = dm.GetILGenerator();
+
+            // Для статических методов
+            if (getter.IsStatic)
+            {
+                il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
+                if (propertyType.IsValueType && !propertyType.IsPrimitive)
+                {
+                    il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
+                }
+
+                il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                return (Func<TObject, TProperty>)dm.CreateDelegate(typeof(Func<TObject, TProperty>));
+            }
+
+            // Для нестатических методов
+            if (!declaring.IsValueType)
+            {
+                // Для ссылочных типов
+                var lblOk = il.DefineLabel();
+
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                il.Emit(System.Reflection.Emit.OpCodes.Isinst, declaring);
+                il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
+
+                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                il.Emit(System.Reflection.Emit.OpCodes.Throw);
+
+                il.MarkLabel(lblOk);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                il.Emit(System.Reflection.Emit.OpCodes.Castclass, declaring);
+                il.Emit(System.Reflection.Emit.OpCodes.Callvirt, getter);
+            }
+            else
+            {
+                // Для value types
+                // Создаем локальную переменную для хранения распакованной структуры
+                var local = il.DeclareLocal(declaring);
+
+                // Загружаем аргумент (упакованную структуру)
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+
+                // Проверяем, что это не null (для упакованных структур)
+                var lblNotNull = il.DefineLabel();
+                il.Emit(System.Reflection.Emit.OpCodes.Dup);
+                il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
+
+                // Если null, выбрасываем исключение
+                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                il.Emit(System.Reflection.Emit.OpCodes.Throw);
+
+                il.MarkLabel(lblNotNull);
+
+                // Распаковываем структуру
+                il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, declaring);
+
+                // Сохраняем в локальную переменную
+                il.Emit(System.Reflection.Emit.OpCodes.Stloc, local);
+
+                // Загружаем адрес локальной переменной (для вызова метода структуры)
+                il.Emit(System.Reflection.Emit.OpCodes.Ldloca_S, local);
+
+                // Вызываем getter
+                il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
+            }
+
+            // Бокс возвращаемого значения, если это value type
+            if (propertyType.IsValueType)
+            {
+                il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
+            }
+
+            il.Emit(System.Reflection.Emit.OpCodes.Ret);
+
+            return (Func<TObject, TProperty>)dm.CreateDelegate(typeof(Func<TObject, TProperty>));
         }
 
         /// <summary>

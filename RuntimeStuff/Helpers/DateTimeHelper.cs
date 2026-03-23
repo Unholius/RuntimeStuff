@@ -11,6 +11,7 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
+
 namespace RuntimeStuff.Helpers
 {
     using System;
@@ -210,14 +211,14 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с временем 00:00:00.</returns>
-        public static DateTime BeginDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, dt.Kind);
+        public static DateTime BeginDay(DateTime dt, int addDays = 0) => new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, dt.Kind).AddDays(addDays);
 
         /// <summary>
         /// Возвращает начало дня (00:00:00) для nullable даты.
         /// </summary>
         /// <param name="date">Исходная nullable дата.</param>
         /// <returns>Дата с временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
-        public static DateTime BeginDay(DateTime? date)
+        public static DateTime BeginDay(DateTime? date, int addDays = 0)
         {
             if (date == null)
             {
@@ -225,7 +226,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, dt.Kind);
+            return new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, dt.Kind).AddDays(addDays);
         }
 
         /// <summary>
@@ -233,14 +234,14 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с первым днем месяца и временем 00:00:00.</returns>
-        public static DateTime BeginMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, dt.Kind);
+        public static DateTime BeginMonth(DateTime dt, int addMonths = 0) => new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, dt.Kind).AddMonths(addMonths);
 
         /// <summary>
         /// Возвращает начало месяца (первый день, 00:00:00) для nullable даты.
         /// </summary>
         /// <param name="date">Исходная nullable дата.</param>
         /// <returns>Дата с первым днем месяца и временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
-        public static DateTime BeginMonth(DateTime? date)
+        public static DateTime BeginMonth(DateTime? date, int addMonths = 0)
         {
             if (date == null)
             {
@@ -248,7 +249,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, dt.Kind);
+            return new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, dt.Kind).AddMonths(addMonths);
         }
 
         /// <summary>
@@ -256,14 +257,14 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
         /// <returns>Дата с первым днем года и временем 00:00:00.</returns>
-        public static DateTime BeginYear(DateTime dt) => new DateTime(dt.Year, 1, 1, 0, 0, 0, dt.Kind);
+        public static DateTime BeginYear(DateTime dt, int addYears = 0) => new DateTime(dt.Year, 1, 1, 0, 0, 0, dt.Kind).AddYears(addYears);
 
         /// <summary>
         /// Возвращает начало года (первый день, 00:00:00) для nullable даты.
         /// </summary>
         /// <param name="date">Исходная nullable дата.</param>
         /// <returns>Дата с первым днем года и временем 00:00:00 или DateTime.MinValue если date равно null.</returns>
-        public static DateTime BeginYear(DateTime? date)
+        public static DateTime BeginYear(DateTime? date, int addYears = 0)
         {
             if (date == null)
             {
@@ -271,15 +272,31 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, 1, 1, 0, 0, 0, dt.Kind);
+            return new DateTime(dt.Year, 1, 1, 0, 0, 0, dt.Kind).AddYears(addYears);
         }
 
         /// <summary>
-        /// Eaches the day.
+        /// Возвращает последовательность дат с шагом в один день в заданном диапазоне (включительно).
         /// </summary>
-        /// <param name="startDate">The start date.</param>
-        /// <param name="endDate">The end date.</param>
-        /// <returns>IEnumerable&lt;DateTime&gt;.</returns>
+        /// <param name="startDate">Начальная дата диапазона.</param>
+        /// <param name="endDate">Конечная дата диапазона.</param>
+        /// <returns>
+        /// Последовательность объектов <see cref="DateTime"/>, представляющих каждую календарную дату
+        /// от <paramref name="startDate"/> до <paramref name="endDate"/> включительно.
+        /// </returns>
+        /// <remarks>
+        /// Время (часы, минуты, секунды) игнорируется — используется только дата (<see cref="DateTime.Date"/>).
+        /// Если <paramref name="startDate"/> больше <paramref name="endDate"/>, последовательность будет пустой.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// EachDay(new DateTime(2024, 1, 1), new DateTime(2024, 1, 3))
+        /// // Результат:
+        /// // 2024-01-01
+        /// // 2024-01-02
+        /// // 2024-01-03
+        /// </code>
+        /// </example>
         public static IEnumerable<DateTime> EachDay(DateTime startDate, DateTime endDate)
         {
             for (var day = startDate.Date; day.Date <= endDate.Date; day = day.AddDays(1))
@@ -292,15 +309,17 @@ namespace RuntimeStuff.Helpers
         /// Возвращает конец дня (23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
+        /// <param name="addDays">Добавить дни.</param>
         /// <returns>Дата с временем 23:59:59.999.</returns>
-        public static DateTime EndDay(DateTime dt) => new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, dt.Kind);
+        public static DateTime EndDay(DateTime dt, int addDays = 0) => new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, dt.Kind).AddDays(addDays);
 
         /// <summary>
         /// Возвращает конец дня (23:59:59.999) для nullable даты.
         /// </summary>
         /// <param name="date">Исходная nullable дата.</param>
+        /// <param name="addDays">Добавить дни.</param>
         /// <returns>Дата с временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
-        public static DateTime EndDay(DateTime? date)
+        public static DateTime EndDay(DateTime? date, int addDays = 0)
         {
             if (date == null)
             {
@@ -308,22 +327,24 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, dt.Kind);
+            return new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, dt.Kind).AddDays(addDays);
         }
 
         /// <summary>
         /// Возвращает конец месяца (последний день, 23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
+        /// <param name="addMonths">Добавить месяцы.</param>
         /// <returns>Дата с последним днем месяца и временем 23:59:59.999.</returns>
-        public static DateTime EndMonth(DateTime dt) => new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999, dt.Kind);
+        public static DateTime EndMonth(DateTime dt, int addMonths = 0) => new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999, dt.Kind).AddMonths(addMonths);
 
         /// <summary>
         /// Возвращает конец месяца (последний день, 23:59:59.999) для nullable даты.
         /// </summary>
         /// <param name="date">Исходная nullable дата.</param>
+        /// <param name="addMonths">Добавить месяцы.</param>
         /// <returns>Дата с последним днем месяца и временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
-        public static DateTime EndMonth(DateTime? date)
+        public static DateTime EndMonth(DateTime? date, int addMonths = 0)
         {
             if (date == null)
             {
@@ -331,22 +352,24 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999, dt.Kind);
+            return new DateTime(dt.Year, dt.Month, DateTime.DaysInMonth(dt.Year, dt.Month), 23, 59, 59, 999, dt.Kind).AddMonths(addMonths);
         }
 
         /// <summary>
         /// Возвращает конец года (последний день, 23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="dt">Исходная дата.</param>
+        /// <param name="addYears">Добавить года.</param>
         /// <returns>Дата с последним днем года и временем 23:59:59.999.</returns>
-        public static DateTime EndYear(DateTime dt) => new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999, dt.Kind);
+        public static DateTime EndYear(DateTime dt, int addYears = 0) => new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999, dt.Kind).AddYears(addYears);
 
         /// <summary>
         /// Возвращает конец года (последний день, 23:59:59.999) для nullable даты.
         /// </summary>
         /// <param name="date">Исходная nullable дата.</param>
+        /// <param name="addYears">Добавить года.</param>
         /// <returns>Дата с последним днем года и временем 23:59:59.999 или DateTime.MaxValue если date равно null.</returns>
-        public static DateTime EndYear(DateTime? date)
+        public static DateTime EndYear(DateTime? date, int addYears = 0)
         {
             if (date == null)
             {
@@ -354,7 +377,7 @@ namespace RuntimeStuff.Helpers
             }
 
             var dt = (DateTime)date;
-            return new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999, dt.Kind);
+            return new DateTime(dt.Year, 12, DateTime.DaysInMonth(dt.Year, 12), 23, 59, 59, 999, dt.Kind).AddYears(addYears);
         }
 
         /// <summary>
@@ -694,6 +717,317 @@ namespace RuntimeStuff.Helpers
         }
 
         /// <summary>
+        /// Возвращает диапазон дат для указанного квартала текущего года.
+        /// </summary>
+        /// <param name="number">Номер квартала (от 1 до 4).</param>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон дат квартала.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если <paramref name="number"/> не входит в диапазон от 1 до 4.
+        /// </exception>
+        /// <remarks>
+        /// Границы диапазона включают:
+        /// <list type="bullet">
+        /// <item><description>Начало — первый день квартала (00:00:00.000).</description></item>
+        /// <item><description>Конец — последний день квартала (23:59:59.999).</description></item>
+        /// </list>
+        /// Используется текущий год (<see cref="DateTime.Now"/>).
+        /// </remarks>
+        public static DateRange QuarterRange(int number) => QuarterRange(DateTime.Now.Year, number);
+
+        /// <summary>
+        /// Возвращает диапазон дат для указанного квартала заданного года.
+        /// </summary>
+        /// <param name="year">Год, для которого определяется квартал.</param>
+        /// <param name="number">Номер квартала (от 1 до 4).</param>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон дат квартала.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если <paramref name="number"/> не входит в диапазон от 1 до 4.
+        /// </exception>
+        /// <remarks>
+        /// Границы диапазона включают:
+        /// <list type="bullet">
+        /// <item><description>Начало — первый день квартала (00:00:00.000).</description></item>
+        /// <item><description>Конец — последний день квартала (23:59:59.999).</description></item>
+        /// </list>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// QuarterRange(2024, 2)
+        /// // Результат:
+        /// // 2024-04-01 00:00:00.000 — 2024-06-30 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange QuarterRange(int year, int number)
+        {
+            switch (number)
+            {
+                case 1: return new DateRange(new DateTime(year, 1, 1), new DateTime(year, 3, 31, 23, 59, 59, 999));
+                case 2: return new DateRange(new DateTime(year, 4, 1), new DateTime(year, 6, 30, 23, 59, 59, 999));
+                case 3: return new DateRange(new DateTime(year, 7, 1), new DateTime(year, 9, 30, 23, 59, 59, 999));
+                case 4: return new DateRange(new DateTime(year, 10, 1), new DateTime(year, 12, 31, 23, 59, 59, 999));
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(number), "Quarter number must be between 1 and 4.");
+            }
+        }
+
+        /// <summary>
+        /// Возвращает диапазон дат, соответствующий указанному дню.
+        /// </summary>
+        /// <param name="year">Год.</param>
+        /// <param name="month">Месяц (от 1 до 12).</param>
+        /// <param name="day">День месяца.</param>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон от начала до конца указанного дня.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если переданы некорректные значения даты.
+        /// </exception>
+        /// <remarks>
+        /// Границы диапазона включают:
+        /// <list type="bullet">
+        /// <item><description>Начало дня — 00:00:00.000.</description></item>
+        /// <item><description>Конец дня — 23:59:59.999 (определяется методом <c>EndDay</c>).</description></item>
+        /// </list>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// DayRange(2024, 5, 10)
+        /// // Результат:
+        /// // 2024-05-10 00:00:00.000 — 2024-05-10 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange DayRange(int year, int month, int day) => new DateRange(BeginDay(new DateTime(year, month, day)), EndDay(new DateTime(year, month, day)));
+
+        /// <summary>
+        /// Возвращает диапазон дат для текущего дня.
+        /// </summary>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон от начала до конца текущего дня.
+        /// </returns>
+        /// <remarks>
+        /// Границы диапазона включают:
+        /// <list type="bullet">
+        /// <item><description>Начало дня — 00:00:00.000.</description></item>
+        /// <item><description>Конец дня — 23:59:59.999 (определяется методом <c>EndDay</c>).</description></item>
+        /// </list>
+        /// В качестве текущей даты используется <see cref="DateTime.Now"/>.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// TodayRange()
+        /// // Результат:
+        /// // [сегодня] 00:00:00.000 — [сегодня] 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange TodayRange() => new DateRange(BeginDay(DateTime.Now), EndDay(DateTime.Now));
+
+        /// <summary>
+        /// Возвращает диапазон дат за последние 7 дней, включая текущий день.
+        /// </summary>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон от начала дня,
+        /// который был 6 дней назад, до конца текущего дня.
+        /// </returns>
+        /// <remarks>
+        /// Диапазон включает:
+        /// <list type="bullet">
+        /// <item><description>Начало — 00:00:00.000 дня, отстоящего на 6 дней назад от текущего.</description></item>
+        /// <item><description>Конец — 23:59:59.999 текущего дня (определяется методом <c>EndDay</c>).</description></item>
+        /// </list>
+        /// Таким образом, общий диапазон составляет 7 календарных дней (включительно).
+        /// В качестве текущей даты используется <see cref="DateTime.Now"/>.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// WeekRange()
+        /// // Например, если сегодня 10 мая:
+        /// // 2024-05-04 00:00:00.000 — 2024-05-10 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange WeekRange() => new DateRange(BeginDay(DateTime.Now, -6), EndDay(DateTime.Now));
+
+        /// <summary>
+        /// Возвращает диапазон дат для указанной недели года (отсчёт ведётся от 1 января).
+        /// </summary>
+        /// <param name="year">Год.</param>
+        /// <param name="weekNumber">Номер недели (начиная с 1).</param>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон из 7 дней для указанной недели.
+        /// </returns>
+        /// <remarks>
+        /// Недели рассчитываются как последовательные интервалы по 7 дней,
+        /// начиная с 1 января указанного года.
+        /// <para/>
+        /// Важно: данный метод <b>не соответствует ISO 8601</b> (где неделя начинается с понедельника
+        /// и первая неделя определяется иначе).
+        /// <para/>
+        /// Границы диапазона включают:
+        /// <list type="bullet">
+        /// <item><description>Начало — 00:00:00.000 первого дня недели.</description></item>
+        /// <item><description>Конец — 23:59:59.999 седьмого дня недели (определяется методом <c>EndDay</c>).</description></item>
+        /// </list>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// WeekRange(2024, 1)
+        /// // Результат:
+        /// // 2024-01-01 — 2024-01-07
+        ///
+        /// WeekRange(2024, 2)
+        /// // Результат:
+        /// // 2024-01-08 — 2024-01-14
+        /// </code>
+        /// </example>
+        public static DateRange WeekRange(int year, int weekNumber) => new DateRange(BeginDay(new DateTime(year, 1, 1).AddDays((weekNumber - 1) * 7)), EndDay(new DateTime(year, 1, 1).AddDays(((weekNumber - 1) * 7) + 6)));
+
+        /// <summary>
+        /// Возвращает диапазон дат для текущего года.
+        /// </summary>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон от начала до конца текущего года.
+        /// </returns>
+        /// <remarks>
+        /// Диапазон включает:
+        /// <list type="bullet">
+        /// <item><description>Начало — 1 января текущего года (00:00:00.000).</description></item>
+        /// <item><description>Конец — 31 декабря текущего года (23:59:59.999).</description></item>
+        /// </list>
+        /// В качестве текущего года используется <see cref="DateTime.Now"/>.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// YearRange()
+        /// // Результат:
+        /// // 2024-01-01 00:00:00.000 — 2024-12-31 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange YearRange() => YearRange(DateTime.Now.Year);
+
+        /// <summary>
+        /// Возвращает диапазон дат для указанного года.
+        /// </summary>
+        /// <param name="year">Год.</param>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон от начала до конца указанного года.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если значение <paramref name="year"/> находится вне допустимого диапазона для <see cref="DateTime"/>.
+        /// </exception>
+        /// <remarks>
+        /// Диапазон включает:
+        /// <list type="bullet">
+        /// <item><description>Начало — 1 января указанного года (00:00:00.000).</description></item>
+        /// <item><description>Конец — 31 декабря указанного года (23:59:59.999).</description></item>
+        /// </list>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// YearRange(2024)
+        /// // Результат:
+        /// // 2024-01-01 00:00:00.000 — 2024-12-31 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange YearRange(int year) => new DateRange(new DateTime(year, 1, 1), new DateTime(year, 12, 31, 23, 59, 59, 999));
+
+        /// <summary>
+        /// Возвращает диапазон дат для указанного месяца текущего года.
+        /// </summary>
+        /// <param name="month">Месяц (от 1 до 12).</param>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон от начала до конца указанного месяца.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если <paramref name="month"/> не входит в диапазон от 1 до 12.
+        /// </exception>
+        /// <remarks>
+        /// Диапазон включает:
+        /// <list type="bullet">
+        /// <item><description>Начало месяца — первый день месяца (00:00:00.000), определяется методом <c>BeginMonth</c>.</description></item>
+        /// <item><description>Конец месяца — последний день месяца (23:59:59.999), определяется методом <c>EndMonth</c>.</description></item>
+        /// </list>
+        /// В качестве года используется <see cref="DateTime.Now"/>.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// MonthRange(5)
+        /// // Например, если текущий год 2024:
+        /// // 2024-05-01 00:00:00.000 — 2024-05-31 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange MonthRange(int month) => new DateRange(BeginMonth(new DateTime(DateTime.Now.Year, month, 1)), EndMonth(new DateTime(DateTime.Now.Year, month, 1)));
+
+        /// <summary>
+        /// Возвращает диапазон дат для текущего месяца.
+        /// </summary>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон от начала до конца текущего месяца.
+        /// </returns>
+        /// <remarks>
+        /// Диапазон включает:
+        /// <list type="bullet">
+        /// <item><description>Начало месяца — первый день текущего месяца (00:00:00.000), определяется методом <c>BeginMonth</c>.</description></item>
+        /// <item><description>Конец месяца — последний день текущего месяца (23:59:59.999), определяется методом <c>EndMonth</c>.</description></item>
+        /// </list>
+        /// В качестве месяца и года используется <see cref="DateTime.Now"/>.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// MonthRange()
+        /// // Например, если текущий месяц май 2024:
+        /// // 2024-05-01 00:00:00.000 — 2024-05-31 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange MonthRange() => new DateRange(BeginMonth(DateTime.Now), EndMonth(DateTime.Now));
+
+        /// <summary>
+        /// Возвращает диапазон дат для указанного месяца указанного года.
+        /// </summary>
+        /// <param name="year">Год.</param>
+        /// <param name="month">Месяц (от 1 до 12).</param>
+        /// <returns>
+        /// Объект <see cref="DateRange"/>, представляющий диапазон от начала до конца указанного месяца.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если <paramref name="month"/> не входит в диапазон от 1 до 12
+        /// или если <paramref name="year"/> находится вне допустимого диапазона <see cref="DateTime"/>.
+        /// </exception>
+        /// <remarks>
+        /// Диапазон включает:
+        /// <list type="bullet">
+        /// <item><description>Начало месяца — первый день месяца (00:00:00.000).</description></item>
+        /// <item><description>Конец месяца — последний день месяца (23:59:59.999), вычисляется с помощью <see cref="DateTime.DaysInMonth"/>.</description></item>
+        /// </list>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// MonthRange(2024, 5)
+        /// // Результат:
+        /// // 2024-05-01 00:00:00.000 — 2024-05-31 23:59:59.999
+        /// </code>
+        /// </example>
+        public static DateRange MonthRange(int year, int month) => new DateRange(new DateTime(year, month, 1), new DateTime(year, month, DateTime.DaysInMonth(year, month), 23, 59, 59, 999));
+
+        /// <summary>
+        /// Возвращает завтрашнюю дату (начало дня).
+        /// </summary>
+        /// <param name="date">Исходная дата.</param>
+        /// <returns>Дата завтрашнего дня с временем 00:00:00.</returns>
+        public static DateTime Tomorrow(DateTime date) => BeginDay(date, 1);
+
+        /// <summary>
+        /// Возвращает завтрашнюю дату (начало дня) для nullable даты.
+        /// </summary>
+        /// <param name="date">Исходная nullable дата.</param>
+        /// <returns>Дата завтрашнего дня с временем 00:00:00.</returns>
+        public static DateTime Tomorrow(DateTime? date) => date != null
+            ? BeginDay(date, 1)
+            : throw new ArgumentNullException(nameof(date));
+
+        /// <summary>
         /// Преобразует строковое представление даты и времени в значение <see cref="DateTime" />.
         /// </summary>
         /// <param name="dateTimeString">Строковое представление даты и времени, подлежащее преобразованию.</param>
@@ -771,7 +1105,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="date">Исходная дата.</param>
         /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
-        public static DateTime Yesterday(DateTime date) => BeginDay(date.AddDays(-1));
+        public static DateTime Yesterday(DateTime date) => BeginDay(date, -1);
 
         /// <summary>
         /// Возвращает вчерашнюю дату (начало дня) для nullable даты.
@@ -779,7 +1113,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="date">Исходная nullable дата.</param>
         /// <returns>Дата предыдущего дня с временем 00:00:00.</returns>
         public static DateTime Yesterday(DateTime? date) => date != null
-                ? BeginDay(date?.AddDays(-1))
+                ? BeginDay(date, -1)
                 : throw new ArgumentNullException(nameof(date));
 
         /// <summary>
@@ -934,6 +1268,89 @@ namespace RuntimeStuff.Helpers
             }
 
             return -1;
+        }
+
+        /// <summary>
+        /// Представляет диапазон дат с начальной и конечной границей.
+        /// </summary>
+        public struct DateRange
+        {
+            /// <summary>
+            /// Инициализирует новый экземпляр <see cref="DateRange"/> с указанными границами.
+            /// Если <paramref name="from"/> позже <paramref name="to"/>, значения автоматически меняются местами.
+            /// </summary>
+            /// <param name="from">Начальная дата диапазона.</param>
+            /// <param name="to">Конечная дата диапазона.</param>
+            public DateRange(DateTime from, DateTime to)
+            {
+                if (from > to)
+                {
+                    (from, to) = (to, from);
+                }
+
+                this.From = from;
+                this.To = to;
+            }
+
+            /// <summary>
+            /// Начальная дата диапазона.
+            /// </summary>
+            public DateTime From { get; set; }
+
+            /// <summary>
+            /// Конечная дата диапазона.
+            /// </summary>
+            public DateTime To { get; set; }
+
+            /// <summary>
+            /// Определяет, содержится ли указанная дата в диапазоне.
+            /// </summary>
+            /// <param name="date">Проверяемая дата.</param>
+            /// <returns>
+            /// <c>true</c>, если <paramref name="date"/> находится между <see cref="From"/> и <see cref="To"/> включительно; иначе <c>false</c>.
+            /// </returns>
+            public bool Contains(DateTime date) => date >= this.From && date <= this.To;
+
+            /// <summary>
+            /// Определяет, полностью ли другой диапазон содержится в данном диапазоне.
+            /// </summary>
+            /// <param name="other">Другой диапазон дат.</param>
+            /// <returns>
+            /// <c>true</c>, если <paramref name="other"/> полностью находится внутри данного диапазона; иначе <c>false</c>.
+            /// </returns>
+            public bool Contains(DateRange other) => this.Contains(other.From) && this.Contains(other.To);
+
+            /// <summary>
+            /// Возвращает строковое представление диапазона.
+            /// </summary>
+            /// <returns>
+            /// Строка в формате "dd.MM.yyyy" или "dd.MM.yyyy HH:mm:ss" для каждой границы,
+            /// в зависимости от наличия времени.
+            /// </returns>
+            public override string ToString()
+            {
+                return (HasTime(this.From) ? $"{this.From:dd.MM.yyyy HH:mm:ss}" : $"{this.From:dd.MM.yyyy}")
+                       + " - "
+                       + (HasTime(this.To) ? $"{this.To:dd.MM.yyyy HH:mm:ss}" : $"{this.To:dd.MM.yyyy}");
+            }
+
+            /// <summary>
+            /// Неявное преобразование <see cref="DateRange"/> в кортеж <c>(DateTime From, DateTime To)</c>.
+            /// </summary>
+            /// <param name="range">Диапазон дат.</param>
+            public static implicit operator (DateTime From, DateTime To)(DateRange range)
+            {
+                return (range.From, range.To);
+            }
+
+            /// <summary>
+            /// Неявное преобразование кортежа <c>(DateTime From, DateTime To)</c> в <see cref="DateRange"/>.
+            /// </summary>
+            /// <param name="tuple">Кортеж с границами диапазона.</param>
+            public static implicit operator DateRange((DateTime From, DateTime To) tuple)
+            {
+                return new DateRange(tuple.From, tuple.To);
+            }
         }
     }
 }

@@ -44,12 +44,12 @@ namespace RuntimeStuff.Data
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
-        /// Создаёт новый экземпляр клиента на основе переданного соединения.
+        /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
         /// </summary>
-        /// <param name="con">Открытое или закрытое соединение с БД.</param>
+        /// <param name="connectionString">Строка подключения к базе данных.</param>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
-        public DbClient(T con, DbEntityMap map = null)
-            : base(con, map)
+        public DbClient(string connectionString, DbEntityMap map = null)
+            : base(new T { ConnectionString = connectionString }, map)
         {
         }
 
@@ -57,15 +57,15 @@ namespace RuntimeStuff.Data
         /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
         /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
         /// </summary>
-        /// <param name="connectionString">Строка подключения к базе данных.</param>
+        /// <param name="server">Имя сервера.</param>
+        /// <param name="database">Имя базы данных.</param>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
-        public DbClient(string connectionString, DbEntityMap map = null)
+        public DbClient(string server, string database, DbEntityMap map = null)
+            : base(new T(), map)
         {
-            this.Connection = new T { ConnectionString = connectionString };
-            if (map != null)
-            {
-                this.Options.Map = map;
-            }
+            Extensions.DbConnectionExtensions.Server(this.Connection, server);
+            Extensions.DbConnectionExtensions.Database(this.Connection, database);
+            Extensions.DbConnectionExtensions.IntegratedSecurity(this.Connection, true);
         }
 
         /// <summary>
@@ -76,30 +76,6 @@ namespace RuntimeStuff.Data
         {
             get => (T)base.Connection;
             set => base.Connection = value;
-        }
-
-        /// <summary>
-        /// Получает или создаёт кэшированный экземпляр клиента по строке подключения.
-        /// </summary>
-        /// <param name="connectionString">Строка подключения.</param>
-        /// <returns>Экземпляр <see cref="DbClient{T}" />.</returns>
-        /// <param name="map">Глобальная карта сопоставлений.</param>
-        public static DbClient<T> Create(string connectionString, DbEntityMap map = null)
-        {
-            var con = new T { ConnectionString = connectionString };
-            var dbClient = ClientCache.GetOrAdd(con, x => new DbClient<T>((T)x, map));
-            return dbClient;
-        }
-
-        /// <summary>
-        /// Получает или создаёт кэшированный экземпляр клиента по соединению.
-        /// </summary>
-        /// <param name="con">Соединение с базой данных.</param>
-        /// <returns>Экземпляр <see cref="DbClient{T}" />.</returns>
-        public static DbClient<T> Create(T con)
-        {
-            var dbClient = ClientCache.GetOrAdd(con, x => new DbClient<T>((T)x));
-            return dbClient;
         }
     }
 }

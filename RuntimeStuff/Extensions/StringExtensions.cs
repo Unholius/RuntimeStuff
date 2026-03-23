@@ -35,6 +35,32 @@ namespace RuntimeStuff.Extensions
     public static class StringExtensions
     {
         /// <summary>
+        /// Преобразует первую текстовую единицу строки (графему) в верхний регистр с учётом указанной культуры.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="culture">
+        /// Культура, используемая для преобразования регистра.
+        /// Если не указана, используется <see cref="CultureInfo.CurrentCulture"/>.
+        /// </param>
+        /// <returns>
+        /// Строка, в которой первая текстовая единица преобразована в верхний регистр,
+        /// а остальная часть остаётся без изменений.
+        /// Если строка равна <c>null</c> или пустая, возвращается исходное значение.
+        /// </returns>
+        /// <remarks>
+        /// В отличие от простого преобразования первого символа, метод корректно обрабатывает
+        /// составные Unicode-символы (например, символы с диакритическими знаками или эмодзи),
+        /// используя <see cref="StringInfo.GetTextElementEnumerator(string)"/>.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// "hello".Capitalize() → "Hello"
+        /// "ǆuro".Capitalize(new CultureInfo("hr-HR")) → "ǅuro"
+        /// </code>
+        /// </example>
+        public static string Capitalize(this string s, CultureInfo culture = null) => StringHelper.Capitalize(s, culture);
+
+        /// <summary>
         /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
         /// </summary>
         /// <param name="str">

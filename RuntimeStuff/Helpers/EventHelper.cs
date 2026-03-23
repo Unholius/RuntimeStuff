@@ -323,6 +323,12 @@ namespace RuntimeStuff.Helpers
             return BindEventToAction(source, eventName, (s, e) => action());
         }
 
+        public static IDisposable BindClickToAction(object source, Action action)
+        {
+            return BindEventToAction(source, "Click", (s, e) => action());
+        }
+
+
         /// <summary>
         /// Подписывает указанное действие на событие объекта.
         /// </summary>
@@ -349,7 +355,7 @@ namespace RuntimeStuff.Helpers
         /// <exception cref="ArgumentException">
         /// Выбрасывается, если <paramref name="eventName"/> равен <see langword="null"/> или пустой строке.
         /// </exception>
-        public static IDisposable BindEventToAction(object source, string eventName, Action<object, object> action)
+        public static IDisposable BindEventToAction(object source, string eventName, Action<object, EventArgs> action)
         {
             if (source == null)
             {
@@ -368,8 +374,8 @@ namespace RuntimeStuff.Helpers
 
             var sourceTypeCache = MemberCache.Create(source.GetType());
             var sourceEvent = sourceTypeCache.GetEvent(x => x.Name == eventName);
-            var binding = new EventBinding<object, object>(source, sourceEvent, action, (_, __) => true);
-            var handler = CreateEventHandlerDelegate<object, object>(sourceEvent.EventHandlerType, binding.OnEvent);
+            var binding = new EventBinding<object, EventArgs>(source, sourceEvent, action, (_, __) => true);
+            var handler = CreateEventHandlerDelegate<object, EventArgs>(sourceEvent.EventHandlerType, binding.OnEvent);
             binding.ActionHandler = handler;
             sourceEvent.AddEventHandler(source, handler);
 

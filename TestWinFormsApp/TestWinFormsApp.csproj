@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RuntimeStuff\RuntimeStuff.csproj" />
+    <ProjectReference Include="..\Tests\WinFormsExtensions\WinFormsExtensions.csproj" />
   </ItemGroup>
 
 </Project>

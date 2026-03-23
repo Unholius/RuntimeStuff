@@ -41,43 +41,49 @@ namespace RuntimeStuff.Extensions
         /// Возвращает начало дня (00:00:00) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
+        /// <param name="addDays">Добавить дни.</param>
         /// <returns>Дата с временем 00:00:00.</returns>
-        public static DateTime BeginDay(this DateTime date) => DateTimeHelper.BeginDay(date);
+        public static DateTime BeginDay(this DateTime date, int addDays = 0) => DateTimeHelper.BeginDay(date, addDays);
 
         /// <summary>
         /// Возвращает конец дня (23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
+        /// <param name="addDays">Добавить дни.</param>
         /// <returns>Дата с временем 23:59:59.999.</returns>
-        public static DateTime EndDay(this DateTime date) => DateTimeHelper.EndDay(date);
+        public static DateTime EndDay(this DateTime date, int addDays = 0) => DateTimeHelper.EndDay(date, addDays);
 
         /// <summary>
         /// Возвращает начало месяца (первый день, 00:00:00) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
+        /// <param name="addMonths">Добавить месяцы.</param>
         /// <returns>Дата с первым днем месяца и временем 00:00:00.</returns>
-        public static DateTime BeginMonth(this DateTime date) => DateTimeHelper.BeginMonth(date);
+        public static DateTime BeginMonth(this DateTime date, int addMonths = 0) => DateTimeHelper.BeginMonth(date, addMonths);
 
         /// <summary>
         /// Возвращает конец месяца (последний день, 23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
+        /// <param name="addMonths">Добавить месяцы.</param>
         /// <returns>Дата с последним днем месяца и временем 23:59:59.999.</returns>
-        public static DateTime EndMonth(this DateTime date) => DateTimeHelper.EndMonth(date);
+        public static DateTime EndMonth(this DateTime date, int addMonths = 0) => DateTimeHelper.EndMonth(date, addMonths);
 
         /// <summary>
         /// Возвращает начало года (первый день, 00:00:00) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
+        /// <param name="addYears">Добавить года.</param>
         /// <returns>Дата с первым днем года и временем 00:00:00.</returns>
-        public static DateTime BeginYear(this DateTime date) => DateTimeHelper.BeginYear(date);
+        public static DateTime BeginYear(this DateTime date, int addYears = 0) => DateTimeHelper.BeginYear(date, addYears);
 
         /// <summary>
         /// Возвращает конец года (последний день, 23:59:59.999) для указанной даты.
         /// </summary>
         /// <param name="date">Исходная дата.</param>
+        /// <param name="addYears">Добавить года.</param>
         /// <returns>Дата с последним днем года и временем 23:59:59.999.</returns>
-        public static DateTime EndYear(this DateTime date) => DateTimeHelper.EndYear(date);
+        public static DateTime EndYear(this DateTime date, int addYears = 0) => DateTimeHelper.EndYear(date, addYears);
 
         /// <summary>
         /// Возвращает вчерашнюю дату (начало дня).

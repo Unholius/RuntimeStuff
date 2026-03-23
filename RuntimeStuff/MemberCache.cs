@@ -2238,12 +2238,33 @@ namespace RuntimeStuff
         public object GetValue(object instance) => this.Getter(instance);
 
         /// <summary>
+        /// Получает значение члена для указанного экземпляра и конвертирует его к указанному типу через <see cref="Obj.ChangeType{T}(object, IFormatProvider)"/>.
+        /// </summary>
+        /// <typeparam name="T">Тип, к которому преобразуется значение.</typeparam>
+        /// <param name="instance">Экземпляр объекта.</param>
+        /// <returns>Значение члена, преобразованное к типу T.</returns>
+        public T ConvertValue<T>(object instance) => Obj.ChangeType<T>(this.Getter(instance));
+
+        /// <summary>
         /// Получает значение члена для указанного экземпляра и преобразует его к указанному типу.
         /// </summary>
         /// <typeparam name="T">Тип, к которому преобразуется значение.</typeparam>
         /// <param name="instance">Экземпляр объекта.</param>
         /// <returns>Значение члена, преобразованное к типу T.</returns>
-        public T GetValue<T>(object instance) => Obj.ChangeType<T>(this.Getter(instance));
+        public T GetValue<T>(object instance) => (T)this.Getter(instance);
+
+        /// <summary>
+        /// Вызывает базовый метод, представленный этим экземпляром, используя указанный объект в качестве цели и
+        /// предоставленные параметры.
+        /// </summary>
+        /// <remarks>Если метод является методом экземпляра, параметр instance должен иметь тип,
+        /// совместимый с объявляющим типом метода. Если метод статический, параметр instance
+        /// игнорируется. Типы параметров должны соответствовать сигнатуре метода, иначе может быть выдано исключение.</remarks>
+        /// <param name="instance">Объект, для которого вызывается метод. Для статических методов этот параметр игнорируется.</param>
+        /// <param name="parameters">Массив объектов, передаваемых в качестве аргументов методу. Количество, порядок и типы параметров должны
+        /// соответствовать сигнатуре метода.</param>
+        /// <returns>Возвращаемое значение вызванного метода или null, если метод не возвращает значения.</returns>
+        public object Invoke(object instance, params object[] parameters) => this.AsMethodInfo()?.Invoke(instance, parameters);
 
         /// <summary>
         /// Проверяет, содержит ли член все указанные атрибуты.

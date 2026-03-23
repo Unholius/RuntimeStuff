@@ -1,11 +1,10 @@
 using RuntimeStuff;
+using RuntimeStuff.Collections;
 using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
-using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.Runtime.Versioning;
+using WinFormsExtensions;
 
 namespace TestWinFormsApp
 {
@@ -17,6 +16,8 @@ namespace TestWinFormsApp
             InitializeComponent();
 
         }
+
+        public BindingListView<FileItem> FileItems { get; set; } = new BindingListView<FileItem>();
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -47,15 +48,17 @@ namespace TestWinFormsApp
             //oc.BindCollectionChangedToAction(BindCollectionChangedToAction);
             //textBox1.BindToPropertyOnEvent(nameof(TextBox.TextChanged), x => x.Text, checkBox1, x => x.Checked, s => s.IsNumber() && Convert.ToInt64(s) % 2 == 0);
 
-            //Obj.Set(dataGridView1, "DoubleBuffered", true);
+            Obj.Set(dgv, "DoubleBuffered", true);
             //_ = m.BindToProperty(x => x.IsFree, btnLoad, x => x.Enabled, x => !x);
             //m.BindPropertyChangeToAction(x => x.Number, () => MessageBox.Show(@"Number is Changed!"));
             //m.BindProperties(x => x.Number, m, x => x.Number);
             //MessageBus.SingleThreaded.Subscribe<ServerMessage>(OnServerMessage, SynchronizationContext.Current);
 
             ////EventHelper.BindProperties(textBox2, "Text", "TextChanged", label1, "Text");
-            EventHelper.BindEventToAction(textBox2, "TextChanged", () => label1.Text = textBox2.Text);
-            EventHelper.BindProperties(dataGridView1, "SelectedCells.Count", "SelectionChanged", btnLoad, "Text");
+            //EventHelper.BindEventToAction(textBox2, "TextChanged", () => label1.Text = textBox2.Text);
+            //EventHelper.BindProperties(dataGridView1, "SelectedCells.Count", "SelectionChanged", btnLoad, "Text");
+            dgv.SetRowColors(Color.LightGray);
+            dgv.DataSource = FileItems;
         }
 
         private class ServerMessage
@@ -116,18 +119,21 @@ namespace TestWinFormsApp
             }
         }
 
+
         private async void btnLoad_Click(object sender, EventArgs e)
         {
             try
             {
                 m.IsFree = false;
                 var dt = new DataTable();
-                using (var con = new SqlConnection().Server("NAS\\RSSQLSERVER").Database("musiclib").TrustCertificate(true).IntegratedSecurity(true))
+                dgv.RowTemplate.Height = 20;
+                DataGridViewExtensions.ShowRowNumbers(dgv);
+                FileItems.Clear();
+                using (var con = new SqlConnection().Connect("NAS\\RSSQLSERVER", "musiclib"))
                 {
-                    dt = await con.ToDataTableAsync("select id,width,height,size from artwork", valueConverter: (s, v, c) => v is string str ? str.Trim() : v);
-                    dataGridView1.DataSource = dt;
-                }
 
+                    FileItems.AddRange(await con.ToListAsync<FileItem>("select top 50000 * from files"));
+                }
             }
             catch (Exception ex)
             {
@@ -172,6 +178,16 @@ namespace TestWinFormsApp
         {
 
         }
+
+        private void dgv_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (e.Button != MouseButtons.Right)
+                return;
+
+            var grid = (DataGridView)sender;
+
+            ColumnFilterView.ShowForColumn(grid.Columns[e.ColumnIndex]);
+        }
     }
 
     public class Model : ObservableObjectEx
@@ -193,5 +209,13 @@ namespace TestWinFormsApp
             get => Get<bool>();
             set => Set(value);
         }
+    }
+
+    public class FileItem
+    {
+        public string FileName { get; set; }
+        public long Size { get; set; }
+        public DateTime Created { get; set; }
+        public string Ext { get; set; }
     }
 }
