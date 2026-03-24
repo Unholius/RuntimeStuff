@@ -117,10 +117,72 @@
 
         public static void AutoCloseOnDeactivate(this Form form, Func<bool> allowClose = null)
         {
-            form.Deactivate += (s, e) =>
+            var filter = new SmartCloseFilter(form, allowClose);
+
+            form.FormClosed += (s, e) =>
             {
-                if (allowClose == null || allowClose()) ((Form)s)?.Close();
+                Application.RemoveMessageFilter(filter);
             };
+
+            Application.AddMessageFilter(filter);
+        }
+
+        private class SmartCloseFilter : IMessageFilter
+        {
+            private readonly Form _form;
+            private readonly Func<bool> _allowClose;
+
+            public SmartCloseFilter(Form form, Func<bool> allowClose)
+            {
+                _form = form;
+                _allowClose = allowClose;
+            }
+
+            public bool PreFilterMessage(ref Message m)
+            {
+                if (_form.IsDisposed || !_form.Visible)
+                    return false;
+
+                var cursor = Cursor.Position;
+
+                const int WM_LBUTTONDOWN = 0x0201;
+                const int WM_RBUTTONDOWN = 0x0204;
+                const int WM_MBUTTONDOWN = 0x0207;
+                const int WM_ACTIVATE = 0x0006;
+
+                // --- 1. Клик вне формы ---
+                if (m.Msg == WM_LBUTTONDOWN ||
+                    m.Msg == WM_RBUTTONDOWN ||
+                    m.Msg == WM_MBUTTONDOWN)
+                {
+                    if (!_form.Bounds.Contains(cursor))
+                    {
+                        if (_allowClose == null || _allowClose())
+                        {
+                            _form.Close();
+                            return false; // не блокируем клик
+                        }
+                    }
+                }
+
+                // --- 2. Потеря фокуса ---
+                if (m.Msg == WM_ACTIVATE)
+                {
+                    int wParam = m.WParam.ToInt32() & 0xFFFF;
+                    const int WA_INACTIVE = 0;
+
+                    if (wParam == WA_INACTIVE)
+                    {
+                        if (_allowClose == null || _allowClose())
+                        {
+                            _form.Close();
+                            return false;
+                        }
+                    }
+                }
+
+                return false;
+            }
         }
     }
 

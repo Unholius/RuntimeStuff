@@ -26,68 +26,73 @@ namespace WinFormsExtensions
                 case "System.DateTime":
                     AddPreset($"Сегодня ({DateTime.Now:dd ddd MMM})", () => GetFilterTextBetween(DateTime.Now.BeginDay(), DateTime.Now.EndDay()));
                     AddPreset($"Вчера ({DateTime.Now.BeginDay(-1):dd ddd MMM})", () => GetFilterTextBetween(DateTime.Now.BeginDay(-1), DateTime.Now.EndDay(-1)));
-                    AddPreset($"Неделя ({DateTime.Now.BeginDay(-6):dd ddd MMM} - {DateTime.Now.EndDay():dd ddd MMM})", () => GetFilterTextBetween(DateTime.Now.BeginDay(-6), DateTime.Now.EndDay()));
-                    AddPreset($"Две недели ({DateTime.Now.BeginDay(-13):dd ddd MMM} - {DateTime.Now.EndDay():dd ddd MMM})", () => GetFilterTextBetween(DateTime.Now.BeginDay(-13), DateTime.Now.EndDay()));
+                    AddPreset($"Неделя ({DateTime.Now.BeginDay(-6):dd.MM} - {DateTime.Now.EndDay():dd.MM})", () => GetFilterTextBetween(DateTime.Now.BeginDay(-6), DateTime.Now.EndDay()));
+                    AddPreset($"Две недели ({DateTime.Now.BeginDay(-13):dd.MM} - {DateTime.Now.EndDay():dd.MM})", () => GetFilterTextBetween(DateTime.Now.BeginDay(-13), DateTime.Now.EndDay()));
                     AddPreset($"Месяц (30 дней)", () => GetFilterTextBetween(DateTime.Now.BeginDay(-30), DateTime.Now.EndDay()));
-                    for (int i = 1; i <= 12; i++)
+                    AddPreset($"1 Квартал {DateTime.Now.Year}", () => GetFilterTextBetween(DateTimeHelper.QuarterRange(1)));
+                    AddPreset($"2 Квартал {DateTime.Now.Year}", () => GetFilterTextBetween(DateTimeHelper.QuarterRange(2)));
+                    AddPreset($"3 Квартал {DateTime.Now.Year}", () => GetFilterTextBetween(DateTimeHelper.QuarterRange(3)));
+                    AddPreset($"4 Квартал {DateTime.Now.Year}", () => GetFilterTextBetween(DateTimeHelper.QuarterRange(4)));
+                    AddPreset($"Год ({DateTime.Now.Year})", () => GetFilterTextBetween(DateTime.Now.BeginYear(), DateTime.Now.EndYear()));
+                    for (var i = 1; i <= 12; i++)
                     {
                         var range = DateTimeHelper.MonthRange(i);
-                        AddPreset($"{range.From:MMMM}".Capitalize(), () => GetFilterTextBetween(range));
+                        AddPreset($"{i:00} " + $"{range.From:MMMM}".Capitalize(), () => GetFilterTextBetween(range));
                     }
-                    AddPreset($"Год ({DateTime.Now.Year})", () => GetFilterTextBetween(DateTime.Now.BeginYear(), DateTime.Now.EndYear()));
+                    
                     break;
-                case "System.Int32":
-                case "System.Double":
-                case "System.Decimal":
-                {
-                    // 0
-                    AddPreset("Равно 0", () => GetFilterTextEquals(0));
+                //case "System.Int32":
+                //case "System.Double":
+                //case "System.Decimal":
+                //{
+                //    // 0
+                //    AddPreset("Равно 0", () => GetFilterTextEquals(0));
 
-                    // Положительные
-                    AddPreset("Больше 0", () => GetFilterTextGreater(0));
-                    AddPreset("Меньше 0", () => GetFilterTextLess(0));
+                //    // Положительные
+                //    AddPreset("Больше 0", () => GetFilterTextGreater(0));
+                //    AddPreset("Меньше 0", () => GetFilterTextLess(0));
 
-                    // Малые диапазоны
-                    AddPreset("1–10", () => GetFilterTextBetween(1, 10));
-                    AddPreset("11–100", () => GetFilterTextBetween(11, 100));
-                    AddPreset("101–1000", () => GetFilterTextBetween(101, 1000));
+                //    // Малые диапазоны
+                //    AddPreset("1–10", () => GetFilterTextBetween(1, 10));
+                //    AddPreset("11–100", () => GetFilterTextBetween(11, 100));
+                //    AddPreset("101–1000", () => GetFilterTextBetween(101, 1000));
 
-                    // Чётные / Нечётные
-                    AddPreset("Чётные", () => GetFilterTextModulo(2, 0));    // value % 2 == 0
-                    AddPreset("Нечётные", () => GetFilterTextModulo(2, 1));  // value % 2 == 1
+                //    // Чётные / Нечётные
+                //    AddPreset("Чётные", () => GetFilterTextModulo(2, 0));    // value % 2 == 0
+                //    AddPreset("Нечётные", () => GetFilterTextModulo(2, 1));  // value % 2 == 1
 
-                    // Положительные / Отрицательные
-                    AddPreset("Положительные", () => GetFilterTextGreater(0));
-                    AddPreset("Отрицательные", () => GetFilterTextLess(0));
+                //    // Положительные / Отрицательные
+                //    AddPreset("Положительные", () => GetFilterTextGreater(0));
+                //    AddPreset("Отрицательные", () => GetFilterTextLess(0));
 
-                    // Можно добавить «Top N» или «Bottom N»
-                    AddPreset("Top 10", () => GetFilterTextTop(10));
-                    AddPreset("Bottom 10", () => GetFilterTextBottom(10));
+                //    // Можно добавить «Top N» или «Bottom N»
+                //    AddPreset("Top 10", () => GetFilterTextTop(10));
+                //    AddPreset("Bottom 10", () => GetFilterTextBottom(10));
 
-                    break;
-                }
+                //    break;
+                //}
 
-                case "System.String":
-                {
-                    // Пустые / не пустые
-                    AddPreset("Пустые", () => GetFilterTextEquals(""));
-                    AddPreset("Не пустые", () => GetFilterTextNotEquals(""));
+                //case "System.String":
+                //{
+                //    // Пустые / не пустые
+                //    AddPreset("Пустые", () => GetFilterTextEquals(""));
+                //    AddPreset("Не пустые", () => GetFilterTextNotEquals(""));
 
-                    // Содержит текст
-                    AddPreset("Содержит 'test'", () => GetFilterTextContains("test")); // пример, можно менять
+                //    // Содержит текст
+                //    AddPreset("Содержит 'test'", () => GetFilterTextContains("test")); // пример, можно менять
 
-                    // Начинается с
-                    AddPreset("Начинается с 'A'", () => GetFilterTextStartsWith("A"));
+                //    // Начинается с
+                //    AddPreset("Начинается с 'A'", () => GetFilterTextStartsWith("A"));
 
-                    // Заканчивается на
-                    AddPreset("Заканчивается на 'Z'", () => GetFilterTextEndsWith("Z"));
+                //    // Заканчивается на
+                //    AddPreset("Заканчивается на 'Z'", () => GetFilterTextEndsWith("Z"));
 
-                    // По длине
-                    AddPreset("Длина = 0", () => GetFilterTextLengthEquals(0));
-                    AddPreset("Длина > 10", () => GetFilterTextLengthGreater(10));
+                //    // По длине
+                //    AddPreset("Длина = 0", () => GetFilterTextLengthEquals(0));
+                //    AddPreset("Длина > 10", () => GetFilterTextLengthGreater(10));
 
-                    break;
-                }
+                //    break;
+                //}
             }
         }
 

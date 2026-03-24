@@ -102,14 +102,23 @@ namespace WinFormsExtensions
             f.FilterValuesGridView.DataSource = null;
             f.Text = $"{column.HeaderText ?? column.Name} ({column.ValueType.Name})";
             f.StartPosition = FormStartPosition.Manual;
+
             // прямоугольник заголовка колонки (в координатах DataGridView)
             var rect = f.SourceDataGridView.GetCellDisplayRectangle(column.Index, -1, true);
+
             // перевод в экранные координаты
             var screenRect = f.SourceDataGridView.RectangleToScreen(rect);
-            // пример: левый нижний угол (как у context menu)
-            var point = new Point(screenRect.Left, screenRect.Bottom);
-            f.Top = point.Y;
-            f.Left = point.X;
+
+            // позиция курсора на экране
+            var cursor = Cursor.Position;
+
+            // смещение курсора внутри header
+            int offsetX = cursor.X - screenRect.Left;
+
+            // итоговая позиция (сохраняем offset)
+            var point = new Point(screenRect.Left + offsetX, screenRect.Bottom);
+
+            f.Location = point;
             f.ColumnCaption.Text = column.HeaderText ?? column.Name;
             f.ColumnCaption.Items.AddRange(new string[] { column.DataPropertyName, column.Name, column.HeaderText }.Distinct().Where(x => !string.IsNullOrEmpty(x)).ToArray());
             f.ColumnFormat.Text = column.DefaultCellStyle.Format;

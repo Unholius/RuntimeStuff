@@ -127,7 +127,6 @@ namespace TestWinFormsApp
                 m.IsFree = false;
                 var dt = new DataTable();
                 dgv.RowTemplate.Height = 20;
-                DataGridViewExtensions.ShowRowNumbers(dgv);
                 FileItems.Clear();
                 using (var con = new SqlConnection().Connect("NAS\\RSSQLSERVER", "musiclib"))
                 {
