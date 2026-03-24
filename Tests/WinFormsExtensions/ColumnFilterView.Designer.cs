@@ -651,7 +651,6 @@
         private System.Windows.Forms.ToolStripButton btnAutosizeColumn;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.TabPage tabConstructor;
-        private ValueFilterTemplate valueFilterTemplate1;
         private System.Windows.Forms.ToolStripButton btnFreezeColumn;
     }
 }
