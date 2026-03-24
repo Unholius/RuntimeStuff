@@ -167,9 +167,11 @@
             dgv.Dock = DockStyle.Fill;
             dgv.Location = new Point(3, 26);
             dgv.Name = "dgv";
+            dgv.ShowCellErrors = false;
+            dgv.ShowRowErrors = false;
             dgv.Size = new Size(1231, 598);
             dgv.TabIndex = 2;
-            dgv.ColumnHeaderMouseClick += dgv_ColumnHeaderMouseClick;
+            dgv.DataError += dgv_DataError;
             // 
             // btnLoad
             // 

@@ -23,6 +23,53 @@ namespace RuntimeStuff.Extensions
     public static class DateTimeExtensions
     {
         /// <summary>
+        /// Генерирует случайное значение <see cref="DateTime"/> в заданном диапазоне дат и (опционально) времени.
+        /// </summary>
+        /// <param name="fromDate">
+        /// Начальная дата диапазона. Если больше <paramref name="toDate"/>, значения будут автоматически поменяны местами.
+        /// Учитывается только дата (время отбрасывается).
+        /// </param>
+        /// <param name="toDate">
+        /// Конечная дата диапазона. Если меньше <paramref name="fromDate"/>, значения будут автоматически поменяны местами.
+        /// Учитывается только дата (время отбрасывается).
+        /// </param>
+        /// <param name="fromTime">
+        /// (Необязательно) Начальное время суток. Если не задано, возвращается только случайная дата без времени.
+        /// </param>
+        /// <param name="toTime">
+        /// (Необязательно) Конечное время суток. Если не задано, возвращается только случайная дата без времени.
+        /// </param>
+        /// <returns>
+        /// Случайное значение <see cref="DateTime"/>:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>Если <paramref name="fromTime"/> и <paramref name="toTime"/> не заданы — случайная дата в диапазоне.</description>
+        /// </item>
+        /// <item>
+        /// <description>Если время задано — случайная дата и время в пределах указанных диапазонов.</description>
+        /// </item>
+        /// </list>
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Диапазон дат включает обе границы.
+        /// </para>
+        /// <para>
+        /// Диапазон времени также включает обе границы и рассчитывается с точностью до миллисекунд.
+        /// </para>
+        /// <para>
+        /// Если начальные значения больше конечных (как для дат, так и для времени),
+        /// они автоматически меняются местами.
+        /// </para>
+        /// </remarks>
+        public static DateTime Random(
+            this DateTime fromDate,
+            DateTime toDate,
+            TimeSpan? fromTime = null,
+            TimeSpan? toTime = null)
+            => DateTimeHelper.Random(fromDate, toDate, fromTime, toTime);
+
+        /// <summary>
         /// Определяет, содержит ли дата компонент времени (не равно 00:00:00).
         /// </summary>
         /// <param name="date">Дата для проверки.</param>

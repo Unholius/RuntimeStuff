@@ -173,14 +173,14 @@
     <value>
         iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
         YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAHLSURBVDhPY2CgIWBnYBDkZ2BgYEOXwAcYwaSWFht/4ZlT
-        AkXn/vNlHzjAwMDAjCKPB4AVsjtVugo1v/0vUHLpv1B99z8O20wrqDwTqnJMADZAIO/IDMHKm/85y89+
+        AkXn/vNlHzjAwMDAjCKPB4AVsjtVugo1v/0vUHLpv1B9/T8O20wrqDwTqnJMADZAIO/IDMHKm/85y89+
         Eqq8/Z+n4HAvsjwuAHGeihkff+XN54Kl137xFbyqEoy/9luo6vZ9BhkLThR1WADYdE6nyhDh5lf/BQov
         n2XQqmcTyL90DsTncq7yRlaHDYD9x591eLFQ/dP/PCGzq0F8npCZ1UL1z/4LZB2ag6wOHUCcJZ8lwVn2
-        +KNwfes/TvtCC5AQiBZueP5fsOj6GwY1exEU9UiABURwxcxOE6p9+B/kb66S65/5is59A9HgcKh/9J89
+        +KNwff0/TvtCC5AQiBZueP5fsOj6GwY1exEU9UiABURwxcxOE6p9+B/kb66S65/5is59A9HgcKh/9J89
         ZFUisnpkADaRv/TSdqGKW/+5Sy594Snc/5Wn6MJXnoL9X7lKTn4WrLr5n7/wyhZk9TAA9hObaYqaUM3D
         XzxFN76yWmdpg1MiP78AAwMDB7tyhQrIa0IN93+yW6UqI+sDAbBzeCLnVwg1vvwvkH98JVQcZAsIQwI3
         7/gSkDxv+LwSZH1wIJB3bK9g9b3/nDY5oUgKQAaAFXJaZQeD5AVyjuxB0gb3ChMk44jyoPsPCTBC5UEZ
-        DGtUkgUAgROVKuSja8QAAAAASUVORK5CYII=
+        DGtUkgUAT3WVGOz93DcAAAAASUVORK5CYII=
 </value>
   </data>
   <data name="btnIncreaseFont.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
@@ -232,6 +232,17 @@
         riYaI+59jjOchVJI90/m/fh8diSv99nbWOGCe5/jDGfB33lZD3cfj6cNYebXYhxn2zuQUupzITLCDOAk
         0iUsGEwvrcvdVSDMxhgR4zjbFviiWFzP5yvCrJRKY1xXkOd5KMvyjjDzcIz7TwXOuZsQwpIw83CM6wqs
         tTPv/S1h1lrLGPdV0JZ8gw8kxv1+fQK9/hFScc2xKAAAAABJRU5ErkJggg==
+</value>
+  </data>
+  <data name="btnFreezeColumn.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
+        YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAEoSURBVDhP3VNNSwMxEJ324GqbrDTRg/jnlGxr1Wxcqrhx
+        pb3V/1SkXkRED6J3ke7+ACuo55W3H5KLULQnBx4z8yDz8ZgQLcEaRMSIJC+BuOBWiMhzAM7NAZjw2f40
+        ZYOHz3b/5oN3pxnnXHaVMtqYxBiTBEEQSSk5PPKaq4oIvxPdv4phmsthmnvHj3PG2KYx2p5aO7bWjvFA
+        COHDI6+5qoDk63uT51Vz/daJbuft3uULJlBqRx9obbXWVillMAE88pqr12hSa2OL1sR2AcRETTxAVwDx
+        Dxx0+fMElQajLJejLPdOngoNjsLDsziOL4AwDM/RFd7l/p0Gv78D4bPeZIYrbA3u3ln/Ki0vcRfdEsC9
+        RJerNWiUf0D4Jb53W/QvLMdQ3cXC9gXZa9g5WMsxrAAAAABJRU5ErkJggg==
 </value>
   </data>
   <metadata name="fontDialog1.TrayLocation" type="System.Drawing.Point, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">

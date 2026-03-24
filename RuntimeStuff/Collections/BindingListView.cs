@@ -1,4 +1,8 @@
-﻿using System;
+﻿// <copyright file="BindingListView.cs" company="Rudnev Sergey">
+// Copyright (c) Rudnev Sergey. All rights reserved.
+// </copyright>
+
+using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -18,7 +22,8 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
     private PropertyDescriptor _sortProperty;
 
     public BindingListView()
-    { }
+    {
+    }
 
     public BindingListView(IEnumerable<T> collection)
     {

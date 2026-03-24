@@ -19,8 +19,8 @@ namespace WinFormsExtensions
         {
             InitializeComponent();
             FilterValuesGridView.BindKey(Keys.Space, () => FilterValuesGridView.BeginUpdate(() => SetSelection(null)));
-            FilterValuesGridView.AutoCommitCheckCells();
-            this.BindCloseFormKey();
+            FilterValuesGridView.SetAutoCommitCheckCells(true);
+            this.BindCloseFormKey(Keys.None);
             this.AutoCloseOnDeactivate(() => CanClose);
             EventHelper.BindClickToAction(btnLeftAlignment, () => ChangeAlignmentButtonsCheckedState(true, false, false));
             EventHelper.BindClickToAction(btnJustifyAlignment, () => ChangeAlignmentButtonsCheckedState(false, true, false));
@@ -72,6 +72,8 @@ namespace WinFormsExtensions
 
         private BindingListView<FilterRow> Values { get; set; } = new BindingListView<FilterRow>();
 
+        public bool ColumnFrozen { get; set; }
+
         public bool ColumnCellLeftAligned
         {
             get;
@@ -100,8 +102,12 @@ namespace WinFormsExtensions
             f.FilterValuesGridView.SetRowColors(column.DataGridView.AlternatingRowsDefaultCellStyle.BackColor);
             f.valueFilterTemplate1.Grid.SetRowColors(column.DataGridView.AlternatingRowsDefaultCellStyle.BackColor);
             f.FilterValuesGridView.DataSource = null;
-            f.Text = $"{column.HeaderText ?? column.Name} ({column.ValueType.Name})";
+            f.Text = $"{column.HeaderText ?? column.Name} ({column.ValueType?.Name})";
             f.StartPosition = FormStartPosition.Manual;
+
+            f.BindToProperty(x => x.ColumnFrozen, f.SourceColumn, c => c.Frozen);
+            f.BindProperties(x => x.ColumnFrozen, f.btnFreezeColumn, nameof(btnFreezeColumn.CheckedChanged), c => c.Checked);
+            f.ColumnFrozen = column.Frozen;
 
             // прямоугольник заголовка колонки (в координатах DataGridView)
             var rect = f.SourceDataGridView.GetCellDisplayRectangle(column.Index, -1, true);
@@ -211,11 +217,14 @@ namespace WinFormsExtensions
             {
                 await Task.Run(() =>
                 {
-
                     var set = new HashSet<object>();
-
                     foreach (DataGridViewRow row in SourceDataGridView.Rows)
                     {
+                        if (row.IsNewRow || row.Index < 0)
+                        {
+                            continue;
+                        }
+
                         var value = row.Cells[SourceColumn.Index].Value;
                         if (value is DateTime dt)
                         {
@@ -289,58 +298,66 @@ namespace WinFormsExtensions
         private void ApplyFilters(bool clear = false)
         {
             StringFilterBuilder.Clear();
-            SourceDataGridView.SuspendLayout();
-            var checkedValues = new HashSet<object>(Values.Where(x => x.Checked).Select(x => x.Value).ToArray());
+
             if (clear)
             {
                 SourceDataGridView.ClearFilters();
                 return;
             }
-
-            SourceDataGridView.CurrentCell = null;
-            var filterText = string.Empty;
-            switch (tabControl1.SelectedIndex)
+            try
             {
-                case 0:
-                    if (checkedValues.Count > 0)
-                        filterText = StringFilterBuilder.Property(SourceColumn.DataPropertyName)
-                            .In(checkedValues.ToArray())
-                            .ToString();
-                    break;
+                SourceDataGridView.SuspendLayout();
+                SourceDataGridView.CurrentCell = null;
+                var filterText = string.Empty;
+                var checkedValues = new HashSet<object>(Values.Where(x => x.Checked).Select(x => x.Value).ToArray());
+                switch (tabControl1.SelectedIndex)
+                {
+                    case 0:
+                        if (checkedValues.Count > 0)
+                            filterText = StringFilterBuilder.Property(SourceColumn.DataPropertyName)
+                                .In(checkedValues.ToArray())
+                                .ToString();
+                        break;
 
-                case 1:
+                    case 1:
                         filterText = valueFilterTemplate1.SelectedFilterFunc?.Invoke() ?? string.Empty;
-                    break;
-            }
+                        break;
+                }
 
-            switch (SourceDataGridView.DataSource)
+                switch (SourceDataGridView.DataSource)
+                {
+                    case IBindingListView bindingListView:
+                        bindingListView.Filter = filterText;
+                        break;
+                    case DataTable dt:
+                        dt.DefaultView.RowFilter = filterText;
+                        break;
+                    default:
+                        foreach (DataGridViewRow r in SourceDataGridView.Rows)
+                        {
+                            if (r.IsNewRow)
+                                continue;
+                            var c = r.Cells[SourceColumn.Index];
+                            try
+                            {
+                                r.Visible = checkedValues.Contains(c.Value);
+                            }
+                            catch (Exception ex)
+                            {
+
+                            }
+                        }
+
+                        break;
+                }
+            }
+            catch
             {
-                case IBindingListView bindingListView:
-                    bindingListView.Filter = filterText;
-                    break;
-                case DataTable dt:
-                    dt.DefaultView.RowFilter = filterText;
-                    break;
-                default:
-                    foreach (DataGridViewRow r in SourceDataGridView.Rows)
-                    {
-                        if (r.IsNewRow)
-                            continue;
-                        var c = r.Cells[SourceColumn.Index];
-                        try
-                        {
-                            r.Visible = checkedValues.Contains(c.Value);
-                        }
-                        catch (Exception ex)
-                        {
-
-                        }
-                    }
-
-                    break;
             }
-
-            SourceDataGridView.ResumeLayout();
+            finally
+            {
+                SourceDataGridView.ResumeLayout();
+            }
         }
 
         private void ChangeCheckedItesms(bool? checkValue)
@@ -388,40 +405,6 @@ namespace WinFormsExtensions
             Values.SetFilter((x, i) => filterValues.Any(f => x.Value.ToString().Trim().Contains(f, StringComparison.OrdinalIgnoreCase)));
             UpdateUI();
         }
-
-        //private void FilterValuesGridView_CellClick(object sender, DataGridViewCellEventArgs e)
-        //{
-        //    if (e.ColumnIndex != 0 || e.RowIndex < 0)
-        //        return;
-
-        //    var grid = (DataGridView)sender;
-
-        //    // получаем прямоугольник ячейки
-        //    var cellRect = grid.GetCellDisplayRectangle(e.ColumnIndex, e.RowIndex, false);
-
-        //    // получаем позицию курсора относительно грида
-        //    var mousePos = grid.PointToClient(Cursor.Position);
-
-        //    // вычисляем область чекбокса (примерно по центру)
-        //    var checkBoxSize = 16; // стандартный размер
-        //    var checkBoxRect = new Rectangle(
-        //        cellRect.X + (cellRect.Width - checkBoxSize) / 2,
-        //        cellRect.Y + (cellRect.Height - checkBoxSize) / 2,
-        //        checkBoxSize,
-        //        checkBoxSize);
-        //    UpdateUI();
-        //    // если клик внутри чекбокса — ничего не делаем (он сам обработается)
-        //    if (checkBoxRect.Contains(mousePos))
-        //        return;
-
-        //    // иначе — переключаем вручную
-        //    var cell = grid.Rows[e.RowIndex].DataBoundItem as FilterRow;
-
-        //    bool current = cell.Value is bool b && b;
-        //    cell.Checked = !current;
-        //    UpdateUI();
-        //    grid.RefreshEdit();
-        //}
 
         private void FilterValuesGridView_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
         {
@@ -533,17 +516,6 @@ namespace WinFormsExtensions
             SourceDataGridView.AutoResizeColumn(SourceColumn.Index);
         }
 
-        private void FilterValuesGridView_CellValueChanged(object sender, DataGridViewCellEventArgs e)
-        {
-            //if (FilterValuesGridView == null || e.RowIndex < 0 || e.RowIndex >= FilterValuesGridView.RowCount)
-            //    return;
-            //var row = FilterValuesGridView.Rows[e.RowIndex].DataBoundItem as FilterRow;
-            //if (row == null)
-            //    return;
-
-            //row.Checked = (bool)FilterValuesGridView.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
-        }
-
         private void DragForm(object sender, MouseEventArgs e)
         {
             base.DragForm(sender, e);
@@ -552,6 +524,11 @@ namespace WinFormsExtensions
         private void FilterValuesGridView_MouseUp(object sender, MouseEventArgs e)
         {
             UpdateUI();
+        }
+
+        private void btnFreezeColumn_CheckedChanged(object sender, EventArgs e)
+        {
+            SourceColumn.Frozen = !SourceColumn.Frozen;
         }
     }
 }

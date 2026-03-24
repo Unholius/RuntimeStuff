@@ -134,10 +134,12 @@ namespace WinFormsExtensions
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        internal class PresetItem
+        internal class PresetItem : INotifyPropertyChanged
         {
+            public bool Checked { get; set; }
             public string PresetName { get; set; }
             public Func<string> FilterText { get; set; }
+            public event PropertyChangedEventHandler PropertyChanged;
         }
     }
 }

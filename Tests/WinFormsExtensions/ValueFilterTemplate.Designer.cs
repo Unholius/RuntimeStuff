@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             Presets = new System.Windows.Forms.DataGridView();
+            Checked = new System.Windows.Forms.DataGridViewCheckBoxColumn();
             PresetName = new System.Windows.Forms.DataGridViewTextBoxColumn();
             FilterFunc = new System.Windows.Forms.DataGridViewTextBoxColumn();
             ((System.ComponentModel.ISupportInitialize)Presets).BeginInit();
@@ -40,10 +41,11 @@
             Presets.AllowUserToDeleteRows = false;
             Presets.AllowUserToResizeColumns = false;
             Presets.AllowUserToResizeRows = false;
+            Presets.BorderStyle = System.Windows.Forms.BorderStyle.None;
             Presets.ClipboardCopyMode = System.Windows.Forms.DataGridViewClipboardCopyMode.EnableWithoutHeaderText;
             Presets.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
             Presets.ColumnHeadersVisible = false;
-            Presets.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { PresetName, FilterFunc });
+            Presets.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { Checked, PresetName, FilterFunc });
             Presets.Dock = System.Windows.Forms.DockStyle.Fill;
             Presets.Location = new System.Drawing.Point(0, 0);
             Presets.MultiSelect = false;
@@ -61,6 +63,16 @@
             Presets.ShowRowErrors = false;
             Presets.Size = new System.Drawing.Size(200, 232);
             Presets.TabIndex = 0;
+            // 
+            // Checked
+            // 
+            Checked.AutoSizeMode = System.Windows.Forms.DataGridViewAutoSizeColumnMode.None;
+            Checked.DataPropertyName = "Checked";
+            Checked.HeaderText = "";
+            Checked.Name = "Checked";
+            Checked.ReadOnly = true;
+            Checked.Resizable = System.Windows.Forms.DataGridViewTriState.False;
+            Checked.Width = 26;
             // 
             // PresetName
             // 
@@ -95,6 +107,7 @@
         #endregion
 
         private System.Windows.Forms.DataGridView Presets;
+        private System.Windows.Forms.DataGridViewCheckBoxColumn Checked;
         private System.Windows.Forms.DataGridViewTextBoxColumn PresetName;
         private System.Windows.Forms.DataGridViewTextBoxColumn FilterFunc;
     }

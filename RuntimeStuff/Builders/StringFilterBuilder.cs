@@ -28,20 +28,25 @@ namespace RuntimeStuff.Builders
     /// </summary>
     public class StringFilterBuilder
     {
-        private readonly Dictionary<Operation, string> operations = new Dictionary<Operation, string>
+        private static readonly Dictionary<Token, string> DefaultSyntax = new Dictionary<Token, string>
         {
-            { Operation.Equal, "==" },
-            { Operation.NotEqual, "!=" },
-            { Operation.GreaterThan, ">" },
-            { Operation.GreaterThanOrEqual, ">=" },
-            { Operation.LessThan, "<" },
-            { Operation.LessThanOrEqual, "<=" },
-            { Operation.Like, "LIKE" },
-            { Operation.NotLike, "NOT LIKE" },
-            { Operation.In, "IN" },
-            { Operation.NotIn, "NOT IN" },
-            { Operation.Between, "BETWEEN" },
-            { Operation.NotBetween, "NOT BETWEEN" },
+            { Token.Equal, "=" },
+            { Token.NotEqual, "<>" },
+            { Token.GreaterThan, ">" },
+            { Token.GreaterThanOrEqual, ">=" },
+            { Token.LessThan, "<" },
+            { Token.LessThanOrEqual, "<=" },
+            { Token.Like, "LIKE" },
+            { Token.NotLike, "NOT LIKE" },
+            { Token.In, "IN" },
+            { Token.Between, "BETWEEN" },
+            { Token.And, "AND" },
+            { Token.Or, "OR" },
+            { Token.Not, "NOT" },
+            { Token.BeginGroup, "(" },
+            { Token.EndGroup, ")" },
+            { Token.NamePrefix, string.Empty },
+            { Token.NameSuffix, string.Empty },
         };
 
         private readonly StringBuilder sb = new StringBuilder();
@@ -68,68 +73,98 @@ namespace RuntimeStuff.Builders
         /// <summary>
         /// Типы операций фильтрации, которые можно использовать в <see cref="StringFilterBuilder"/>.
         /// </summary>
-        public enum Operation
+        public enum Token
         {
             /// <summary>
-            /// Равно (==)
+            /// Оператор равенства.
             /// </summary>
             Equal,
 
             /// <summary>
-            /// Не равно (!=)
+            /// Не равно.
             /// </summary>
             NotEqual,
 
             /// <summary>
-            /// Больше (>)
+            /// Больше чем.
             /// </summary>
             GreaterThan,
 
             /// <summary>
-            /// Больше или равно (>=)
+            /// Больше или равно.
             /// </summary>
             GreaterThanOrEqual,
 
             /// <summary>
-            /// Меньше
+            /// Меньше чем.
             /// </summary>
             LessThan,
 
             /// <summary>
-            /// Меньше или равно
+            /// Меньше или равно.
             /// </summary>
             LessThanOrEqual,
 
             /// <summary>
-            /// Шаблонное сравнение LIKE
+            /// Шаблонное сравнение LIKE.
             /// </summary>
             Like,
 
             /// <summary>
-            /// Отрицание шаблонного сравнения NOT LIKE
+            /// Отрицание шаблонного сравнения NOT LIKE.
             /// </summary>
             NotLike,
 
             /// <summary>
-            /// Принадлежность множеству IN
+            /// Принадлежность множеству IN.
             /// </summary>
             In,
 
             /// <summary>
-            /// Отрицание принадлежности множеству NOT IN
-            /// </summary>
-            NotIn,
-
-            /// <summary>
-            /// Диапазон BETWEEN
+            /// Диапазон BETWEEN.
             /// </summary>
             Between,
 
             /// <summary>
-            /// Отрицание диапазона NOT BETWEEN
+            /// Логическое И.
             /// </summary>
-            NotBetween,
+            And,
+
+            /// <summary>
+            /// Логическое ИЛИ.
+            /// </summary>
+            Or,
+
+            /// <summary>
+            /// Логическое НЕ.
+            /// </summary>
+            Not,
+
+            /// <summary>
+            /// Начало группы.
+            /// </summary>
+            BeginGroup,
+
+            /// <summary>
+            /// Окончание группы.
+            /// </summary>
+            EndGroup,
+
+            /// <summary>
+            /// Префикс перед именами свойств/полей.
+            /// </summary>
+            NamePrefix,
+
+            /// <summary>
+            /// Суфикс после имен свойств.
+            /// </summary>
+            NameSuffix,
         }
+
+        /// <summary>
+        /// Настройки токенов синтаксиса.
+        /// </summary>
+        public Dictionary<Token, string> Syntax { get; set; } = new Dictionary<Token, string>(DefaultSyntax);
 
         /// <summary>
         /// Опции форматирования фильтров.
@@ -144,7 +179,7 @@ namespace RuntimeStuff.Builders
         /// <param name="operation">Операция фильтрации.</param>
         /// <param name="value">Значение для сравнения.</param>
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder Add<T>(Expression<Func<T, object>> propertySelector, Operation operation, object value) => this.Add(propertySelector.GetPropertyName(), operation, value);
+        public StringFilterBuilder Add<T>(Expression<Func<T, object>> propertySelector, Token operation, object value) => this.Add(propertySelector.GetPropertyName(), operation, value);
 
         /// <summary>
         /// Добавляет фильтр по имени свойства и операции.
@@ -153,7 +188,7 @@ namespace RuntimeStuff.Builders
         /// <param name="operation">Операция фильтрации.</param>
         /// <param name="value">Значение для сравнения.</param>
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder Add(string propertyName, Operation operation, object value)
+        public StringFilterBuilder Add(string propertyName, Token operation, object value)
         {
             if (string.IsNullOrWhiteSpace(propertyName))
             {
@@ -164,8 +199,7 @@ namespace RuntimeStuff.Builders
 
             switch (operation)
             {
-                case Operation.Between:
-                case Operation.NotBetween:
+                case Token.Between:
                     if (value is IEnumerable e && !(value is string))
                     {
                         var list = e.Cast<object>().ToList();
@@ -174,28 +208,27 @@ namespace RuntimeStuff.Builders
                             throw new ArgumentException(@"Between operation requires at least two values.", nameof(value));
                         }
 
-                        return operation == Operation.Between ? this.Between(list[0], list[1]) : this.NotBetween(list[0], list[1]);
+                        return operation == Token.Between ? this.Between(list[0], list[1]) : this.NotBetween(list[0], list[1]);
                     }
 
                     throw new ArgumentException(@"Between operation requires an array or IEnumerable with at least two elements.", nameof(value));
 
-                case Operation.In:
-                case Operation.NotIn:
+                case Token.In:
                     if (value is IEnumerable inValues && !(value is string))
                     {
-                        return operation == Operation.In ? this.In(inValues.Cast<object>()) : this.NotIn(inValues.Cast<object>());
+                        return operation == Token.In ? this.In(inValues.Cast<object>()) : this.NotIn(inValues.Cast<object>());
                     }
 
                     throw new ArgumentException(@"NotIn operation requires an IEnumerable.", nameof(value));
 
-                case Operation.Like:
+                case Token.Like:
                     return this.Like(value?.ToString() ?? throw new ArgumentNullException(nameof(value)));
 
-                case Operation.NotLike:
+                case Token.NotLike:
                     return this.NotLike(value?.ToString() ?? throw new ArgumentNullException(nameof(value)));
 
                 default:
-                    if (!this.operations.TryGetValue(operation, out var opString))
+                    if (!this.Syntax.TryGetValue(operation, out var opString))
                     {
                         throw new NotSupportedException($"Operation {operation} is not supported.");
                     }
@@ -210,7 +243,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
         public StringFilterBuilder And()
         {
-            this.Append(" && ");
+            this.Append(" " + this.Syntax[Token.And] + " ");
             this.needsOp = false;
             return this;
         }
@@ -232,7 +265,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder Between(object low, object high)
         {
-            this.Append($" BETWEEN {this.Options.Formatter.Format(low)} AND {this.Options.Formatter.Format(high)}");
+            this.Append($" {this.Syntax[Token.Between]} {this.Options.Formatter.Format(low)} {this.Syntax[Token.And]} {this.Options.Formatter.Format(high)}");
             this.needsOp = true;
             return this;
         }
@@ -252,9 +285,9 @@ namespace RuntimeStuff.Builders
         /// Закрывает группу фильтров скобкой ")".
         /// </summary>
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
-        public StringFilterBuilder CloseGroup()
+        public StringFilterBuilder EndGroup()
         {
-            this.Append(")");
+            this.Append($" {this.Syntax[Token.EndGroup]} ");
             this.needsOp = true;
             return this;
         }
@@ -264,21 +297,21 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
-        public StringFilterBuilder Equal(object value) => this.Binary("==", value);
+        public StringFilterBuilder Equal(object value) => this.Binary(this.Syntax[Token.Equal], value);
 
         /// <summary>
         /// Добавляет фильтр с операцией "больше или равно" (>=) для указанного значения.
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder GreaterOrEqual(object value) => this.Binary(">=", value);
+        public StringFilterBuilder GreaterOrEqual(object value) => this.Binary(this.Syntax[Token.GreaterThanOrEqual], value);
 
         /// <summary>
         /// Добавляет фильтр с операцией "больше" (>) для указанного значения.
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder GreaterThan(object value) => this.Binary(">", value);
+        public StringFilterBuilder GreaterThan(object value) => this.Binary(this.Syntax[Token.GreaterThan], value);
 
         /// <summary>
         /// Добавляет фильтр с операцией "IN" для коллекции значений.
@@ -287,7 +320,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder In(IEnumerable<object> values)
         {
-            this.Append(" IN { ").Append(string.Join(", ", values.Select(this.Options.Formatter.Format))).Append(" }");
+            this.Append($" {this.Syntax[Token.In]} {this.Syntax[Token.BeginGroup]} ").Append(string.Join(", ", values.Select(this.Options.Formatter.Format))).Append($" {this.Syntax[Token.EndGroup]}");
             this.needsOp = true;
             return this;
         }
@@ -299,7 +332,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder Like(string pattern)
         {
-            this.Append(" LIKE ").Append(this.Options.Formatter.Format(pattern));
+            this.Append($" {this.Syntax[Token.Like]} ").Append(this.Options.Formatter.Format(pattern));
             this.needsOp = true;
             return this;
         }
@@ -309,14 +342,14 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder LowerOrEqual(object value) => this.Binary("<=", value);
+        public StringFilterBuilder LowerOrEqual(object value) => this.Binary(this.Syntax[Token.LessThanOrEqual], value);
 
         /// <summary>
         /// Добавляет фильтр с операцией "меньше" для указанного значения.
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder LowerThan(object value) => this.Binary("<", value);
+        public StringFilterBuilder LowerThan(object value) => this.Binary(this.Syntax[Token.LessThan], value);
 
         /// <summary>
         /// Добавляет логическое отрицание "NOT" к следующему условию.
@@ -324,7 +357,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
         public StringFilterBuilder Not()
         {
-            this.Append("!");
+            this.Append(" " + this.Syntax[Token.Not] + " ");
             return this;
         }
 
@@ -336,7 +369,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder NotBetween(object low, object high)
         {
-            this.Append($" NOT BETWEEN {this.Options.Formatter.Format(low)} AND {this.Options.Formatter.Format(high)}");
+            this.Append($" {this.Syntax[Token.Not]} {this.Syntax[Token.Between]} {this.Options.Formatter.Format(low)} {this.Syntax[Token.And]} {this.Options.Formatter.Format(high)}");
             this.needsOp = true;
             return this;
         }
@@ -346,7 +379,7 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <param name="value">Значение для сравнения.</param>
         /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder NotEqual(object value) => this.Binary("!=", value);
+        public StringFilterBuilder NotEqual(object value) => this.Binary(this.Syntax[Token.NotEqual], value);
 
         /// <summary>
         /// Добавляет фильтр с отрицанием множества значений "NOT IN".
@@ -355,7 +388,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder NotIn(IEnumerable<object> values)
         {
-            this.Append(" NOT IN { ").Append(string.Join(", ", values.Select(this.Options.Formatter.Format))).Append(" }");
+            this.Append($" {this.Syntax[Token.Not]} {this.Syntax[Token.In]} {this.Syntax[Token.BeginGroup]} ").Append(string.Join(", ", values.Select(this.Options.Formatter.Format))).Append($" {this.Syntax[Token.EndGroup]}");
             this.needsOp = true;
             return this;
         }
@@ -367,7 +400,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder NotLike(string pattern)
         {
-            this.Append(" NOT LIKE ").Append(this.Options.Formatter.Format(pattern));
+            this.Append($" {this.Syntax[Token.Not]} {this.Syntax[Token.Like]} ").Append(this.Options.Formatter.Format(pattern));
             this.needsOp = true;
             return this;
         }
@@ -377,14 +410,14 @@ namespace RuntimeStuff.Builders
         /// </summary>
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         /// <exception cref="InvalidOperationException">Если перед группой отсутствует логический оператор.</exception>
-        public StringFilterBuilder OpenGroup()
+        public StringFilterBuilder BeginGroup()
         {
             if (this.needsOp)
             {
                 throw new InvalidOperationException("Перед группой нужен оператор AND/OR.");
             }
 
-            return this.Append("(");
+            return this.Append($" {this.Syntax[Token.BeginGroup]} ");
         }
 
         /// <summary>
@@ -393,7 +426,7 @@ namespace RuntimeStuff.Builders
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
         public StringFilterBuilder Or()
         {
-            this.Append(" || ");
+            this.Append($" {this.Syntax[Token.Or]} ");
             this.needsOp = false;
             return this;
         }
@@ -432,7 +465,7 @@ namespace RuntimeStuff.Builders
             where T : class => this.Property(propertySelector.GetPropertyName());
 
         /// <inheritdoc/>
-        public override string ToString() => this.sb.ToString();
+        public override string ToString() => this.sb.ToString().Trim();
 
         /// <summary>
         /// Добавляет фильтр на основе предиката.

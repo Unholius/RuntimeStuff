@@ -1,8 +1,11 @@
 using RuntimeStuff;
 using RuntimeStuff.Collections;
 using RuntimeStuff.Extensions;
+using RuntimeStuff.Helpers;
+using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using WinFormsExtensions;
 
@@ -19,7 +22,7 @@ namespace TestWinFormsApp
 
         public BindingListView<FileItem> FileItems { get; set; } = new BindingListView<FileItem>();
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
             //var sw = new Stopwatch();
             //sw.Start();
@@ -57,8 +60,38 @@ namespace TestWinFormsApp
             ////EventHelper.BindProperties(textBox2, "Text", "TextChanged", label1, "Text");
             //EventHelper.BindEventToAction(textBox2, "TextChanged", () => label1.Text = textBox2.Text);
             //EventHelper.BindProperties(dataGridView1, "SelectedCells.Count", "SelectionChanged", btnLoad, "Text");
+            dgv.ShowRowNumbers(true);
             dgv.SetRowColors(Color.LightGray);
-            dgv.DataSource = FileItems;
+            dgv.SetColumnMenu(true);
+            //var gantt = new BindingList<GanttItem>();
+            //var fromDate = DateTime.Now;
+            //var endDate = DateTime.Now.AddDays(30);
+            //dgv.AddGantt(fromDate, endDate, "From", "To", "dd/MM", "Childs");
+
+            //Stopwatch sw = new Stopwatch();
+            //sw.Start();
+            //await Task.Run(() =>
+            //{
+            //    var gi = new GanttItem() { From = fromDate, To = fromDate};
+            //    gi.Childs.Add(new GanttItem() { From = fromDate.AddDays(2), To = fromDate.AddDays(4) });
+            //    gi.Childs.Add(new GanttItem() { From = fromDate.AddDays(7), To = fromDate.AddDays(12) });
+            //    gi.Childs.Add(new GanttItem() { From = fromDate.AddDays(14), To = fromDate.AddDays(15) });
+            //    gi.Childs.Add(new GanttItem() { From = fromDate.AddDays(18), To = fromDate.AddDays(30) });
+            //    gantt.Add(gi);
+            //    for (int i = 0; i < 100_000; i++)
+            //    {
+            //        var rnd1 = DateTimeHelper.Random(fromDate, endDate);
+            //        var ganttItem = new GanttItem() { From = rnd1, To = DateTimeHelper.Random(rnd1, endDate.AddDays(-10)) };
+            //        gantt.Add(ganttItem);
+            //        for (var j= 0; j < 4; j++)
+            //        {
+            //            ganttItem.Childs.Add(new GanttItem() { From = ganttItem.From.AddDays(2), To = DateTimeHelper.Random(rnd1, endDate) });
+            //        }
+            //    }
+            //});
+            //dgv.DataSource = gantt;
+            //sw.Stop();
+            //MessageBox.Show(sw.Elapsed.TotalSeconds.ToString());
         }
 
         private class ServerMessage
@@ -128,10 +161,10 @@ namespace TestWinFormsApp
                 var dt = new DataTable();
                 dgv.RowTemplate.Height = 20;
                 FileItems.Clear();
-                using (var con = new SqlConnection().Connect("NAS\\RSSQLSERVER", "musiclib"))
+                using (var con = new SqlConnection().Connect("serv40", "tamuz"))
                 {
 
-                    FileItems.AddRange(await con.ToListAsync<FileItem>("select top 50000 * from files"));
+                    dgv.DataSource = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
                 }
             }
             catch (Exception ex)
@@ -173,19 +206,9 @@ namespace TestWinFormsApp
             listBox1.Items.Add("Server stopped");
         }
 
-        private void dataGridView1_SelectionChanged(object sender, EventArgs e)
+        private void dgv_DataError(object sender, DataGridViewDataErrorEventArgs e)
         {
 
-        }
-
-        private void dgv_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Right)
-                return;
-
-            var grid = (DataGridView)sender;
-
-            ColumnFilterView.ShowForColumn(grid.Columns[e.ColumnIndex]);
         }
     }
 
@@ -216,5 +239,14 @@ namespace TestWinFormsApp
         public long Size { get; set; }
         public DateTime Created { get; set; }
         public string Ext { get; set; }
+    }
+
+    public class GanttItem : INotifyPropertyChanged
+    {
+        public DateTime From { get; set; }
+        public DateTime To { get; set; }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        public List<GanttItem> Childs { get; set; } = new List<GanttItem>();
     }
 }

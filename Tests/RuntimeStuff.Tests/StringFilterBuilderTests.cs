@@ -19,14 +19,14 @@ namespace RuntimeStuff.MSTests
             var b = new StringFilterBuilder();
             b.Property("Age").In([20, 30, 40]);
 
-            Assert.AreEqual("[Age] IN { 20, 30, 40 }", b.ToString());
+            Assert.AreEqual("[Age] IN ( 20, 30, 40 )", b.ToString());
         }
 
         [TestMethod]
         public void Between_AddsBetweenClause()
         {
             var b = new StringFilterBuilder();
-            b.Add("Price", StringFilterBuilder.Operation.Between, new object[] { 10, 20 });
+            b.Add("Price", StringFilterBuilder.Token.Between, new object[] { 10, 20 });
 
             Assert.AreEqual("[Price] BETWEEN 10 AND 20", b.ToString());
         }
@@ -63,13 +63,13 @@ namespace RuntimeStuff.MSTests
         public void Grouping_And_LogicalOperators_ProduceCorrectString()
         {
             var b = new StringFilterBuilder();
-            b.OpenGroup()
+            b.BeginGroup()
              .Property("A").Equal(1)
              .And()
              .Property("B").Equal(2)
-             .CloseGroup();
+             .EndGroup();
 
-            Assert.AreEqual("([A] == 1 && [B] == 2)", b.ToString());
+            Assert.AreEqual($"( [A] {b.Syntax[StringFilterBuilder.Token.Equal]} 1 {b.Syntax[StringFilterBuilder.Token.And]} [B] {b.Syntax[StringFilterBuilder.Token.Equal]} 2 )", b.ToString());
         }
 
         [TestMethod]
@@ -78,7 +78,7 @@ namespace RuntimeStuff.MSTests
             var b = new StringFilterBuilder();
             b.Property("X").Equal(null);
 
-            Assert.AreEqual("[X] == null", b.ToString());
+            Assert.AreEqual($"[X] {b.Syntax[StringFilterBuilder.Token.Equal]} null", b.ToString());
         }
 
         [TestMethod]
@@ -87,7 +87,7 @@ namespace RuntimeStuff.MSTests
             var dt = new DateTime(2025, 1, 2, 3, 4, 5);
             var b = new StringFilterBuilder();
             b.Property("Created").Equal(dt);
-            Assert.AreEqual($"[Created] == {string.Format(b.Options.Formatter.DateTimeFormat, dt)}", b.ToString());
+            Assert.AreEqual($"[Created] {b.Syntax[StringFilterBuilder.Token.Equal]} {string.Format(b.Options.Formatter.DateTimeFormat, dt)}", b.ToString());
         }
 
         [TestMethod]
@@ -95,7 +95,7 @@ namespace RuntimeStuff.MSTests
         {
             var b = new StringFilterBuilder();
             b.Property("Active").Equal(true);
-            Assert.AreEqual("[Active] == 1", b.ToString());
+            Assert.AreEqual($"[Active] {b.Syntax[StringFilterBuilder.Token.Equal]} 1", b.ToString());
         }
 
         [TestMethod]
@@ -103,7 +103,7 @@ namespace RuntimeStuff.MSTests
         {
             var b = new StringFilterBuilder();
             b.Property("Active").Equal(false);
-            Assert.AreEqual("[Active] == 0", b.ToString());
+            Assert.AreEqual($"[Active] {b.Syntax[StringFilterBuilder.Token.Equal]} 0", b.ToString());
         }
     }
 }

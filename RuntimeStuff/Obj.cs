@@ -886,107 +886,54 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Creates the property getter.
+        /// Создаёт делегат для получения значения свойства.
+        /// Делегат создается динамически с помощью <see cref="DynamicMethod"/> и IL-кода, что позволяет обходить ограничения обычного рефлексивного вызова.
         /// </summary>
-        /// <param name="pi">The pi.</param>
-        /// <returns>Func&lt;System.Object, System.Object&gt;.</returns>
+        /// <param name="pi">Метаданные свойства (<see cref="PropertyInfo"/>), для которого создается геттер.</param>
+        /// <returns>
+        /// Делегат <see cref="Func{Object, Object}"/>, который возвращает значение указанного свойства.
+        /// Если свойство не имеет метода get, возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Метод поддерживает как статические, так и нестатические свойства, а также свойства value-типа и ссылочного типа.
+        /// </para>
+        /// <para>
+        /// Для value-типа аргумент должен быть упакованным объектом (boxed value type).
+        /// В случае попытки передачи <c>null</c> для value-типа будет выброшено <see cref="NullReferenceException"/>.
+        /// </para>
+        /// <para>
+        /// Для ссылочных типов, если объект не совместим с ожидаемым типом, будет выброшено <see cref="InvalidCastException"/>.
+        /// </para>
+        /// </remarks>
         public static Func<object, object> CreatePropertyGetter(PropertyInfo pi)
         {
             return CreatePropertyGetter<object, object>(pi);
-            var getter = pi.GetGetMethod(true);
-            if (getter == null)
-            {
-                return null;
-            }
-
-            var declaring = pi.DeclaringType;
-            var propertyType = pi.PropertyType;
-
-            Debug.Assert(declaring?.Module != null, "declaring?.Module != null");
-            var dm = new DynamicMethod(
-                "get_" + pi.Name,
-                typeof(object),
-                new[] { typeof(object) },
-                declaring.Module,
-                true);
-
-            var il = dm.GetILGenerator();
-
-            // Для статических методов
-            if (getter.IsStatic)
-            {
-                il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
-                if (propertyType.IsValueType && !propertyType.IsPrimitive)
-                {
-                    il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
-                }
-
-                il.Emit(System.Reflection.Emit.OpCodes.Ret);
-                return (Func<object, object>)dm.CreateDelegate(typeof(Func<object, object>));
-            }
-
-            // Для нестатических методов
-            if (!declaring.IsValueType)
-            {
-                // Для ссылочных типов
-                var lblOk = il.DefineLabel();
-
-                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
-                il.Emit(System.Reflection.Emit.OpCodes.Isinst, declaring);
-                il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
-
-                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
-                il.Emit(System.Reflection.Emit.OpCodes.Throw);
-
-                il.MarkLabel(lblOk);
-                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
-                il.Emit(System.Reflection.Emit.OpCodes.Castclass, declaring);
-                il.Emit(System.Reflection.Emit.OpCodes.Callvirt, getter);
-            }
-            else
-            {
-                // Для value types
-                // Создаем локальную переменную для хранения распакованной структуры
-                var local = il.DeclareLocal(declaring);
-
-                // Загружаем аргумент (упакованную структуру)
-                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
-
-                // Проверяем, что это не null (для упакованных структур)
-                var lblNotNull = il.DefineLabel();
-                il.Emit(System.Reflection.Emit.OpCodes.Dup);
-                il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
-
-                // Если null, выбрасываем исключение
-                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
-                il.Emit(System.Reflection.Emit.OpCodes.Throw);
-
-                il.MarkLabel(lblNotNull);
-
-                // Распаковываем структуру
-                il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, declaring);
-
-                // Сохраняем в локальную переменную
-                il.Emit(System.Reflection.Emit.OpCodes.Stloc, local);
-
-                // Загружаем адрес локальной переменной (для вызова метода структуры)
-                il.Emit(System.Reflection.Emit.OpCodes.Ldloca_S, local);
-
-                // Вызываем getter
-                il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
-            }
-
-            // Бокс возвращаемого значения, если это value type
-            if (propertyType.IsValueType)
-            {
-                il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
-            }
-
-            il.Emit(System.Reflection.Emit.OpCodes.Ret);
-
-            return (Func<object, object>)dm.CreateDelegate(typeof(Func<object, object>));
         }
 
+        /// <summary>
+        /// Создаёт делегат для получения значения свойства <typeparamref name="TProperty"/> объекта <typeparamref name="TObject"/>.
+        /// Делегат создается динамически с помощью <see cref="DynamicMethod"/> и IL-кода, что позволяет обходить ограничения обычного рефлексивного вызова.
+        /// </summary>
+        /// <typeparam name="TObject">Тип объекта, содержащего свойство.</typeparam>
+        /// <typeparam name="TProperty">Тип значения свойства.</typeparam>
+        /// <param name="pi">Метаданные свойства (<see cref="PropertyInfo"/>), для которого создается геттер.</param>
+        /// <returns>
+        /// Делегат <see cref="Func{TObject, TProperty}"/>, который возвращает значение указанного свойства.
+        /// Если свойство не имеет метода get, возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Метод поддерживает как статические, так и нестатические свойства, а также свойства value-типа и ссылочного типа.
+        /// </para>
+        /// <para>
+        /// Для value-типа аргумент <typeparamref name="TObject"/> должен быть упакованным объектом (boxed value type).
+        /// В случае попытки передачи <c>null</c> для value-типа будет выброшено <see cref="NullReferenceException"/>.
+        /// </para>
+        /// <para>
+        /// Для ссылочных типов, если объект не совместим с ожидаемым типом, будет выброшено <see cref="InvalidCastException"/>.
+        /// </para>
+        /// </remarks>
         public static Func<TObject, TProperty> CreatePropertyGetter<TObject, TProperty>(PropertyInfo pi)
         {
             var getter = pi.GetGetMethod(true);

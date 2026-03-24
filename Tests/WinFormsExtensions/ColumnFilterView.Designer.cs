@@ -61,7 +61,6 @@
             panel2 = new System.Windows.Forms.Panel();
             label2 = new System.Windows.Forms.Label();
             tabPresets = new System.Windows.Forms.TabPage();
-            valueFilterTemplate1 = new ValueFilterTemplate();
             tabConstructor = new System.Windows.Forms.TabPage();
             toolStrip1 = new System.Windows.Forms.ToolStrip();
             btnDecreaseSize = new System.Windows.Forms.ToolStripButton();
@@ -73,6 +72,7 @@
             btnRightAlignment = new System.Windows.Forms.ToolStripButton();
             toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             btnAutosizeColumn = new System.Windows.Forms.ToolStripButton();
+            btnFreezeColumn = new System.Windows.Forms.ToolStripButton();
             fontDialog1 = new System.Windows.Forms.FontDialog();
             colorDialog1 = new System.Windows.Forms.ColorDialog();
             panelRoot = new System.Windows.Forms.Panel();
@@ -85,7 +85,6 @@
             tabControl1.SuspendLayout();
             tabColumnValues.SuspendLayout();
             panel2.SuspendLayout();
-            tabPresets.SuspendLayout();
             toolStrip1.SuspendLayout();
             panelRoot.SuspendLayout();
             SuspendLayout();
@@ -129,7 +128,6 @@
             FilterValuesGridView.Size = new System.Drawing.Size(214, 196);
             FilterValuesGridView.TabIndex = 2;
             FilterValuesGridView.CellDoubleClick += FilterValuesGridView_CellDoubleClick;
-            FilterValuesGridView.CellValueChanged += FilterValuesGridView_CellValueChanged;
             FilterValuesGridView.ColumnHeaderMouseClick += FilterValuesGridView_ColumnHeaderMouseClick;
             FilterValuesGridView.MouseUp += FilterValuesGridView_MouseUp;
             // 
@@ -431,7 +429,6 @@
             // 
             // tabPresets
             // 
-            tabPresets.Controls.Add(valueFilterTemplate1);
             tabPresets.Location = new System.Drawing.Point(4, 24);
             tabPresets.Name = "tabPresets";
             tabPresets.Padding = new System.Windows.Forms.Padding(3);
@@ -439,16 +436,6 @@
             tabPresets.TabIndex = 0;
             tabPresets.Text = "Шаблоны";
             tabPresets.UseVisualStyleBackColor = true;
-            // 
-            // valueFilterTemplate1
-            // 
-            valueFilterTemplate1.Dock = System.Windows.Forms.DockStyle.Fill;
-            valueFilterTemplate1.FieldName = null;
-            valueFilterTemplate1.Location = new System.Drawing.Point(3, 3);
-            valueFilterTemplate1.Name = "valueFilterTemplate1";
-            valueFilterTemplate1.Size = new System.Drawing.Size(208, 217);
-            valueFilterTemplate1.TabIndex = 0;
-            valueFilterTemplate1.ValueType = null;
             // 
             // tabConstructor
             // 
@@ -462,7 +449,7 @@
             // toolStrip1
             // 
             toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { btnDecreaseSize, btnFont, btnIncreaseFont, toolStripSeparator2, btnLeftAlignment, btnJustifyAlignment, btnRightAlignment, toolStripSeparator3, btnAutosizeColumn });
+            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { btnDecreaseSize, btnFont, btnIncreaseFont, toolStripSeparator2, btnLeftAlignment, btnJustifyAlignment, btnRightAlignment, toolStripSeparator3, btnAutosizeColumn, btnFreezeColumn });
             toolStrip1.Location = new System.Drawing.Point(0, 0);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.Size = new System.Drawing.Size(222, 25);
@@ -558,6 +545,16 @@
             btnAutosizeColumn.Text = "Подобрать ширину колонки по содержимому";
             btnAutosizeColumn.Click += btnAutoResizeColumn_Click;
             // 
+            // btnFreezeColumn
+            // 
+            btnFreezeColumn.CheckOnClick = true;
+            btnFreezeColumn.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            btnFreezeColumn.Image = (System.Drawing.Image)resources.GetObject("btnFreezeColumn.Image");
+            btnFreezeColumn.ImageTransparentColor = System.Drawing.Color.Magenta;
+            btnFreezeColumn.Name = "btnFreezeColumn";
+            btnFreezeColumn.Size = new System.Drawing.Size(23, 22);
+            btnFreezeColumn.Text = "Закрепить колонку слева";
+            // 
             // panelRoot
             // 
             panelRoot.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
@@ -601,7 +598,6 @@
             tabColumnValues.ResumeLayout(false);
             panel2.ResumeLayout(false);
             panel2.PerformLayout();
-            tabPresets.ResumeLayout(false);
             toolStrip1.ResumeLayout(false);
             toolStrip1.PerformLayout();
             panelRoot.ResumeLayout(false);
@@ -656,5 +652,6 @@
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.TabPage tabConstructor;
         private ValueFilterTemplate valueFilterTemplate1;
+        private System.Windows.Forms.ToolStripButton btnFreezeColumn;
     }
 }

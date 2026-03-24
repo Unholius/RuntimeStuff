@@ -40,8 +40,10 @@ namespace RuntimeStuff.Options
         /// Преднастроенные опции для SQLite.
         /// </summary>
         public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
-            x => x.ValueFormatter.NonNumberValuePrefix = "'",
-            x => x.ValueFormatter.NonNumberValueSuffix = "'",
+            x => x.ValueFormatter.StringPrefix = "'",
+            x => x.ValueFormatter.StringSuffix = "'",
+            x => x.ValueFormatter.DatePrefix = "'",
+            x => x.ValueFormatter.DateSuffix = "'",
             x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
             x => x.ValueFormatter.TrueValue = "TRUE",
             x => x.ValueFormatter.FalseValue = "FALSE",
@@ -60,8 +62,10 @@ namespace RuntimeStuff.Options
         /// Преднастроенные опции для PostgreSQL.
         /// </summary>
         public static SqlProviderOptions PostgreSqlOptions { get; } = new SqlProviderOptions(
-            x => x.ValueFormatter.NonNumberValuePrefix = "'",
-            x => x.ValueFormatter.NonNumberValueSuffix = "'",
+            x => x.ValueFormatter.StringPrefix = "'",
+            x => x.ValueFormatter.StringSuffix = "'",
+            x => x.ValueFormatter.DatePrefix = "'",
+            x => x.ValueFormatter.DateSuffix = "'",
             x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
             x => x.ValueFormatter.TrueValue = "TRUE",
             x => x.ValueFormatter.FalseValue = "FALSE",
@@ -81,8 +85,10 @@ namespace RuntimeStuff.Options
         /// Преднастроенные опции для Microsoft SQL Server.
         /// </summary>
         public static SqlProviderOptions SqlServerOptions { get; } = new SqlProviderOptions(
-            x => x.ValueFormatter.NonNumberValuePrefix = "'",
-            x => x.ValueFormatter.NonNumberValueSuffix = "'",
+            x => x.ValueFormatter.StringPrefix = "'",
+            x => x.ValueFormatter.StringSuffix = "'",
+            x => x.ValueFormatter.DatePrefix = "'",
+            x => x.ValueFormatter.DateSuffix = "'",
             x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
             x => x.ValueFormatter.TrueValue = "1",
             x => x.ValueFormatter.FalseValue = "0",

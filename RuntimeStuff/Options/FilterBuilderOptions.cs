@@ -24,8 +24,10 @@ namespace RuntimeStuff.Options
     {
         private static readonly ValueFormatter DefaultValueFormatter = new ValueFormatter()
         {
-            NonNumberValuePrefix = "'",
-            NonNumberValueSuffix = "'",
+            StringPrefix = "'",
+            StringSuffix = "'",
+            DatePrefix = "'",
+            DateSuffix = "'",
             TrueValue = "1",
             FalseValue = "0",
             NullValue = "null",

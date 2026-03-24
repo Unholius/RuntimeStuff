@@ -931,10 +931,7 @@ namespace RuntimeStuff.Helpers
             public PropertyExpr(string name, Type type)
             {
                 this.Name = name;
-                this.Type = type;
             }
-
-            public Type Type { get; }
 
             /// <summary>
             /// Gets the name.

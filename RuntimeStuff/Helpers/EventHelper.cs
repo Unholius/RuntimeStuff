@@ -257,6 +257,36 @@ namespace RuntimeStuff.Helpers
         /// <summary>
         /// Отписывает ранее привязанный обработчик от указанного события объекта.
         /// </summary>
+        /// <param name="source">
+        /// Объект-источник события, от которого необходимо отписать обработчик.
+        /// </param>
+        /// <param name="eventName">
+        /// Имя события, от которого выполняется отписка.
+        /// </param>
+        /// <param name="actionHandler">
+        /// Делегат обработчика, который был ранее подписан на событие.
+        /// </param>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="eventName"/> или <paramref name="actionHandler"/> равны <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Метод выполняет прямой вызов <see cref="EventInfo.RemoveEventHandler(object, Delegate)"/>
+        /// и предполагает, что переданный делегат полностью соответствует ранее
+        /// зарегистрированному обработчику события.
+        /// </remarks>
+        public static void UnBindActionFromEvent(
+            object source,
+            string eventName,
+            Delegate actionHandler)
+        {
+            var sourceTypeCache = MemberCache.Create(source.GetType());
+            var sourceEvent = sourceTypeCache.GetEvent(x => x.Name == eventName);
+            UnBindActionFromEvent(source, sourceEvent, actionHandler);
+        }
+
+        /// <summary>
+        /// Отписывает ранее привязанный обработчик от указанного события объекта.
+        /// </summary>
         /// <param name="obj">
         /// Объект-источник события, от которого необходимо отписать обработчик.
         /// </param>
@@ -323,11 +353,32 @@ namespace RuntimeStuff.Helpers
             return BindEventToAction(source, eventName, (s, e) => action());
         }
 
+        /// <summary>
+        /// Подписывает указанное действие на Click событие объекта.
+        /// </summary>
+        /// <remarks>
+        /// Метод выполняет динамическую подписку на событие по его имени.
+        /// При возникновении события будет вызван указанный делегат <paramref name="action"/>.
+        /// Возвращаемый объект <see cref="IDisposable"/> позволяет отменить подписку
+        /// и корректно отписаться от события.
+        /// </remarks>
+        /// <param name="source">Объект, содержащий событие.</param>
+        /// <param name="action">
+        /// Действие, которое будет вызвано при возникновении события.
+        /// Первый параметр — отправитель события (<c>sender</c>),
+        /// второй параметр — аргументы события.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отменить подписку
+        /// и удалить обработчик события.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> или <paramref name="action"/> равны <see langword="null"/>.
+        /// </exception>
         public static IDisposable BindClickToAction(object source, Action action)
         {
             return BindEventToAction(source, "Click", (s, e) => action());
         }
-
 
         /// <summary>
         /// Подписывает указанное действие на событие объекта.

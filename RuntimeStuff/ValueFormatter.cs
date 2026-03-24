@@ -12,8 +12,6 @@
 // <summary></summary>
 // ***********************************************************************
 
-using RuntimeStuff.Extensions;
-
 namespace RuntimeStuff
 {
     using System;
@@ -108,14 +106,24 @@ namespace RuntimeStuff
         public string FalseValue { get; set; }
 
         /// <summary>
-        /// Префикс, добавляемый к значениям, не являющимся числовыми.
+        /// Префикс, добавляемый к значениям, являющимся строкой.
         /// </summary>
-        public string NonNumberValuePrefix { get; set; }
+        public string StringPrefix { get; set; }
 
         /// <summary>
-        /// Суффикс, добавляемый к значениям, не являющимся числовыми.
+        /// Суффикс, добавляемый к значениям, являющимся строкой.
         /// </summary>
-        public string NonNumberValueSuffix { get; set; }
+        public string StringSuffix { get; set; }
+
+        /// <summary>
+        /// Префикс, добавляемый к значениям, являющимся строкой.
+        /// </summary>
+        public string DatePrefix { get; set; }
+
+        /// <summary>
+        /// Суффикс, добавляемый к значениям, являющимся строкой.
+        /// </summary>
+        public string DateSuffix { get; set; }
 
         /// <summary>
         /// Строковое представление значения <c>null</c>.
@@ -358,34 +366,48 @@ namespace RuntimeStuff
                    || type == typeof(decimal);
         }
 
-        private string ApplyPrefix(string value)
+        private string ApplyPrefix(string value, Type type)
         {
-            if (string.IsNullOrEmpty(this.NonNumberValuePrefix))
+            var prefix = string.Empty;
+
+            if (type == typeof(string))
+            {
+                prefix = this.StringPrefix;
+            }
+
+            if (type == typeof(DateTime))
+            {
+                prefix = this.DatePrefix;
+            }
+
+            if (this.IsAlreadyPrefixed(value, prefix))
             {
                 return value;
             }
 
-            if (this.IsAlreadyPrefixed(value))
-            {
-                return value;
-            }
-
-            return this.NonNumberValuePrefix + value;
+            return prefix + value;
         }
 
-        private string ApplySuffix(string value)
+        private string ApplySuffix(string value, Type type)
         {
-            if (string.IsNullOrEmpty(this.NonNumberValueSuffix))
+            var suffix = string.Empty;
+
+            if (type == typeof(string))
+            {
+                suffix = this.StringSuffix;
+            }
+
+            if (type == typeof(DateTime))
+            {
+                suffix = this.DateSuffix;
+            }
+
+            if (this.IsAlreadySuffixed(value, suffix))
             {
                 return value;
             }
 
-            if (this.IsAlreadySuffixed(value))
-            {
-                return value;
-            }
-
-            return value + this.NonNumberValueSuffix;
+            return value + suffix;
         }
 
         private string FinalizeNonNumeric(string value, Type type)
@@ -412,10 +434,10 @@ namespace RuntimeStuff
             }
 
             // 2. Prefix
-            value = this.ApplyPrefix(value);
+            value = this.ApplyPrefix(value, type);
 
             // 3. Suffix
-            value = this.ApplySuffix(value);
+            value = this.ApplySuffix(value, type);
 
             return value;
         }
@@ -437,14 +459,14 @@ namespace RuntimeStuff
             return this.CustomPostFormatters == null ? value : this.CustomPostFormatters.Where(f => f != null).Aggregate(value, (current, f) => f(current));
         }
 
-        private bool IsAlreadyPrefixed(string value)
+        private bool IsAlreadyPrefixed(string value, string prefix)
         {
-            return value.StartsWith(this.NonNumberValuePrefix, StringComparison.Ordinal);
+            return value.StartsWith(prefix, StringComparison.Ordinal);
         }
 
-        private bool IsAlreadySuffixed(string value)
+        private bool IsAlreadySuffixed(string value, string prefix)
         {
-            return value.EndsWith(this.NonNumberValueSuffix, StringComparison.Ordinal);
+            return value.EndsWith(prefix, StringComparison.Ordinal);
         }
     }
 }

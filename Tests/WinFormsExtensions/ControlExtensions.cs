@@ -28,6 +28,15 @@
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
+            if (key == Keys.None)
+            {
+                if (!_keyBindings.TryGetValue(form,out _))
+                {
+                    _keyBindings.Remove(form);
+                    return;
+                }
+            }
+
             // Получаем или создаем словарь привязок для формы
             if (!_keyBindings.TryGetValue(form, out var formBindings))
             {
