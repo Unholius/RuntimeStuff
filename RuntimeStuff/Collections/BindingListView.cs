@@ -9,74 +9,112 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
+/// <summary>
+/// Представляет расширенную версию <see cref="BindingList{T}"/>,
+/// поддерживающую фильтрацию, множественную сортировку и уведомления об изменениях коллекции.
+/// </summary>
+/// <typeparam name="T">Тип элементов в списке.</typeparam>
 public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyCollectionChanged, INotifyPropertyChanged
 {
-    private readonly List<ListSortDirection> _sortDirections = new List<ListSortDirection>();
-    private readonly List<PropertyDescriptor> _sortProperties = new List<PropertyDescriptor>();
-    private readonly List<T> _source = new List<T>();
+    private readonly List<ListSortDirection> sortDirections = new List<ListSortDirection>();
+    private readonly List<PropertyDescriptor> sortProperties = new List<PropertyDescriptor>();
+    private readonly List<T> source = new List<T>();
 
-    private string _filter;
-    private Func<T, int, bool> _filterFunc;
-    private bool _isSorted;
-    private ListSortDirection _sortDirection;
-    private PropertyDescriptor _sortProperty;
+    private string filter;
+    private Func<T, int, bool> filterFunc;
+    private bool isSorted;
+    private ListSortDirection sortDirection;
+    private PropertyDescriptor sortProperty;
 
+    /// <summary>
+    /// Инициализирует новый пустой экземпляр <see cref="BindingListView{T}"/>.
+    /// </summary>
     public BindingListView()
     {
     }
 
+    /// <summary>
+    /// Инициализирует новый экземпляр <see cref="BindingListView{T}"/>.
+    /// с начальной коллекцией элементов.
+    /// </summary>
+    /// <param name="collection">Исходная коллекция элементов.</param>
     public BindingListView(IEnumerable<T> collection)
     {
-        this._source.AddRange(collection);
+        this.source.AddRange(collection);
         this.RebuildView();
     }
 
+    /// <summary>
+    /// Событие, возникающее при изменении коллекции.
+    /// </summary>
     public event NotifyCollectionChangedEventHandler CollectionChanged;
 
-    public new event PropertyChangedEventHandler PropertyChanged;
+    /// <summary>
+    /// Событие, возникающее при изменении свойства.
+    /// </summary>
+    public event PropertyChangedEventHandler PropertyChanged;
 
+    /// <summary>
+    /// Получает или задаёт строковое представление фильтра.
+    /// </summary>
+    /// <remarks>
+    /// При установке значения автоматически пересобирается представление списка.
+    /// </remarks>
     public string Filter
     {
-        get => this._filter;
+        get => this.filter;
         set
         {
-            if (this._filter == value)
+            if (this.filter == value)
             {
                 return;
             }
 
-            this._filter = value;
-            this._filterFunc = this.CreateFilterPredicate(value);
+            this.filter = value;
+            this.filterFunc = this.CreateFilterPredicate(value);
 
             this.RebuildView();
             this.OnPropertyChanged();
         }
     }
 
+    /// <summary>
+    /// Получает коллекцию описаний сортировки.
+    /// </summary>
     public ListSortDescriptionCollection SortDescriptions
     {
         get
         {
-            var arr = this._sortProperties
-                .Select((p, i) => new ListSortDescription(p, this._sortDirections[i]))
+            var arr = this.sortProperties
+                .Select((p, i) => new ListSortDescription(p, this.sortDirections[i]))
                 .ToArray();
 
             return new ListSortDescriptionCollection(arr);
         }
     }
 
+    /// <inheritdoc/>
     public bool SupportsAdvancedSorting => true;
 
+    /// <inheritdoc/>
     public bool SupportsFiltering => true;
 
-    protected override bool IsSortedCore => this._isSorted;
+    /// <inheritdoc/>
+    protected override bool IsSortedCore => this.isSorted;
 
-    protected override ListSortDirection SortDirectionCore => this._sortDirection;
+    /// <inheritdoc/>
+    protected override ListSortDirection SortDirectionCore => this.sortDirection;
 
-    protected override PropertyDescriptor SortPropertyCore => this._sortProperty;
+    /// <inheritdoc/>
+    protected override PropertyDescriptor SortPropertyCore => this.sortProperty;
 
+    /// <inheritdoc/>
     protected override bool SupportsSortingCore => true;
 
+    /// <summary>
+    /// Добавляет диапазон элементов в коллекцию.
+    /// </summary>
+    /// <param name="items">Добавляемые элементы.</param>
     public void AddRange(IEnumerable<T> items)
     {
         if (items == null)
@@ -86,67 +124,81 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
 
         this.RaiseListChangedEvents = false;
 
-        this._source.AddRange(items);
+        this.source.AddRange(items);
 
         this.RaiseListChangedEvents = true;
 
         this.RebuildView();
     }
 
+    /// <summary>
+    /// Применяет множественную сортировку к списку.
+    /// </summary>
+    /// <param name="sorts">Коллекция описаний сортировки.</param>
     public void ApplySort(ListSortDescriptionCollection sorts)
     {
-        this._sortProperties.Clear();
-        this._sortDirections.Clear();
+        this.sortProperties.Clear();
+        this.sortDirections.Clear();
 
         if (sorts != null)
         {
             foreach (ListSortDescription s in sorts)
             {
-                this._sortProperties.Add(s.PropertyDescriptor);
-                this._sortDirections.Add(s.SortDirection);
+                this.sortProperties.Add(s.PropertyDescriptor);
+                this.sortDirections.Add(s.SortDirection);
             }
         }
 
-        this._isSorted = this._sortProperties.Any();
+        this.isSorted = this.sortProperties.Any();
         this.RebuildView();
     }
 
+    /// <summary>
+    /// Удаляет текущий фильтр.
+    /// </summary>
     public void RemoveFilter()
     {
         this.Filter = null;
     }
 
+    /// <summary>
+    /// Устанавливает фильтр в виде делегата.
+    /// </summary>
+    /// <param name="predicate">Функция фильтрации (элемент, индекс) → результат.</param>
     public void SetFilter(Func<T, int, bool> predicate)
     {
-        this._filterFunc = predicate;
-        this._filter = predicate?.ToString();
+        this.filterFunc = predicate;
+        this.filter = predicate?.ToString();
         this.RebuildView();
     }
 
+    /// <inheritdoc/>
     protected override void ApplySortCore(PropertyDescriptor prop, ListSortDirection direction)
     {
-        this._sortProperties.Clear();
-        this._sortDirections.Clear();
+        this.sortProperties.Clear();
+        this.sortDirections.Clear();
 
         if (prop != null)
         {
-            this._sortProperties.Add(prop);
-            this._sortDirections.Add(direction);
+            this.sortProperties.Add(prop);
+            this.sortDirections.Add(direction);
         }
 
-        this._sortProperty = prop;
-        this._sortDirection = direction;
-        this._isSorted = prop != null;
+        this.sortProperty = prop;
+        this.sortDirection = direction;
+        this.isSorted = prop != null;
 
         this.RebuildView();
     }
 
+    /// <inheritdoc/>
     protected override void ClearItems()
     {
-        this._source.Clear();
+        this.source.Clear();
         this.RebuildView();
     }
 
+    /// <inheritdoc/>
     protected override int FindCore(PropertyDescriptor prop, object key)
     {
         if (prop == null || key == null)
@@ -166,17 +218,30 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
         return -1;
     }
 
+    /// <inheritdoc/>
     protected override void InsertItem(int index, T item)
     {
-        this._source.Add(item);
+        this.source.Add(item);
         this.RebuildView();
     }
 
+    /// <summary>
+    /// Вызывает событие <see cref="PropertyChanged"/> при изменении свойства.
+    /// </summary>
+    /// <param name="name">
+    /// Имя изменённого свойства. Если не указано, имя будет определено автоматически
+    /// с помощью атрибута <see cref="CallerMemberNameAttribute"/>.
+    /// </param>
+    /// <remarks>
+    /// Используется для уведомления подписчиков (например, механизмов привязки данных)
+    /// об изменении значения свойства.
+    /// </remarks>
     protected virtual void OnPropertyChanged([CallerMemberName] string name = null)
     {
         this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 
+    /// <inheritdoc/>
     protected override void RemoveItem(int index)
     {
         if (index < 0 || index >= this.Count)
@@ -185,22 +250,24 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
         }
 
         var item = this[index];
-        this._source.Remove(item);
+        this.source.Remove(item);
 
         this.RebuildView();
     }
 
+    /// <inheritdoc/>
     protected override void RemoveSortCore()
     {
-        this._sortProperties.Clear();
-        this._sortDirections.Clear();
+        this.sortProperties.Clear();
+        this.sortDirections.Clear();
 
-        this._sortProperty = null;
-        this._isSorted = false;
+        this.sortProperty = null;
+        this.isSorted = false;
 
         this.RebuildView();
     }
 
+    /// <inheritdoc/>
     protected override void SetItem(int index, T item)
     {
         if (index < 0 || index >= this.Count)
@@ -209,11 +276,11 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
         }
 
         var oldItem = this[index];
-        int srcIndex = this._source.IndexOf(oldItem);
+        int srcIndex = this.source.IndexOf(oldItem);
 
         if (srcIndex >= 0)
         {
-            this._source[srcIndex] = item;
+            this.source[srcIndex] = item;
         }
 
         this.RebuildView();
@@ -223,10 +290,10 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
     {
         IOrderedEnumerable<T> ordered = null;
 
-        for (int i = 0; i < this._sortProperties.Count; i++)
+        for (int i = 0; i < this.sortProperties.Count; i++)
         {
-            var prop = this._sortProperties[i];
-            var dir = this._sortDirections[i];
+            var prop = this.sortProperties[i];
+            var dir = this.sortDirections[i];
 
             Func<T, object> key = x => prop.GetValue(x);
 
@@ -269,14 +336,14 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
     {
         this.RaiseListChangedEvents = false;
 
-        IEnumerable<T> query = this._source;
+        IEnumerable<T> query = this.source;
 
-        if (this._filterFunc != null)
+        if (this.filterFunc != null)
         {
             query = query.Where(this.SafeFilter);
         }
 
-        if (this._sortProperties.Count > 0)
+        if (this.sortProperties.Count > 0)
         {
             query = this.ApplyOrdering(query);
         }
@@ -324,7 +391,7 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
     {
         try
         {
-            return this._filterFunc(item, index);
+            return this.filterFunc(item, index);
         }
         catch
         {
