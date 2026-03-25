@@ -2,18 +2,23 @@
 {
     using RuntimeStuff;
     using RuntimeStuff.Data;
+    using RuntimeStuff.Extensions;
     using System.Data.SqlClient;
 
-    [TestClass]
     public sealed class Test1
     {
         [TestMethod]
-        public void TestMethod1()
+        public void TestMethod2()
         {
-            var db = new DbClient<SqlConnection>("NAS\\RSSQLSERVER", "musiclib");
-            db.EnableLogging = true;
-            var list1 = db.ToDataTable("exec dbo.TestProc", new { dateFrom = DateTime.Now.AddDays(-1000), ext = "mp3" });
-            var list2 = db.ToDataTable("select top 100000 * from files where created <= @1", new[] { new SqlParameter("@1", DateTime.Now) });
+            var x = new TestClass1();
+            var json = "{ 'Id':1, 'Name': 'MyName', 'Child': { 'Id': 2, 'Name': 'ChildName'} }".Replace("'","\"");
+            x.ImportFromJson(json);
+            Assert.AreEqual(1, x.Id);
+            Assert.AreEqual("MyName", x.Name);
+            Assert.IsNotNull(x.Child);
+            Assert.AreEqual(2, x.Child.Id);
+            Assert.AreEqual("ChildName", x.Child.Name);
+            Obj.ClearCaches();
         }
     }
 }

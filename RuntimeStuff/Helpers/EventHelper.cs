@@ -184,6 +184,14 @@ namespace RuntimeStuff.Helpers
                 pb.DstEventHandler = eventHandler;
             }
 
+            var sourceValue = ((MemberCache)sourceProperty).GetValue(source);
+            if (sourceValueToTargetValueConverter != null)
+            {
+                sourceValue = sourceValueToTargetValueConverter((TSourceProp)sourceValue);
+            }
+
+            ((MemberCache)targetProperty).SetValue(target, sourceValue);
+            pb.OnTargetEvent(target, new PropertyChangedEventArgs(targetProperty.Name));
             return pb;
         }
 
@@ -699,9 +707,9 @@ namespace RuntimeStuff.Helpers
                     var senderValue = MemberCache.GetValues(sender, this.sourcePropertyInfo);
                     var targetValue = MemberCache.GetValues(this.target.Target, this.targetPropertyInfo);
                     var convertedValue = this.sourceToTargetConverter != null
-                        ? this.sourceToTargetConverter((TSrcValue)senderValue.Last())
+                        ? this.sourceToTargetConverter((TSrcValue)senderValue.LastOrDefault())
                         : senderValue.Last();
-                    if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue.Last(), (TTargetValue)convertedValue))
+                    if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue.LastOrDefault(), (TTargetValue)convertedValue))
                     {
                         return;
                     }
@@ -733,9 +741,9 @@ namespace RuntimeStuff.Helpers
                 var sourceValue = MemberCache.GetValues(sender, this.targetPropertyInfo);
                 var targetValue = MemberCache.GetValues(this.source.Target, this.sourcePropertyInfo);
                 var convertedValue = this.targetToSourceConverter != null
-                    ? this.targetToSourceConverter((TTargetValue)sourceValue.Last())
+                    ? this.targetToSourceConverter((TTargetValue)sourceValue.LastOrDefault())
                     : sourceValue.Last();
-                if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue.Last(), (TSrcValue)convertedValue))
+                if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue.LastOrDefault(), (TSrcValue)convertedValue))
                 {
                     return;
                 }

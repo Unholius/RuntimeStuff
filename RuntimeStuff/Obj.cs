@@ -355,72 +355,6 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Пытается добавить элемент в указанную коллекцию.
-        /// </summary>
-        /// <param name="collection">Коллекция, в которую необходимо добавить элемент.</param>
-        /// <param name="item">
-        /// Элемент для добавления. Если значение <c>null</c>, будет предпринята попытка
-        /// создать новый экземпляр типа элемента коллекции.
-        /// </param>
-        /// <param name="index">
-        /// Индекс, по которому необходимо вставить элемент.
-        /// Если значение меньше 0, элемент добавляется в конец коллекции.
-        /// </param>
-        /// <returns>
-        /// Добавленный элемент. Если элемент не был передан, возвращается созданный экземпляр.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="collection"/> равен <c>null</c>.
-        /// </exception>
-        /// <exception cref="Exception">
-        /// Выбрасывается, если невозможно определить тип элемента коллекции
-        /// для создания нового экземпляра.
-        /// </exception>
-        public static object TryAdd(object collection, object item = null, int index = -1)
-        {
-            if (collection == null)
-            {
-                throw new ArgumentNullException(nameof(collection));
-            }
-
-            if (item == null)
-            {
-                var itemType = collection.GetType().GenericTypeArguments.FirstOrDefault() ?? throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}");
-                item = New(itemType);
-            }
-
-            // Проверяем, поддерживает ли коллекция добавление
-            if (collection is IList list)
-            {
-                if (index == -1)
-                {
-                    list.Add(item);
-                }
-                else
-                {
-                    list.Insert(index, item);
-                }
-            }
-            else if (collection is IList<object> genericList)
-            {
-                if (index == -1)
-                {
-                    genericList.Add(item);
-                }
-                else
-                {
-                    genericList.Insert(index, item);
-                }
-            }
-            else
-            {
-                throw new InvalidOperationException("Коллекция не поддерживает добавление элементов.");
-            }
-
-            return item;
-        }
-
-        /// <summary>
         /// Преобразует значение к указанному типу.
         /// </summary>
         /// <param name="value">Значение для преобразования.</param>
@@ -566,114 +500,20 @@ namespace RuntimeStuff
         public static T ChangeType<T>(object value, IFormatProvider formatProvider = null) => (T)ChangeType(value, typeof(T), formatProvider);
 
         /// <summary>
-        /// Копирует значения указанных членов из исходного объекта в целевой объект. Поддерживает копирование как между
-        /// отдельными объектами, так и между коллекциями объектов.
+        /// Очищает все внутренние кеши.
         /// </summary>
-        /// <typeparam name="TSource">Тип исходного объекта, из которого копируются значения. Должен быть ссылочным типом.</typeparam>
-        /// <typeparam name="TTarget">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
-        /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
-        /// <param name="target">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
-        /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
-        /// свойства исходного объекта.</param>
-        /// <exception cref="System.ArgumentNullException">source.</exception>
-        /// <exception cref="System.ArgumentNullException">targetination.</exception>
-        /// <exception cref="System.InvalidOperationException">Targetination collection is not IList and cannot add new items.</exception>
-        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="target" />
-        /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
-        /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
-        /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
-        public static void Copy<TSource, TTarget>(TSource source, TTarget target, params string[] memberNames)
-            where TSource : class
-            where TTarget : class
+        public static void ClearCaches()
         {
-            if (source == null || typeof(TSource) == typeof(string))
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-
-            if (target == null || typeof(TTarget) == typeof(string))
-            {
-                throw new ArgumentNullException(nameof(target));
-            }
-
-            if (memberNames == null || memberNames.Length == 0)
-            {
-                memberNames = GetPropertyNames(source.GetType());
-            }
-
-            var sourceTypeCache = MemberCache.Create(source.GetType());
-            if (sourceTypeCache.IsCollection)
-            {
-                sourceTypeCache = MemberCache.Create(sourceTypeCache.ElementType);
-            }
-
-            var targetTypeCache = MemberCache.Create(target.GetType());
-            if (targetTypeCache.IsCollection)
-            {
-                targetTypeCache = MemberCache.Create(targetTypeCache.ElementType);
-            }
-
-            if (source is IEnumerable srcList && !(source is string) && target is IEnumerable dstList && !(target is string))
-            {
-                var srcEnumerator = srcList.GetEnumerator();
-                var dstEnumerator = dstList.GetEnumerator();
-                var dstListChanged = false;
-                while (srcEnumerator.MoveNext())
-                {
-                    var srcItem = srcEnumerator.Current;
-                    object dstItem;
-
-                    if (!dstListChanged && dstEnumerator.MoveNext())
-                    {
-                        dstItem = dstEnumerator.Current;
-                    }
-                    else
-                    {
-                        dstItem = sourceTypeCache.DefaultConstructor();
-                        if (dstList is IList dstIList)
-                        {
-                            dstListChanged = true;
-                            dstIList.Add(dstItem);
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException("Targetination collection is not IList and cannot add new items.");
-                        }
-                    }
-
-                    Copy(srcItem, dstItem);
-                }
-
-                if (srcEnumerator is IDisposable disposableSrc)
-                {
-                    disposableSrc.Dispose();
-                }
-
-                if (dstEnumerator is IDisposable disposableDst)
-                {
-                    disposableDst.Dispose();
-                }
-            }
-            else
-            {
-                foreach (var memberName in memberNames)
-                {
-                    var get = sourceTypeCache[memberName]?.Getter;
-                    if (get == null)
-                    {
-                        continue;
-                    }
-
-                    var set = targetTypeCache[memberName]?.Setter;
-                    if (set == null)
-                    {
-                        continue;
-                    }
-
-                    var value = get(source);
-                    set(target, value);
-                }
-            }
+            AssemblyTypesCache.Clear();
+            CtorCache.Clear();
+            FieldGetterCache.Clear();
+            FieldSetterCache.Clear();
+            FieldsCache.Clear();
+            PropertiesCache.Clear();
+            PropertySetterCache.Clear();
+            PropertyGetterCache.Clear();
+            MemberInfoCache.Clear();
+            TypeCache.Clear();
         }
 
         /// <summary>
@@ -2413,39 +2253,6 @@ namespace RuntimeStuff
         }
 
         /// <summary>
-        /// Получает значения свойств объекта в указанном порядке.
-        /// </summary>
-        /// <typeparam name="TObject">The type of the t object.</typeparam>
-        /// <param name="source">Исходный объект.</param>
-        /// <param name="memberNames">Имена свойств объекта с учетом регистра.</param>
-        /// <returns>System.Object[].</returns>
-        public static object[] GetValues<TObject>(TObject source, params string[] memberNames)
-            where TObject : class
-        {
-            var values = new List<object>();
-            var sourceTypeCache = MemberCache.Create(typeof(TObject));
-            var props = memberNames.Length != 0 ? sourceTypeCache.Properties.Where(x => memberNames.Contains(x.Name)).ToArray() : sourceTypeCache.PublicProperties;
-            foreach (var p in props)
-            {
-                values.Add(p.Getter?.Invoke(source));
-            }
-
-            return values.ToArray();
-        }
-
-        /// <summary>
-        /// Получает значения свойств объекта в указанном порядке и преобразует в указанный тип через
-        /// <see cref="Obj.ChangeType{T}(object, IFormatProvider)" />.
-        /// </summary>
-        /// <typeparam name="TObject">The type of the t object.</typeparam>
-        /// <typeparam name="TValue">The type of the t value.</typeparam>
-        /// <param name="source">Исходный объект.</param>
-        /// <param name="memberNames">Имена свойств объекта с учетом регистра.</param>
-        /// <returns>TValue[].</returns>
-        public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames)
-            where TObject : class => GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
-
-        /// <summary>
         /// Проверяет, является ли тип простым (базовым).
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
@@ -2963,6 +2770,72 @@ namespace RuntimeStuff
             }
 
             DefaultInterfaceMappings[interfaceType] = Factory;
+        }
+
+        /// <summary>
+        /// Пытается добавить элемент в указанную коллекцию.
+        /// </summary>
+        /// <param name="collection">Коллекция, в которую необходимо добавить элемент.</param>
+        /// <param name="item">
+        /// Элемент для добавления. Если значение <c>null</c>, будет предпринята попытка
+        /// создать новый экземпляр типа элемента коллекции.
+        /// </param>
+        /// <param name="index">
+        /// Индекс, по которому необходимо вставить элемент.
+        /// Если значение меньше 0, элемент добавляется в конец коллекции.
+        /// </param>
+        /// <returns>
+        /// Добавленный элемент. Если элемент не был передан, возвращается созданный экземпляр.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="collection"/> равен <c>null</c>.
+        /// </exception>
+        /// <exception cref="Exception">
+        /// Выбрасывается, если невозможно определить тип элемента коллекции
+        /// для создания нового экземпляра.
+        /// </exception>
+        public static object TryAdd(object collection, object item = null, int index = -1)
+        {
+            if (collection == null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
+
+            if (item == null)
+            {
+                var itemType = collection.GetType().GenericTypeArguments.FirstOrDefault() ?? throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}");
+                item = New(itemType);
+            }
+
+            // Проверяем, поддерживает ли коллекция добавление
+            if (collection is IList list)
+            {
+                if (index == -1)
+                {
+                    list.Add(item);
+                }
+                else
+                {
+                    list.Insert(index, item);
+                }
+            }
+            else if (collection is IList<object> genericList)
+            {
+                if (index == -1)
+                {
+                    genericList.Add(item);
+                }
+                else
+                {
+                    genericList.Insert(index, item);
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException("Коллекция не поддерживает добавление элементов.");
+            }
+
+            return item;
         }
 
         /// <summary>

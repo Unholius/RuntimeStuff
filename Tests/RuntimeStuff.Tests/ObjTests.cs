@@ -6,6 +6,7 @@ namespace RuntimeStuff.MSTests
 {
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     using RuntimeStuff;
+    using RuntimeStuff.Extensions;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -590,7 +591,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Name = "John", Age = 30 };
 
             // Act
-            var values = Obj.GetValues(person, "Name", "Age");
+            var values = person.GetValues("Name", "Age");
 
             // Assert
             Assert.AreEqual(2, values.Length);
@@ -605,7 +606,7 @@ namespace RuntimeStuff.MSTests
             var person = new TestPerson { Name = "John", Age = 30 };
 
             // Act
-            var values = Obj.GetValues<TestPerson, string>(person, "Name", "Age");
+            var values = person.GetValues<TestPerson, string>("Name", "Age");
 
             // Assert
             Assert.AreEqual(2, values.Length);

@@ -799,7 +799,6 @@ namespace RuntimeStuff.Extensions
             var srcProp = sourcePropertySelector.GetPropertyInfo();
             var srcEvent = source.GetType().GetEvent(nameof(INotifyPropertyChanged.PropertyChanged));
             var targetProp = targetPropertySelector.GetPropertyInfo();
-
             return EventHelper.BindProperties<TSource, T, PropertyChangedEventArgs, TTarget, T, EventArgs>(source, srcProp, srcEvent, (s, e) => e.PropertyName == srcProp.Name, target, targetProp, null, null, null, null, onPropertyChanged);
         }
 

@@ -3,25 +3,19 @@
     using RuntimeStuff;
     using RuntimeStuff.Helpers;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Data;
     using System.Drawing;
     using System.Linq;
-    using System.Reflection;
-    using System.Windows.Forms;
-
+        using System.Windows.Forms;
+    using System.Windows.Forms.Extensions;
+    
     public static class DataGridViewExtensions
     {
         private static bool isInited = false;
-        //private static MemberCache DataGridViewType;
-        //private static MemberCache DataGridViewRowPostPaintEventArgsType;
-        //private static MemberCache RowIndexProperty;
-        //private static MemberCache GraphicsProperty;
-        //private static MemberCache RowBoundsProperty;
-        //private static MemberCache RowHeadersWidthProperty;
-        //private static MemberCache FontProperty;
-        //private static MethodInfo DrawStringMethod;
+        private static ConcurrentDictionary<int, DataGridViewExtender> gridExtenders = new ConcurrentDictionary<int, DataGridViewExtender>();
 
         static DataGridViewExtensions()
         {
@@ -30,13 +24,6 @@
                 return;
             }
 
-            //DataGridViewType = MemberCache.Create(typeof(DataGridView));
-            //DataGridViewRowPostPaintEventArgsType = MemberCache.Create(typeof(DataGridViewRowPostPaintEventArgs));
-            //RowIndexProperty = DataGridViewRowPostPaintEventArgsType["RowIndex"];
-            //GraphicsProperty = DataGridViewRowPostPaintEventArgsType["Graphics"];
-            //RowBoundsProperty = DataGridViewRowPostPaintEventArgsType["RowBounds"];
-            //RowHeadersWidthProperty = DataGridViewType["RowHeadersWidth"];
-            //FontProperty = DataGridViewType["Font"];
             isInited = true;
         }
 
@@ -248,18 +235,17 @@
 
         public static DataGridView ShowRowNumbers(this DataGridView grid, bool rowNumbersVisible)
         {
-            grid.RowPostPaint -= Grid_RowPostPaint;
-            if (!rowNumbersVisible)
-            {
-                return grid;
-            }
-            grid.RowPostPaint += Grid_RowPostPaint;
-
-            if (grid.RowHeadersWidth < 50)
-                grid.RowHeadersWidth = 50;
-
+            var ge = GetExtender(grid);
+            ge.RowNumberVisible = rowNumbersVisible;
             return grid;
         }
+
+        public static DataGridViewExtender GetExtender(this DataGridView grid)
+        {
+            return gridExtenders.GetOrAdd(grid.GetHashCode(), () => new DataGridViewExtender(grid));
+        }
+
+        private static Color bg = Color.FromArgb(100, Color.DimGray);
 
         private static void Grid_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
         {
@@ -269,28 +255,8 @@
                 return;
             }
 
-            string rowNumber = (e.RowIndex + 1).ToString();
-            var rowBounds = e.RowBounds;
-            using (var format = new StringFormat
-            {
-                Alignment = StringAlignment.Center,
-                LineAlignment = StringAlignment.Center
-            })
-            {
-                var bounds = new Rectangle(
-                    rowBounds.Left,
-                    rowBounds.Top,
-                    grid.RowHeadersWidth,
-                    rowBounds.Height);
-                try
-                {
-                    e.Graphics.DrawString(rowNumber, grid.Font, SystemBrushes.ControlText, bounds, format);
-                }
-                catch (Exception ex)
-                {
 
-                }
-            }
+
         }
 
         public static DataGridView BeginUpdate(this DataGridView grid, Action update)

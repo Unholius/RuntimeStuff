@@ -114,6 +114,96 @@
             }
         }
 
+        public static string GetFullName(this Control control)
+        {
+            if (control == null)
+                return string.Empty;
+
+            string name = !string.IsNullOrEmpty(control.Name)
+                ? control.Name
+                : $"{control.GetType().Name}_{control.GetHashCode()}";
+
+            if (control.Parent == null)
+                return name;
+
+            return $"{control.Parent.GetFullName()}.{name}";
+        }
+
+        private const string ParamsKey = "__custom_params__";
+
+        public static void SetParam(this Control control, string paramName, object paramValue)
+        {
+            if (control == null)
+                throw new ArgumentNullException(nameof(control));
+
+            if (string.IsNullOrWhiteSpace(paramName))
+                throw new ArgumentException("paramName is null or empty");
+
+            var dict = GetOrCreateParams(control);
+            dict[paramName] = paramValue;
+        }
+
+        public static T GetParam<T>(this Control control, string paramName, T defaultValue = default)
+        {
+            var dict = GetParams(control);
+
+            if (dict != null && dict.TryGetValue(paramName, out var value))
+            {
+                if (value is T t)
+                    return t;
+            }
+
+            return defaultValue;
+        }
+
+        private static Dictionary<string, object> GetOrCreateParams(Control control)
+        {
+            if (control.Tag is Dictionary<string, object> rootDict)
+            {
+                if (!rootDict.TryGetValue(ParamsKey, out var inner))
+                {
+                    inner = new Dictionary<string, object>();
+                    rootDict[ParamsKey] = inner;
+                }
+
+                return (Dictionary<string, object>)inner;
+            }
+
+            if (control.Tag == null)
+            {
+                var inner = new Dictionary<string, object>();
+                control.Tag = new Dictionary<string, object>
+                {
+                    [ParamsKey] = inner
+                };
+                return inner;
+            }
+
+            // Tag уже занят чем-то другим → оборачиваем
+            var newRoot = new Dictionary<string, object>
+            {
+                ["__original_tag__"] = control.Tag
+            };
+
+            var dict = new Dictionary<string, object>();
+            newRoot[ParamsKey] = dict;
+
+            control.Tag = newRoot;
+
+            return dict;
+        }
+
+        private static Dictionary<string, object>? GetParams(Control control)
+        {
+            if (control.Tag is Dictionary<string, object> rootDict &&
+                rootDict.TryGetValue(ParamsKey, out var inner))
+            {
+                return inner as Dictionary<string, object>;
+            }
+
+            return null;
+        }
+
         /// <summary>
         /// Назначает действие закрытия формы на указанную клавишу (по умолчанию Escape).
         /// </summary>

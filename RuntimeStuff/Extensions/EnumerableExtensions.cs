@@ -742,7 +742,7 @@ namespace RuntimeStuff.Extensions
                 }
                 else
                 {
-                    Obj.Copy(item, collectionItem);
+                    ObjectExtensions.Copy(item, collectionItem);
                 }
 
                 collection.Add(collectionItem);
@@ -798,7 +798,7 @@ namespace RuntimeStuff.Extensions
                 }
                 else
                 {
-                    Obj.Copy(item, collectionItem);
+                    ObjectExtensions.Copy(item, collectionItem);
                 }
 
                 collection.Add(collectionItem);
