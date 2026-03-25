@@ -77,6 +77,7 @@
             colorDialog1 = new System.Windows.Forms.ColorDialog();
             panelRoot = new System.Windows.Forms.Panel();
             contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(components);
+            valueFilterTemplate1 = new ValueFilterTemplate();
             ((System.ComponentModel.ISupportInitialize)FilterValuesGridView).BeginInit();
             CheckColumnMenuStrip.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
@@ -85,6 +86,7 @@
             tabControl1.SuspendLayout();
             tabColumnValues.SuspendLayout();
             panel2.SuspendLayout();
+            tabPresets.SuspendLayout();
             toolStrip1.SuspendLayout();
             panelRoot.SuspendLayout();
             SuspendLayout();
@@ -429,6 +431,7 @@
             // 
             // tabPresets
             // 
+            tabPresets.Controls.Add(valueFilterTemplate1);
             tabPresets.Location = new System.Drawing.Point(4, 24);
             tabPresets.Name = "tabPresets";
             tabPresets.Padding = new System.Windows.Forms.Padding(3);
@@ -573,6 +576,16 @@
             contextMenuStrip1.Name = "contextMenuStrip1";
             contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
             // 
+            // valueFilterTemplate1
+            // 
+            valueFilterTemplate1.Dock = System.Windows.Forms.DockStyle.Fill;
+            valueFilterTemplate1.FieldName = null;
+            valueFilterTemplate1.Location = new System.Drawing.Point(3, 3);
+            valueFilterTemplate1.Name = "valueFilterTemplate1";
+            valueFilterTemplate1.Size = new System.Drawing.Size(208, 217);
+            valueFilterTemplate1.TabIndex = 0;
+            valueFilterTemplate1.ValueType = null;
+            // 
             // ColumnFilterView
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -598,6 +611,7 @@
             tabColumnValues.ResumeLayout(false);
             panel2.ResumeLayout(false);
             panel2.PerformLayout();
+            tabPresets.ResumeLayout(false);
             toolStrip1.ResumeLayout(false);
             toolStrip1.PerformLayout();
             panelRoot.ResumeLayout(false);
@@ -652,5 +666,6 @@
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.TabPage tabConstructor;
         private System.Windows.Forms.ToolStripButton btnFreezeColumn;
+        private ValueFilterTemplate valueFilterTemplate1;
     }
 }
