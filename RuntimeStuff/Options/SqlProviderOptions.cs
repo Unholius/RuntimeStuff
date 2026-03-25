@@ -28,7 +28,7 @@ namespace RuntimeStuff.Options
         /// с применением набора конфигураций.
         /// </summary>
         /// <param name="configure">Массив делегатов для настройки опций.</param>
-        public SqlProviderOptions(params Action<SqlProviderOptions>[] configure)
+        internal SqlProviderOptions(params Action<SqlProviderOptions>[] configure)
         {
             foreach (var setter in configure)
             {
@@ -47,6 +47,8 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
             x => x.ValueFormatter.TrueValue = "TRUE",
             x => x.ValueFormatter.FalseValue = "FALSE",
+            x => x.NamePrefix = "'",
+            x => x.NameSuffix = "'",
             x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
             x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
             x => x.ParamPrefix = ":",
@@ -71,6 +73,8 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.FalseValue = "FALSE",
             x => x.GetInsertedIdQuery = "SELECT LASTVAL()",
             x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
+            x => x.NamePrefix = "'",
+            x => x.NameSuffix = "'",
             x => x.ParamPrefix = "@",
             x => x.ExecuteProcedure = "CALL",
             x => x.DatabaseParameterName = "Database",
@@ -94,6 +98,8 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.FalseValue = "0",
             x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
             x => x.OverrideOffsetRowsTemplate = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY",
+            x => x.NamePrefix = "[",
+            x => x.NameSuffix = "]",
             x => x.ParamPrefix = "@");
 
         /// <summary>
