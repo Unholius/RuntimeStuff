@@ -61,6 +61,7 @@
             panel2 = new System.Windows.Forms.Panel();
             label2 = new System.Windows.Forms.Label();
             tabPresets = new System.Windows.Forms.TabPage();
+            valueFilterTemplate1 = new ValueFilterTemplate();
             tabConstructor = new System.Windows.Forms.TabPage();
             toolStrip1 = new System.Windows.Forms.ToolStrip();
             btnDecreaseSize = new System.Windows.Forms.ToolStripButton();
@@ -77,7 +78,6 @@
             colorDialog1 = new System.Windows.Forms.ColorDialog();
             panelRoot = new System.Windows.Forms.Panel();
             contextMenuStrip1 = new System.Windows.Forms.ContextMenuStrip(components);
-            valueFilterTemplate1 = new ValueFilterTemplate();
             ((System.ComponentModel.ISupportInitialize)FilterValuesGridView).BeginInit();
             CheckColumnMenuStrip.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
@@ -440,6 +440,16 @@
             tabPresets.Text = "Шаблоны";
             tabPresets.UseVisualStyleBackColor = true;
             // 
+            // valueFilterTemplate1
+            // 
+            valueFilterTemplate1.Dock = System.Windows.Forms.DockStyle.Fill;
+            valueFilterTemplate1.FieldName = null;
+            valueFilterTemplate1.Location = new System.Drawing.Point(3, 3);
+            valueFilterTemplate1.Name = "valueFilterTemplate1";
+            valueFilterTemplate1.Size = new System.Drawing.Size(208, 217);
+            valueFilterTemplate1.TabIndex = 0;
+            valueFilterTemplate1.ValueType = null;
+            // 
             // tabConstructor
             // 
             tabConstructor.Location = new System.Drawing.Point(4, 24);
@@ -575,16 +585,6 @@
             // 
             contextMenuStrip1.Name = "contextMenuStrip1";
             contextMenuStrip1.Size = new System.Drawing.Size(61, 4);
-            // 
-            // valueFilterTemplate1
-            // 
-            valueFilterTemplate1.Dock = System.Windows.Forms.DockStyle.Fill;
-            valueFilterTemplate1.FieldName = null;
-            valueFilterTemplate1.Location = new System.Drawing.Point(3, 3);
-            valueFilterTemplate1.Name = "valueFilterTemplate1";
-            valueFilterTemplate1.Size = new System.Drawing.Size(208, 217);
-            valueFilterTemplate1.TabIndex = 0;
-            valueFilterTemplate1.ValueType = null;
             // 
             // ColumnFilterView
             // 
