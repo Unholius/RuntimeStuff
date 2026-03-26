@@ -705,6 +705,31 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
+        public void MemberCache_GetValues_Test_01()
+        {
+            var x = new TestClass03();
+            var mx = MemberCache.Create<TestClass03>();
+            var p = mx[nameof(TestClass03.Parent)];
+            var values1 = MemberCache.GetPathValues(x, p);
+            Assert.IsNotNull(values1);
+            Assert.AreEqual(1, values1.Length);
+            Assert.IsNull(values1[0]);
+
+            x.Parent = new TestClass03();
+            var values2 = MemberCache.GetPathValues(x, p);
+            Assert.IsNotNull(values2);
+            Assert.AreEqual(1, values2.Length);
+            Assert.IsNotNull(values2[0]);
+
+            var values3 = MemberCache.GetPathValues(x, p, p, p);
+            Assert.IsNotNull(values3);
+            Assert.AreEqual(3, values3.Length);
+            Assert.IsNotNull(values3[0]);
+            Assert.IsNull(values3[1]);
+            Assert.IsNull(values3[2]);
+        }
+
+        [TestMethod]
         public void MethodInfo_Tests_00()
         {
             var m1 = MemberCache.Create<ObservableObjectEx2>();
@@ -920,6 +945,12 @@ namespace RuntimeStuff.MSTests
             public string? Prop { get; set; }
             public string? PROP { get; set; }
             private readonly string? prop;
+        }
+
+        public class TestClass03
+        {
+            public string Id{ get; set; }
+            public TestClass03 Parent { get; set; }
         }
 
         public class TestAccessModifiersClass

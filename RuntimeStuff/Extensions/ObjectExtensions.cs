@@ -55,12 +55,23 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
-        /// Получает значения свойств объекта в указанном порядке.
+        /// Получает значения указанных свойств объекта.
         /// </summary>
-        /// <typeparam name="TObject">The type of the t object.</typeparam>
-        /// <param name="source">Исходный объект.</param>
-        /// <param name="memberNames">Имена свойств объекта с учетом регистра.</param>
-        /// <returns>System.Object[].</returns>
+        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
+        /// <param name="source">Объект, из которого извлекаются значения.</param>
+        /// <param name="memberNames">
+        /// Имена свойств, значения которых необходимо получить.
+        /// Если не указаны, будут использованы все публичные свойства.
+        /// </param>
+        /// <returns>
+        /// Массив значений свойств в порядке их выбора.
+        /// </returns>
+        /// <remarks>
+        /// Использует кэш метаданных (<c>MemberCache</c>) для повышения производительности.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Может возникнуть, если <paramref name="source"/> равен null.
+        /// </exception>
         public static object[] GetValues<TObject>(this TObject source, params string[] memberNames)
             where TObject : class
         {
@@ -76,14 +87,22 @@ namespace RuntimeStuff.Extensions
         }
 
         /// <summary>
-        /// Получает значения свойств объекта в указанном порядке и преобразует в указанный тип через
-        /// <see cref="Obj.ChangeType{T}(object, IFormatProvider)" />.
+        /// Получает значения указанных свойств объекта с приведением к заданному типу.
         /// </summary>
-        /// <typeparam name="TObject">The type of the t object.</typeparam>
-        /// <typeparam name="TValue">The type of the t value.</typeparam>
-        /// <param name="source">Исходный объект.</param>
-        /// <param name="memberNames">Имена свойств объекта с учетом регистра.</param>
-        /// <returns>TValue[].</returns>
+        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
+        /// <typeparam name="TValue">Тип, к которому будут приведены значения.</typeparam>
+        /// <param name="source">Объект, из которого извлекаются значения.</param>
+        /// <param name="memberNames">
+        /// Имена свойств, значения которых необходимо получить.
+        /// Если не указаны, будут использованы все публичные свойства.
+        /// </param>
+        /// <returns>
+        /// Массив значений свойств, приведённых к типу <typeparamref name="TValue"/>.
+        /// </returns>
+        /// <remarks>
+        /// Для преобразования используется вспомогательный метод <c>Obj.ChangeType&lt;T&gt;</c>.
+        /// Если преобразование невозможно, может возникнуть исключение.
+        /// </remarks>
         public static TValue[] GetValues<TObject, TValue>(this TObject source, params string[] memberNames)
             where TObject : class => GetValues(source, memberNames).Select(x => Obj.ChangeType<TValue>(x)).ToArray();
 

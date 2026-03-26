@@ -704,11 +704,11 @@ namespace RuntimeStuff.Helpers
 
                 if (this.target.Target != null)
                 {
-                    var senderValue = MemberCache.GetValues(sender, this.sourcePropertyInfo);
-                    var targetValue = MemberCache.GetValues(this.target.Target, this.targetPropertyInfo);
+                    var senderValue = MemberCache.GetPathValues(sender, this.sourcePropertyInfo);
+                    var targetValue = MemberCache.GetPathValues(this.target.Target, this.targetPropertyInfo);
                     var convertedValue = this.sourceToTargetConverter != null
                         ? this.sourceToTargetConverter((TSrcValue)senderValue.LastOrDefault())
-                        : senderValue.Last();
+                        : senderValue.LastOrDefault();
                     if (EqualityComparer<TTargetValue>.Default.Equals((TTargetValue)targetValue.LastOrDefault(), (TTargetValue)convertedValue))
                     {
                         return;
@@ -738,11 +738,11 @@ namespace RuntimeStuff.Helpers
                     return;
                 }
 
-                var sourceValue = MemberCache.GetValues(sender, this.targetPropertyInfo);
-                var targetValue = MemberCache.GetValues(this.source.Target, this.sourcePropertyInfo);
+                var sourceValue = MemberCache.GetPathValues(sender, this.targetPropertyInfo);
+                var targetValue = MemberCache.GetPathValues(this.source.Target, this.sourcePropertyInfo);
                 var convertedValue = this.targetToSourceConverter != null
                     ? this.targetToSourceConverter((TTargetValue)sourceValue.LastOrDefault())
-                    : sourceValue.Last();
+                    : sourceValue.LastOrDefault();
                 if (EqualityComparer<TSrcValue>.Default.Equals((TSrcValue)targetValue.LastOrDefault(), (TSrcValue)convertedValue))
                 {
                     return;

@@ -1390,8 +1390,18 @@ namespace RuntimeStuff
         /// Метод проходит по каждому элементу пути, вызывая <see cref="MemberCache.GetValue(object)"/> для текущего объекта.
         /// Текущий объект обновляется на значение предыдущего элемента пути.
         /// </remarks>
-        public static object[] GetValues(object source, MemberCache[] path)
+        public static object[] GetPathValues(object source, params MemberCache[] path)
         {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (path == null)
+            {
+                throw new ArgumentNullException(nameof(path));
+            }
+
             var values = new object[path.Length];
             var x = source;
             var i = 0;
@@ -1400,7 +1410,7 @@ namespace RuntimeStuff
                 var v = pathItem.GetValue(x);
                 if (v == null)
                 {
-                    return Array.Empty<object>();
+                    return values;
                 }
 
                 values[i++] = v;
