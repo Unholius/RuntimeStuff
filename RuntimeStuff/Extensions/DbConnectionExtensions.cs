@@ -20,6 +20,7 @@ namespace RuntimeStuff.Extensions
     using System.Collections.ObjectModel;
     using System.Data;
     using System.Data.Common;
+    using System.Linq;
     using System.Linq.Expressions;
     using System.Threading;
     using System.Threading.Tasks;
@@ -141,6 +142,45 @@ namespace RuntimeStuff.Extensions
         public static IDbTransaction BeginTransaction(this IDbConnection connection, IsolationLevel level = IsolationLevel.ReadCommitted) => connection.AsDbClient().BeginTransaction(level);
 
         /// <summary>
+        /// Настраивает подключение к базе данных с использованием интегрированной аутентификации (Windows Authentication).
+        /// </summary>
+        /// <param name="con">Экземпляр соединения с базой данных.</param>
+        /// <param name="server">Имя или адрес сервера базы данных.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        /// <remarks>
+        /// Автоматически включает доверие к сертификату и интегрированную безопасность.
+        /// </remarks>
+        public static IDbConnection Connect(this IDbConnection con, string server, string database)
+            => Server(con, server).Database(database).TrustCertificate(true).IntegratedSecurity(true);
+
+        /// <summary>
+        /// Добавляет параметр имени базы данных в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Database(this IDbConnection con, string database)
+        {
+            return Param(con, SqlProviderOptions.GetInstance(con).DatabaseParameterName, database);
+        }
+
+        /// <summary>
+        /// Настраивает подключение к базе данных с использованием явных учетных данных (логин и пароль).
+        /// </summary>
+        /// <param name="con">Экземпляр соединения с базой данных.</param>
+        /// <param name="server">Имя или адрес сервера базы данных.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <param name="login">Имя пользователя для подключения.</param>
+        /// <param name="password">Пароль пользователя.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        /// <remarks>
+        /// Автоматически включает доверие к сертификату.
+        /// </remarks>
+        public static IDbConnection Connect(this IDbConnection con, string server, string database, string login, string password)
+            => Server(con, server).Database(database).User(login).Password(password).TrustCertificate(true);
+
+        /// <summary>
         /// Возвращает количество записей по результатам выполнения команды.
         /// </summary>
         /// <param name="connection">Подключение к базе данных.</param>
@@ -229,14 +269,141 @@ namespace RuntimeStuff.Extensions
         public static DbCommand CreateCommand(this IDbConnection connection, string query, object cmdParams, IDbTransaction dbTransaction = null, int commandTimeOut = 30) => connection.AsDbClient().CreateCommand(query, cmdParams, dbTransaction, commandTimeOut);
 
         /// <summary>
-        /// Добавляет параметр имени базы данных в строку подключения.
+        /// Создаёт и настраивает объект <see cref="DbCommand"/> для выполнения SQL-запроса или хранимой процедуры.
         /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="database">Имя базы данных.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection Database(this IDbConnection con, string database)
+        /// <param name="connection">Соединение с базой данных.</param>
+        /// <param name="commandText">Текст SQL-запроса или имя хранимой процедуры.</param>
+        /// <param name="commandType">Тип команды (<see cref="CommandType.Text"/>, <see cref="CommandType.StoredProcedure"/> и т.д.).</param>
+        /// <param name="parameters">
+        /// Набор параметров команды в виде кортежей (имя параметра, значение).
+        /// Значение <c>null</c> автоматически преобразуется в <see cref="DBNull.Value"/>.
+        /// </param>
+        /// <returns>
+        /// Настроенный экземпляр <see cref="DbCommand"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="connection"/> или <paramref name="commandText"/> равны <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если имя параметра пустое или состоит только из пробелов.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если <paramref name="connection"/> не является <see cref="DbConnection"/>.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// Если соединение не открыто, метод автоматически вызывает <see cref="IDbConnection.Open"/>.
+        /// </para>
+        /// <para>
+        /// Имена параметров нормализуются с помощью метода <c>NormalizeParameterName</c>
+        /// (например, добавление префикса '@' при необходимости).
+        /// </para>
+        /// <para>
+        /// Метод не выполняет команду — он только создаёт и настраивает её.
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// using var cmd = connection.CreateCommand(
+        ///     "SELECT * FROM Users WHERE Id = @id",
+        ///     CommandType.Text,
+        ///     ("id", 10));
+        ///
+        /// using var reader = cmd.ExecuteReader();
+        /// </code>
+        /// </example>
+        public static DbCommand CreateCommand(this IDbConnection connection, string commandText, CommandType commandType, IDictionary<string, object> parameters)
+            => CreateCommand(connection, commandText, commandType, parameters.Select(x => (x.Key, x.Value)).ToArray());
+
+        /// <summary>
+        /// Создаёт и настраивает объект <see cref="DbCommand"/> для выполнения SQL-запроса или хранимой процедуры.
+        /// </summary>
+        /// <param name="connection">Соединение с базой данных.</param>
+        /// <param name="commandText">Текст SQL-запроса или имя хранимой процедуры.</param>
+        /// <param name="commandType">Тип команды (<see cref="CommandType.Text"/>, <see cref="CommandType.StoredProcedure"/> и т.д.).</param>
+        /// <param name="parameters">
+        /// Набор параметров команды в виде кортежей (имя параметра, значение).
+        /// Значение <c>null</c> автоматически преобразуется в <see cref="DBNull.Value"/>.
+        /// </param>
+        /// <returns>
+        /// Настроенный экземпляр <see cref="DbCommand"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="connection"/> или <paramref name="commandText"/> равны <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если имя параметра пустое или состоит только из пробелов.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если <paramref name="connection"/> не является <see cref="DbConnection"/>.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// Если соединение не открыто, метод автоматически вызывает <see cref="IDbConnection.Open"/>.
+        /// </para>
+        /// <para>
+        /// Имена параметров нормализуются с помощью метода <c>NormalizeParameterName</c>
+        /// (например, добавление префикса '@' при необходимости).
+        /// </para>
+        /// <para>
+        /// Метод не выполняет команду — он только создаёт и настраивает её.
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// using var cmd = connection.CreateCommand(
+        ///     "SELECT * FROM Users WHERE Id = @id",
+        ///     CommandType.Text,
+        ///     ("id", 10));
+        ///
+        /// using var reader = cmd.ExecuteReader();
+        /// </code>
+        /// </example>
+        public static DbCommand CreateCommand(this IDbConnection connection, string commandText, CommandType commandType, params (string paramName, object paramValue)[] parameters)
         {
-            return Param(con, SqlProviderOptions.GetInstance(con).DatabaseParameterName, database);
+            if (connection == null)
+            {
+                throw new ArgumentNullException(nameof(connection));
+            }
+
+            if (commandText == null)
+            {
+                throw new ArgumentNullException(nameof(commandText));
+            }
+
+            if (!(connection is DbConnection dbConnection))
+            {
+                throw new InvalidOperationException("Connection must be DbConnection");
+            }
+
+            var command = dbConnection.CreateCommand();
+            command.CommandText = commandText;
+            command.CommandType = commandType;
+
+            if (connection.State != ConnectionState.Open)
+            {
+                connection.Open();
+            }
+
+            if (parameters != null && parameters.Length > 0)
+            {
+                foreach (var (paramName, paramValue) in parameters)
+                {
+                    if (string.IsNullOrWhiteSpace(paramName))
+                    {
+                        throw new ArgumentException("Parameter name cannot be null or empty");
+                    }
+
+                    var parameter = command.CreateParameter();
+
+                    parameter.ParameterName = NormalizeParameterName(paramName);
+                    parameter.Value = paramValue ?? DBNull.Value;
+
+                    command.Parameters.Add(parameter);
+                }
+            }
+
+            return command;
         }
 
         /// <summary>
@@ -894,34 +1061,6 @@ namespace RuntimeStuff.Extensions
             where TList : ICollection<T>, IList, new() => connection.AsDbClient().QueryAsync<TList, T>(query, cmdParams, columns, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, ct);
 
         /// <summary>
-        /// Настраивает подключение к базе данных с использованием интегрированной аутентификации (Windows Authentication).
-        /// </summary>
-        /// <param name="con">Экземпляр соединения с базой данных.</param>
-        /// <param name="server">Имя или адрес сервера базы данных.</param>
-        /// <param name="database">Имя базы данных.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        /// <remarks>
-        /// Автоматически включает доверие к сертификату и интегрированную безопасность.
-        /// </remarks>
-        public static IDbConnection Connect(this IDbConnection con, string server, string database)
-            => Server(con, server).Database(database).TrustCertificate(true).IntegratedSecurity(true);
-
-        /// <summary>
-        /// Настраивает подключение к базе данных с использованием явных учетных данных (логин и пароль).
-        /// </summary>
-        /// <param name="con">Экземпляр соединения с базой данных.</param>
-        /// <param name="server">Имя или адрес сервера базы данных.</param>
-        /// <param name="database">Имя базы данных.</param>
-        /// <param name="login">Имя пользователя для подключения.</param>
-        /// <param name="password">Пароль пользователя.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        /// <remarks>
-        /// Автоматически включает доверие к сертификату.
-        /// </remarks>
-        public static IDbConnection Connect(this IDbConnection con, string server, string database, string login, string password)
-            => Server(con, server).Database(database).User(login).Password(password).TrustCertificate(true);
-
-        /// <summary>
         /// Добавляет параметр сервера базы данных в строку подключения.
         /// </summary>
         /// <param name="con">Соединение базы данных.</param>
@@ -1555,6 +1694,24 @@ namespace RuntimeStuff.Extensions
         public static IDbConnection User(this IDbConnection con, string userName)
         {
             return Param(con, SqlProviderOptions.GetInstance(con).UserParameterName, userName);
+        }
+
+        private static string NormalizeParameterName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
+
+            // убираем префиксы если есть
+            name = name.Trim();
+
+            if (name[0] == '@' || name[0] == ':' || name[0] == '?')
+            {
+                return name;
+            }
+
+            return "@" + name;
         }
     }
 }

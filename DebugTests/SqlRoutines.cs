@@ -1,30 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Text;
-using RuntimeStuff.Extensions;
+﻿//using System.Data;
 
-namespace DebugTests
-{
+//public static class SqlRoutines<T>
+//    where T : IDbConnection, new()
+//{
+//    /// <summary>  
+//    /// SQL_STORED_PROCEDURE [dbo].[xp_UpdateStatusTM] @p_Table TableInt2CLMN  
+//    /// </summary>  
+//    // public static string XpUpdateStatusTM => "[dbo].[xp_UpdateStatusTM]";
 
-    public interface ISqlRoutines
-    {
-        T xp_Genders_DA_NEW<T>(IDbConnection con, int docNum, int shop, int sendBoris);
-    }
+//    public static IDbCommand XpUpdateStatusTMCommand(int p_Table) => CreateCommand("[dbo].[xp_UpdateStatusTM]", ("@p_Table", p_Table));
+//    {
+//    }
 
-    public static class SqlRoutines
-    {
-        public static T xp_Genders_DA_NEW<T>(this IDbConnection con, int docNum, int shop, int sendBoris)
-            where T : class
-        {
-            if (typeof(T) == typeof(DataTable))
-            {
-                return con.ToDataTable("EXEC xp_Genders_DA_NEW ") as T;
-            }
-            else
-            {
-                return con.ToList<T>("EXEC xp_Genders_DA_NEW ") as T;
-            }
-        }
-    }
-}
+//    private static IDbCommand CreateCommand(string routineName, params (string pName, object pValue)[] parameters)
+//    {
+//        var cmd = new T().CreateCommand();
+//        cmd.CommandText = "[dbo].[xp_UpdateStatusTM]";
+//        cmd.CommandType = CommandType.StoredProcedure;
+//        var p = cmd.CreateParameter();
+//        p.ParameterName = "@p_Table";
+//        p.DbType = DbType.Int32;
+//        return cmd;
+//    }
+//}
+
+//public class Test
+//{
+//    public void Run()
+//    {
+//        SqlRoutines<SqlConnection>.XpUpdateStatusTM(1).Ex;
+//    }
+//}
