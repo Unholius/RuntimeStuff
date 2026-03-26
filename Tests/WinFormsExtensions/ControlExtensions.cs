@@ -12,54 +12,54 @@
     public static class ControlExtensions
     {
         // Словарь для хранения привязок клавиш для каждой формы
-        private static readonly Dictionary<Control, Dictionary<Keys, Action>> _keyBindings = new Dictionary<Control, Dictionary<Keys, Action>>();
+        private static readonly Dictionary<Control, Dictionary<Keys, Action>> KeyBindings = new Dictionary<Control, Dictionary<Keys, Action>>();
 
         /// <summary>
         /// Привязывает действие к нажатию клавиши на форме
         /// </summary>
-        /// <param name="form">Форма, к которой привязывается клавиша</param>
+        /// <param name="control">Форма, к которой привязывается клавиша</param>
         /// <param name="key">Клавиша или комбинация клавиш</param>
         /// <param name="action">Действие, которое выполнится при нажатии</param>
-        public static void BindKey(this Control form, Keys key, Action action)
+        public static void BindKey(this Control control, Keys key, Action action)
         {
-            if (form == null)
-                throw new ArgumentNullException(nameof(form));
+            if (control == null)
+                throw new ArgumentNullException(nameof(control));
 
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
 
             if (key == Keys.None)
             {
-                if (!_keyBindings.TryGetValue(form,out _))
+                if (!KeyBindings.TryGetValue(control,out _))
                 {
-                    _keyBindings.Remove(form);
+                    KeyBindings.Remove(control);
                     return;
                 }
             }
 
             // Получаем или создаем словарь привязок для формы
-            if (!_keyBindings.TryGetValue(form, out var formBindings))
+            if (!KeyBindings.TryGetValue(control, out var formBindings))
             {
                 formBindings = new Dictionary<Keys, Action>();
-                _keyBindings[form] = formBindings;
+                KeyBindings[control] = formBindings;
 
                 // Подписываемся на события формы при первой привязке
-                Obj.Set(form, "KeyPreview", true);
-                form.KeyDown += Form_KeyDown;
-                form.Disposed += Form_Disposed;
+                Obj.Set(control, "KeyPreview", true);
+                control.KeyDown += Control_KeyDown;
+                control.Disposed += Control_Disposed;
             }
 
             // Добавляем или обновляем привязку
             formBindings[key] = action;
         }
 
-        private static void Form_KeyDown(object sender, KeyEventArgs e)
+        private static void Control_KeyDown(object sender, KeyEventArgs e)
         {
             if (!(sender is Control form))
                 return;
 
             // Проверяем, есть ли привязка для нажатой клавиши
-            if (_keyBindings.TryGetValue(form, out var formBindings) &&
+            if (KeyBindings.TryGetValue(form, out var formBindings) &&
                 formBindings.TryGetValue(e.KeyData, out var action))
             {
                 action?.Invoke();
@@ -68,12 +68,12 @@
             }
         }
 
-        private static void Form_Disposed(object sender, EventArgs e)
+        private static void Control_Disposed(object sender, EventArgs e)
         {
             // Очищаем привязки при закрытии формы
             if (sender is Form form)
             {
-                _keyBindings.Remove(form);
+                KeyBindings.Remove(form);
             }
         }
 
@@ -85,16 +85,16 @@
             if (form == null)
                 throw new ArgumentNullException(nameof(form));
 
-            if (_keyBindings.TryGetValue(form, out var formBindings))
+            if (KeyBindings.TryGetValue(form, out var formBindings))
             {
                 formBindings.Remove(key);
 
                 // Если привязок больше нет, отписываемся от событий
                 if (formBindings.Count == 0)
                 {
-                    _keyBindings.Remove(form);
-                    form.KeyDown -= Form_KeyDown;
-                    form.Disposed -= Form_Disposed;
+                    KeyBindings.Remove(form);
+                    form.KeyDown -= Control_KeyDown;
+                    form.Disposed -= Control_Disposed;
                 }
             }
         }
@@ -107,10 +107,10 @@
             if (form == null)
                 throw new ArgumentNullException(nameof(form));
 
-            if (_keyBindings.Remove(form))
+            if (KeyBindings.Remove(form))
             {
-                form.KeyDown -= Form_KeyDown;
-                form.Disposed -= Form_Disposed;
+                form.KeyDown -= Control_KeyDown;
+                form.Disposed -= Control_Disposed;
             }
         }
 

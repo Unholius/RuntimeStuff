@@ -47,8 +47,6 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
             x => x.ValueFormatter.TrueValue = "TRUE",
             x => x.ValueFormatter.FalseValue = "FALSE",
-            x => x.NamePrefix = "'",
-            x => x.NameSuffix = "'",
             x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
             x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
             x => x.ParamPrefix = ":",
@@ -73,8 +71,6 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.FalseValue = "FALSE",
             x => x.GetInsertedIdQuery = "SELECT LASTVAL()",
             x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
-            x => x.NamePrefix = "'",
-            x => x.NameSuffix = "'",
             x => x.ParamPrefix = "@",
             x => x.ExecuteProcedure = "CALL",
             x => x.DatabaseParameterName = "Database",
@@ -133,77 +129,77 @@ namespace RuntimeStuff.Options
         /// <summary>
         /// Префикс имени объекта (например, кавычка для экранирования).
         /// </summary>
-        public string NamePrefix { get; internal set; } = "\"";
+        public string NamePrefix { get; set; } = "\"";
 
         /// <summary>
         /// Суффикс имени объекта.
         /// </summary>
-        public string NameSuffix { get; internal set; } = "\"";
+        public string NameSuffix { get; set; } = "\"";
 
         /// <summary>
         /// Представление значения NULL в SQL.
         /// </summary>
-        public string NullValue { get; internal set; } = "NULL";
+        public string NullValue { get; set; } = "NULL";
 
         /// <summary>
         /// Шаблон для постраничного вывода (OFFSET / LIMIT).
         /// </summary>
-        public string OverrideOffsetRowsTemplate { get; internal set; } = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
+        public string OverrideOffsetRowsTemplate { get; set; } = "OFFSET {0} ROWS FETCH NEXT {1} ROWS ONLY";
 
         /// <summary>
         /// Префикс параметров в SQL-запросах.
         /// </summary>
-        public string ParamPrefix { get; internal set; } = ":";
+        public string ParamPrefix { get; set; } = ":";
 
         /// <summary>
         /// Символ завершения SQL-оператора.
         /// </summary>
-        public string StatementTerminator { get; internal set; } = ";";
+        public string StatementTerminator { get; set; } = ";";
 
         /// <summary>
         /// Ключевое слово для вызова хранимой процедуры.
         /// </summary>
-        public string ExecuteProcedure { get; internal set; } = "EXEC";
+        public string ExecuteProcedure { get; set; } = "EXEC";
 
         /// <summary>
         /// Имя параметра строки подключения для базы данных.
         /// </summary>
-        public string DatabaseParameterName { get; internal set; } = "Database";
+        public string DatabaseParameterName { get; set; } = "Database";
 
         /// <summary>
         /// Имя параметра строки подключения для сервера.
         /// </summary>
-        public string ServerParameterName { get; internal set; } = "Server";
+        public string ServerParameterName { get; set; } = "Server";
 
         /// <summary>
         /// Имя параметра строки подключения для пользователя.
         /// </summary>
-        public string UserParameterName { get; internal set; } = "User";
+        public string UserParameterName { get; set; } = "User";
 
         /// <summary>
         /// Имя параметра строки подключения для пароля.
         /// </summary>
-        public string PasswordParameterName { get; internal set; } = "Password";
+        public string PasswordParameterName { get; set; } = "Password";
 
         /// <summary>
         /// Имя параметра строки подключения для интегрированной безопасности.
         /// </summary>
-        public string IntegratedSecurityParameterName { get; internal set; } = "Integrated Security";
+        public string IntegratedSecurityParameterName { get; set; } = "Integrated Security";
 
         /// <summary>
         /// Имя параметра строки подключения для имени приложения.
         /// </summary>
-        public string ApplicationNameParameterName { get; internal set; } = "Application Name";
+        public string ApplicationNameParameterName { get; set; } = "Application Name";
 
         /// <summary>
         /// Имя параметра строки подключения для доверия сертификату сервера.
         /// </summary>
-        public string TrustServerCertificateParameterName { get; internal set; } = "TrustServerCertificate";
+        public string TrustServerCertificateParameterName { get; set; } = "TrustServerCertificate";
 
         /// <summary>
         /// Имя параметра строки подключения для таймаута подключения.
         /// </summary>
-        public string ConnectTimeoutParameterName { get; internal set; } = "Connect Timeout";
+        public string ConnectTimeoutParameterName { get; set; } = "Connect Timeout";
 
         /// <summary>
         /// Получает экземпляр опций на основе типа подключения.

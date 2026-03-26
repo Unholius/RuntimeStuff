@@ -22,7 +22,7 @@ namespace System.Windows.Forms.Extensions
             grid.RowEnter += Grid_RowEnter;
             grid.RowLeave += Grid_RowLeave;
             grid.SelectionChanged += Grid_SelectionChanged;
-            //KeepSelectionOnRowChange = true;
+            KeepSelectionOnRowChange = true;
         }
 
         void SaveSelection()
@@ -48,7 +48,7 @@ namespace System.Windows.Forms.Extensions
         {
             if (!KeepSelectionOnRowChange)
                 return;
-            if (selectedCells.Any(x => x.Row == grid.CurrentCell.RowIndex && x.Col == grid.CurrentCell.ColumnIndex))
+            if (selectedCells != null && grid.CurrentCell != null && selectedCells.Any(x => x.Row == grid.CurrentCell.RowIndex && x.Col == grid.CurrentCell.ColumnIndex))
             {
                 foreach (var (row, col) in selectedCells)
                 {
@@ -84,8 +84,8 @@ namespace System.Windows.Forms.Extensions
 
         private void OnKeepSelectionOnRowChangeChanged()
         {
-            grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            grid.MultiSelect = true;
+            //grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            //grid.MultiSelect = true;
         }
 
         private void Grid_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
@@ -109,7 +109,7 @@ namespace System.Windows.Forms.Extensions
                 }
             }
 
-            if (FocusedRowBorderVisible)
+            if (FocusedRowBorderVisible && grid.CurrentCell != null)
             {
                 if (e.RowIndex == grid.CurrentCell.RowIndex)
                 {
