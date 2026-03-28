@@ -21,7 +21,6 @@ namespace System.Data
     using System.Data.Common;
     using System.Linq;
     using System.Linq.Expressions;
-    using System.Options;
     using System.Threading;
     using System.Threading.Tasks;
 

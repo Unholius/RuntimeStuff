@@ -2,10 +2,9 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace System.Options
+namespace System.Data
 {
     using System;
-    using System.Data;
 
     /// <summary>
     /// Опции провайдера SQL, определяющие особенности синтаксиса,

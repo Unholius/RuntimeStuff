@@ -1,9 +1,6 @@
 ﻿// <copyright file="CsvHelper.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-
-using System.Text;
-
 namespace System.Helpers
 {
     using System;
@@ -13,6 +10,7 @@ namespace System.Helpers
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
+    using System.Text;
 
     /// <summary>
     /// Помощник для работы с CSV-данными.

@@ -1,9 +1,6 @@
 ﻿// <copyright file="SyncHelper.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-
-using System.Threading.Tasks;
-
 namespace System.Helpers
 {
     using System;
@@ -11,6 +8,7 @@ namespace System.Helpers
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
+    using System.Threading.Tasks;
 
     /// <summary>
     /// Предоставляет статические методы для синхронизации и ожидания событий с поддержкой параметров и таймаутов.

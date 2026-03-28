@@ -1,21 +1,53 @@
-﻿namespace System
+﻿// <copyright file="ValueFormatter.cs" company="Rudnev Sergey">
+// Copyright (c) Rudnev Sergey. All rights reserved.
+// </copyright>
+
+namespace System
 {
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
     using System.Reflection;
 
+    /// <summary>
+    /// Универсальный форматтер значений различных типов с поддержкой кастомных правил,
+    /// культуры, форматирования дат/чисел и постобработки.
+    /// </summary>
+    /// <remarks>
+    /// Поддерживает:
+    /// <list type="bullet">
+    /// <item><description>Кастомные сериализаторы по типу.</description></item>
+    /// <item><description>Форматирование строк, чисел, дат, перечислений и коллекций.</description></item>
+    /// <item><description>Настройку префиксов/суффиксов для различных типов.</description></item>
+    /// <item><description>Обработку <c>null</c> и пользовательских "null-значений".</description></item>
+    /// <item><description>Постобработку результата через цепочку функций.</description></item>
+    /// </list>
+    /// </remarks>
     public class ValueFormatter
     {
+        private readonly Dictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new Dictionary<Type, Func<object, ValueFormatter, string>>();
         private string dateFormat = "{0:yyyy-MM-dd}";
         private string dateTimeFormat = "{0:yyyy-MM-dd HH:mm:ss}";
         private string decimalNumberFormat;
+        private HashSet<object> nullValuesSet;
         private string timeFormat = "{0:HH:mm:ss}";
 
+        /// <summary>
+        /// Инициализирует новый экземпляр <see cref="ValueFormatter"/> с настройками по умолчанию.
+        /// </summary>
         public ValueFormatter()
         {
         }
 
+        /// <summary>
+        /// Инициализирует новый экземпляр <see cref="ValueFormatter"/> на основе другого форматтера
+        /// с возможностью переопределения отдельных параметров.
+        /// </summary>
+        /// <param name="baseFormatter">Базовый форматтер, из которого копируются настройки.</param>
+        /// <param name="dateFormat">Формат даты и времени.</param>
+        /// <param name="enumAsString">Флаг, указывающий, форматировать ли перечисления как строки.</param>
+        /// <param name="trimSpaces">Удалять ли пробелы по краям строк.</param>
+        /// <param name="escapeMode">Режим экранирования строк.</param>
         public ValueFormatter(ValueFormatter baseFormatter, string dateFormat, bool enumAsString = false, bool trimSpaces = true, StringHelper.EscapeMode escapeMode = StringHelper.EscapeMode.None)
         {
             this.Serializers = baseFormatter.Serializers;
@@ -29,7 +61,7 @@
             this.NullSuffix = baseFormatter.NullSuffix;
             this.EnumerablePrefix = baseFormatter.EnumerablePrefix;
             this.EnumerableSuffix = baseFormatter.EnumerableSuffix;
-            this.EnumerableSeperator = baseFormatter.EnumerableSeperator;
+            this.EnumerableSeparator = baseFormatter.EnumerableSeparator;
             this.StringPrefix = baseFormatter.StringPrefix;
             this.StringSuffix = baseFormatter.StringSuffix;
             this.NumberPrefix = baseFormatter.NumberPrefix;
@@ -50,6 +82,13 @@
             this.EscapeMode = escapeMode;
         }
 
+        /// <summary>
+        /// Инициализирует новый экземпляр <see cref="ValueFormatter"/> с заданным форматом даты.
+        /// </summary>
+        /// <param name="dateFormat">Формат даты и времени.</param>
+        /// <param name="enumAsString">Флаг, указывающий, форматировать ли перечисления как строки.</param>
+        /// <param name="trimSpaces">Удалять ли пробелы по краям строк.</param>
+        /// <param name="escapeMode">Режим экранирования строк.</param>
         public ValueFormatter(string dateFormat, bool enumAsString = false, bool trimSpaces = true, StringHelper.EscapeMode escapeMode = StringHelper.EscapeMode.None)
         {
             this.DateFormat = dateFormat;
@@ -59,97 +98,224 @@
             this.EscapeMode = escapeMode;
         }
 
+        /// <summary>
+        /// Префикс, добавляемый перед представлением логического значения (<c>true</c> / <c>false</c>) при сериализации.
+        /// Например, можно использовать "(" для обрамления значения.
+        /// </summary>
         public string BoolPrefix { get; set; }
 
+        /// <summary>
+        /// Суффикс, добавляемый после представления логического значения (<c>true</c> / <c>false</c>) при сериализации.
+        /// Например, можно использовать ")" для обрамления значения.
+        /// </summary>
         public string BoolSuffix { get; set; }
 
+        /// <summary>
+        /// Культура, используемая для форматирования чисел и дат.
+        /// По умолчанию — <see cref="CultureInfo.InvariantCulture"/>.
+        /// </summary>
         public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
 
+        /// <summary>
+        /// Словарь пользовательских форматов для конкретных типов.
+        /// </summary>
         public Dictionary<Type, string> CustomTypeFormat { get; set; } = new Dictionary<Type, string>();
 
+        /// <summary>
+        /// Формат даты (без времени).
+        /// </summary>
         public string DateFormat
         {
             get => this.dateFormat;
             set => this.dateFormat = StringHelper.NormalizeFormat(value);
         }
 
+        /// <summary>
+        /// Префикс, добавляемый перед представлением даты при сериализации.
+        /// Например, можно использовать "(" для обрамления значения даты.
+        /// </summary>
         public string DatePrefix { get; set; }
 
+        /// <summary>
+        /// Суффикс, добавляемый после представления даты при сериализации.
+        /// Например, можно использовать ")" для обрамления значения даты.
+        /// </summary>
         public string DateSuffix { get; set; }
 
+        /// <summary>
+        /// Формат даты и времени.
+        /// </summary>
         public string DateTimeFormat
         {
             get => this.dateTimeFormat;
             set => this.dateTimeFormat = StringHelper.NormalizeFormat(value);
         }
 
+        /// <summary>
+        /// Формат чисел с плавающей точкой.
+        /// </summary>
         public string DecimalNumberFormat
         {
             get => this.decimalNumberFormat;
             set => this.decimalNumberFormat = StringHelper.NormalizeFormat(value);
         }
 
+        /// <summary>
+        /// Определяет, выводить ли значения перечислений как строки.
+        /// </summary>
         public bool EnumAsString { get; set; }
 
+        /// <summary>
+        /// Префикс, добавляемый перед сериализацией коллекции (например, "[" для списков).
+        /// </summary>
         public string EnumerablePrefix { get; set; }
 
-        public string EnumerableSeperator { get; set; }
+        /// <summary>
+        /// Разделитель элементов в сериализуемой коллекции (например, ", ").
+        /// </summary>
+        public string EnumerableSeparator { get; set; }
 
+        /// <summary>
+        /// Суффикс, добавляемый после сериализации коллекции (например, "]" для списков).
+        /// </summary>
         public string EnumerableSuffix { get; set; }
 
+        /// <summary>
+        /// Режим экранирования строк.
+        /// </summary>
         public StringHelper.EscapeMode EscapeMode { get; set; } = StringHelper.EscapeMode.None;
 
+        /// <summary>
+        /// Значение, используемое для <c>false</c>.
+        /// </summary>
         public string FalseValue { get; set; }
 
+        /// <summary>
+        /// Определяет, удалять ли лишние пробелы в строках.
+        /// </summary>
         public bool NormalizeWhitespaces { get; set; }
 
+        /// <summary>
+        /// Префикс, добавляемый перед представлением <c>null</c> при сериализации.
+        /// Например, можно использовать "(" для обрамления значения null.
+        /// </summary>
         public string NullPrefix { get; set; }
 
+        /// <summary>
+        /// Суффикс, добавляемый после представления <c>null</c> при сериализации.
+        /// Например, можно использовать ")" для обрамления значения null.
+        /// </summary>
         public string NullSuffix { get; set; }
 
+        /// <summary>
+        /// Строковое представление <c>null</c>.
+        /// </summary>
         public string NullValue { get; set; }
 
-        private HashSet<object> nullValuesSet;
+        /// <summary>
+        /// Дополнительные значения, которые следует интерпретировать как <c>null</c>.
+        /// </summary>
         public List<object> NullValues
         {
             get => this.nullValuesSet?.ToList();
             set => this.nullValuesSet = value != null ? new HashSet<object>(value) : null;
         }
 
+        /// <summary>
+        /// Префикс, добавляемый перед числовым значением при сериализации.
+        /// Например, можно использовать "(" для обрамления числа.
+        /// </summary>
         public string NumberPrefix { get; set; }
 
+        /// <summary>
+        /// Суффикс, добавляемый после числового значения при сериализации.
+        /// Например, можно использовать ")" для обрамления числа.
+        /// </summary>
         public string NumberSuffix { get; set; }
 
+        /// <summary>
+        /// Префикс, добавляемый перед сериализацией объекта.
+        /// Например, можно использовать "{" для обрамления объекта.
+        /// </summary>
         public string ObjectPrefix { get; set; }
 
+        /// <summary>
+        /// Суффикс, добавляемый после сериализации объекта.
+        /// Например, можно использовать "}" для обрамления объекта.
+        /// </summary>
         public string ObjectSuffix { get; set; }
 
+        /// <summary>
+        /// Список функций постобработки результата.
+        /// </summary>
         public List<Func<string, string>> PostFormatters { get; set; } = new List<Func<string, string>>();
 
+        /// <summary>
+        /// Список пользовательских сериализаторов.
+        /// </summary>
         public List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)> Serializers { get; set; } = new List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)>();
-        private readonly Dictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new Dictionary<Type, Func<object, ValueFormatter, string>>();
 
+        /// <summary>
+        /// Префикс, добавляемый перед строковым значением при сериализации.
+        /// Например, можно использовать кавычку '"' или другую обертку.
+        /// </summary>
         public string StringPrefix { get; set; }
 
+        /// <summary>
+        /// Суффикс, добавляемый после строкового значения при сериализации.
+        /// Например, можно использовать кавычку '"' или другую обертку.
+        /// </summary>
         public string StringSuffix { get; set; }
 
+        /// <summary>
+        /// Формат времени.
+        /// </summary>
         public string TimeFormat
         {
             get => this.timeFormat;
             set => this.timeFormat = StringHelper.NormalizeFormat(value);
         }
 
+        /// <summary>
+        /// Определяет, удалять ли незначащие нули в числах.
+        /// </summary>
         public bool TrimNumberZeroes { get; set; }
 
+        /// <summary>
+        /// Определяет, обрезать ли пробелы по краям строк.
+        /// </summary>
         public bool TrimSpaces { get; set; }
 
+        /// <summary>
+        /// Значение, используемое для <c>true</c>.
+        /// </summary>
         public string TrueValue { get; set; }
 
+        /// <summary>
+        /// Добавляет пользовательский сериализатор для типов, удовлетворяющих условию.
+        /// </summary>
+        /// <param name="typeCondition">Условие для типа.</param>
+        /// <param name="serializer">Функция сериализации.</param>
         public void AddSerializer(Func<Type, bool> typeCondition, Func<object, ValueFormatter, string> serializer)
         {
             this.Serializers.Add((typeCondition, serializer));
         }
 
+        /// <summary>
+        /// Форматирует значение в строку в соответствии с текущими настройками.
+        /// </summary>
+        /// <param name="value">Значение для форматирования.</param>
+        /// <returns>Отформатированная строка.</returns>
+        /// <remarks>
+        /// Порядок обработки:
+        /// <list type="number">
+        /// <item><description>Обработка <c>null</c> и пользовательских null-значений.</description></item>
+        /// <item><description>Пользовательские сериализаторы.</description></item>
+        /// <item><description>Строки, bool, enum, даты, коллекции, числа.</description></item>
+        /// <item><description>Fallback через <see cref="object.ToString"/>.</description></item>
+        /// <item><description>Постобработка через <see cref="PostFormatters"/>.</description></item>
+        /// </list>
+        /// </remarks>
         public string Format(object value)
         {
             // 1. NULL handling
@@ -264,7 +430,7 @@
                     items.Add(this.Format(item)); // рекурсивно
                 }
 
-                var separator = this.EnumerableSeperator ?? ", ";
+                var separator = this.EnumerableSeparator ?? ", ";
                 var joined = string.Join(separator, items);
 
                 result = StringHelper.ApplyAffixes(joined, this.EnumerablePrefix, this.EnumerableSuffix);
@@ -290,6 +456,23 @@
             return this.ApplyPost(result);
         }
 
+        /// <summary>
+        /// Пытается получить сериализатор для указанного типа.
+        /// </summary>
+        /// <param name="type">Тип объекта, для которого требуется сериализатор.</param>
+        /// <param name="serializer">
+        /// При успешном выполнении метода содержит делегат сериализации <see cref="Func{Object, ValueFormatter, String}"/>.
+        /// В противном случае равен <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если сериализатор найден; иначе <c>false</c>.
+        /// </returns>
+        /// <remarks>
+        /// Метод сначала ищет сериализатор в кэше <see cref="serializerCache"/>.
+        /// Если сериализатор не найден, перебирает список <see cref="Serializers"/> и проверяет условие <c>Condition</c>.
+        /// Найденный сериализатор добавляется в кэш для последующего быстрого доступа.
+        /// Если подходящий сериализатор не найден, в кэше сохраняется <c>null</c>.
+        /// </remarks>
         public bool TryGetSerializer(Type type, out Func<object, ValueFormatter, string> serializer)
         {
             if (this.serializerCache.TryGetValue(type, out serializer))

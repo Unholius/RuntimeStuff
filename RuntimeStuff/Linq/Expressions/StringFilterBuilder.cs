@@ -67,13 +67,12 @@ namespace System.Linq.Expressions
         /// </summary>
         public StringFilterBuilder()
         {
-            //this.Options = new FilterBuilderOptions();
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StringFilterBuilder"/> class.
         /// </summary>
-        /// <param name="options">Настройки.</param>
+        /// <param name="formatter">Настройки.</param>
         public StringFilterBuilder(ValueFormatter formatter)
         {
             this.formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
@@ -174,11 +173,6 @@ namespace System.Linq.Expressions
         /// Настройки токенов синтаксиса.
         /// </summary>
         public Dictionary<Token, string> Syntax { get; set; } = new Dictionary<Token, string>(DefaultSyntax);
-
-        /// <summary>
-        /// Опции форматирования фильтров.
-        /// </summary>
-        //public FilterBuilderOptions Options { get; set; }
 
         /// <summary>
         /// Добавляет фильтр по указанному свойству и операции.

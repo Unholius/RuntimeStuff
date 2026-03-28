@@ -24,7 +24,6 @@ namespace System.Data
     using System.Helpers;
     using System.Linq;
     using System.Linq.Expressions;
-    using System.Options;
     using System.Reflection;
     using System.Runtime.CompilerServices;
     using System.Text.RegularExpressions;

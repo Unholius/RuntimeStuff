@@ -417,6 +417,16 @@ namespace System.Helpers
             return SerializeInternal(obj, vf);
         }
 
+        /// <summary>
+        /// Сериализует объект в строковое представление с использованием указанного <see cref="ValueFormatter"/>.
+        /// </summary>
+        /// <param name="obj">Объект, который нужно сериализовать. Если <c>null</c>, возвращается строка "null".</param>
+        /// <param name="valueFormatter">Экземпляр <see cref="ValueFormatter"/>, задающий правила форматирования и сериализации объектов.</param>
+        /// <returns>Строковое представление объекта согласно правилам <paramref name="valueFormatter"/>.</returns>
+        /// <remarks>
+        /// Если объект <paramref name="obj"/> равен <c>null</c>, возвращается строка "null".
+        /// В противном случае используется внутренний метод <c>SerializeInternal</c> для выполнения сериализации.
+        /// </remarks>
         public static string Serialize(
             object obj,
             ValueFormatter valueFormatter)

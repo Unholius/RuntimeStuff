@@ -1,17 +1,6 @@
-﻿// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 01-06-2026
-//
-// Last Modified By : RS
-// Last Modified On : 01-07-2026
-// ***********************************************************************
-// <copyright file="FilterHelper.cs" company="Rudnev Sergey">
+﻿// <copyright file="FilterHelper.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
-using System.Linq.Expressions;
 
 namespace System.Helpers
 {
@@ -19,6 +8,7 @@ namespace System.Helpers
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
+    using System.Linq.Expressions;
     using System.Reflection;
     using System.Text.RegularExpressions;
 
