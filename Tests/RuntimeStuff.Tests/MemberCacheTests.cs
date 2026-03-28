@@ -1,16 +1,15 @@
 ﻿using FastMember;
-using RuntimeStuff.MSTests.Models;
+using System.Collections;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.MSTests.Models;
 using System.Reflection;
-using RuntimeStuff.Extensions;
-using System.Collections.ObjectModel;
-using RuntimeStuff.Collections;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class MemberCacheTests
@@ -20,7 +19,8 @@ namespace RuntimeStuff.MSTests
         // Простой класс без атрибутов
         public class SimpleClass
         {
-            public SimpleClass() { }
+            public SimpleClass()
+            { }
 
             public SimpleClass(string privateField, EventHandler eventHandler)
             {
@@ -28,6 +28,7 @@ namespace RuntimeStuff.MSTests
                 TestEvent += eventHandler;
                 TestEvent?.Invoke(this, EventArgs.Empty);
             }
+
             public int Id { get; set; }
             public string? Name { get; set; }
             private readonly string? PrivateField;
@@ -949,7 +950,7 @@ namespace RuntimeStuff.MSTests
 
         public class TestClass03
         {
-            public string Id{ get; set; }
+            public string Id { get; set; }
             public TestClass03 Parent { get; set; }
         }
 
@@ -1011,7 +1012,6 @@ namespace RuntimeStuff.MSTests
             Assert.IsTrue(memberInfo.IsSetterPublic);
             Assert.IsTrue(memberInfo.IsGetterPrivate);
             Assert.IsFalse(memberInfo.IsGetterPublic);
-
         }
     }
 }

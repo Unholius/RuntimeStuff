@@ -1,8 +1,8 @@
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using RuntimeStuff.Collections;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class ConcurrentLogBufferAdvancedTests
@@ -205,4 +205,3 @@ namespace RuntimeStuff.MSTests
         }
     }
 }
-

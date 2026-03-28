@@ -1,9 +1,6 @@
 ﻿namespace DebugTests
 {
-    using RuntimeStuff;
-    using RuntimeStuff.Data;
-    using RuntimeStuff.Extensions;
-    using System.Data.SqlClient;
+    using System;
 
     public sealed class Test1
     {
@@ -11,7 +8,7 @@
         public void TestMethod2()
         {
             var x = new TestClass1();
-            var json = "{ 'Id':1, 'Name': 'MyName', 'Child': { 'Id': 2, 'Name': 'ChildName'} }".Replace("'","\"");
+            var json = "{ 'Id':1, 'Name': 'MyName', 'Child': { 'Id': 2, 'Name': 'ChildName'} }".Replace("'", "\"");
             x.ImportFromJson(json);
             Assert.AreEqual(1, x.Id);
             Assert.AreEqual("MyName", x.Name);

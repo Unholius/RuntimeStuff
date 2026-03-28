@@ -1,6 +1,4 @@
-﻿using RuntimeStuff.Extensions;
-
-namespace RuntimeStuff.MSTests;
+﻿namespace System.MSTests;
 
 [TestClass]
 public class EnumerableExtensionsTests

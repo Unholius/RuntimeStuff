@@ -1,15 +1,13 @@
-﻿using RuntimeStuff;
-using RuntimeStuff.Builders;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Helpers;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
 
 namespace WinFormsExtensions
 {
@@ -137,9 +135,11 @@ namespace WinFormsExtensions
                 case DataGridViewContentAlignment.MiddleLeft:
                     f.ColumnCellLeftAligned = true;
                     break;
+
                 case DataGridViewContentAlignment.MiddleCenter:
                     f.ColumnCellJustifyAligned = true;
                     break;
+
                 case DataGridViewContentAlignment.MiddleRight:
                     f.ColumnCellRightAligned = true;
                     break;
@@ -329,9 +329,11 @@ namespace WinFormsExtensions
                     case IBindingListView bindingListView:
                         bindingListView.Filter = filterText;
                         break;
+
                     case DataTable dt:
                         dt.DefaultView.RowFilter = filterText;
                         break;
+
                     default:
                         foreach (DataGridViewRow r in SourceDataGridView.Rows)
                         {
@@ -344,7 +346,6 @@ namespace WinFormsExtensions
                             }
                             catch (Exception ex)
                             {
-
                             }
                         }
 
@@ -473,7 +474,6 @@ namespace WinFormsExtensions
 
         private void tableLayoutPanel1_Paint(object sender, PaintEventArgs e)
         {
-
         }
 
         private void toolStripButton1_Click(object sender, EventArgs e)

@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnnotations.Schema;namespace RuntimeStuff.MSTests.DTO{    [Table("StudentCourses", Schema = "dbo")]
+using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnnotations.Schema;namespace System.MSTests.DTO{    [Table("StudentCourses", Schema = "dbo")]
     public class StudentCourses    {        [Key]        [ForeignKey("Courses")]        [Column("CourseID")]
         public int CourseID { get; set; }        [Key]        [ForeignKey("Students")]        [Column("StudentID")]
         public int StudentID { get; set; }    }}

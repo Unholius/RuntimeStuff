@@ -1,7 +1,8 @@
-﻿using RuntimeStuff.Helpers;
-using System.Collections;
+﻿using System.Collections;
+using System.Helpers;
+using System.Reflection;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class JsonHelperTests
@@ -9,13 +10,12 @@ namespace RuntimeStuff.MSTests
         private static readonly string json1 =
             "{\n  \"user\": {\n    \"name\": \"John\",\n    \"age\": 30,\n    \"active\": true,\n    \"roles\": [\"admin\", \"editor\"],\n    \"address\": {\n      \"city\": \"NY\"\n    }\n  }\n}\n";
 
-
         [TestMethod]
         public void GetAllValues_Test_01()
         {
             var values = JsonHelper.GetAllValues(json1);
         }
-        
+
         #region Примитивные типы
 
         [TestMethod]
@@ -122,7 +122,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("123.456", result);
         }
 
-        #endregion
+        #endregion Примитивные типы
 
         #region Enum тесты
 
@@ -158,7 +158,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("\"Second\"", result);
         }
 
-        #endregion
+        #endregion Enum тесты
 
         #region DateTime тесты
 
@@ -199,7 +199,7 @@ namespace RuntimeStuff.MSTests
             };
 
             // Act
-            var result = JsonHelper.Serialize(date, additionalFormats: additionalFormats);
+            var result = JsonHelper.Serialize(date, customTypeFormats: additionalFormats);
 
             // Assert
             Assert.AreEqual("\"15.05.2023\"", result);
@@ -226,12 +226,12 @@ namespace RuntimeStuff.MSTests
 
             // Act
             var result = JsonHelper.Serialize(timeSpan);
-
+             
             // Assert
             Assert.AreEqual("\"1.02:30:45\"", result); // Стандартный формат TimeSpan
         }
 
-        #endregion
+        #endregion DateTime тесты
 
         #region Коллекции
 
@@ -245,7 +245,7 @@ namespace RuntimeStuff.MSTests
             var result = JsonHelper.Serialize(array);
 
             // Assert
-            Assert.AreEqual("[1,2,3]", result);
+            Assert.AreEqual("[1, 2, 3]", result);
         }
 
         [TestMethod]
@@ -258,7 +258,7 @@ namespace RuntimeStuff.MSTests
             var result = JsonHelper.Serialize(list);
 
             // Assert
-            Assert.AreEqual("[\"a\",\"b\",\"c\"]", result);
+            Assert.AreEqual("[\"a\", \"b\", \"c\"]", result);
         }
 
         [TestMethod]
@@ -303,6 +303,9 @@ namespace RuntimeStuff.MSTests
                 ["key3"] = false
             };
 
+
+            var isDic = hashtable.GetType().IsDictionary();
+
             // Act
             var result = JsonHelper.Serialize(hashtable);
 
@@ -328,7 +331,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("{}", result);
         }
 
-        #endregion
+        #endregion Коллекции
 
         #region Объекты
 
@@ -357,10 +360,9 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.AreEqual("{\"Name\":\"John\",\"Age\":30,\"IsActive\":true,\"BirthDate\":\"1993-05-15\"}", result);
-
         }
 
-        const string json = "{\r\n  \"orderId\": 12345,\r\n  \"date\": \"2023-10-27\",\r\n  \"customer\": {\r\n    \"id\": \"C01\",\r\n    \"name\": \"Alice\"\r\n  },\r\n  \"items\": [\r\n    {\"prodId\": \"P01\", \"price\": 10.5},\r\n    {\"prodId\": \"P02\", \"price\": 20.0}\r\n  ]\r\n}\r\n";
+        private const string json = "{\r\n  \"orderId\": 12345,\r\n  \"date\": \"2023-10-27\",\r\n  \"customer\": {\r\n    \"id\": \"C01\",\r\n    \"name\": \"Alice\"\r\n  },\r\n  \"items\": [\r\n    {\"prodId\": \"P01\", \"price\": 10.5},\r\n    {\"prodId\": \"P02\", \"price\": 20.0}\r\n  ]\r\n}\r\n";
 
         [TestMethod]
         public void Test_GetAttributes()
@@ -460,7 +462,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(expected, result);
         }
 
-        #endregion
+        #endregion Объекты
 
         #region Сложные сценарии
 
@@ -481,8 +483,8 @@ namespace RuntimeStuff.MSTests
             // Assert
             // Анонимные типы имеют рандомные имена свойств, но в данном случае они сохраняются
             Assert.IsTrue(result.Contains("\"Name\":\"Test\""));
-            Assert.IsTrue(result.Contains("\"Numbers\":[1,2,3]"));
-            Assert.IsTrue(result.Contains("\"Strings\":[\"a\",\"b\"]"));
+            Assert.IsTrue(result.Contains("\"Numbers\":[1, 2, 3]"));
+            Assert.IsTrue(result.Contains("\"Strings\":[\"a\", \"b\"]"));
         }
 
         [TestMethod]
@@ -498,16 +500,15 @@ namespace RuntimeStuff.MSTests
             var tf = new Dictionary<Type, string>() { { typeof(double), ".0000" } };
 
             // Act
-            var result = JsonHelper.Serialize(dict, dateFormat: "yyyy-MM-dd", additionalFormats: tf);
-            
+            var result = JsonHelper.Serialize(dict, dateFormat: "yyyy-MM-dd", customTypeFormats: tf);
 
             // Assert
             Assert.IsTrue(result.Contains("\"object\":{\"Name\":\"Test\",\"Age\":42,\"IsActive\":false,\"BirthDate\":\"0001-01-01\"}"));
-            Assert.IsTrue(result.Contains("\"array\":[1.1200,2.3000,3.6660]"));
+            Assert.IsTrue(result.Contains("\"array\":[1.1200, 2.3000, 3.6660]"));
             Assert.IsTrue(result.Contains("\"nestedDict\":{\"key\":\"value\"}"));
         }
 
-        #endregion
+        #endregion Сложные сценарии
 
         #region Граничные случаи
 
@@ -563,6 +564,6 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("\"9999-12-31\"", result);
         }
 
-        #endregion
+        #endregion Граничные случаи
     }
 }

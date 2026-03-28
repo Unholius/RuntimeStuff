@@ -2,13 +2,12 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     using Microsoft.VisualStudio.TestTools.UnitTesting;
-    using RuntimeStuff.Helpers;
     using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using System.Helpers;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -34,6 +33,7 @@ namespace RuntimeStuff.MSTests
         /// Генератор уникальных идентификаторов событий для изоляции тестов.
         /// </summary>
         private static int _eventIdCounter;
+
         private object _sync;
 
         /// <summary>
@@ -240,7 +240,7 @@ namespace RuntimeStuff.MSTests
             await Assert.ThrowsExceptionAsync<TaskCanceledException>(async () => await waitTask);
         }
 
-        #endregion
+        #endregion WaitAsync Tests
 
         #region CancelWait Tests
 
@@ -268,7 +268,7 @@ namespace RuntimeStuff.MSTests
                 () => SyncHelper<TestEventStatus>.CancelWait(null));
         }
 
-        #endregion
+        #endregion CancelWait Tests
 
         #region TryComplete Tests
 
@@ -330,7 +330,7 @@ namespace RuntimeStuff.MSTests
         //    Assert.IsFalse(secondComplete, "Второе завершение должно вернуть false");
         //}
 
-        #endregion
+        #endregion TryComplete Tests
 
         #region EventParams Tests
 
@@ -468,7 +468,7 @@ namespace RuntimeStuff.MSTests
         //        () => SyncHelper<TestEventStatus>.SetEventParam(GetUniqueEventId(), paramName, "value"));
         //}
 
-        #endregion
+        #endregion EventParams Tests
 
         #region GetActiveWaiters Tests
 
@@ -524,7 +524,7 @@ namespace RuntimeStuff.MSTests
         //    SyncHelper<TestEventStatus>.ClearAll();
         //}
 
-        #endregion
+        #endregion GetActiveWaiters Tests
 
         #region Metrics Tests
 
@@ -619,7 +619,7 @@ namespace RuntimeStuff.MSTests
         //    }
         //}
 
-        #endregion
+        #endregion Metrics Tests
 
         #region Thread Safety Tests
 
@@ -770,7 +770,7 @@ namespace RuntimeStuff.MSTests
         //        "Не все операции были выполнены");
         //}
 
-        #endregion
+        #endregion Thread Safety Tests
 
         #region Edge Cases Tests
 
@@ -831,6 +831,6 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("second", secondValue);
         }
 
-        #endregion
+        #endregion Edge Cases Tests
     }
 }

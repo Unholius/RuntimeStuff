@@ -1,7 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using RuntimeStuff.Extensions;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class EnumExtensionsTests
@@ -28,7 +27,7 @@ namespace RuntimeStuff.MSTests
             // Пустое перечисление для тестов
         }
 
-        #endregion
+        #endregion Test Enums
 
         #region ToStringComparer Tests
 
@@ -55,7 +54,7 @@ namespace RuntimeStuff.MSTests
             invalidComparison.ToStringComparer();
         }
 
-        #endregion
+        #endregion ToStringComparer Tests
 
         #region ToStringComparison Tests
 
@@ -82,7 +81,7 @@ namespace RuntimeStuff.MSTests
             nullComparer.ToStringComparison();
         }
 
-        #endregion
+        #endregion ToStringComparison Tests
 
         #region GetDescription Tests
 
@@ -149,7 +148,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("Описание четвертого", result);
         }
 
-        #endregion
+        #endregion GetDescription Tests
 
         #region GetEnumDisplayName Tests
 
@@ -216,7 +215,7 @@ namespace RuntimeStuff.MSTests
             nullEnum.GetDisplayName();
         }
 
-        #endregion
+        #endregion GetEnumDisplayName Tests
 
         #region Edge Cases
 
@@ -246,7 +245,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("999", result);
         }
 
-        #endregion
+        #endregion Edge Cases
 
         #region RoundTrip Tests
 
@@ -265,6 +264,6 @@ namespace RuntimeStuff.MSTests
             }
         }
 
-        #endregion
+        #endregion RoundTrip Tests
     }
 }

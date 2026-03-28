@@ -1,6 +1,4 @@
-﻿using RuntimeStuff;
-
-namespace TestWinFormsApp
+﻿namespace TestWinFormsApp
 {
     public partial class Form2 : Form
     {

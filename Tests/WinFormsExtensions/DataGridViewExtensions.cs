@@ -1,17 +1,16 @@
 ﻿namespace WinFormsExtensions
 {
-    using RuntimeStuff;
-    using RuntimeStuff.Helpers;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Data;
     using System.Drawing;
+    using System.Helpers;
     using System.Linq;
-        using System.Windows.Forms;
+    using System.Windows.Forms;
     using System.Windows.Forms.Extensions;
-    
+
     public static class DataGridViewExtensions
     {
         private static bool isInited = false;
@@ -36,10 +35,10 @@
         {
             var col = new DataGridViewColumn
             {
-                Name = "col_"+fieldName,
+                Name = "col_" + fieldName,
                 DataPropertyName = fieldName,
                 HeaderText = headerText,
-                CellTemplate = new DataGridViewTextBoxCell { ValueType = valueType,  },
+                CellTemplate = new DataGridViewTextBoxCell { ValueType = valueType, },
                 DefaultCellStyle = new DataGridViewCellStyle { Format = format },
                 ValueType = valueType,
             };
@@ -117,9 +116,9 @@
                         grid.InvalidateCell(e.ColumnIndex, e.RowIndex);
                         e.FormattingApplied = true;
                     }
-                } catch
+                }
+                catch
                 {
-
                 }
             }
         }
@@ -131,15 +130,19 @@
                 case IBindingListView blv when blv.SupportsFiltering:
                     blv.RemoveFilter();
                     break;
+
                 case BindingSource bs:
                     bs.RemoveFilter();
                     break;
+
                 case DataView dv:
                     dv.RowFilter = string.Empty;
                     break;
+
                 case DataTable dt:
                     dt.DefaultView.RowFilter = string.Empty;
                     break;
+
                 default:
                     foreach (DataGridViewRow r in grid.Rows)
                     {
@@ -254,9 +257,6 @@
             {
                 return;
             }
-
-
-
         }
 
         public static DataGridView BeginUpdate(this DataGridView grid, Action update)
@@ -276,7 +276,7 @@
 
             update();
 
-            for (int i=0; i<cols.Length; i++)
+            for (int i = 0; i < cols.Length; i++)
             {
                 grid.Columns[i].AutoSizeMode = cols[i];
             }

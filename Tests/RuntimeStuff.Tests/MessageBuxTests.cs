@@ -2,9 +2,10 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     using System.Diagnostics;
+
     [TestClass]
     public class MessageBusTests
     {
@@ -65,7 +66,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsNotNull(MessageBus.SingleThreaded);
         }
 
-        #endregion
+        #endregion Тесты конструктора
 
         #region Тесты Publish
 
@@ -110,7 +111,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsTrue(true);
         }
 
-        #endregion
+        #endregion Тесты Publish
 
         #region Тесты Subscribe и Unsubscribe
 
@@ -210,7 +211,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(1, receivedCount); // Обработчик все еще должен работать
         }
 
-        #endregion
+        #endregion Тесты Subscribe и Unsubscribe
 
         #region Тесты Subscribe с SynchronizationContext
 
@@ -243,7 +244,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(1, receivedMessages.Count);
         }
 
-        #endregion
+        #endregion Тесты Subscribe с SynchronizationContext
 
         #region Тесты WaitForMessage
 
@@ -411,7 +412,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(2, result.Id);
         }
 
-        #endregion
+        #endregion Тесты WaitForMessage
 
         #region Тесты многопоточности
 
@@ -493,7 +494,7 @@ namespace RuntimeStuff.MSTests
             }
         }
 
-        #endregion
+        #endregion Тесты многопоточности
 
         #region Тесты Dispose
 
@@ -607,7 +608,7 @@ namespace RuntimeStuff.MSTests
                 $"Обработка заняла {stopwatch.ElapsedMilliseconds} мс");
         }
 
-        #endregion
+        #endregion Тесты Dispose
 
         #region Вспомогательные классы
 
@@ -622,6 +623,6 @@ namespace RuntimeStuff.MSTests
             public string Data { get; set; }
         }
 
-        #endregion
+        #endregion Вспомогательные классы
     }
 }

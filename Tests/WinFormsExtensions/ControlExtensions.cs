@@ -1,6 +1,5 @@
 ﻿namespace WinFormsExtensions
 {
-    using RuntimeStuff;
     using System;
     using System.Collections.Generic;
     using System.Windows.Forms;
@@ -30,7 +29,7 @@
 
             if (key == Keys.None)
             {
-                if (!KeyBindings.TryGetValue(control,out _))
+                if (!KeyBindings.TryGetValue(control, out _))
                 {
                     KeyBindings.Remove(control);
                     return;
@@ -284,5 +283,4 @@
             }
         }
     }
-
 }

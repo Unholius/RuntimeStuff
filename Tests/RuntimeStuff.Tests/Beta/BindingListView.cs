@@ -499,7 +499,6 @@
 //                    this.RaiseResetEvents();
 //                } catch (Exception ex)
 //                {
-
 //                }
 //            }
 //        }

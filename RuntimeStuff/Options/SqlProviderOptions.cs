@@ -2,17 +2,16 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Options
+namespace System.Options
 {
     using System;
     using System.Data;
-    using RuntimeStuff.Data;
 
     /// <summary>
     /// Опции провайдера SQL, определяющие особенности синтаксиса,
     /// форматирования значений и построения запросов для конкретной СУБД.
     /// </summary>
-    public sealed class SqlProviderOptions : OptionsBase<SqlProviderOptions>
+    public sealed class SqlProviderOptions
     {
         private DbEntityMap map = new DbEntityMap();
 
@@ -37,26 +36,9 @@ namespace RuntimeStuff.Options
         }
 
         /// <summary>
-        /// Преднастроенные опции для SQLite.
+        /// Экземпляр опций по умолчанию, который может использоваться для СУБД с общими синтаксическими правилами.
         /// </summary>
-        public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
-            x => x.ValueFormatter.StringPrefix = "'",
-            x => x.ValueFormatter.StringSuffix = "'",
-            x => x.ValueFormatter.DatePrefix = "'",
-            x => x.ValueFormatter.DateSuffix = "'",
-            x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
-            x => x.ValueFormatter.TrueValue = "TRUE",
-            x => x.ValueFormatter.FalseValue = "FALSE",
-            x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
-            x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
-            x => x.ParamPrefix = ":",
-            x => x.DatabaseParameterName = "Data Source",
-            x => x.ServerParameterName = null,
-            x => x.UserParameterName = null,
-            x => x.PasswordParameterName = "Password",
-            x => x.IntegratedSecurityParameterName = null,
-            x => x.ApplicationNameParameterName = null,
-            x => x.ConnectTimeoutParameterName = null);
+        public static SqlProviderOptions Default { get; } = new SqlProviderOptions();
 
         /// <summary>
         /// Преднастроенные опции для PostgreSQL.
@@ -66,7 +48,7 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.StringSuffix = "'",
             x => x.ValueFormatter.DatePrefix = "'",
             x => x.ValueFormatter.DateSuffix = "'",
-            x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
+            x => x.ValueFormatter.EscapeMode = StringHelper.EscapeMode.Sql,
             x => x.ValueFormatter.TrueValue = "TRUE",
             x => x.ValueFormatter.FalseValue = "FALSE",
             x => x.GetInsertedIdQuery = "SELECT LASTVAL()",
@@ -82,6 +64,28 @@ namespace RuntimeStuff.Options
             x => x.ConnectTimeoutParameterName = "Timeout");
 
         /// <summary>
+        /// Преднастроенные опции для SQLite.
+        /// </summary>
+        public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
+            x => x.ValueFormatter.StringPrefix = "'",
+            x => x.ValueFormatter.StringSuffix = "'",
+            x => x.ValueFormatter.DatePrefix = "'",
+            x => x.ValueFormatter.DateSuffix = "'",
+            x => x.ValueFormatter.EscapeMode = StringHelper.EscapeMode.Sql,
+            x => x.ValueFormatter.TrueValue = "TRUE",
+            x => x.ValueFormatter.FalseValue = "FALSE",
+            x => x.GetInsertedIdQuery = "SELECT last_insert_rowid()",
+            x => x.OverrideOffsetRowsTemplate = "LIMIT {1} OFFSET {0}",
+            x => x.ParamPrefix = ":",
+            x => x.DatabaseParameterName = "Data Source",
+            x => x.ServerParameterName = null,
+            x => x.UserParameterName = null,
+            x => x.PasswordParameterName = "Password",
+            x => x.IntegratedSecurityParameterName = null,
+            x => x.ApplicationNameParameterName = null,
+            x => x.ConnectTimeoutParameterName = null);
+
+        /// <summary>
         /// Преднастроенные опции для Microsoft SQL Server.
         /// </summary>
         public static SqlProviderOptions SqlServerOptions { get; } = new SqlProviderOptions(
@@ -89,7 +93,7 @@ namespace RuntimeStuff.Options
             x => x.ValueFormatter.StringSuffix = "'",
             x => x.ValueFormatter.DatePrefix = "'",
             x => x.ValueFormatter.DateSuffix = "'",
-            x => x.ValueFormatter.EscapeMode = Helpers.StringHelper.EscapeMode.Sql,
+            x => x.ValueFormatter.EscapeMode = StringHelper.EscapeMode.Sql,
             x => x.ValueFormatter.TrueValue = "1",
             x => x.ValueFormatter.FalseValue = "0",
             x => x.GetInsertedIdQuery = "SELECT SCOPE_IDENTITY()",
@@ -99,14 +103,34 @@ namespace RuntimeStuff.Options
             x => x.ParamPrefix = "@");
 
         /// <summary>
-        /// Форматтер значений, используемый при генерации SQL-запросов.
+        /// Имя параметра строки подключения для имени приложения.
         /// </summary>
-        public ValueFormatter ValueFormatter { get; } = new ValueFormatter();
+        public string ApplicationNameParameterName { get; set; } = "Application Name";
+
+        /// <summary>
+        /// Имя параметра строки подключения для таймаута подключения.
+        /// </summary>
+        public string ConnectTimeoutParameterName { get; set; } = "Connect Timeout";
+
+        /// <summary>
+        /// Имя параметра строки подключения для базы данных.
+        /// </summary>
+        public string DatabaseParameterName { get; set; } = "Database";
+
+        /// <summary>
+        /// Ключевое слово для вызова хранимой процедуры.
+        /// </summary>
+        public string ExecuteProcedure { get; set; } = "EXEC";
 
         /// <summary>
         /// SQL-запрос для получения идентификатора последней вставленной записи.
         /// </summary>
         public string GetInsertedIdQuery { get; set; }
+
+        /// <summary>
+        /// Имя параметра строки подключения для интегрированной безопасности.
+        /// </summary>
+        public string IntegratedSecurityParameterName { get; set; } = "Integrated Security";
 
         /// <summary>
         /// Отображение сущностей на таблицы базы данных.
@@ -152,19 +176,9 @@ namespace RuntimeStuff.Options
         public string ParamPrefix { get; set; } = ":";
 
         /// <summary>
-        /// Символ завершения SQL-оператора.
+        /// Имя параметра строки подключения для пароля.
         /// </summary>
-        public string StatementTerminator { get; set; } = ";";
-
-        /// <summary>
-        /// Ключевое слово для вызова хранимой процедуры.
-        /// </summary>
-        public string ExecuteProcedure { get; set; } = "EXEC";
-
-        /// <summary>
-        /// Имя параметра строки подключения для базы данных.
-        /// </summary>
-        public string DatabaseParameterName { get; set; } = "Database";
+        public string PasswordParameterName { get; set; } = "Password";
 
         /// <summary>
         /// Имя параметра строки подключения для сервера.
@@ -172,24 +186,9 @@ namespace RuntimeStuff.Options
         public string ServerParameterName { get; set; } = "Server";
 
         /// <summary>
-        /// Имя параметра строки подключения для пользователя.
+        /// Символ завершения SQL-оператора.
         /// </summary>
-        public string UserParameterName { get; set; } = "User";
-
-        /// <summary>
-        /// Имя параметра строки подключения для пароля.
-        /// </summary>
-        public string PasswordParameterName { get; set; } = "Password";
-
-        /// <summary>
-        /// Имя параметра строки подключения для интегрированной безопасности.
-        /// </summary>
-        public string IntegratedSecurityParameterName { get; set; } = "Integrated Security";
-
-        /// <summary>
-        /// Имя параметра строки подключения для имени приложения.
-        /// </summary>
-        public string ApplicationNameParameterName { get; set; } = "Application Name";
+        public string StatementTerminator { get; set; } = ";";
 
         /// <summary>
         /// Имя параметра строки подключения для доверия сертификату сервера.
@@ -197,9 +196,14 @@ namespace RuntimeStuff.Options
         public string TrustServerCertificateParameterName { get; set; } = "TrustServerCertificate";
 
         /// <summary>
-        /// Имя параметра строки подключения для таймаута подключения.
+        /// Имя параметра строки подключения для пользователя.
         /// </summary>
-        public string ConnectTimeoutParameterName { get; set; } = "Connect Timeout";
+        public string UserParameterName { get; set; } = "User";
+
+        /// <summary>
+        /// Форматтер значений, используемый при генерации SQL-запросов.
+        /// </summary>
+        public ValueFormatter ValueFormatter { get; } = new ValueFormatter();
 
         /// <summary>
         /// Получает экземпляр опций на основе типа подключения.

@@ -1,8 +1,8 @@
-﻿using RuntimeStuff.Builders;
-using RuntimeStuff.Helpers;
-using RuntimeStuff.MSTests.Models;
+﻿using System.Helpers;
+using System.Linq.Expressions;
+using System.MSTests.Models;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class FilterHelperTests

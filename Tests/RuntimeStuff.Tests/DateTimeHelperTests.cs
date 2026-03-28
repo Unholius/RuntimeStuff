@@ -1,6 +1,6 @@
-﻿using RuntimeStuff.Helpers;
+﻿using System.Helpers;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class DateTimeHelperTests

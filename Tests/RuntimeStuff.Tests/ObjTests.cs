@@ -1,18 +1,15 @@
-﻿using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
-using RuntimeStuff.MSTests.Models;
+﻿using System.MSTests.Models;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     using Microsoft.VisualStudio.TestTools.UnitTesting;
-    using RuntimeStuff;
-    using RuntimeStuff.Extensions;
     using System;
     using System.Collections;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Data;
     using System.Data.SqlClient;
+    using System.Helpers;
     using System.Linq;
     using System.Reflection;
 
@@ -1145,7 +1142,6 @@ Bob,40,Chicago
         {
             var csv = @"
 
-
 ""John"",30,""New,York"";
 
 Jane,25,Los Angeles;
@@ -1170,7 +1166,6 @@ Bob,40,Chicago;
         {
             var csv = @"
 
-
 ""John"",30,""New York"";
 
 Jane,25,Los Angeles;
@@ -1190,7 +1185,8 @@ Bob,40,Chicago;
 
         public class ImportFileData : INotifyPropertyChanged
         {
-            string? key;
+            private string? key;
+
             public string Key
             {
                 get => key;
@@ -1206,7 +1202,8 @@ Bob,40,Chicago;
                 }
             }
 
-            object? valueField;
+            private object? valueField;
+
             public object Value
             {
                 get => valueField;
@@ -1221,7 +1218,9 @@ Bob,40,Chicago;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Value)));
                 }
             }
-            string? error;
+
+            private string? error;
+
             public string Error
             {
                 get => error;
@@ -1248,6 +1247,7 @@ Bob,40,Chicago;
         }
 
         #region Test Models
+
         public class TestModel
         {
             public string? Name { get; set; }
@@ -1261,9 +1261,11 @@ Bob,40,Chicago;
             public string? Property1 { get; set; }
             public string? Property2 { get; set; }
         }
-        #endregion
+
+        #endregion Test Models
 
         #region Empty/Null Input Tests
+
         [TestMethod]
         public void FromCsv_EmptyString_ReturnsEmptyArray()
         {
@@ -1302,9 +1304,11 @@ Bob,40,Chicago;
             Assert.IsNotNull(result);
             Assert.AreEqual(0, result.Length);
         }
-        #endregion
+
+        #endregion Empty/Null Input Tests
 
         #region Basic Parsing Tests
+
         [TestMethod]
         public void FromCsv_WithHeader_ValidData_ReturnsObjects()
         {
@@ -1357,9 +1361,11 @@ Bob,40,Chicago;
             Assert.AreEqual("Value3", result[1].Property1);
             Assert.AreEqual("Value4", result[1].Property2);
         }
-        #endregion
+
+        #endregion Basic Parsing Tests
 
         #region Separator Tests
+
         [TestMethod]
         public void FromCsv_CustomColumnSeparator_WorksCorrectly()
         {
@@ -1430,9 +1436,11 @@ Bob,40,Chicago;
             Assert.AreEqual("John", result[0].Name);
             Assert.AreEqual("Jane", result[1].Name);
         }
-        #endregion
+
+        #endregion Separator Tests
 
         #region ValueParser Tests
+
         [TestMethod]
         public void FromCsv_CustomValueParser_WorksCorrectly()
         {
@@ -1473,9 +1481,11 @@ Bob,40,Chicago;
             Assert.AreEqual("Jane", result[1].Name);
             Assert.AreEqual(25, result[1].Age);
         }
-        #endregion
+
+        #endregion ValueParser Tests
 
         #region Edge Cases Tests
+
         [TestMethod]
         public void FromCsv_MoreColumnsThanProperties_IgnoresExtraColumns()
         {
@@ -1548,9 +1558,11 @@ Bob,40,Chicago;
             // Assert
             Assert.AreEqual(0, result.Length);
         }
-        #endregion
+
+        #endregion Edge Cases Tests
 
         #region Property Matching Tests
+
         [TestMethod]
         public void FromCsv_HeaderWithDifferentCase_MatchesProperties()
         {
@@ -1596,7 +1608,8 @@ Bob,40,Chicago;
             Assert.AreEqual(30, result[0].Age);
             Assert.AreEqual(50000.0, result[0].Salary);
         }
-        #endregion
+
+        #endregion Property Matching Tests
     }
 
     // Helper class for string extension (assuming it exists in your codebase)

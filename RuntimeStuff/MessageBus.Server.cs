@@ -2,18 +2,16 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff
+namespace System
 {
-    using System;
     using System.Collections.Concurrent;
     using System.Diagnostics;
+    using System.Helpers;
     using System.Linq;
     using System.Net;
     using System.Net.Http;
     using System.Threading;
     using System.Threading.Tasks;
-    using RuntimeStuff.Extensions;
-    using RuntimeStuff.Helpers;
 
     /// <summary>
     /// Сервер для MessageBus.

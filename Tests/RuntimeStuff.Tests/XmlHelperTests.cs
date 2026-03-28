@@ -2,11 +2,12 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
+using System.Helpers;
 using System.Xml.Serialization;
-using RuntimeStuff.Helpers;
+
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class XmlHelperTests
@@ -35,10 +36,11 @@ namespace RuntimeStuff.MSTests
         {
             [XmlAttribute("id")]
             public int Id { get; set; }
+
             public string? Description { get; set; }
         }
 
-        #endregion
+        #endregion Test Models for Serialization
 
         #region Serialize Tests
 
@@ -96,7 +98,7 @@ namespace RuntimeStuff.MSTests
             XmlHelper.Serialize(null, false, false);
         }
 
-        #endregion
+        #endregion Serialize Tests
 
         #region GetAttributes Tests
 
@@ -168,7 +170,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(0, result.Length);
         }
 
-        #endregion
+        #endregion GetAttributes Tests
 
         #region GetAttributes with Content Filter Tests
 
@@ -238,7 +240,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(0, result.Length);
         }
 
-        #endregion
+        #endregion GetAttributes with Content Filter Tests
 
         #region GetContents Tests
 
@@ -296,7 +298,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(0, result.Length);
         }
 
-        #endregion
+        #endregion GetContents Tests
 
         #region GetValues Tests
 
@@ -377,7 +379,7 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(0, result.Length);
         }
 
-        #endregion
+        #endregion GetValues Tests
 
         #region Edge Cases and Integration Tests
 
@@ -457,7 +459,7 @@ namespace RuntimeStuff.MSTests
             Assert.IsTrue(result[0].Contains("Content with &lt;tags&gt;"));
         }
 
-        #endregion
+        #endregion Edge Cases and Integration Tests
 
         #region Performance and Stress Tests
 
@@ -484,6 +486,6 @@ namespace RuntimeStuff.MSTests
             }
         }
 
-        #endregion
+        #endregion Performance and Stress Tests
     }
 }

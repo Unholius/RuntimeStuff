@@ -2,10 +2,9 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Collections
+namespace System.Collections
 {
     using System;
-    using System.Collections;
     using System.Collections.Generic;
     using System.Threading;
 

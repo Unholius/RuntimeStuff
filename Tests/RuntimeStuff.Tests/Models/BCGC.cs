@@ -1,4 +1,4 @@
-﻿namespace RuntimeStuff.MSTests.Models
+﻿namespace System.MSTests.Models
 {
     public class BadCodeGoodCodeUpdateData
     {

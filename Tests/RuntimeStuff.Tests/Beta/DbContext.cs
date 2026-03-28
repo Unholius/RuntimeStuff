@@ -2,10 +2,9 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Data
+namespace System.Data
 {
     using System;
-    using System.Data;
 
     /// <summary>
     /// Предоставляет механизм разрешения (<c>resolve</c>) подключений к базе данных

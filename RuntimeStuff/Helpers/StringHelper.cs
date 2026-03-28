@@ -12,7 +12,7 @@
 // <summary></summary>
 // ***********************************************************************
 
-namespace RuntimeStuff.Helpers
+namespace System
 {
     using System;
     using System.Collections.Generic;
@@ -20,6 +20,7 @@ namespace RuntimeStuff.Helpers
     using System.IO;
     using System.IO.Compression;
     using System.Linq;
+    using System.Reflection;
     using System.Text;
     using System.Text.RegularExpressions;
 
@@ -457,9 +458,9 @@ namespace RuntimeStuff.Helpers
         /// <param name="startIndex">Начальная позиция (включительно).</param>
         /// <param name="endIndex">Конечная позиция (включительно).</param>
         /// <returns>System.String.</returns>
-        /// <exception cref="System.ArgumentNullException">s.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
+        /// <exception cref="ArgumentNullException">s.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">startIndex.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">endIndex.</exception>
         public static string Crop(string s, int startIndex, int endIndex)
         {
             if (s == null)
@@ -488,9 +489,9 @@ namespace RuntimeStuff.Helpers
         /// <param name="startIndex">Начальная позиция (включительно).</param>
         /// <param name="endIndex">Конечная позиция (включительно).</param>
         /// <returns>System.String.</returns>
-        /// <exception cref="System.ArgumentNullException">s.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
+        /// <exception cref="ArgumentNullException">s.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">startIndex.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">endIndex.</exception>
         public static string Cut(string s, int startIndex, int endIndex)
         {
             if (s == null)
@@ -853,8 +854,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="notMatchedTokenSetTag">The not matched token set tag.</param>
         /// <param name="notMatchedContentTransformer">Обработчик содержимого токена.</param>
         /// <returns>List&lt;Token&gt;.</returns>
-        /// <exception cref="System.InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a child of another token.</exception>
-        /// <exception cref="System.InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a next of {prevToken} token.</exception>
+        /// <exception cref="InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a child of another token.</exception>
+        /// <exception cref="InvalidOperationException">Token with Prefix='{tm.Prefix}' and Suffix='{tm.Suffix}' is not allowed to be a next of {prevToken} token.</exception>
         public static List<Token> GetTokens(
             string input,
             IEnumerable<TokenMask> tokenMasks,
@@ -1292,7 +1293,7 @@ namespace RuntimeStuff.Helpers
         /// <item><description>наличие закрывающего символа '&gt;'.</description></item>
         /// </list>
         /// Для полной проверки корректности XML рекомендуется использовать
-        /// <see cref="System.Xml.XmlReader"/> или <see cref="System.Xml.Linq.XDocument"/>.
+        /// <see cref="Xml.XmlReader"/> или <see cref="Xml.Linq.XDocument"/>.
         /// </remarks>
         public static bool IsXml(string s)
         {
@@ -1379,8 +1380,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="str">Исходная строка.</param>
         /// <param name="count">Количество повторений.</param>
         /// <returns>Новая строка, состоящая из повторений исходной строки.</returns>
-        /// <exception cref="System.ArgumentNullException">str.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">count - Количество повторений не может быть отрицательным.</exception>
+        /// <exception cref="ArgumentNullException">str.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">count - Количество повторений не может быть отрицательным.</exception>
         public static string RepeatString(string str, int count)
         {
             if (str == null)
@@ -1399,7 +1400,7 @@ namespace RuntimeStuff.Helpers
             }
 
             // Можно оптимизировать через StringBuilder
-            var sb = new System.Text.StringBuilder(str.Length * count);
+            var sb = new StringBuilder(str.Length * count);
             for (var i = 0; i < count; i++)
             {
                 sb.Append(str);
@@ -1475,9 +1476,9 @@ namespace RuntimeStuff.Helpers
         /// <param name="endIndex">Конечная позиция (включительно).</param>
         /// <param name="replaceString">Строка для замены.</param>
         /// <returns>Новая строка с заменой.</returns>
-        /// <exception cref="System.ArgumentNullException">s.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">startIndex.</exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">endIndex.</exception>
+        /// <exception cref="ArgumentNullException">s.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">startIndex.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">endIndex.</exception>
         public static string Replace(string s, int startIndex, int endIndex, string replaceString)
         {
             if (s == null)

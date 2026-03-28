@@ -7,7 +7,6 @@
 
 //namespace RuntimeStuff.MSTests
 //{
-
 //    [TestClass]
 //    public partial class DbHelperIntegrationTests
 //    {
@@ -284,8 +283,8 @@
 //                },
 //            };
 
-//            var dt = list.ToDataTable("dbo.Tuple2", 
-//                (x => x.GoodCode, "Item1"), 
+//            var dt = list.ToDataTable("dbo.Tuple2",
+//                (x => x.GoodCode, "Item1"),
 //                (x => x.BadCode, "Item2")
 //                );
 

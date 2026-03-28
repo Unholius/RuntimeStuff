@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class MemberCacheExplicitOperatorTests
@@ -15,7 +15,9 @@ namespace RuntimeStuff.MSTests
             private string? PrivateField;
 
 #pragma warning disable CS0067 // Event is never used
+
             public event EventHandler? TestEvent;
+
 #pragma warning restore CS0067 // Event is never used
 
             public void PublicMethod()

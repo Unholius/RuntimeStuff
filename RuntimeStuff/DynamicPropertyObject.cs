@@ -11,13 +11,11 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff
+namespace System
 {
-    using System;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Linq;
-    using RuntimeStuff.Extensions;
 
     /// <summary>
     /// Динамический объект с возможностью добавлять свойства во время выполнения.

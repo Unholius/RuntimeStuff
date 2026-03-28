@@ -1,8 +1,8 @@
+using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using RuntimeStuff.Collections;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class ObservableCollectionExUnsubscribeTests

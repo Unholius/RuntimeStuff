@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnnotations.Schema;namespace RuntimeStuff.MSTests.DTO{    [Table("test", Schema = "dbo")]
+using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnnotations.Schema;namespace System.MSTests.DTO{    [Table("test", Schema = "dbo")]
     public class Test    {        [Key]        [Column("id")]
         public long Id { get; set; }        [Column("bool")]
         public bool? Bool { get; set; }        [Column("date")]

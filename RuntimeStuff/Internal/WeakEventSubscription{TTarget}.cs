@@ -2,11 +2,11 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Internal
+namespace System.Internal
 {
     using System;
+    using System.Helpers;
     using System.Reflection;
-    using RuntimeStuff.Helpers;
 
     /// <summary>
     /// Реализует слабую подписку на событие, предотвращающую удержание объекта-цели

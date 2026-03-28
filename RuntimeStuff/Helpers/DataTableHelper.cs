@@ -11,13 +11,14 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff.Helpers
+namespace System.Helpers
 {
     using System;
     using System.Collections.Generic;
     using System.Data;
     using System.Linq;
     using System.Linq.Expressions;
+    using System.Reflection;
 
     /// <summary>
     /// Предоставляет вспомогательные методы для работы с
@@ -40,10 +41,10 @@ namespace RuntimeStuff.Helpers
         /// <param name="columnType">Тип данных колонки.</param>
         /// <param name="isPrimaryKey">Указывает, должна ли колонка быть частью первичного ключа.</param>
         /// <returns>Созданный экземпляр <see cref="DataColumn" />.</returns>
-        /// <exception cref="System.ArgumentNullException">table.</exception>
-        /// <exception cref="System.ArgumentNullException">columnType.</exception>
-        /// <exception cref="System.ArgumentException">Column name is required - columnName.</exception>
-        /// <exception cref="System.ArgumentException">Column '{columnName}' already exists.</exception>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentNullException">columnType.</exception>
+        /// <exception cref="ArgumentException">Column name is required - columnName.</exception>
+        /// <exception cref="ArgumentException">Column '{columnName}' already exists.</exception>
         /// <remarks>Если колонка помечена как первичный ключ,
         /// она автоматически добавляется в массив
         /// <see cref="DataTable.PrimaryKey" />.</remarks>
@@ -100,9 +101,9 @@ namespace RuntimeStuff.Helpers
         /// <param name="table">Таблица, в которую добавляется строка.</param>
         /// <param name="rowData">Массив значений строки, соответствующий порядку колонок таблицы.</param>
         /// <returns>Добавленная строка <see cref="DataRow" />.</returns>
-        /// <exception cref="System.ArgumentNullException">table.</exception>
-        /// <exception cref="System.ArgumentNullException">rowData.</exception>
-        /// <exception cref="System.ArgumentException">Row data length does not match table columns count.</exception>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentNullException">rowData.</exception>
+        /// <exception cref="ArgumentException">Row data length does not match table columns count.</exception>
         /// <remarks>Значения <see langword="null" /> автоматически преобразуются
         /// в <see cref="DBNull.Value" />.</remarks>
         public static DataTable AddRow<T>(DataTable table, T rowData)
@@ -117,9 +118,9 @@ namespace RuntimeStuff.Helpers
         /// <param name="table">Таблица, в которую добавляется строка.</param>
         /// <param name="rowData">Массив значений строки, соответствующий порядку колонок таблицы.</param>
         /// <returns>Добавленная строка <see cref="DataRow" />.</returns>
-        /// <exception cref="System.ArgumentNullException">table.</exception>
-        /// <exception cref="System.ArgumentNullException">rowData.</exception>
-        /// <exception cref="System.ArgumentException">Row data length does not match table columns count.</exception>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentNullException">rowData.</exception>
+        /// <exception cref="ArgumentException">Row data length does not match table columns count.</exception>
         /// <remarks>Значения <see langword="null" /> автоматически преобразуются
         /// в <see cref="DBNull.Value" />.</remarks>
         public static DataRow AddRow(DataTable table, object[] rowData)
@@ -162,8 +163,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="propertyToColumnMapper">Маппер имени свойства на имя колонки в таблице.</param>
         /// <param name="valueConverter">Конвертер значения свойства в тип колонки.</param>
         /// <returns>Добавленная строка <see cref="DataRow" />.</returns>
-        /// <exception cref="System.ArgumentNullException">table.</exception>
-        /// <exception cref="System.ArgumentNullException">items.</exception>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentNullException">items.</exception>
         /// <remarks>Значения берутся из свойств объекта по имени,
         /// совпадающему с именем колонки таблицы.</remarks>
         public static DataTable AddRows<T>(DataTable table, IEnumerable<T> items, bool addMissingColumns = true, Dictionary<string, string> propertyToColumnMapper = null, Func<object, Type, object> valueConverter = null)
@@ -284,7 +285,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="propertySelectors">Выбор свойств, которые добавить в таблицу, если не указаны, то все публичные свойства.</param>
         /// <returns>Экземпляр <see cref="DataTable" />, содержащий данные из коллекции. Если коллекция пуста, возвращается таблица
         /// только с определёнными столбцами.</returns>
-        /// <exception cref="System.ArgumentNullException">list.</exception>
+        /// <exception cref="ArgumentNullException">list.</exception>
         /// <remarks>Каждое публичное свойство типа <typeparamref name="T" /> становится отдельным столбцом
         /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
         /// соответствует имени типа <typeparamref name="T" />.</remarks>
@@ -334,9 +335,9 @@ namespace RuntimeStuff.Helpers
         /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
         /// <param name="valueConverter">Конвертер значения ячейки из DataColumn в тип {T}. Если не указан, то используется Convert.ChangeType.</param>
         /// <returns>Список значений указанной колонки.</returns>
-        /// <exception cref="System.ArgumentNullException">table.</exception>
-        /// <exception cref="System.ArgumentException">columnName.</exception>
-        /// <exception cref="System.ArgumentException">Column '{columnName}' not found.</exception>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentException">columnName.</exception>
+        /// <exception cref="ArgumentException">Column '{columnName}' not found.</exception>
         /// <remarks>Строки со значением <see cref="DBNull.Value" />
         /// пропускаются.</remarks>
         public static List<T> ToList<T>(DataTable table, string columnName, Func<object, T> valueConverter = null)
@@ -382,7 +383,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="columnToPropertyMapper">Сопоставление имен колонок с именами свойств в объекте.</param>
         /// <param name="valueToPropertyTypeConverter">Конвертер значения в тип свойства. Если не указан используется Convert.ChangeType.</param>
         /// <returns>Список объектов, заполненных значениями из таблицы.</returns>
-        /// <exception cref="System.ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentNullException">table.</exception>
         /// <remarks>Свойства объекта сопоставляются с колонками таблицы
         /// по имени. Значения <see cref="DBNull.Value" /> игнорируются.</remarks>
         public static List<T> ToList<T>(DataTable table, Dictionary<string, string> columnToPropertyMapper = null, Func<object, Type, object> valueToPropertyTypeConverter = null)

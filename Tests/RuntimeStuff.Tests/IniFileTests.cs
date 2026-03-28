@@ -1,6 +1,7 @@
-﻿using System.Text;
+﻿using System.IO;
+using System.Text;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class IniFileTests
@@ -46,12 +47,10 @@ KeyB=ValueB
             ini.Save();
         }
 
-
         [TestMethod]
         public void Load_WithValidFile_ReturnsIniFileInstance()
         {
             // Arrange
-            
 
             // Act
             var ini = new IniFile(TestContent);
@@ -195,7 +194,7 @@ KeyB=ValueB
         public void GetValue_ReturnsCorrectValue()
         {
             // Arrange
-            
+
             var ini = new IniFile(TestContent);
 
             // Act
@@ -209,7 +208,7 @@ KeyB=ValueB
         public void GetValue_WithNonExistentKey_ReturnsDefault()
         {
             // Arrange
-            
+
             var ini = new IniFile(TestContent);
 
             // Act
@@ -223,7 +222,7 @@ KeyB=ValueB
         public void SetValue_UpdatesContent()
         {
             // Arrange
-            
+
             var ini = new IniFile(TestContent);
 
             // Act
@@ -254,7 +253,7 @@ KeyB=ValueB
         public void SaveAs_SavesToNewFile()
         {
             // Arrange
-            
+
             var ini = new IniFile(TestContent);
             var newFileName = "test2.ini";
 
@@ -560,7 +559,7 @@ Key2  =  Value2
             // Arrange
             var content = @"
 [Section1]
-Key1= Value with spaces 
+Key1= Value with spaces
 Key2=Another   value
 ";
             var ini = new IniFile(content);
@@ -577,7 +576,7 @@ Key2=Another   value
             var content = @"
 [Section1]
 Key1=
-Key2=  
+Key2=
 Key3=
 ";
             var ini = new IniFile(content);

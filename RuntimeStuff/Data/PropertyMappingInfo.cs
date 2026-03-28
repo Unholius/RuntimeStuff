@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Data
+namespace System.Data
 {
     using System;
     using System.Reflection;

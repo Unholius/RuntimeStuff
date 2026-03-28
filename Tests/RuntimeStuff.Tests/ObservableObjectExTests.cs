@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel;
-using RuntimeStuff.Extensions;
+using System.Reflection;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class ObservableObjectExTests
@@ -374,6 +374,7 @@ namespace RuntimeStuff.MSTests
     public class TestChildObject : INotifyPropertyChanged, INotifyPropertyChanging
     {
         public event PropertyChangedEventHandler PropertyChanged;
+
         public event PropertyChangingEventHandler PropertyChanging;
 
         public void TriggerPropertyChanged(string propertyName)

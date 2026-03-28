@@ -1,7 +1,4 @@
-using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
-
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class StringHelperTests

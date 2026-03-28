@@ -1,21 +1,20 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using RuntimeStuff.Builders;
-using RuntimeStuff.Options;
+﻿//using Microsoft.Extensions.DependencyInjection;
+//using Microsoft.Extensions.Options;
+//using System.Linq.Expressions;
 
-namespace RuntimeStuff.DI
-{
-    public static class FilterBuilderExtensions
-    {
-        public static IServiceCollection AddFilterBuilder(this IServiceCollection services)
-        {
-            services.AddTransient(sp =>
-            {
-                var options = sp.GetRequiredService<IOptions<FilterBuilderOptions>>().Value;
-                return new StringFilterBuilder(options);
-            });
+//namespace System.DI
+//{
+//    public static class FilterBuilderExtensions
+//    {
+//        public static IServiceCollection AddFilterBuilder(this IServiceCollection services)
+//        {
+//            services.AddTransient(sp =>
+//            {
+//                var options = sp.GetRequiredService<IOptions<FilterBuilderOptions>>().Value;
+//                return new StringFilterBuilder(options);
+//            });
 
-            return services;
-        }
-    }
-}
+//            return services;
+//        }
+//    }
+//}

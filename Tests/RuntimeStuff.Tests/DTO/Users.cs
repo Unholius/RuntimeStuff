@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnnotations.Schema;namespace RuntimeStuff.MSTests.DTO{    [Table("Users", Schema = "dbo")]
+using System.ComponentModel.DataAnnotations;using System.ComponentModel.DataAnnotations.Schema;namespace System.MSTests.DTO{    [Table("Users", Schema = "dbo")]
     public class Users    {        [Key]        [Column("UserID")]
         public int UserID { get; set; }        [Column("Email")]
         public string? Email { get; set; }        [Column("Username")]

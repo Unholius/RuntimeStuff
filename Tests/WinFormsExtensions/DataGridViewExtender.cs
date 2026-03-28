@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
@@ -25,7 +24,7 @@ namespace System.Windows.Forms.Extensions
             KeepSelectionOnRowChange = true;
         }
 
-        void SaveSelection()
+        private void SaveSelection()
         {
             if (!KeepSelectionOnRowChange)
                 return;
@@ -44,7 +43,7 @@ namespace System.Windows.Forms.Extensions
             RestoreSelection();
         }
 
-        void RestoreSelection()
+        private void RestoreSelection()
         {
             if (!KeepSelectionOnRowChange)
                 return;

@@ -1,7 +1,4 @@
-﻿using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
-
-namespace RuntimeStuff.MSTests
+﻿namespace System.MSTests
 {
     [TestClass]
     public class StringTokensTests
@@ -73,7 +70,7 @@ namespace RuntimeStuff.MSTests
 
             foreach (var token in tokens)
             {
-                if(token.Previous?.Tag?.ToString() == "string" && token.Tag.ToString().In("value", "string"))
+                if (token.Previous?.Tag?.ToString() == "string" && token.Tag.ToString().In("value", "string"))
                 {
                     token.Previous.Tag = "property_name";
                     token.Tag = "property_value";

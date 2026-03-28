@@ -5,7 +5,7 @@
 #pragma warning disable SA1649 // File name should match first type name
 #pragma warning disable SA1600 // Elements should be documented
 #pragma warning disable SA1402 // File may only contain a single type
-namespace RuntimeStuff.Internal
+namespace System.Internal
 {
     using System;
     using System.Collections.Specialized;

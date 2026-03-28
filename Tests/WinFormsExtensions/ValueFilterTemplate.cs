@@ -1,9 +1,8 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Helpers;
+using System.Linq.Expressions;
 using System.Windows.Forms;
-using RuntimeStuff.Builders;
-using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
 
 namespace WinFormsExtensions
 {
@@ -39,60 +38,60 @@ namespace WinFormsExtensions
                         var range = DateTimeHelper.MonthRange(i);
                         AddPreset($"{i:00} " + $"{range.From:MMMM}".Capitalize(), () => GetFilterTextBetween(range));
                     }
-                    
+
                     break;
-                //case "System.Int32":
-                //case "System.Double":
-                //case "System.Decimal":
-                //{
-                //    // 0
-                //    AddPreset("Равно 0", () => GetFilterTextEquals(0));
+                    //case "System.Int32":
+                    //case "System.Double":
+                    //case "System.Decimal":
+                    //{
+                    //    // 0
+                    //    AddPreset("Равно 0", () => GetFilterTextEquals(0));
 
-                //    // Положительные
-                //    AddPreset("Больше 0", () => GetFilterTextGreater(0));
-                //    AddPreset("Меньше 0", () => GetFilterTextLess(0));
+                    //    // Положительные
+                    //    AddPreset("Больше 0", () => GetFilterTextGreater(0));
+                    //    AddPreset("Меньше 0", () => GetFilterTextLess(0));
 
-                //    // Малые диапазоны
-                //    AddPreset("1–10", () => GetFilterTextBetween(1, 10));
-                //    AddPreset("11–100", () => GetFilterTextBetween(11, 100));
-                //    AddPreset("101–1000", () => GetFilterTextBetween(101, 1000));
+                    //    // Малые диапазоны
+                    //    AddPreset("1–10", () => GetFilterTextBetween(1, 10));
+                    //    AddPreset("11–100", () => GetFilterTextBetween(11, 100));
+                    //    AddPreset("101–1000", () => GetFilterTextBetween(101, 1000));
 
-                //    // Чётные / Нечётные
-                //    AddPreset("Чётные", () => GetFilterTextModulo(2, 0));    // value % 2 == 0
-                //    AddPreset("Нечётные", () => GetFilterTextModulo(2, 1));  // value % 2 == 1
+                    //    // Чётные / Нечётные
+                    //    AddPreset("Чётные", () => GetFilterTextModulo(2, 0));    // value % 2 == 0
+                    //    AddPreset("Нечётные", () => GetFilterTextModulo(2, 1));  // value % 2 == 1
 
-                //    // Положительные / Отрицательные
-                //    AddPreset("Положительные", () => GetFilterTextGreater(0));
-                //    AddPreset("Отрицательные", () => GetFilterTextLess(0));
+                    //    // Положительные / Отрицательные
+                    //    AddPreset("Положительные", () => GetFilterTextGreater(0));
+                    //    AddPreset("Отрицательные", () => GetFilterTextLess(0));
 
-                //    // Можно добавить «Top N» или «Bottom N»
-                //    AddPreset("Top 10", () => GetFilterTextTop(10));
-                //    AddPreset("Bottom 10", () => GetFilterTextBottom(10));
+                    //    // Можно добавить «Top N» или «Bottom N»
+                    //    AddPreset("Top 10", () => GetFilterTextTop(10));
+                    //    AddPreset("Bottom 10", () => GetFilterTextBottom(10));
 
-                //    break;
-                //}
+                    //    break;
+                    //}
 
-                //case "System.String":
-                //{
-                //    // Пустые / не пустые
-                //    AddPreset("Пустые", () => GetFilterTextEquals(""));
-                //    AddPreset("Не пустые", () => GetFilterTextNotEquals(""));
+                    //case "System.String":
+                    //{
+                    //    // Пустые / не пустые
+                    //    AddPreset("Пустые", () => GetFilterTextEquals(""));
+                    //    AddPreset("Не пустые", () => GetFilterTextNotEquals(""));
 
-                //    // Содержит текст
-                //    AddPreset("Содержит 'test'", () => GetFilterTextContains("test")); // пример, можно менять
+                    //    // Содержит текст
+                    //    AddPreset("Содержит 'test'", () => GetFilterTextContains("test")); // пример, можно менять
 
-                //    // Начинается с
-                //    AddPreset("Начинается с 'A'", () => GetFilterTextStartsWith("A"));
+                    //    // Начинается с
+                    //    AddPreset("Начинается с 'A'", () => GetFilterTextStartsWith("A"));
 
-                //    // Заканчивается на
-                //    AddPreset("Заканчивается на 'Z'", () => GetFilterTextEndsWith("Z"));
+                    //    // Заканчивается на
+                    //    AddPreset("Заканчивается на 'Z'", () => GetFilterTextEndsWith("Z"));
 
-                //    // По длине
-                //    AddPreset("Длина = 0", () => GetFilterTextLengthEquals(0));
-                //    AddPreset("Длина > 10", () => GetFilterTextLengthGreater(10));
+                    //    // По длине
+                    //    AddPreset("Длина = 0", () => GetFilterTextLengthEquals(0));
+                    //    AddPreset("Длина > 10", () => GetFilterTextLengthGreater(10));
 
-                //    break;
-                //}
+                    //    break;
+                    //}
             }
         }
 
@@ -113,10 +112,9 @@ namespace WinFormsExtensions
             return filterBuilder.ToString();
         }
 
-
         public string FieldName { get; set; }
 
-        public string SelectedPresetName => (Presets.CurrentRow?.DataBoundItem as PresetItem)?.PresetName;   
+        public string SelectedPresetName => (Presets.CurrentRow?.DataBoundItem as PresetItem)?.PresetName;
         public Func<string> SelectedFilterFunc => (Presets.CurrentRow?.DataBoundItem as PresetItem)?.FilterText;
         public DataGridView Grid => Presets;
 
@@ -139,6 +137,7 @@ namespace WinFormsExtensions
             public bool Checked { get; set; }
             public string PresetName { get; set; }
             public Func<string> FilterText { get; set; }
+
             public event PropertyChangedEventHandler PropertyChanged;
         }
     }

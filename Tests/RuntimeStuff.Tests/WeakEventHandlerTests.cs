@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class WeakEventManagerTests
@@ -207,6 +207,7 @@ namespace RuntimeStuff.MSTests
     public class TestPublisherBase : ITestEventSource
     {
         public event EventHandler<TestEventArgs> TheEvent;
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         protected void OnTheEvent([CallerMemberName] string name = "")
@@ -223,6 +224,7 @@ namespace RuntimeStuff.MSTests
     public class TestPublisher : TestPublisherBase
     {
         public void Fire() => OnTheEvent();
+
         public void FireProperty() => OnPropertyChanged();
     }
 
@@ -234,7 +236,8 @@ namespace RuntimeStuff.MSTests
 
         private readonly WeakEventManager _manager = new WeakEventManager();
 
-        public TestSubscriber() { }
+        public TestSubscriber()
+        { }
 
         public TestSubscriber(TestPublisher publisher)
         {

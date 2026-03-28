@@ -1,4 +1,4 @@
-﻿namespace RuntimeStuff.MSTests.Beta
+﻿namespace System.MSTests.Beta
 {
     public interface ICollectionStringFilter<T>
     {

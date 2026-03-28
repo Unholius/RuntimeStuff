@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace RuntimeStuff.MSTests.DTO
+namespace System.MSTests.DTO
 {
     [Table("TestTable", Schema = "dbo")]
     public class TestTable

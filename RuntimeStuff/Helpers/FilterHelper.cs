@@ -11,13 +11,15 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff.Helpers
+using System.Linq.Expressions;
+
+namespace System.Helpers
 {
     using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
-    using System.Linq.Expressions;
+    using System.Reflection;
     using System.Text.RegularExpressions;
 
     /// <summary>
@@ -259,7 +261,7 @@ namespace RuntimeStuff.Helpers
         /// <param name="tokens">The tokens.</param>
         /// <param name="pos">The position.</param>
         /// <returns>Expr.</returns>
-        /// <exception cref="System.Exception">Ожидалась {.</exception>
+        /// <exception cref="Exception">Ожидалась {.</exception>
         private static IExpr ParseComparison(List<string> tokens, ref int pos)
         {
             var left = ParseAddSub(tokens, ref pos);
@@ -419,8 +421,8 @@ namespace RuntimeStuff.Helpers
         /// <param name="tokens">The tokens.</param>
         /// <param name="pos">The position.</param>
         /// <returns>Expr.</returns>
-        /// <exception cref="System.FormatException">Ошибка обработки фильтра.</exception>
-        /// <exception cref="System.Exception">Ожидалась ).</exception>
+        /// <exception cref="FormatException">Ошибка обработки фильтра.</exception>
+        /// <exception cref="Exception">Ожидалась ).</exception>
         private static IExpr ParseTerm(List<string> tokens, ref int pos)
         {
             if (pos >= tokens.Count)
@@ -455,7 +457,7 @@ namespace RuntimeStuff.Helpers
         /// </summary>
         /// <param name="token">The token.</param>
         /// <returns>Expr.</returns>
-        /// <exception cref="System.FormatException">Неизвестный токен {token}.</exception>
+        /// <exception cref="FormatException">Неизвестный токен {token}.</exception>
         private static IExpr ParseValue(string token)
         {
             // число decimal
@@ -497,10 +499,10 @@ namespace RuntimeStuff.Helpers
         /// <param name="expr">The expr.</param>
         /// <param name="param">The parameter.</param>
         /// <returns>Expression.</returns>
-        /// <exception cref="System.FormatException">Свойство '{p.Name}' не существует в типе '{param.Type}'.</exception>
-        /// <exception cref="System.FormatException">Оператор BETWEEN не подходит для строкового параметра {left}.</exception>
-        /// <exception cref="System.NotSupportedException">IS EMPTY применим только к строкам или коллекциям.</exception>
-        /// <exception cref="System.NotSupportedException">IS NOT EMPTY применим только к строкам или коллекциям.</exception>
+        /// <exception cref="FormatException">Свойство '{p.Name}' не существует в типе '{param.Type}'.</exception>
+        /// <exception cref="FormatException">Оператор BETWEEN не подходит для строкового параметра {left}.</exception>
+        /// <exception cref="NotSupportedException">IS EMPTY применим только к строкам или коллекциям.</exception>
+        /// <exception cref="NotSupportedException">IS NOT EMPTY применим только к строкам или коллекциям.</exception>
         private static Expression ToExpression(IExpr expr, ParameterExpression param)
         {
             if (expr is ConstantExpr c)
@@ -565,7 +567,7 @@ namespace RuntimeStuff.Helpers
                                 return Expression.Equal(left, Expression.Constant(string.Empty, typeof(string)));
                             }
 
-                            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(left.Type))
+                            if (typeof(Collections.IEnumerable).IsAssignableFrom(left.Type))
                             {
                                 var countProp = left.Type.GetProperty("Count");
                                 if (countProp != null)
@@ -590,7 +592,7 @@ namespace RuntimeStuff.Helpers
                                 return Expression.NotEqual(left, Expression.Constant(string.Empty, typeof(string)));
                             }
 
-                            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(left.Type))
+                            if (typeof(Collections.IEnumerable).IsAssignableFrom(left.Type))
                             {
                                 var countProp = left.Type.GetProperty("Count");
                                 if (countProp != null)

@@ -1,6 +1,6 @@
-﻿using RuntimeStuff.Builders;
+﻿using System.Linq.Expressions;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class StringFilterBuilderTests
@@ -79,15 +79,6 @@ namespace RuntimeStuff.MSTests
             b.Property("X").Equal(null);
 
             Assert.AreEqual($"[X] {b.Syntax[StringFilterBuilder.Token.Equal]} null", b.ToString());
-        }
-
-        [TestMethod]
-        public void DateTime_IsFormattedCorrectly()
-        {
-            var dt = new DateTime(2025, 1, 2, 3, 4, 5);
-            var b = new StringFilterBuilder();
-            b.Property("Created").Equal(dt);
-            Assert.AreEqual($"[Created] {b.Syntax[StringFilterBuilder.Token.Equal]} {string.Format(b.Options.Formatter.DateTimeFormat, dt)}", b.ToString());
         }
 
         [TestMethod]

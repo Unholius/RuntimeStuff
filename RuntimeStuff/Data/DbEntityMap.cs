@@ -2,14 +2,12 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Data
+namespace System.Data
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using RuntimeStuff.Builders;
-    using RuntimeStuff.Helpers;
 
     /// <summary>
     /// Представляет конфигурацию сопоставления CLR-типов (сущностей)

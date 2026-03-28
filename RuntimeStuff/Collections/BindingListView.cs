@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Helpers;
 using System.Linq;
 using System.Runtime.CompilerServices;
 
@@ -321,7 +322,7 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
             return null;
         }
 
-        return RuntimeStuff.Helpers.FilterHelper.ToIndexedPredicate<T>(filter);
+        return FilterHelper.ToIndexedPredicate<T>(filter);
     }
 
     private void FireReset()

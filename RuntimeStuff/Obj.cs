@@ -2,9 +2,8 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff
+namespace System
 {
-    using System;
     using System.Collections;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -226,25 +225,24 @@ namespace RuntimeStuff
                 typeof(bool?),
             };
 
-            BasicTypes = new[]
-            {
-                typeof(object),
-                typeof(char), typeof(char?), typeof(string),
-                typeof(DateTime), typeof(DateTime?), typeof(TimeSpan),
-                typeof(Guid), typeof(Guid?),
-                typeof(Uri),
-                typeof(Enum),
-            }
-                .Concat(NumberTypes)
-                .Concat(BoolTypes)
-                .ToArray();
+            BasicTypes = new HashSet<Type>(new Type[]
+                {
+                    typeof(object),
+                    typeof(char), typeof(char?), typeof(string),
+                    typeof(DateTime), typeof(DateTime?),
+                    typeof(TimeSpan?), typeof(TimeSpan?),
+                    typeof(Guid), typeof(Guid?),
+                    typeof(Uri),
+                    typeof(Enum),
+                }.Concat(NumberTypes)
+                .Concat(BoolTypes));
         }
 
         /// <summary>
         /// Gets набор основных типов: числа, логические, строки, даты, Guid, Enum и др.
         /// </summary>
         /// <value>The basic types.</value>
-        public static Type[] BasicTypes { get; }
+        public static HashSet<Type> BasicTypes { get; }
 
         /// <summary>
         /// Gets типы, представляющие логические значения.

@@ -11,7 +11,7 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff.Internal
+namespace System.Internal
 {
     using System.ComponentModel;
 

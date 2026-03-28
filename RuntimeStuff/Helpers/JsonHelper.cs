@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Helpers
+namespace System.Helpers
 {
     using System;
     using System.Collections;
@@ -32,6 +32,27 @@ namespace RuntimeStuff.Helpers
                     new Regex(
                         "\"(?<name>[^\"]+)\"\\s*:\\s*(?<value>\\{.*?\\}|\\[.*?\\]|\".*?\"|true|false|null|-?\\d+(\\.\\d+)?)",
                         RegexOptions.Singleline);
+
+        private static ValueFormatter defaultValueFormatter = new ValueFormatter()
+        {
+            StringPrefix = "\"",
+            StringSuffix = "\"",
+            DatePrefix = "\"",
+            DateSuffix = "\"",
+            DateFormat = "yyyy-MM-dd",
+            DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ",
+            EnumerablePrefix = "[",
+            EnumerableSuffix = "]",
+            ObjectPrefix = "{",
+            ObjectSuffix = "}",
+            EnumAsString = false,
+        };
+
+        static JsonHelper()
+        {
+            defaultValueFormatter.AddSerializer(t => t.IsDictionary(), (x, vf) => SerializeDictionary((IDictionary)x, vf));
+            defaultValueFormatter.AddSerializer(t => !t.IsValueType && !t.IsBasic() && !t.IsCollection(), SerializeObject);
+        }
 
         /// <summary>
         /// Преобразует JSON-строку в плоскую структуру словаря,
@@ -366,7 +387,7 @@ namespace RuntimeStuff.Helpers
         /// Если <c>true</c>, перечисления сериализуются как строки;
         /// если <c>false</c> — как числовые значения.
         /// </param>
-        /// <param name="additionalFormats">
+        /// <param name="customTypeFormats">
         /// Дополнительные форматы сериализации для конкретных типов.
         /// </param>
         /// <returns>
@@ -376,14 +397,36 @@ namespace RuntimeStuff.Helpers
             object obj,
             string dateFormat = "yyyy-MM-dd",
             bool enumAsStrings = false,
-            Dictionary<Type, string> additionalFormats = null)
+            Dictionary<Type, string> customTypeFormats = null)
         {
             if (obj == null)
             {
                 return "null";
             }
 
-            return SerializeInternal(obj, dateFormat, enumAsStrings, additionalFormats);
+            var vf = new ValueFormatter(
+                defaultValueFormatter,
+                dateFormat,
+                enumAsStrings,
+                true,
+                StringHelper.EscapeMode.Json)
+            {
+                CustomTypeFormat = customTypeFormats ?? new Dictionary<Type, string>(),
+            };
+
+            return SerializeInternal(obj, vf);
+        }
+
+        public static string Serialize(
+            object obj,
+            ValueFormatter valueFormatter)
+        {
+            if (obj == null)
+            {
+                return "null";
+            }
+
+            return SerializeInternal(obj, valueFormatter);
         }
 
         /// <summary>
@@ -547,11 +590,7 @@ namespace RuntimeStuff.Helpers
             return "\"" + value + "\"";
         }
 
-        private static string SerializeDictionary(
-            IDictionary dict,
-            string dateFormat,
-            bool enumAsStrings,
-            Dictionary<Type, string> additionalFormats)
+        private static string SerializeDictionary(IDictionary dict, ValueFormatter formatter)
         {
             var sb = new StringBuilder(128);
             sb.Append('{');
@@ -567,7 +606,7 @@ namespace RuntimeStuff.Helpers
                 sb.Append(Quote(EscapeString(
                         Convert.ToString(entry.Key, CultureInfo.InvariantCulture))))
                   .Append(':')
-                  .Append(SerializeInternal(entry.Value, dateFormat, enumAsStrings, additionalFormats));
+                  .Append(SerializeInternal(entry.Value, formatter));
 
                 first = false;
             }
@@ -578,9 +617,7 @@ namespace RuntimeStuff.Helpers
 
         private static string SerializeEnumerable(
             IEnumerable enumerable,
-            string dateFormat,
-            bool enumAsStrings,
-            Dictionary<Type, string> additionalFormats)
+            ValueFormatter formatter)
         {
             var sb = new StringBuilder(128);
             sb.Append('[');
@@ -593,7 +630,7 @@ namespace RuntimeStuff.Helpers
                     sb.Append(',');
                 }
 
-                sb.Append(SerializeInternal(item, dateFormat, enumAsStrings, additionalFormats));
+                sb.Append(SerializeInternal(item, formatter));
                 first = false;
             }
 
@@ -601,84 +638,12 @@ namespace RuntimeStuff.Helpers
             return sb.ToString();
         }
 
-        private static string SerializeFormattable(
-            object value,
-            string defaultFormat,
-            Dictionary<Type, string> additionalFormats,
-            bool isNumeric)
+        private static string SerializeInternal(object obj, ValueFormatter formatter)
         {
-            var type = value.GetType();
-            string format;
-
-            if (additionalFormats != null &&
-                additionalFormats.TryGetValue(type, out var customFormat))
-            {
-                format = customFormat;
-            }
-            else
-            {
-                format = defaultFormat;
-            }
-
-            var text = value is IFormattable formattable
-                ? formattable.ToString(format, CultureInfo.InvariantCulture)
-                : Convert.ToString(value, CultureInfo.InvariantCulture);
-
-            return isNumeric ? text : Quote(text);
+            return formatter.Format(obj);
         }
 
-        private static string SerializeInternal(
-            object obj,
-            string dateFormat,
-            bool enumAsStrings,
-            Dictionary<Type, string> additionalFormats)
-        {
-            switch (obj)
-            {
-                case Type t:
-                    return Quote(t.FullName);
-
-                case Guid guid:
-                    return Quote(guid.ToString());
-
-                case string s:
-                    return Quote(EscapeString(s));
-
-                case bool b:
-                    return b ? "true" : "false";
-
-                case Enum e:
-                    return enumAsStrings
-                        ? Quote(e.ToString())
-                        : Convert.ToInt64(e, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
-
-                case DateTime _:
-                case DateTimeOffset _:
-                    return SerializeFormattable(obj, dateFormat, additionalFormats, false);
-
-                case TimeSpan _:
-                    return SerializeFormattable(obj, null, additionalFormats, false);
-
-                case IDictionary dict:
-                    return SerializeDictionary(dict, dateFormat, enumAsStrings, additionalFormats);
-
-                case IEnumerable enumerable:
-                    return SerializeEnumerable(enumerable, dateFormat, enumAsStrings, additionalFormats);
-            }
-
-            if (IsNumeric(obj))
-            {
-                return SerializeFormattable(obj, null, additionalFormats, true);
-            }
-
-            return SerializeObject(obj, dateFormat, enumAsStrings, additionalFormats);
-        }
-
-        private static string SerializeObject(
-            object obj,
-            string dateFormat,
-            bool enumAsStrings,
-            Dictionary<Type, string> additionalFormats)
+        private static string SerializeObject(object obj, ValueFormatter formatter)
         {
             var type = obj.GetType();
             var properties = PropertyCache.GetOrAdd(
@@ -710,7 +675,7 @@ namespace RuntimeStuff.Helpers
 
                 sb.Append(Quote(EscapeString(prop.Name)))
                   .Append(':')
-                  .Append(SerializeInternal(value, dateFormat, enumAsStrings, additionalFormats));
+                  .Append(SerializeInternal(value, formatter));
 
                 first = false;
             }

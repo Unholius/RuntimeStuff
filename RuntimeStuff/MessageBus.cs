@@ -2,9 +2,8 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff
+namespace System
 {
-    using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;

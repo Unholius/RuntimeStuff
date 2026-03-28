@@ -3,9 +3,9 @@
 //public static class SqlRoutines<T>
 //    where T : IDbConnection, new()
 //{
-//    /// <summary>  
-//    /// SQL_STORED_PROCEDURE [dbo].[xp_UpdateStatusTM] @p_Table TableInt2CLMN  
-//    /// </summary>  
+//    /// <summary>
+//    /// SQL_STORED_PROCEDURE [dbo].[xp_UpdateStatusTM] @p_Table TableInt2CLMN
+//    /// </summary>
 //    // public static string XpUpdateStatusTM => "[dbo].[xp_UpdateStatusTM]";
 
 //    public static IDbCommand XpUpdateStatusTMCommand(int p_Table) => CreateCommand("[dbo].[xp_UpdateStatusTM]", ("@p_Table", p_Table));

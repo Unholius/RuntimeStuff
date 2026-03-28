@@ -11,7 +11,7 @@
 // </copyright>
 // <summary></summary>
 // ***********************************************************************
-namespace RuntimeStuff.Helpers
+namespace System.Helpers
 {
     using System;
     using System.Collections.Generic;

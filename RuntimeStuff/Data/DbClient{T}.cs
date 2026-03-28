@@ -12,10 +12,9 @@
 // <summary></summary>
 // ***********************************************************************
 
-namespace RuntimeStuff.Data
+namespace System.Data
 {
     using System.Collections.Concurrent;
-    using System.Data;
 
     /// <summary>
     /// Универсальный клиент доступа к базе данных, типизированный по конкретному
@@ -63,9 +62,9 @@ namespace RuntimeStuff.Data
         public DbClient(string server, string database, DbEntityMap map = null)
             : base(new T(), map)
         {
-            Extensions.DbConnectionExtensions.Server(this.Connection, server);
-            Extensions.DbConnectionExtensions.Database(this.Connection, database);
-            Extensions.DbConnectionExtensions.IntegratedSecurity(this.Connection, true);
+            DbConnectionExtensions.Server(this.Connection, server);
+            DbConnectionExtensions.Database(this.Connection, database);
+            DbConnectionExtensions.IntegratedSecurity(this.Connection, true);
         }
 
         /// <summary>

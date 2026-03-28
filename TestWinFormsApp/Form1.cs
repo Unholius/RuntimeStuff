@@ -1,11 +1,6 @@
-using RuntimeStuff;
-using RuntimeStuff.Collections;
-using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
 using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.Runtime.Versioning;
 using WinFormsExtensions;
 
@@ -17,7 +12,6 @@ namespace TestWinFormsApp
         public Form1()
         {
             InitializeComponent();
-
         }
 
         public BindingListView<FileItem> FileItems { get; set; } = new BindingListView<FileItem>();
@@ -100,7 +94,6 @@ namespace TestWinFormsApp
 
             public ServerMessage()
             {
-
             }
 
             public ServerMessage(string message, bool offline)
@@ -109,6 +102,7 @@ namespace TestWinFormsApp
                 SenderId = Environment.ProcessId;
                 Offline = offline;
             }
+
             public Guid Id { get; } = Guid.NewGuid();
             public DateTime Timestamp { get; set; } = DateTime.Now.ExactNow();
 
@@ -152,7 +146,6 @@ namespace TestWinFormsApp
             }
         }
 
-
         private async void btnLoad_Click(object sender, EventArgs e)
         {
             try
@@ -163,12 +156,10 @@ namespace TestWinFormsApp
                 FileItems.Clear();
                 //using (var con = new SqlConnection().Connect("serv40", "tamuz"))
                 //{
-
                 //    dgv.DataSource = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
                 //}
                 using (var con = new SqlConnection().Connect("nas\\rssqlserver", "musiclib"))
                 {
-
                     dgv.DataSource = await con.ToDataTableAsync("select top 1000 * from files", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
                 }
             }
@@ -213,7 +204,6 @@ namespace TestWinFormsApp
 
         private void dgv_DataError(object sender, DataGridViewDataErrorEventArgs e)
         {
-
         }
     }
 
@@ -252,6 +242,7 @@ namespace TestWinFormsApp
         public DateTime To { get; set; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
+
         public List<GanttItem> Childs { get; set; } = new List<GanttItem>();
     }
 }

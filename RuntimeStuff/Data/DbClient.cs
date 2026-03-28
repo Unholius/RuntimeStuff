@@ -12,7 +12,7 @@
 // <summary></summary>
 // ***********************************************************************
 
-namespace RuntimeStuff.Data
+namespace System.Data
 {
     using System;
     using System.Collections;
@@ -21,18 +21,15 @@ namespace RuntimeStuff.Data
     using System.Data;
     using System.Data.Common;
     using System.Diagnostics;
+    using System.Helpers;
     using System.Linq;
     using System.Linq.Expressions;
+    using System.Options;
     using System.Reflection;
     using System.Runtime.CompilerServices;
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
-    using RuntimeStuff;
-    using RuntimeStuff.Collections;
-    using RuntimeStuff.Extensions;
-    using RuntimeStuff.Helpers;
-    using RuntimeStuff.Options;
 
     /// <summary>
     /// Универсальный клиент доступа к базе данных с поддержкой CRUD-операций,
@@ -2278,7 +2275,7 @@ namespace RuntimeStuff.Data
                     this.CommandExecuted?.Invoke(cmd);
                     this.Log(cmd);
                     var list = Obj.New(returnType) as IList;
-                    Obj.Set(list,  "SuppressNotifyCollectionChange", true);
+                    Obj.Set(list, "SuppressNotifyCollectionChange", true);
 
                     this.ReadToListInternalAsync(
                         list,

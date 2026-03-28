@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace RuntimeStuff.Helpers
+namespace System.Helpers
 {
     using System;
     using System.Collections.Generic;

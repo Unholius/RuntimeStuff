@@ -1,9 +1,8 @@
-﻿using RuntimeStuff.Extensions;
-using RuntimeStuff.Helpers;
-using RuntimeStuff.MSTests.Models;
-using RuntimeStuff.Options;
+﻿using System.Data;
+using System.MSTests.Models;
+using System.Options;
 
-namespace RuntimeStuff.MSTests
+namespace System.MSTests
 {
     [TestClass]
     public class SqlQueryBuilderTests
