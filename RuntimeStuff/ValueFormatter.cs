@@ -1,17 +1,16 @@
-﻿using System.Reflection;
-
-namespace System
+﻿namespace System
 {
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
+    using System.Reflection;
 
     public class ValueFormatter
     {
+        private string dateFormat = "{0:yyyy-MM-dd}";
         private string dateTimeFormat = "{0:yyyy-MM-dd HH:mm:ss}";
         private string decimalNumberFormat;
         private string timeFormat = "{0:HH:mm:ss}";
-        private string dateFormat = "{0:yyyy-MM-dd}";
 
         public ValueFormatter()
         {
@@ -60,41 +59,13 @@ namespace System
             this.EscapeMode = escapeMode;
         }
 
+        public string BoolPrefix { get; set; }
+
+        public string BoolSuffix { get; set; }
+
         public CultureInfo CultureInfo { get; set; } = CultureInfo.InvariantCulture;
 
-        public List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)> Serializers { get; set; } = new List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)>();
-
-        public void AddSerializer(Func<Type, bool> typeCondition, Func<object, ValueFormatter, string> serializer)
-        {
-            this.Serializers.Add((typeCondition, serializer));
-        }
-
-        public bool TryGetSerializer(Type type, out Func<object, ValueFormatter, string> serializer)
-        {
-            if (type == null)
-            {
-                throw new ArgumentNullException(nameof(type));
-            }
-
-            foreach (var (condition, s) in this.Serializers)
-            {
-                if (condition != null && condition(type))
-                {
-                    serializer = s;
-                    return true;
-                }
-            }
-
-            serializer = null;
-            return false;
-        }
-
-        public string BoolPrefix { get; set; }
-        public string BoolSuffix { get; set; }
-        public string DatePrefix { get; set; }
-        public string DateSuffix { get; set; }
-        public string EnumerablePrefix { get; set; }
-        public string EnumerableSuffix { get; set; }
+        public Dictionary<Type, string> CustomTypeFormat { get; set; } = new Dictionary<Type, string>();
 
         public string DateFormat
         {
@@ -102,16 +73,14 @@ namespace System
             set => this.dateFormat = this.CheckFormatString(value);
         }
 
+        public string DatePrefix { get; set; }
+
+        public string DateSuffix { get; set; }
+
         public string DateTimeFormat
         {
             get => this.dateTimeFormat;
             set => this.dateTimeFormat = this.CheckFormatString(value);
-        }
-
-        public string TimeFormat
-        {
-            get => this.timeFormat;
-            set => this.timeFormat = this.CheckFormatString(value);
         }
 
         public string DecimalNumberFormat
@@ -120,26 +89,66 @@ namespace System
             set => this.decimalNumberFormat = this.CheckFormatString(value);
         }
 
-        public string EnumerableSeperator { get; set; }
         public bool EnumAsString { get; set; }
+
+        public string EnumerablePrefix { get; set; }
+
+        public string EnumerableSeperator { get; set; }
+
+        public string EnumerableSuffix { get; set; }
+
         public StringHelper.EscapeMode EscapeMode { get; set; } = StringHelper.EscapeMode.None;
+
         public string FalseValue { get; set; }
+
         public bool NormalizeWhitespaces { get; set; }
+
         public string NullPrefix { get; set; }
+
         public string NullSuffix { get; set; }
+
         public string NullValue { get; set; }
-        public List<object> NullValues { get; set; }
+
+        private HashSet<object> nullValuesSet;
+        public List<object> NullValues
+        {
+            get => this.nullValuesSet?.ToList();
+            set => this.nullValuesSet = value != null ? new HashSet<object>(value) : null;
+        }
+
         public string NumberPrefix { get; set; }
+
         public string NumberSuffix { get; set; }
+
         public string ObjectPrefix { get; set; }
+
         public string ObjectSuffix { get; set; }
+
         public List<Func<string, string>> PostFormatters { get; set; } = new List<Func<string, string>>();
-        public Dictionary<Type, string> CustomTypeFormat { get; set; } = new Dictionary<Type, string>();
+
+        public List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)> Serializers { get; set; } = new List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)>();
+        private readonly Dictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new Dictionary<Type, Func<object, ValueFormatter, string>>();
+
         public string StringPrefix { get; set; }
+
         public string StringSuffix { get; set; }
+
+        public string TimeFormat
+        {
+            get => this.timeFormat;
+            set => this.timeFormat = this.CheckFormatString(value);
+        }
+
         public bool TrimNumberZeroes { get; set; }
+
         public bool TrimSpaces { get; set; }
+
         public string TrueValue { get; set; }
+
+        public void AddSerializer(Func<Type, bool> typeCondition, Func<object, ValueFormatter, string> serializer)
+        {
+            this.Serializers.Add((typeCondition, serializer));
+        }
 
         public string Format(object value)
         {
@@ -153,6 +162,10 @@ namespace System
             var type = value.GetType();
             var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
             this.CustomTypeFormat.TryGetValue(underlyingType, out var customTypeFormat);
+            if (customTypeFormat != null)
+            {
+                customTypeFormat = this.CheckFormatString(customTypeFormat);
+            }
 
             if (this.TryGetSerializer(underlyingType, out var customSerializer))
             {
@@ -211,25 +224,29 @@ namespace System
                 return this.ApplyPost(result);
             }
 
-#if NET6_0_OR_GREATER
-                        // 7. DateOnly
-                        if (value is DateOnly d)
-                        {
-                            var format = DateFormat ?? "{0:yyyy-MM-dd}";
-                            var text = string.Format(CultureInfo, format, d);
-                            result = ApplyAffixes(text, DatePrefix, DateSuffix);
-                            return ApplyPost(result);
-                        }
+            if (value is DateTimeOffset dto)
+            {
+                var format = customTypeFormat ?? (dto.TimeOfDay != TimeSpan.Zero && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "{0:yyyy-MM-dd HH:mm:ss}");
+                var text = string.Format(this.CultureInfo, format, dto);
+                result = this.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
+                return this.ApplyPost(result);
+            }
 
-                        // 8. TimeOnly / TimeSpan
-                        if (value is TimeOnly tOnly)
-                        {
-                            var format = TimeFormat ?? "{0:HH:mm:ss}";
-                            var text = string.Format(CultureInfo, format, tOnly);
-                            return ApplyPost(text);
-                        }
-#endif
-
+            // #if NET6_0_OR_GREATER
+            //                        if (value is DateOnly d)
+            //                        {
+            //                            var format = DateFormat ?? "{0:yyyy-MM-dd}";
+            //                            var text = string.Format(CultureInfo, format, d);
+            //                            result = ApplyAffixes(text, DatePrefix, DateSuffix);
+            //                            return ApplyPost(result);
+            //                        }
+            //                        if (value is TimeOnly tOnly)
+            //                        {
+            //                            var format = TimeFormat ?? "{0:HH:mm:ss}";
+            //                            var text = string.Format(CultureInfo, format, tOnly);
+            //                            return ApplyPost(text);
+            //                        }
+            // #endif
             if (value is TimeSpan ts)
             {
                 var format = customTypeFormat ?? "{0:c}";
@@ -257,18 +274,9 @@ namespace System
             // 10. Numeric
             if (type.IsNumeric())
             {
-                string text;
+                string text = string.Format(this.CultureInfo, customTypeFormat ?? this.DecimalNumberFormat ?? "{0}", value);
 
-                if (!string.IsNullOrEmpty(this.DecimalNumberFormat))
-                {
-                    text = string.Format(this.CultureInfo, customTypeFormat ?? this.DecimalNumberFormat, value);
-                }
-                else
-                {
-                    text = Convert.ToString(value, this.CultureInfo);
-                }
-
-                if (this.TrimNumberZeroes && text != null && text.Contains('.'))
+                if (this.TrimNumberZeroes && text.Contains('.'))
                 {
                     text = TrimZeros(text);
                 }
@@ -280,6 +288,30 @@ namespace System
             // 11. Fallback object
             result = this.ApplyAffixes(value.ToString(), this.ObjectPrefix, this.ObjectSuffix);
             return this.ApplyPost(result);
+        }
+
+        public bool TryGetSerializer(Type type, out Func<object, ValueFormatter, string> serializer)
+        {
+            if (this.serializerCache.TryGetValue(type, out serializer))
+            {
+                return serializer != null;
+            }
+
+            for (int i = 0; i < this.Serializers.Count; i++)
+            {
+                var entry = this.Serializers[i];
+
+                if (entry.Condition != null && entry.Condition(type))
+                {
+                    serializer = entry.Serializer;
+                    this.serializerCache[type] = serializer;
+                    return true;
+                }
+            }
+
+            this.serializerCache[type] = null;
+            serializer = null;
+            return false;
         }
 
         private static string NormalizeWs(string input)
@@ -333,7 +365,7 @@ namespace System
         {
             if (string.IsNullOrWhiteSpace(formatString))
             {
-                return string.Empty;
+                return "{0}";
             }
 
             if (!formatString.StartsWith("{0:"))
