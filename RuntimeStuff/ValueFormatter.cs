@@ -70,7 +70,7 @@
         public string DateFormat
         {
             get => this.dateFormat;
-            set => this.dateFormat = this.CheckFormatString(value);
+            set => this.dateFormat = StringHelper.NormalizeFormat(value);
         }
 
         public string DatePrefix { get; set; }
@@ -80,13 +80,13 @@
         public string DateTimeFormat
         {
             get => this.dateTimeFormat;
-            set => this.dateTimeFormat = this.CheckFormatString(value);
+            set => this.dateTimeFormat = StringHelper.NormalizeFormat(value);
         }
 
         public string DecimalNumberFormat
         {
             get => this.decimalNumberFormat;
-            set => this.decimalNumberFormat = this.CheckFormatString(value);
+            set => this.decimalNumberFormat = StringHelper.NormalizeFormat(value);
         }
 
         public bool EnumAsString { get; set; }
@@ -136,7 +136,7 @@
         public string TimeFormat
         {
             get => this.timeFormat;
-            set => this.timeFormat = this.CheckFormatString(value);
+            set => this.timeFormat = StringHelper.NormalizeFormat(value);
         }
 
         public bool TrimNumberZeroes { get; set; }
@@ -156,7 +156,7 @@
             if (value == null || (this.NullValues != null && this.NullValues.Contains(value)))
             {
                 var nullText = this.NullValue ?? string.Empty;
-                return this.ApplyPost(this.ApplyAffixes(nullText, this.NullPrefix, this.NullSuffix));
+                return this.ApplyPost(StringHelper.ApplyAffixes(nullText, this.NullPrefix, this.NullSuffix));
             }
 
             var type = value.GetType();
@@ -164,7 +164,7 @@
             this.CustomTypeFormat.TryGetValue(underlyingType, out var customTypeFormat);
             if (customTypeFormat != null)
             {
-                customTypeFormat = this.CheckFormatString(customTypeFormat);
+                customTypeFormat = StringHelper.NormalizeFormat(customTypeFormat);
             }
 
             if (this.TryGetSerializer(underlyingType, out var customSerializer))
@@ -193,7 +193,7 @@
                     str = StringHelper.EscapeString(str, this.EscapeMode);
                 }
 
-                result = this.ApplyAffixes(str, this.StringPrefix, this.StringSuffix);
+                result = StringHelper.ApplyAffixes(str, this.StringPrefix, this.StringSuffix);
                 return this.ApplyPost(result);
             }
 
@@ -204,14 +204,14 @@
                     ? (this.TrueValue ?? "true")
                     : (this.FalseValue ?? "false");
 
-                result = this.ApplyAffixes(text, this.BoolPrefix, this.BoolSuffix);
+                result = StringHelper.ApplyAffixes(text, this.BoolPrefix, this.BoolSuffix);
                 return this.ApplyPost(result);
             }
 
             // 5. Enum
             if (type.IsEnum)
             {
-                var enumText = this.EnumAsString ? this.ApplyAffixes(value.ToString(), this.StringPrefix, this.StringSuffix) : this.ApplyAffixes(Convert.ToInt64(value).ToString(this.CultureInfo), this.NullPrefix, this.NumberSuffix);
+                var enumText = this.EnumAsString ? StringHelper.ApplyAffixes(value.ToString(), this.StringPrefix, this.StringSuffix) : StringHelper.ApplyAffixes(Convert.ToInt64(value).ToString(this.CultureInfo), this.NullPrefix, this.NumberSuffix);
                 return this.ApplyPost(enumText);
             }
 
@@ -220,7 +220,7 @@
             {
                 var format = customTypeFormat ?? (dt.HasTime() && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "{0:yyyy-MM-dd}");
                 var text = string.Format(this.CultureInfo, format, dt);
-                result = this.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
+                result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
                 return this.ApplyPost(result);
             }
 
@@ -228,7 +228,7 @@
             {
                 var format = customTypeFormat ?? (dto.TimeOfDay != TimeSpan.Zero && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "{0:yyyy-MM-dd HH:mm:ss}");
                 var text = string.Format(this.CultureInfo, format, dto);
-                result = this.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
+                result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
                 return this.ApplyPost(result);
             }
 
@@ -250,7 +250,7 @@
             if (value is TimeSpan ts)
             {
                 var format = customTypeFormat ?? "{0:c}";
-                var text = this.ApplyAffixes(string.Format(this.CultureInfo, format, ts), this.DatePrefix, this.DateSuffix);
+                var text = StringHelper.ApplyAffixes(string.Format(this.CultureInfo, format, ts), this.DatePrefix, this.DateSuffix);
                 return this.ApplyPost(text);
             }
 
@@ -267,7 +267,7 @@
                 var separator = this.EnumerableSeperator ?? ", ";
                 var joined = string.Join(separator, items);
 
-                result = this.ApplyAffixes(joined, this.EnumerablePrefix, this.EnumerableSuffix);
+                result = StringHelper.ApplyAffixes(joined, this.EnumerablePrefix, this.EnumerableSuffix);
                 return this.ApplyPost(result);
             }
 
@@ -281,12 +281,12 @@
                     text = TrimZeros(text);
                 }
 
-                result = this.ApplyAffixes(text, this.NumberPrefix, this.NumberSuffix);
+                result = StringHelper.ApplyAffixes(text, this.NumberPrefix, this.NumberSuffix);
                 return this.ApplyPost(result);
             }
 
             // 11. Fallback object
-            result = this.ApplyAffixes(value.ToString(), this.ObjectPrefix, this.ObjectSuffix);
+            result = StringHelper.ApplyAffixes(value.ToString(), this.ObjectPrefix, this.ObjectSuffix);
             return this.ApplyPost(result);
         }
 
@@ -343,11 +343,6 @@
             return text;
         }
 
-        private string ApplyAffixes(string value, string prefix, string suffix)
-        {
-            return (prefix ?? string.Empty) + value + (suffix ?? string.Empty);
-        }
-
         private string ApplyPost(string value)
         {
             if (this.PostFormatters != null)
@@ -359,26 +354,6 @@
             }
 
             return value;
-        }
-
-        private string CheckFormatString(string formatString)
-        {
-            if (string.IsNullOrWhiteSpace(formatString))
-            {
-                return "{0}";
-            }
-
-            if (!formatString.StartsWith("{0:"))
-            {
-                formatString = "{0:" + formatString;
-            }
-
-            if (!formatString.EndsWith("}"))
-            {
-                formatString += "}";
-            }
-
-            return formatString;
         }
     }
 }

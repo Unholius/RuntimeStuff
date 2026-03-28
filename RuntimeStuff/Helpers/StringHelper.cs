@@ -216,6 +216,143 @@ namespace System
         };
 
         /// <summary>
+        /// Добавляет к строке префикс и/или суффикс.
+        /// </summary>
+        /// <param name="value">Исходная строка.</param>
+        /// <param name="prefix">Префикс (добавляется в начало строки). Может быть <c>null</c>.</param>
+        /// <param name="suffix">Суффикс (добавляется в конец строки). Может быть <c>null</c>.</param>
+        /// <returns>
+        /// Строка с добавленным префиксом и/или суффиксом.
+        /// <para/>
+        /// Если оба параметра <paramref name="prefix"/> и <paramref name="suffix"/> равны <c>null</c>,
+        /// возвращается исходное значение <paramref name="value"/>.
+        /// </returns>
+        /// <remarks>
+        /// Метод использует <see cref="string.Concat(string, string, string)"/>,
+        /// поэтому значения <c>null</c> интерпретируются как пустые строки.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// ApplyAffixes("test", "[", "]") → "[test]"
+        /// ApplyAffixes("test", null, "!") → "test!"
+        /// ApplyAffixes("test", null, null) → "test"
+        /// </code>
+        /// </example>
+        public static string ApplyAffixes(string value, string prefix, string suffix)
+        {
+            if (prefix == null && suffix == null)
+            {
+                return value;
+            }
+
+            return string.Concat(prefix, value, suffix);
+        }
+
+        /// <summary>
+        /// Извлекает строку формата из составного форматного выражения.
+        /// </summary>
+        /// <param name="format">
+        /// Строка формата, например <c>"{0:yyyy-MM-dd}"</c> или уже готовый формат <c>"yyyy-MM-dd"</c>.
+        /// </param>
+        /// <returns>
+        /// Строка формата без обёртки составного форматирования.
+        /// <para/>
+        /// Если входная строка имеет вид <c>"{0:...}"</c>, возвращается содержимое после двоеточия.
+        /// В противном случае возвращается исходная строка.
+        /// <para/>
+        /// Если <paramref name="format"/> равен <c>null</c> или пустой строке — возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Метод выполняет простое извлечение подстроки и не поддерживает сложные случаи,
+        /// такие как вложенные форматные выражения или экранирование фигурных скобок.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// ExtractFormat("{0:yyyy-MM-dd}") → "yyyy-MM-dd"
+        /// ExtractFormat("HH:mm:ss") → "HH:mm:ss"
+        /// ExtractFormat(null) → null
+        /// </code>
+        /// </example>
+        public static string ExtractFormat(string format)
+        {
+            if (string.IsNullOrEmpty(format))
+            {
+                return null;
+            }
+
+            // "{0:yyyy-MM-dd}" → "yyyy-MM-dd"
+            if (format.Length > 4 && format[0] == '{')
+            {
+                var colonIndex = format.IndexOf(':');
+                var endIndex = format.LastIndexOf('}');
+
+                if (colonIndex >= 0 && endIndex > colonIndex)
+                {
+                    return format.Substring(colonIndex + 1, endIndex - colonIndex - 1);
+                }
+            }
+
+            return format;
+        }
+
+        /// <summary>
+        /// Приводит строку формата к составному формату вида <c>"{index:format}"</c>.
+        /// </summary>
+        /// <param name="format">
+        /// Строка формата (например, <c>"yyyy-MM-dd"</c> или <c>"{0:yyyy-MM-dd}"</c>).
+        /// </param>
+        /// <param name="index">
+        /// Индекс аргумента в составной строке форматирования.
+        /// По умолчанию — <c>0</c>.
+        /// </param>
+        /// <returns>
+        /// Строка в виде составного форматного выражения.
+        /// <para/>
+        /// Если <paramref name="format"/> пустая или состоит только из пробелов,
+        /// возвращается <c>"{index}"</c>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Если входная строка уже содержит формат, но не начинается с <c>"{index:"</c>,
+        /// префикс будет добавлен.
+        /// </para>
+        /// <para>
+        /// Если строка не заканчивается символом <c>'}'</c>, он будет добавлен.
+        /// </para>
+        /// <para>
+        /// Метод не выполняет строгую валидацию формата и может некорректно обработать
+        /// сложные или вложенные форматные выражения.
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// NormalizeFormat("yyyy-MM-dd") → "{0:yyyy-MM-dd}"
+        /// NormalizeFormat("{0:HH:mm}") → "{0:HH:mm}"
+        /// NormalizeFormat(null) → "{0}"
+        /// NormalizeFormat("HH:mm", 1) → "{1:HH:mm}"
+        /// </code>
+        /// </example>
+        public static string NormalizeFormat(string format, int index = 0)
+        {
+            if (string.IsNullOrWhiteSpace(format))
+            {
+                return $"{{{index}}}";
+            }
+
+            if (!format.StartsWith($"{{{index}:"))
+            {
+                format = $"{{{index}:" + format;
+            }
+
+            if (!format.EndsWith("}"))
+            {
+                format += "}";
+            }
+
+            return format;
+        }
+
+        /// <summary>
         /// Преобразует первую текстовую единицу строки (графему) в верхний регистр с учётом указанной культуры.
         /// </summary>
         /// <param name="s">Исходная строка.</param>
