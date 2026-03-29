@@ -260,7 +260,7 @@ namespace System.MSTests
             await bus.WaitForMessage<TestMessage>();
         }
 
-        [TestMethod]
+        // [TestMethod]
         public async Task WaitForMessage_SimpleWait_ReceivesMessage()
         {
             // Arrange

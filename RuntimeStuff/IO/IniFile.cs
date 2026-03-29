@@ -441,11 +441,6 @@ namespace System.IO
 
                 if (count > 2)
                 {
-                    if (bom[0] == 0x2b && bom[1] == 0x2f && bom[2] == 0x76)
-                    {
-                        return Encoding.UTF7;
-                    }
-
                     if (bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf)
                     {
                         return Encoding.UTF8;

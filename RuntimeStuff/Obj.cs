@@ -16,7 +16,7 @@ namespace System
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// v.2026.02.08 (RS) COPY-PASTE READY<br />
+    /// v.2026.03.29 (RS) COPY-PASTE READY<br />
     /// Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     /// Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     /// Особенности:
@@ -1383,37 +1383,72 @@ namespace System
                 return type.GetElementType();
             }
 
-            // IDictionary<TKey, TValue>
-            var dictionaryInterface = type
-                .GetInterfaces()
-                .FirstOrDefault(i =>
-                    i.IsGenericType &&
-                    i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
-
-            if (dictionaryInterface != null)
-            {
-                return dictionaryInterface.GetGenericArguments()[1];
-            }
-
             var interfaces = type.GetInterfaces();
-            var enumerableInterface = interfaces
-                .FirstOrDefault(i =>
-                    i.IsGenericType &&
-                    i.GetGenericTypeDefinition() == typeof(IEnumerable<>));
 
-            if (enumerableInterface != null)
+            Type enumerableGeneric = null;
+            var hasNonGenericEnumerable = false;
+
+            for (var i = 0; i < interfaces.Length; i++)
             {
-                return enumerableInterface.GetGenericArguments()[0];
+                var iType = interfaces[i];
+
+                if (iType.IsGenericType)
+                {
+                    var def = iType.GetGenericTypeDefinition();
+
+                    if (def == typeof(IDictionary<,>))
+                    {
+                        // TValue
+                        return iType.GetGenericArguments()[1];
+                    }
+
+                    if (def == typeof(IEnumerable<>))
+                    {
+                        // запоминаем, но не выходим — вдруг есть IDictionary
+                        enumerableGeneric = iType;
+                    }
+                }
+                else if (iType == typeof(IEnumerable))
+                {
+                    hasNonGenericEnumerable = true;
+                }
             }
 
-            enumerableInterface = interfaces
-                .FirstOrDefault(i =>
-                    i == typeof(IEnumerable));
-
-            var indexProperties = GetProperties(type).Where(p => p.GetIndexParameters().Length > 0 && p.PropertyType != typeof(object)).ToArray();
-            if (enumerableInterface != null && indexProperties.Length == 1)
+            if (enumerableGeneric != null)
             {
-                return indexProperties[0].PropertyType;
+                return enumerableGeneric.GetGenericArguments()[0];
+            }
+
+            if (hasNonGenericEnumerable)
+            {
+                // избегаем ToArray()
+                var props = GetProperties(type);
+
+                PropertyInfo indexer = null;
+
+                foreach (var p in props)
+                {
+                    if (p.PropertyType == typeof(object))
+                    {
+                        continue;
+                    }
+
+                    if (p.GetIndexParameters().Length > 0)
+                    {
+                        if (indexer != null)
+                        {
+                            // больше одного индексатора — невалидно
+                            return null;
+                        }
+
+                        indexer = p;
+                    }
+                }
+
+                if (indexer != null)
+                {
+                    return indexer.PropertyType;
+                }
             }
 
             return null;
@@ -2130,6 +2165,171 @@ namespace System
         public static string[] GetPropertyNames(Type type) => GetPropertiesMap(type).Keys.ToArray();
 
         /// <summary>
+        /// Получает значения указанных свойств объекта.
+        /// </summary>
+        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
+        /// <param name="source">Объект, из которого извлекаются значения.</param>
+        /// <param name="memberNames">
+        /// Имена свойств, значения которых необходимо получить.
+        /// Если не указаны, будут использованы все публичные свойства.
+        /// </param>
+        /// <returns>
+        /// Массив значений свойств в порядке их выбора.
+        /// </returns>
+        public static object[] GetValues<TObject>(TObject source, params string[] memberNames)
+            where TObject : class
+        {
+            if (source == null)
+            {
+                return Array.Empty<object>();
+            }
+
+            var values = new List<object>();
+            var sourceType = GetType(source);
+            if (memberNames == null || memberNames.Length == 0)
+            {
+                memberNames = GetPropertyNames(sourceType);
+            }
+
+            foreach (var propName in memberNames)
+            {
+                values.Add(GetMemberGetter(sourceType, propName)?.Invoke(source));
+            }
+
+            return values.ToArray();
+        }
+
+        /// <summary>
+        /// Получает значения указанных свойств объекта с приведением к заданному типу.
+        /// </summary>
+        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
+        /// <typeparam name="TValue">Тип, к которому будут приведены значения.</typeparam>
+        /// <param name="source">Объект, из которого извлекаются значения.</param>
+        /// <param name="memberNames">
+        /// Имена свойств, значения которых необходимо получить.
+        /// Если не указаны, будут использованы все публичные свойства.
+        /// </param>
+        /// <returns>
+        /// Массив значений свойств, приведённых к типу <typeparamref name="TValue"/>.
+        /// </returns>
+        /// <remarks>
+        /// Для преобразования используется вспомогательный метод <c>Obj.ChangeType&lt;T&gt;</c>.
+        /// Если преобразование невозможно, может возникнуть исключение.
+        /// </remarks>
+        public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames)
+            where TObject : class
+                => GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
+
+        /// <summary>
+        /// Копирует значения указанных членов из исходного объекта в целевой объект. Поддерживает копирование как между
+        /// отдельными объектами, так и между коллекциями объектов.
+        /// </summary>
+        /// <typeparam name="TSource">Тип исходного объекта, из которого копируются значения. Должен быть ссылочным типом.</typeparam>
+        /// <typeparam name="TTarget">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
+        /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
+        /// <param name="target">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
+        /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
+        /// свойства исходного объекта.</param>
+        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="target" />
+        /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
+        /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
+        /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
+        public static void Copy<TSource, TTarget>(TSource source, TTarget target, params string[] memberNames)
+            where TSource : class
+            where TTarget : class
+        {
+            if (source == null || typeof(TSource) == typeof(string))
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (target == null || typeof(TTarget) == typeof(string))
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            var sourceType = GetType(source);
+
+            if (memberNames == null || memberNames.Length == 0)
+            {
+                memberNames = GetPropertyNames(sourceType);
+            }
+
+            if (IsCollection(sourceType))
+            {
+                sourceType = GetCollectionItemType(sourceType);
+            }
+
+            var targetType = GetType(target);
+            if (IsCollection(targetType))
+            {
+                targetType = GetCollectionItemType(targetType);
+            }
+
+            if (source is IEnumerable srcList && !(source is string) && target is IEnumerable dstList && !(target is string))
+            {
+                var srcEnumerator = srcList.GetEnumerator();
+                var dstEnumerator = dstList.GetEnumerator();
+                var dstListChanged = false;
+                while (srcEnumerator.MoveNext())
+                {
+                    var srcItem = srcEnumerator.Current;
+                    object dstItem;
+
+                    if (!dstListChanged && dstEnumerator.MoveNext())
+                    {
+                        dstItem = dstEnumerator.Current;
+                    }
+                    else
+                    {
+                        dstItem = New(sourceType);
+                        if (dstList is IList dstIList)
+                        {
+                            dstListChanged = true;
+                            dstIList.Add(dstItem);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(@"Целевая коллекция не реализует IList и не поддерживает добавление новых элементов.");
+                        }
+                    }
+
+                    Copy(srcItem, dstItem);
+                }
+
+                if (srcEnumerator is IDisposable disposableSrc)
+                {
+                    disposableSrc.Dispose();
+                }
+
+                if (dstEnumerator is IDisposable disposableDst)
+                {
+                    disposableDst.Dispose();
+                }
+            }
+            else
+            {
+                foreach (var memberName in memberNames)
+                {
+                    var get = GetMemberGetter(sourceType, memberName);
+                    if (get == null)
+                    {
+                        continue;
+                    }
+
+                    var set = GetMemberSetter(targetType, memberName, out _);
+                    if (set == null)
+                    {
+                        continue;
+                    }
+
+                    var value = get(source);
+                    set(target, value);
+                }
+            }
+        }
+
+        /// <summary>
         /// Ищет тип или интерфейс по указанному имени во всех сборках, загруженных в текущий <see cref="AppDomain" />.
         /// Результаты поиска кэшируются для ускорения последующих вызовов.
         /// </summary>
@@ -2297,6 +2497,34 @@ namespace System
         /// <param name="type">Тип для проверки.</param>
         /// <returns>True, если тип является делегатом, иначе False.</returns>
         public static bool IsDelegate(Type type) => typeof(MulticastDelegate).IsAssignableFrom(type.BaseType);
+
+        /// <summary>
+        /// Определяет фактический тип переданного объекта с учетом <see cref="Nullable{T}"/>.
+        /// </summary>
+        /// <param name="obj">
+        /// Объект или экземпляр <see cref="Type"/>.
+        /// Может быть <c>null</c>.
+        /// </param>
+        /// <returns>
+        /// Тип объекта без обертки <see cref="Nullable{T}"/>, если она присутствует.
+        /// Если <paramref name="obj"/> равен <c>null</c>, возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Если <paramref name="obj"/> уже является типом (<see cref="Type"/>),
+        /// он используется напрямую. В противном случае вызывается <see cref="object.GetType"/>.
+        /// Для nullable-типов возвращается базовый тип (например, для <c>int?</c> будет возвращен <c>int</c>).
+        /// </remarks>
+        public static Type GetType(object obj)
+        {
+            var type = obj as Type ?? obj?.GetType();
+            if (type == null)
+            {
+                return null;
+            }
+
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            return type;
+        }
 
         /// <summary>
         /// Проверяет, является ли тип словарём.

@@ -740,7 +740,7 @@ namespace System.Linq
                 }
                 else
                 {
-                    ObjectExtensions.Copy(item, collectionItem);
+                    Obj.Copy(item, collectionItem);
                 }
 
                 collection.Add(collectionItem);
@@ -796,7 +796,7 @@ namespace System.Linq
                 }
                 else
                 {
-                    ObjectExtensions.Copy(item, collectionItem);
+                    Obj.Copy(item, collectionItem);
                 }
 
                 collection.Add(collectionItem);

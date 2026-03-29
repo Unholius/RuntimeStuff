@@ -48,7 +48,7 @@ public class ObjCopyTests
 
         // Act & Assert
         Assert.ThrowsException<ArgumentNullException>(() =>
-            ObjectExtensions.Copy<SourceClass, TargetClass>(null!, target));
+            Obj.Copy<SourceClass, TargetClass>(null!, target));
     }
 
     [TestMethod]
@@ -59,7 +59,7 @@ public class ObjCopyTests
 
         // Act & Assert
         Assert.ThrowsException<ArgumentNullException>(() =>
-            ObjectExtensions.Copy<SourceClass, TargetClass>(source, null!));
+            Obj.Copy<SourceClass, TargetClass>(source, null!));
     }
 
     [TestMethod]
@@ -80,7 +80,7 @@ public class ObjCopyTests
         };
 
         // Act
-        ObjectExtensions.Copy(source, target);
+        Obj.Copy(source, target);
 
         // Assert
         Assert.AreEqual(source.Name, target.Name);
@@ -104,7 +104,7 @@ public class ObjCopyTests
         var target = new TargetClass();
 
         // Act
-        ObjectExtensions.Copy(source, target, "Name", "Age");
+        Obj.Copy(source, target, "Name", "Age");
 
         // Assert
         Assert.AreEqual(source.Name, target.Name);
@@ -126,7 +126,7 @@ public class ObjCopyTests
         var employee = new Employee();
 
         // Act
-        ObjectExtensions.Copy(person, employee, "FirstName", "LastName");
+        Obj.Copy(person, employee, "FirstName", "LastName");
 
         // Assert
         Assert.AreEqual(person.FirstName, employee.FirstName);
@@ -142,7 +142,7 @@ public class ObjCopyTests
         var target = new TargetClass();
 
         // Act
-        ObjectExtensions.Copy(source, target);
+        Obj.Copy(source, target);
 
         // Assert - должен скопировать все свойства
         Assert.AreEqual(source.Name, target.Name);
@@ -168,7 +168,7 @@ public class ObjCopyTests
         };
 
         // Act
-        ObjectExtensions.Copy(sourceList, targetList);
+        Obj.Copy(sourceList, targetList);
 
         // Assert
         Assert.AreEqual(3, targetList.Count);
@@ -192,7 +192,7 @@ public class ObjCopyTests
         var targetList = new List<SimpleItem>();
 
         // Act
-        ObjectExtensions.Copy(sourceList, targetList);
+        Obj.Copy(sourceList, targetList);
 
         // Assert
         Assert.AreEqual(2, targetList.Count);
@@ -216,7 +216,7 @@ public class ObjCopyTests
         var targetList = new List<SimpleItem>();
 
         // Act
-        ObjectExtensions.Copy(sourceArray, targetList);
+        Obj.Copy(sourceArray, targetList);
 
         // Assert
         Assert.AreEqual(2, targetList.Count);
@@ -237,7 +237,7 @@ public class ObjCopyTests
 
         // Act & Assert
         Assert.ThrowsException<InvalidOperationException>(() =>
-            ObjectExtensions.Copy(sourceList, targetHashSet));
+            Obj.Copy(sourceList, targetHashSet));
     }
 
     [TestMethod]
@@ -249,6 +249,6 @@ public class ObjCopyTests
 
         // Act & Assert
         Assert.ThrowsException<ArgumentNullException>(() =>
-            ObjectExtensions.Copy(sourceList, targetList));
+            Obj.Copy(sourceList, targetList));
     }
 }

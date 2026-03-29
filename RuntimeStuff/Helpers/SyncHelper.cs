@@ -339,14 +339,13 @@ namespace System.Helpers
         {
             var timeoutCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(maxMillisecondsToWait));
 
-            CancellationTokenRegistration registration;
+            CancellationTokenRegistration registration = default;
 
             if (cancellationToken.CanBeCanceled)
             {
                 var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken,
                     timeoutCts.Token);
-
                 registration = linkedCts.Token.Register(() =>
                 {
                     if (Waiters.TryRemove(eventId, out var removed))

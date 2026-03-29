@@ -26,11 +26,7 @@ namespace System
     public class ValueFormatter
     {
         private readonly Dictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new Dictionary<Type, Func<object, ValueFormatter, string>>();
-        private string dateFormat = "{0:yyyy-MM-dd}";
-        private string dateTimeFormat = "{0:yyyy-MM-dd HH:mm:ss}";
-        private string decimalNumberFormat;
         private HashSet<object> nullValuesSet;
-        private string timeFormat = "{0:HH:mm:ss}";
 
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="ValueFormatter"/> с настройками по умолчанию.
@@ -124,11 +120,7 @@ namespace System
         /// <summary>
         /// Формат даты (без времени).
         /// </summary>
-        public string DateFormat
-        {
-            get => this.dateFormat;
-            set => this.dateFormat = StringHelper.NormalizeFormat(value);
-        }
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
 
         /// <summary>
         /// Префикс, добавляемый перед представлением даты при сериализации.
@@ -145,20 +137,12 @@ namespace System
         /// <summary>
         /// Формат даты и времени.
         /// </summary>
-        public string DateTimeFormat
-        {
-            get => this.dateTimeFormat;
-            set => this.dateTimeFormat = StringHelper.NormalizeFormat(value);
-        }
+        public string DateTimeFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
 
         /// <summary>
         /// Формат чисел с плавающей точкой.
         /// </summary>
-        public string DecimalNumberFormat
-        {
-            get => this.decimalNumberFormat;
-            set => this.decimalNumberFormat = StringHelper.NormalizeFormat(value);
-        }
+        public string DecimalNumberFormat { get; set; }
 
         /// <summary>
         /// Определяет, выводить ли значения перечислений как строки.
@@ -270,11 +254,7 @@ namespace System
         /// <summary>
         /// Формат времени.
         /// </summary>
-        public string TimeFormat
-        {
-            get => this.timeFormat;
-            set => this.timeFormat = StringHelper.NormalizeFormat(value);
-        }
+        public string TimeFormat { get; set; } = "HH:mm:ss";
 
         /// <summary>
         /// Определяет, удалять ли незначащие нули в числах.
@@ -316,7 +296,7 @@ namespace System
         /// <item><description>Постобработка через <see cref="PostFormatters"/>.</description></item>
         /// </list>
         /// </remarks>
-        public string Format(object value)
+        public virtual string Format(object value)
         {
             // 1. NULL handling
             if (value == null || (this.NullValues != null && this.NullValues.Contains(value)))
@@ -328,10 +308,6 @@ namespace System
             var type = value.GetType();
             var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
             this.CustomTypeFormat.TryGetValue(underlyingType, out var customTypeFormat);
-            if (customTypeFormat != null)
-            {
-                customTypeFormat = StringHelper.NormalizeFormat(customTypeFormat);
-            }
 
             if (this.TryGetSerializer(underlyingType, out var customSerializer))
             {
@@ -359,8 +335,7 @@ namespace System
                     str = StringHelper.EscapeString(str, this.EscapeMode);
                 }
 
-                result = StringHelper.ApplyAffixes(str, this.StringPrefix, this.StringSuffix);
-                return this.ApplyPost(result);
+                return this.ApplyPost(StringHelper.ApplyAffixes(str, this.StringPrefix, this.StringSuffix));
             }
 
             // 4. Boolean
@@ -384,44 +359,45 @@ namespace System
             // 6. DateTime
             if (value is DateTime dt)
             {
-                var format = customTypeFormat ?? (dt.HasTime() && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "{0:yyyy-MM-dd}");
-                var text = string.Format(this.CultureInfo, format, dt);
+                var format = customTypeFormat ?? (dt.HasTime() && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "yyyy-MM-dd");
+                var text = dt.ToString(format, this.CultureInfo);
                 result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
                 return this.ApplyPost(result);
             }
 
             if (value is DateTimeOffset dto)
             {
-                var format = customTypeFormat ?? (dto.TimeOfDay != TimeSpan.Zero && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "{0:yyyy-MM-dd HH:mm:ss}");
-                var text = string.Format(this.CultureInfo, format, dto);
+                var format = customTypeFormat ?? (dto.TimeOfDay != TimeSpan.Zero && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "yyyy-MM-dd HH:mm:ss");
+                var text = dto.ToString(format, this.CultureInfo);
                 result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
                 return this.ApplyPost(result);
             }
 
-            // #if NET6_0_OR_GREATER
-            //                        if (value is DateOnly d)
-            //                        {
-            //                            var format = DateFormat ?? "{0:yyyy-MM-dd}";
-            //                            var text = string.Format(CultureInfo, format, d);
-            //                            result = ApplyAffixes(text, DatePrefix, DateSuffix);
-            //                            return ApplyPost(result);
-            //                        }
-            //                        if (value is TimeOnly tOnly)
-            //                        {
-            //                            var format = TimeFormat ?? "{0:HH:mm:ss}";
-            //                            var text = string.Format(CultureInfo, format, tOnly);
-            //                            return ApplyPost(text);
-            //                        }
-            // #endif
+#if NET6_0_OR_GREATER
+            if (value is DateOnly d)
+            {
+                var format = customTypeFormat ?? this.DateFormat ?? "yyyy-MM-dd";
+                var text = string.Format(this.CultureInfo, format, d);
+                result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
+                return this.ApplyPost(result);
+            }
+
+            if (value is TimeOnly tOnly)
+            {
+                var format = customTypeFormat ?? this.TimeFormat ?? "HH:mm:ss";
+                var text = string.Format(this.CultureInfo, format, tOnly);
+                return this.ApplyPost(text);
+            }
+#endif
             if (value is TimeSpan ts)
             {
-                var format = customTypeFormat ?? "{0:c}";
-                var text = StringHelper.ApplyAffixes(string.Format(this.CultureInfo, format, ts), this.DatePrefix, this.DateSuffix);
+                var format = customTypeFormat ?? "c";
+                var text = StringHelper.ApplyAffixes(ts.ToString(format, this.CultureInfo), this.DatePrefix, this.DateSuffix);
                 return this.ApplyPost(text);
             }
 
             // 9. IEnumerable (кроме string)
-            if (value is System.Collections.IEnumerable enumerable)
+            if (value is Collections.IEnumerable enumerable)
             {
                 var items = new List<string>();
 
@@ -440,9 +416,9 @@ namespace System
             // 10. Numeric
             if (type.IsNumeric())
             {
-                string text = string.Format(this.CultureInfo, customTypeFormat ?? this.DecimalNumberFormat ?? "{0}", value);
+                string text = (value as IFormattable)?.ToString(customTypeFormat ?? this.DecimalNumberFormat, this.CultureInfo);
 
-                if (this.TrimNumberZeroes && text.Contains('.'))
+                if (this.TrimNumberZeroes && text?.Contains('.') == true)
                 {
                     text = TrimZeros(text);
                 }

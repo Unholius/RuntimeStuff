@@ -9,7 +9,7 @@
         {
             var x = new TestClass1();
             var json = "{ 'Id':1, 'Name': 'MyName', 'Child': { 'Id': 2, 'Name': 'ChildName'} }".Replace("'", "\"");
-            x.ImportFromJson(json);
+            x.FromJson(json);
             Assert.AreEqual(1, x.Id);
             Assert.AreEqual("MyName", x.Name);
             Assert.IsNotNull(x.Child);
