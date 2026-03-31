@@ -55,8 +55,6 @@
 
 	<ItemGroup>
 	  <Folder Include="Extensions\" />
-	  <Folder Include="Text\" />
-	  <Folder Include="Threading\Tasks\" />
 	</ItemGroup>
 
 	<!-- Генерация ресурсов -->

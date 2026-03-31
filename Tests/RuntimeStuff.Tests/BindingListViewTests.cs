@@ -68,7 +68,7 @@ namespace System.MSTests
                 ;
             var f = fb.ToString();
             blv.Filter = f;
-
+            Assert.AreEqual(count, blv.Count);
             
         }
     }
