@@ -20,6 +20,12 @@ namespace WinFormsExtensions
 
         private void OnValueTypeChanged()
         {
+            if (ValueType == null)
+            {
+                presetsList.Clear();
+                return;
+            }
+
             switch (ValueType.FullName)
             {
                 case "System.DateTime":
@@ -108,7 +114,7 @@ namespace WinFormsExtensions
                 .GreaterOrEqual(dateFrom)
                 .And()
                 .Property(FieldName)
-                .LowerOrEqual(dateTo);
+                .LessOrEqual(dateTo);
             return filterBuilder.ToString();
         }
 

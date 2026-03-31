@@ -1,16 +1,6 @@
-// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 01-06-2026
-//
-// Last Modified By : RS
-// Last Modified On : 25-02-2026
-// ***********************************************************************
 // <copyright file="DbClient.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
 
 namespace System.Data
 {

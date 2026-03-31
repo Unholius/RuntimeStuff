@@ -58,6 +58,7 @@
             panel1 = new System.Windows.Forms.Panel();
             tabControl1 = new System.Windows.Forms.TabControl();
             tabColumnValues = new System.Windows.Forms.TabPage();
+            progressBar1 = new System.Windows.Forms.ProgressBar();
             panel2 = new System.Windows.Forms.Panel();
             label2 = new System.Windows.Forms.Label();
             tabPresets = new System.Windows.Forms.TabPage();
@@ -395,6 +396,7 @@
             // 
             // tabColumnValues
             // 
+            tabColumnValues.Controls.Add(progressBar1);
             tabColumnValues.Controls.Add(FilterValuesGridView);
             tabColumnValues.Controls.Add(panel2);
             tabColumnValues.Location = new System.Drawing.Point(4, 24);
@@ -404,6 +406,16 @@
             tabColumnValues.TabIndex = 1;
             tabColumnValues.Text = "Значения";
             tabColumnValues.UseVisualStyleBackColor = true;
+            // 
+            // progressBar1
+            // 
+            progressBar1.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            progressBar1.Location = new System.Drawing.Point(57, 114);
+            progressBar1.Name = "progressBar1";
+            progressBar1.Size = new System.Drawing.Size(100, 23);
+            progressBar1.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
+            progressBar1.TabIndex = 5;
+            progressBar1.Visible = false;
             // 
             // panel2
             // 
@@ -666,6 +678,7 @@
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.TabPage tabConstructor;
         private System.Windows.Forms.ToolStripButton btnFreezeColumn;
+        private System.Windows.Forms.ProgressBar progressBar1;
         private ValueFilterTemplate valueFilterTemplate1;
     }
 }

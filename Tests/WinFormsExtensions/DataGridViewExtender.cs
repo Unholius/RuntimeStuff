@@ -21,7 +21,6 @@ namespace System.Windows.Forms.Extensions
             grid.RowEnter += Grid_RowEnter;
             grid.RowLeave += Grid_RowLeave;
             grid.SelectionChanged += Grid_SelectionChanged;
-            KeepSelectionOnRowChange = true;
         }
 
         private void SaveSelection()
@@ -89,7 +88,11 @@ namespace System.Windows.Forms.Extensions
 
         private void Grid_RowPostPaint(object sender, DataGridViewRowPostPaintEventArgs e)
         {
-            if (RowNumberVisible)
+            var grid = sender as DataGridView;
+            if (grid == null)
+                return;
+
+            if (RowNumberVisible && !grid.Rows[e.RowIndex].IsNewRow)
             {
                 string rowNumber = (e.RowIndex + 1).ToString();
                 var rowBounds = e.RowBounds;

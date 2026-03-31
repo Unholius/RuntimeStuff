@@ -48,14 +48,11 @@
             Presets.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] { Checked, PresetName, FilterFunc });
             Presets.Dock = System.Windows.Forms.DockStyle.Fill;
             Presets.Location = new System.Drawing.Point(0, 0);
-            Presets.MultiSelect = false;
             Presets.Name = "Presets";
-            Presets.ReadOnly = true;
             Presets.RowHeadersVisible = false;
             Presets.RowHeadersWidth = 10;
             Presets.RowHeadersWidthSizeMode = System.Windows.Forms.DataGridViewRowHeadersWidthSizeMode.DisableResizing;
             Presets.RowTemplate.Height = 20;
-            Presets.RowTemplate.ReadOnly = true;
             Presets.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             Presets.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect;
             Presets.ShowCellErrors = false;
@@ -70,7 +67,6 @@
             Checked.DataPropertyName = "Checked";
             Checked.HeaderText = "";
             Checked.Name = "Checked";
-            Checked.ReadOnly = true;
             Checked.Resizable = System.Windows.Forms.DataGridViewTriState.False;
             Checked.Width = 26;
             // 
@@ -81,7 +77,6 @@
             PresetName.HeaderText = "Preset Name";
             PresetName.Name = "PresetName";
             PresetName.ReadOnly = true;
-            PresetName.Visible = false;
             // 
             // FilterFunc
             // 

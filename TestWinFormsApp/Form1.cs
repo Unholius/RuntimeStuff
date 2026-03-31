@@ -14,7 +14,7 @@ namespace TestWinFormsApp
             InitializeComponent();
         }
 
-        public BindingListView<FileItem> FileItems { get; set; } = new BindingListView<FileItem>();
+        public BindingCollection<FileItem> FileItems { get; set; } = new BindingCollection<FileItem>();
 
         private async void Form1_Load(object sender, EventArgs e)
         {
@@ -160,7 +160,7 @@ namespace TestWinFormsApp
                 //}
                 using (var con = new SqlConnection().Connect("nas\\rssqlserver", "musiclib"))
                 {
-                    dgv.DataSource = await con.ToDataTableAsync("select top 1000 * from files", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
+                    dgv.DataSource = await con.ToDataTableAsync("select top 10000 * from files", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
                 }
             }
             catch (Exception ex)

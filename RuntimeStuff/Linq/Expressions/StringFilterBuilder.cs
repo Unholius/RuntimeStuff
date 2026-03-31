@@ -1,21 +1,13 @@
-﻿// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 01-06-2026
-//
-// Last Modified By : RS
-// Last Modified On : 01-07-2026
-// ***********************************************************************
-// <copyright file="StringFilterBuilder.cs" company="Rudnev Sergey">
+﻿// <copyright file="StringFilterBuilder.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
+
 namespace System.Linq.Expressions
 {
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Text;
 
@@ -25,7 +17,7 @@ namespace System.Linq.Expressions
     /// </summary>
     public class StringFilterBuilder
     {
-        private static readonly Dictionary<Token, string> DefaultSyntax = new Dictionary<Token, string>
+        private static readonly ReadOnlyDictionary<Token, string> DefaultSyntax = new ReadOnlyDictionary<Token, string>(new Dictionary<Token, string>()
         {
             { Token.Equal, "=" },
             { Token.NotEqual, "<>" },
@@ -44,7 +36,7 @@ namespace System.Linq.Expressions
             { Token.EndGroup, ")" },
             { Token.NamePrefix, string.Empty },
             { Token.NameSuffix, string.Empty },
-        };
+        });
 
         private readonly ValueFormatter formatter = new ValueFormatter()
         {
@@ -53,13 +45,14 @@ namespace System.Linq.Expressions
             NullValue = "null",
             StringPrefix = "'",
             StringSuffix = "'",
-            DatePrefix = "#",
-            DateSuffix = "#",
+            DatePrefix = "'",
+            DateSuffix = "'",
+            DateFormat = "yyyy-MM-dd",
         };
 
         private readonly StringBuilder sb = new StringBuilder();
-
         private bool needsOp;
+        private List<int> tokenIndexes = new List<int>(new[] { 0 });
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StringFilterBuilder"/> class.
@@ -169,6 +162,23 @@ namespace System.Linq.Expressions
         }
 
         /// <summary>
+        /// Построитель текстовых фильтров с синтаксисом, адаптированным для использования в DataView.
+        /// </summary>
+        public static StringFilterBuilder DataTableFilterBuilder => new StringFilterBuilder(new ValueFormatter()
+        {
+            TrueValue = "True",
+            FalseValue = "False",
+            NullValue = "DBNull.Value",
+            StringPrefix = "\"",
+            StringSuffix = "\"",
+            DatePrefix = "#",
+            DateSuffix = "#",
+            DateFormat = "MM/dd/yyyy",
+            ObjectPrefix = "'",
+            ObjectSuffix = "'",
+        });
+
+        /// <summary>
         /// Настройки токенов синтаксиса.
         /// </summary>
         public Dictionary<Token, string> Syntax { get; set; } = new Dictionary<Token, string>(DefaultSyntax);
@@ -260,6 +270,21 @@ namespace System.Linq.Expressions
             where T : class => this.And().Where(predicate);
 
         /// <summary>
+        /// Открывает новую группу условий скобкой "(". Перед вызовом требуется логический оператор AND/OR, если группа не первая.
+        /// </summary>
+        /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
+        /// <exception cref="InvalidOperationException">Если перед группой отсутствует логический оператор.</exception>
+        public StringFilterBuilder BeginGroup()
+        {
+            if (this.needsOp)
+            {
+                throw new InvalidOperationException("Перед группой нужен оператор AND/OR.");
+            }
+
+            return this.Append($" {this.Syntax[Token.BeginGroup]} ");
+        }
+
+        /// <summary>
         /// Добавляет фильтр BETWEEN для диапазона значений.
         /// </summary>
         /// <param name="low">Нижняя граница.</param>
@@ -328,6 +353,20 @@ namespace System.Linq.Expressions
         }
 
         /// <summary>
+        /// Добавляет фильтр с операцией "меньше или равно" для указанного значения.
+        /// </summary>
+        /// <param name="value">Значение для сравнения.</param>
+        /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
+        public StringFilterBuilder LessOrEqual(object value) => this.Binary(this.Syntax[Token.LessThanOrEqual], value);
+
+        /// <summary>
+        /// Добавляет фильтр с операцией "меньше" для указанного значения.
+        /// </summary>
+        /// <param name="value">Значение для сравнения.</param>
+        /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
+        public StringFilterBuilder LessThan(object value) => this.Binary(this.Syntax[Token.LessThan], value);
+
+        /// <summary>
         /// Добавляет фильтр с операцией LIKE.
         /// </summary>
         /// <param name="pattern">Шаблон для сравнения.</param>
@@ -338,20 +377,6 @@ namespace System.Linq.Expressions
             this.needsOp = true;
             return this;
         }
-
-        /// <summary>
-        /// Добавляет фильтр с операцией "меньше или равно" для указанного значения.
-        /// </summary>
-        /// <param name="value">Значение для сравнения.</param>
-        /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder LowerOrEqual(object value) => this.Binary(this.Syntax[Token.LessThanOrEqual], value);
-
-        /// <summary>
-        /// Добавляет фильтр с операцией "меньше" для указанного значения.
-        /// </summary>
-        /// <param name="value">Значение для сравнения.</param>
-        /// <returns>Текущий <see cref="StringFilterBuilder"/> для цепочки вызовов.</returns>
-        public StringFilterBuilder LowerThan(object value) => this.Binary(this.Syntax[Token.LessThan], value);
 
         /// <summary>
         /// Добавляет логическое отрицание "NOT" к следующему условию.
@@ -408,21 +433,6 @@ namespace System.Linq.Expressions
         }
 
         /// <summary>
-        /// Открывает новую группу условий скобкой "(". Перед вызовом требуется логический оператор AND/OR, если группа не первая.
-        /// </summary>
-        /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
-        /// <exception cref="InvalidOperationException">Если перед группой отсутствует логический оператор.</exception>
-        public StringFilterBuilder BeginGroup()
-        {
-            if (this.needsOp)
-            {
-                throw new InvalidOperationException("Перед группой нужен оператор AND/OR.");
-            }
-
-            return this.Append($" {this.Syntax[Token.BeginGroup]} ");
-        }
-
-        /// <summary>
         /// Добавляет логический оператор OR.
         /// </summary>
         /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
@@ -466,6 +476,22 @@ namespace System.Linq.Expressions
         public StringFilterBuilder Property<T>(Expression<Func<T, object>> propertySelector)
             where T : class => this.Property(propertySelector.GetPropertyName());
 
+        /// <summary>
+        /// Удалить последний добавленный токен фильтра. Полезно для корректировки построенного фильтра при динамическом формировании условий.
+        /// </summary>
+        /// <returns>Текущий <see cref="StringFilterBuilder"/>.</returns>
+        public StringFilterBuilder RemoveLast()
+        {
+            if (this.tokenIndexes.Count <= 1)
+            {
+                return this;
+            }
+
+            this.sb.Remove(this.tokenIndexes.Last(), this.sb.Length - this.tokenIndexes.Last());
+            this.tokenIndexes.Remove(this.tokenIndexes.Count - 1);
+            return this;
+        }
+
         /// <inheritdoc/>
         public override string ToString() => this.sb.ToString().Trim();
 
@@ -493,6 +519,7 @@ namespace System.Linq.Expressions
 
         private StringFilterBuilder Append(string text)
         {
+            this.tokenIndexes.Add(this.sb.Length);
             this.sb.Append(text);
             return this;
         }
@@ -502,6 +529,13 @@ namespace System.Linq.Expressions
             this.Append($" {op} {this.formatter.Format(value)}");
             this.needsOp = true;
             return this;
+        }
+
+        private class FilterToken
+        {
+            public Token Token { get; set; }
+
+            public List<object> Values { get; set; } = new List<object>();
         }
     }
 }

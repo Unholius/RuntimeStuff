@@ -1,16 +1,6 @@
-﻿// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 10-13-2025
-//
-// Last Modified By : RS
-// Last Modified On : 01-07-2026
-// ***********************************************************************
-// <copyright file="DateTimeHelper.cs" company="Rudnev Sergey">
+﻿// <copyright file="DateTimeHelper.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
 
 namespace System.Helpers
 {

@@ -1,16 +1,7 @@
-﻿// ***********************************************************************
-// Assembly         : RuntimeStuff
-// Author           : RS
-// Created          : 01-06-2026
-//
-// Last Modified By : RS
-// Last Modified On : 01-07-2026
-// ***********************************************************************
-// <copyright file="DbValueConverterExtensions.cs" company="Rudnev Sergey">
+﻿// <copyright file="DbValueConverterExtensions.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
-// <summary></summary>
-// ***********************************************************************
+
 namespace System.Data
 {
     using System;

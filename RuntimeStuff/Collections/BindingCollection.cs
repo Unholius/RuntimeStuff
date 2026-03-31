@@ -1,9 +1,10 @@
-﻿// <copyright file="BindingListView.cs" company="Rudnev Sergey">
+﻿// <copyright file="BindingCollection.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Helpers;
@@ -15,7 +16,7 @@ using System.Runtime.CompilerServices;
 /// поддерживающую фильтрацию, множественную сортировку и уведомления об изменениях коллекции.
 /// </summary>
 /// <typeparam name="T">Тип элементов в списке.</typeparam>
-public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyCollectionChanged, INotifyPropertyChanged
+public class BindingCollection<T> : BindingList<T>, IBindingListView, INotifyCollectionChanged, INotifyPropertyChanged
 {
     private readonly List<ListSortDirection> sortDirections = new List<ListSortDirection>();
     private readonly List<PropertyDescriptor> sortProperties = new List<PropertyDescriptor>();
@@ -28,18 +29,18 @@ public class BindingListView<T> : BindingList<T>, IBindingListView, INotifyColle
     private PropertyDescriptor sortProperty;
 
     /// <summary>
-    /// Инициализирует новый пустой экземпляр <see cref="BindingListView{T}"/>.
+    /// Инициализирует новый пустой экземпляр <see cref="BindingCollection{T}"/>.
     /// </summary>
-    public BindingListView()
+    public BindingCollection()
     {
     }
 
     /// <summary>
-    /// Инициализирует новый экземпляр <see cref="BindingListView{T}"/>.
+    /// Инициализирует новый экземпляр <see cref="BindingCollection{T}"/>.
     /// с начальной коллекцией элементов.
     /// </summary>
     /// <param name="collection">Исходная коллекция элементов.</param>
-    public BindingListView(IEnumerable<T> collection)
+    public BindingCollection(IEnumerable<T> collection)
     {
         this.source.AddRange(collection);
         this.RebuildView();

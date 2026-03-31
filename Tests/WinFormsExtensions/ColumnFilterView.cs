@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Helpers;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -60,7 +61,7 @@ namespace WinFormsExtensions
             ColumnCellRightAligned = btnRightAlignment.Checked = right;
         }
 
-        private static StringFilterBuilder StringFilterBuilder = new StringFilterBuilder();
+        private static StringFilterBuilder StringFilterBuilder = StringFilterBuilder.DataTableFilterBuilder;
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -68,7 +69,7 @@ namespace WinFormsExtensions
 
         public DataGridView SourceDataGridView { get; private set; }
 
-        private BindingListView<FilterRow> Values { get; set; } = new BindingListView<FilterRow>();
+        private BindingCollection<FilterRow> Values { get; set; } = new BindingCollection<FilterRow>();
 
         public bool ColumnFrozen { get; set; }
 
@@ -95,10 +96,11 @@ namespace WinFormsExtensions
             var f = GetInstance();
             f.valueFilterTemplate1.FieldName = column.DataPropertyName;
             f.valueFilterTemplate1.ValueType = column.ValueType;
+            f.valueFilterTemplate1.Grid.SetRowColors(column.DataGridView.AlternatingRowsDefaultCellStyle.BackColor);
             f.SourceColumn = column;
             f.SourceDataGridView = column.DataGridView;
             f.FilterValuesGridView.SetRowColors(column.DataGridView.AlternatingRowsDefaultCellStyle.BackColor);
-            f.valueFilterTemplate1.Grid.SetRowColors(column.DataGridView.AlternatingRowsDefaultCellStyle.BackColor);
+            
             f.FilterValuesGridView.DataSource = null;
             f.Text = $"{column.HeaderText ?? column.Name} ({column.ValueType?.Name})";
             f.StartPosition = FormStartPosition.Manual;
@@ -161,11 +163,11 @@ namespace WinFormsExtensions
                     f.ColumnFormat.Items.Add("dd.MM.yyyy HH:mm:ss");
                     f.ColumnFormat.Items.Add("dd.MM.yyyy HH:mm");
                     f.ColumnFormat.Items.Add("HH:mm:ss");
-                    f.ColumnFormat.Items.Add("yyyy-MM-dd");              // ISO
-                    f.ColumnFormat.Items.Add("yyyy-MM-dd HH:mm:ss");     // ISO datetime
+                    f.ColumnFormat.Items.Add("yyyy-MM-dd");
+                    f.ColumnFormat.Items.Add("yyyy-MM-dd HH:mm:ss");
                     f.ColumnFormat.Items.Add("yyyyMMdd");
-                    f.ColumnFormat.Items.Add("O");                       // round-trip (ISO 8601)
-                    f.ColumnFormat.Items.Add("s");                       // sortable
+                    f.ColumnFormat.Items.Add("O");
+                    f.ColumnFormat.Items.Add("s");
                     break;
 
                 case "Int16":
@@ -181,11 +183,11 @@ namespace WinFormsExtensions
                 case "Decimal":
                 case "Double":
                 case "Single":
-                    f.ColumnFormat.Items.Add("N2");   // 1 234.56
+                    f.ColumnFormat.Items.Add("N2");
                     f.ColumnFormat.Items.Add("N3");
-                    f.ColumnFormat.Items.Add("F2");   // фиксированное
+                    f.ColumnFormat.Items.Add("F2");
                     f.ColumnFormat.Items.Add("F4");
-                    f.ColumnFormat.Items.Add("G");    // general
+                    f.ColumnFormat.Items.Add("G");
                     f.ColumnFormat.Items.Add("#,0.00");
                     f.ColumnFormat.Items.Add("#,0.###");
                     f.ColumnFormat.Items.Add("0.00%");
@@ -215,6 +217,7 @@ namespace WinFormsExtensions
         {
             try
             {
+                progressBar1.Visible = true;
                 await Task.Run(() =>
                 {
                     var set = new HashSet<object>();
@@ -226,7 +229,7 @@ namespace WinFormsExtensions
                         }
 
                         var value = row.Cells[SourceColumn.Index].Value;
-                        if (value is DateTime dt)
+                        if (value is DateTime dt && FilterValuesGridView.Columns.Count > 1)
                         {
                             FilterValuesGridView.Columns[1].DefaultCellStyle.Format = "dd.MM.yyyy"; // для отображения дат без учета времени
                             value = dt.Date; // для фильтрации по датам без учета времени
@@ -251,7 +254,14 @@ namespace WinFormsExtensions
             }
             catch (Exception e)
             {
+                progressBar1.Visible = false;
+                var error = e.ToString();
+                Console.WriteLine(error);
                 throw; // TODO handle exception
+            }
+            finally
+            {
+                progressBar1.Visible = false;
             }
         }
 
@@ -313,11 +323,42 @@ namespace WinFormsExtensions
                 switch (tabControl1.SelectedIndex)
                 {
                     case 0:
-                        if (checkedValues.Count > 0)
-                            filterText = StringFilterBuilder.Property(SourceColumn.DataPropertyName)
-                                .In(checkedValues.ToArray())
-                                .ToString();
-                        break;
+                        if (SourceColumn.ValueType.IsDate())
+                        {
+                            foreach (var i in checkedValues)
+                            {
+                                StringFilterBuilder.BeginGroup();
+                                StringFilterBuilder.Property(SourceColumn.DataPropertyName);
+                                StringFilterBuilder.GreaterOrEqual(i);
+                                StringFilterBuilder.And();
+                                StringFilterBuilder.Property(SourceColumn.DataPropertyName);
+                                StringFilterBuilder.LessThan(((DateTime)i).AddDays(1));
+                                StringFilterBuilder.EndGroup();
+                                StringFilterBuilder.Or();
+                            }
+                            StringFilterBuilder.RemoveLast();
+                            filterText = StringFilterBuilder.ToString();
+                        }
+                        else
+                        {
+
+                            if (checkedValues.Count > 1)
+                            {
+                                filterText = StringFilterBuilder.Property(SourceColumn.DataPropertyName)
+                                    .In(checkedValues.ToArray())
+                                    .ToString();
+
+                            }
+
+                            if (checkedValues.Count == 1)
+                            {
+                                filterText = StringFilterBuilder.Property(SourceColumn.DataPropertyName)
+                                    .Equal(checkedValues.First())
+                                    .ToString();
+                            }
+                        }
+
+                            break;
 
                     case 1:
                         filterText = valueFilterTemplate1.SelectedFilterFunc?.Invoke() ?? string.Empty;

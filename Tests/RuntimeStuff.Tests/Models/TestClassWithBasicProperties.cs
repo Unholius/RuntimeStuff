@@ -92,6 +92,8 @@
         public bool Bool { get; set; }
         public double Double { get; set; }
 
+        public DateTime Date { get; set; }
+
         public override string ToString()
         {
             return $"{Int32}";
