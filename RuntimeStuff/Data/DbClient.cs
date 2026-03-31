@@ -130,6 +130,22 @@ namespace System.Data
         public event Action<IDbCommand, Exception> CommandFailed;
 
         /// <summary>
+        /// Таймаут выполнения SQL-команд по умолчанию (в секундах).
+        /// </summary>
+        /// <value>The default command timeout.</value>
+        public static int DefaultCommandTimeout { get; set; } = 30;
+
+        /// <summary>
+        /// Количество попыток выполнить команду при timeout exception.
+        /// </summary>
+        public static int RetryCount { get; set; } = 3;
+
+        /// <summary>
+        /// Количество секунд на которое будет увеличино время ожидания выполнения команды при повторе.
+        /// </summary>
+        public static int RetryTimeoutStep { get; set; } = 10;
+
+        /// <summary>
         /// Gets or sets the trim chars.
         /// </summary>
         /// <value>The trim chars.</value>
@@ -151,12 +167,6 @@ namespace System.Data
         /// </summary>
         /// <value>The connection.</value>
         public IDbConnection Connection { get; set; }
-
-        /// <summary>
-        /// Gets or sets таймаут выполнения SQL-команд по умолчанию (в секундах).
-        /// </summary>
-        /// <value>The default command timeout.</value>
-        public int DefaultCommandTimeout { get; set; } = 30;
 
         /// <summary>
         /// Gets or sets a value indicating whether включить логгирование запросов.
@@ -640,7 +650,7 @@ namespace System.Data
         {
             var cmd = this.Connection.CreateCommand();
             cmd.CommandText = query;
-            cmd.CommandTimeout = commandTimeOut ?? this.DefaultCommandTimeout;
+            cmd.CommandTimeout = commandTimeOut ?? DbClient.DefaultCommandTimeout;
             cmd.CommandType = CommandType.Text;
             cmd.Transaction = dbTransaction;
 
@@ -892,19 +902,44 @@ namespace System.Data
         /// В случае ошибки будет выброшено исключение.</remarks>
         public int ExecuteNonQuery(string query, object queryParams = null, IDbTransaction dbTransaction = null)
         {
-            using (var cmd = this.CreateCommand(query, queryParams, dbTransaction))
+            var attempt = 0;
+            while (true)
             {
-                BeginConnection(this.Connection);
-
-                var i = cmd.ExecuteNonQuery();
-                this.CommandExecuted?.Invoke(cmd);
-                this.Log(cmd);
-                if (cmd.Transaction == null)
+                using (var cmd = this.CreateCommand(query, queryParams, dbTransaction))
                 {
-                    this.CloseConnection(this.Connection);
-                }
+                    try
+                    {
+                        BeginConnection(this.Connection);
 
-                return i;
+                        var i = cmd.ExecuteNonQuery();
+                        this.CommandExecuted?.Invoke(cmd);
+                        this.Log(cmd);
+                        if (cmd.Transaction == null)
+                        {
+                            this.CloseConnection(this.Connection);
+                        }
+
+                        return i;
+                    }
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    {
+                        attempt++;
+                        this.HandleDbException(ex, cmd);
+                        this.CloseConnection();
+                        continue;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw this.HandleDbException(ex, cmd);
+                    }
+                    finally
+                    {
+                        if (dbTransaction != null)
+                        {
+                            this.CloseConnection();
+                        }
+                    }
+                }
             }
         }
 
@@ -925,25 +960,45 @@ namespace System.Data
             IDbTransaction dbTransaction = null,
             CancellationToken token = default)
         {
-            using (var cmd = this.CreateCommand(query, cmdParams, dbTransaction))
+            var attempt = 0;
+            while (true)
             {
-                try
+                token.ThrowIfCancellationRequested();
+                using (var cmd = this.CreateCommand(query, cmdParams, dbTransaction))
                 {
-                    await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
-                    var i = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(this.ConfigureAwait);
-                    this.CommandExecuted?.Invoke(cmd);
-                    this.Log(cmd);
-                    return i;
-                }
-                catch (Exception ex)
-                {
-                    throw this.HandleDbException(ex, cmd);
-                }
-                finally
-                {
-                    if (cmd.Transaction == null)
+                    try
                     {
-                        this.CloseConnection(this.Connection);
+                        await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
+                        var i = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(this.ConfigureAwait);
+                        this.CommandExecuted?.Invoke(cmd);
+                        this.Log(cmd);
+                        return i;
+                    }
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    {
+                        attempt++;
+                        this.HandleDbException(ex, cmd);
+                        var delay = TimeSpan.FromMilliseconds(200 * attempt);
+                        await Task.Delay(delay, token).ConfigureAwait(this.ConfigureAwait);
+                        this.CloseConnection();
+
+                        continue;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // НЕ ретраим отмену
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw this.HandleDbException(ex, cmd);
+                    }
+                    finally
+                    {
+                        if (cmd.Transaction != null)
+                        {
+                            this.CloseConnection();
+                        }
                     }
                 }
             }
@@ -1849,50 +1904,65 @@ namespace System.Data
             params Expression<Func<T, object>>[] insertColumns)
             where T : class
         {
-            try
+            var attempt = 0;
+            IDbCommand cmd = null;
+            while (true)
             {
-                var ids = new List<object>();
-                using (dbTransaction ?? this.BeginTransaction())
+                try
                 {
-                    var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
-                    if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
+                    var ids = new List<object>();
+                    using (dbTransaction ?? this.BeginTransaction())
                     {
-                        query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
-                    }
-
-                    var typeCache = MemberCache.Create(typeof(T));
-                    var pk = typeCache.PrimaryKeys.FirstOrDefault();
-                    var queryParams = new Dictionary<string, object>();
-                    using (var cmd = this.CreateCommand(query, dbTransaction))
-                    {
-                        foreach (var item in list)
+                        var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
+                        if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
                         {
-                            typeCache.ToDictionary(item, queryParams);
-                            SetParameterCollection(cmd, queryParams);
-                            var id = cmd.ExecuteScalar();
-                            ids.Add(id);
-                            this.CommandExecuted?.Invoke(cmd);
-                            this.Log(cmd);
-                            if (pk != null && id != null)
+                            query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
+                        }
+
+                        var typeCache = MemberCache.Create(typeof(T));
+                        var pk = typeCache.PrimaryKeys.FirstOrDefault();
+                        var queryParams = new Dictionary<string, object>();
+                        using (cmd = this.CreateCommand(query, dbTransaction))
+                        {
+                            foreach (var item in list)
                             {
-                                pk.SetValue(item, ChangeType(id, pk.PropertyType));
+                                typeCache.ToDictionary(item, queryParams);
+                                SetParameterCollection(cmd, queryParams);
+                                var id = cmd.ExecuteScalar();
+                                ids.Add(id);
+                                this.CommandExecuted?.Invoke(cmd);
+                                this.Log(cmd);
+                                if (pk != null && id != null)
+                                {
+                                    pk.SetValue(item, ChangeType(id, pk.PropertyType));
+                                }
                             }
                         }
+
+                        this.EndTransaction();
                     }
 
-                    this.EndTransaction();
+                    return ids.ToArray();
                 }
-
-                return ids.ToArray();
-            }
-            catch (Exception ex)
-            {
-                this.RollbackTransaction();
-                throw this.HandleDbException(ex, null);
-            }
-            finally
-            {
-                this.CloseConnection();
+                catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                {
+                    attempt++;
+                    this.HandleDbException(ex, cmd);
+                    this.CloseConnection();
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    this.RollbackTransaction();
+                    throw this.HandleDbException(ex, null);
+                }
+                finally
+                {
+                    if (cmd.Transaction != null)
+                    {
+                        this.CloseConnection();
+                    }
+                }
             }
         }
 
@@ -1938,56 +2008,71 @@ namespace System.Data
             CancellationToken token = default)
             where T : class
         {
-            try
+            var attempt = 0;
+            IDbCommand cmd = null;
+            while (true)
             {
-                var ids = new List<object>();
-                using (dbTransaction ?? this.BeginTransaction())
+                try
                 {
-                    var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
-                    if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
+                    var ids = new List<object>();
+                    using (dbTransaction ?? this.BeginTransaction())
                     {
-                        query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
-                    }
-
-                    var typeCache = MemberCache.Create(typeof(T));
-                    var pk = typeCache.PrimaryKeys.FirstOrDefault();
-                    var queryParams = new Dictionary<string, object>();
-                    using (var cmd = this.CreateCommand(query, dbTransaction))
-                    {
-                        if (!(cmd is DbCommand dbCmd))
+                        var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
+                        if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
                         {
-                            throw new InvalidCastException($"Cannot cast argument '{nameof(cmd)}' to type '{typeof(DbCommand).FullName}'.");
+                            query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                         }
 
-                        foreach (var item in list)
+                        var typeCache = MemberCache.Create(typeof(T));
+                        var pk = typeCache.PrimaryKeys.FirstOrDefault();
+                        var queryParams = new Dictionary<string, object>();
+                        using (cmd = this.CreateCommand(query, dbTransaction))
                         {
-                            typeCache.ToDictionary(item, queryParams);
-                            SetParameterCollection(cmd, queryParams);
-
-                            var id = await dbCmd.ExecuteScalarAsync(token).ConfigureAwait(this.ConfigureAwait);
-                            ids.Add(id);
-                            this.CommandExecuted?.Invoke(cmd);
-                            this.Log(cmd);
-                            if (pk != null && id != null)
+                            if (!(cmd is DbCommand dbCmd))
                             {
-                                pk.SetValue(item, ChangeType(id, pk.PropertyType));
+                                throw new InvalidCastException($"Cannot cast argument '{nameof(cmd)}' to type '{typeof(DbCommand).FullName}'.");
+                            }
+
+                            foreach (var item in list)
+                            {
+                                typeCache.ToDictionary(item, queryParams);
+                                SetParameterCollection(cmd, queryParams);
+
+                                var id = await dbCmd.ExecuteScalarAsync(token).ConfigureAwait(this.ConfigureAwait);
+                                ids.Add(id);
+                                this.CommandExecuted?.Invoke(cmd);
+                                this.Log(cmd);
+                                if (pk != null && id != null)
+                                {
+                                    pk.SetValue(item, ChangeType(id, pk.PropertyType));
+                                }
                             }
                         }
+
+                        this.EndTransaction();
                     }
 
-                    this.EndTransaction();
+                    return ids.ToArray();
                 }
-
-                return ids.ToArray();
-            }
-            catch (Exception ex)
-            {
-                this.RollbackTransaction();
-                throw this.HandleDbException(ex, null);
-            }
-            finally
-            {
-                this.CloseConnection();
+                catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                {
+                    attempt++;
+                    this.HandleDbException(ex, cmd);
+                    this.CloseConnection();
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    this.RollbackTransaction();
+                    throw this.HandleDbException(ex, null);
+                }
+                finally
+                {
+                    if (cmd.Transaction != null)
+                    {
+                        this.CloseConnection();
+                    }
+                }
             }
         }
 
@@ -2094,52 +2179,69 @@ namespace System.Data
                 itemFactory = BuildItemFactory<T>(cache, columnToPropertyMap);
             }
 
-            this.BeginConnection();
-            var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
-            try
+            var attempt = 0;
+            while (true)
             {
-                var reader = cmd.ExecuteReader();
-                try
+                this.BeginConnection();
+                using (var cmd = this.CreateCommand(query, cmdParams, dbTransaction, DefaultCommandTimeout + (RetryTimeoutStep * attempt)))
                 {
-                    this.CommandExecuted?.Invoke(cmd);
-                    this.Log(cmd);
-                    var list = new TList();
-
-                    if (list is ObservableCollectionEx<T> oce1)
+                    try
                     {
-                        oce1.SuppressNotifyCollectionChange = true;
+                        var reader = cmd.ExecuteReader();
+                        try
+                        {
+                            this.CommandExecuted?.Invoke(cmd);
+                            this.Log(cmd);
+                            var list = new TList();
+
+                            if (list is ObservableCollectionEx<T> oce1)
+                            {
+                                oce1.SuppressNotifyCollectionChange = true;
+                            }
+
+                            this.ReadToListInternalAsync<T>(
+                                list,
+                                reader,
+                                columns,
+                                columnToPropertyMap,
+                                converter,
+                                fetchRows,
+                                itemFactory,
+                                CancellationToken.None).GetAwaiter().GetResult();
+
+                            if (list is ObservableCollectionEx<T> oce2)
+                            {
+                                oce2.SuppressNotifyCollectionChange = false;
+                            }
+
+                            return list;
+                        }
+                        finally
+                        {
+                            reader.Dispose();
+                        }
                     }
-
-                    this.ReadToListInternalAsync<T>(
-                        list,
-                        reader,
-                        columns,
-                        columnToPropertyMap,
-                        converter,
-                        fetchRows,
-                        itemFactory,
-                        CancellationToken.None).GetAwaiter().GetResult();
-
-                    if (list is ObservableCollectionEx<T> oce2)
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
                     {
-                        oce2.SuppressNotifyCollectionChange = false;
+                        attempt++;
+                        this.HandleDbException(ex, cmd);
+                        this.CloseConnection();
+                        continue;
                     }
-
-                    return list;
+                    catch (OperationCanceledException)
+                    {
+                        // НЕ ретраим отмену
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw this.HandleDbException(ex, cmd);
+                    }
+                    finally
+                    {
+                        this.CloseConnection();
+                    }
                 }
-                finally
-                {
-                    reader.Dispose();
-                }
-            }
-            catch (Exception ex)
-            {
-                throw this.HandleDbException(ex, cmd);
-            }
-            finally
-            {
-                cmd.Dispose();
-                this.CloseConnection();
             }
         }
 
@@ -2254,44 +2356,61 @@ namespace System.Data
                 itemFactory = BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
             }
 
-            var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
-            this.BeginConnection();
-            try
+            var attempt = 0;
+            while (true)
             {
-                var reader = cmd.ExecuteReader();
-                try
+                using (var cmd = this.CreateCommand(query, cmdParams, dbTransaction))
                 {
-                    this.CommandExecuted?.Invoke(cmd);
-                    this.Log(cmd);
-                    var list = Obj.New(returnType) as IList;
-                    Obj.Set(list, "SuppressNotifyCollectionChange", true);
+                    this.BeginConnection();
+                    try
+                    {
+                        var reader = cmd.ExecuteReader();
+                        try
+                        {
+                            this.CommandExecuted?.Invoke(cmd);
+                            this.Log(cmd);
+                            var list = Obj.New(returnType) as IList;
+                            Obj.Set(list, "SuppressNotifyCollectionChange", true);
 
-                    this.ReadToListInternalAsync(
-                        list,
-                        reader,
-                        columns,
-                        columnToPropertyMap,
-                        converter,
-                        fetchRows,
-                        itemFactory,
-                        CancellationToken.None).GetAwaiter().GetResult();
+                            this.ReadToListInternalAsync(
+                                list,
+                                reader,
+                                columns,
+                                columnToPropertyMap,
+                                converter,
+                                fetchRows,
+                                itemFactory,
+                                CancellationToken.None).GetAwaiter().GetResult();
 
-                    Obj.Set(list, "SuppressNotifyCollectionChange", false);
-                    return list;
+                            Obj.Set(list, "SuppressNotifyCollectionChange", false);
+                            return list;
+                        }
+                        finally
+                        {
+                            reader.Dispose();
+                        }
+                    }
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    {
+                        attempt++;
+                        this.HandleDbException(ex, cmd);
+                        this.CloseConnection();
+                        continue;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // НЕ ретраим отмену
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw this.HandleDbException(ex, cmd);
+                    }
+                    finally
+                    {
+                        this.CloseConnection();
+                    }
                 }
-                finally
-                {
-                    reader.Dispose();
-                }
-            }
-            catch (Exception ex)
-            {
-                throw this.HandleDbException(ex, cmd);
-            }
-            finally
-            {
-                cmd.Dispose();
-                this.CloseConnection();
             }
         }
 
@@ -2408,44 +2527,70 @@ namespace System.Data
                 itemFactory = BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
             }
 
-            var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
-            this.BeginConnection();
-            try
+            var attempt = 0;
+            while (true)
             {
-                var reader = await cmd.ExecuteReaderAsync(token);
-                try
-                {
-                    this.CommandExecuted?.Invoke(cmd);
-                    this.Log(cmd);
-                    var list = Obj.New(returnType) as IList;
-                    Obj.Set(list, "SuppressNotifyCollectionChange", true);
+                token.ThrowIfCancellationRequested();
 
-                    await this.ReadToListInternalAsync(
-                        list,
-                        reader,
-                        columns,
-                        columnToPropertyMap,
-                        converter,
-                        fetchRows,
-                        itemFactory,
-                        token);
-
-                    Obj.Set(list, "SuppressNotifyCollectionChange", false);
-                    return list;
-                }
-                finally
+                using (var cmd = this.CreateCommand(query, cmdParams, dbTransaction, DefaultCommandTimeout + (RetryTimeoutStep * attempt)))
                 {
-                    reader.Dispose();
+                    await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
+
+                    try
+                    {
+                        var reader = await cmd.ExecuteReaderAsync(token);
+                        try
+                        {
+                            this.CommandExecuted?.Invoke(cmd);
+                            this.Log(cmd);
+                            var list = Obj.New(returnType) as IList;
+                            Obj.Set(list, "SuppressNotifyCollectionChange", true);
+
+                            await this.ReadToListInternalAsync(
+                                list,
+                                reader,
+                                columns,
+                                columnToPropertyMap,
+                                converter,
+                                fetchRows,
+                                itemFactory,
+                                token);
+
+                            Obj.Set(list, "SuppressNotifyCollectionChange", false);
+                            return list;
+                        }
+                        finally
+                        {
+                            reader.Dispose();
+                        }
+                    }
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    {
+                        attempt++;
+                        this.HandleDbException(ex, cmd);
+                        var delay = TimeSpan.FromMilliseconds(200 * attempt);
+                        await Task.Delay(delay, token).ConfigureAwait(this.ConfigureAwait);
+                        this.CloseConnection();
+
+                        continue;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // НЕ ретраим отмену
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw this.HandleDbException(ex, cmd);
+                    }
+                    finally
+                    {
+                        if (dbTransaction != null)
+                        {
+                            this.CloseConnection();
+                        }
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                throw this.HandleDbException(ex, cmd);
-            }
-            finally
-            {
-                cmd.Dispose();
-                this.CloseConnection();
             }
         }
 
@@ -2462,7 +2607,7 @@ namespace System.Data
         /// <param name="fetchRows">Количество строк для выборки. По умолчанию —1 (выбираются все строки).</param>
         /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию — 0.</param>
         /// <param name="itemFactory">Фабрика для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
-        /// <param name="ct">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <param name="token">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>Коллекция объектов типа <typeparamref name="T" />, которая содержит результат выполнения запроса.</returns>
         /// <remarks>Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде коллекции объектов.</remarks>
         public async Task<TList> QueryAsync<TList, T>(
@@ -2474,7 +2619,8 @@ namespace System.Data
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
-            CancellationToken ct = default)
+            IDbTransaction dbTransaction = null,
+            CancellationToken token = default)
             where TList : ICollection<T>, IList, new()
         {
             if (string.IsNullOrEmpty(query))
@@ -2490,53 +2636,108 @@ namespace System.Data
                 itemFactory = BuildItemFactory<T>(cache, columnToPropertyMap);
             }
 
-            var cmd = this.CreateCommand(query, cmdParams);
-            try
+            var attempt = 0;
+            while (true)
             {
-                await this.BeginConnectionAsync(ct).ConfigureAwait(this.ConfigureAwait);
+                token.ThrowIfCancellationRequested();
 
-                var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(this.ConfigureAwait);
-                try
+                using (var cmd = this.CreateCommand(query, cmdParams, dbTransaction, DefaultCommandTimeout + (RetryTimeoutStep * attempt)))
                 {
-                    this.CommandExecuted?.Invoke(cmd);
-                    this.Log(cmd);
-                    var list = new TList();
-                    if (list is ObservableCollectionEx<T> oce1)
+                    try
                     {
-                        oce1.SuppressNotifyCollectionChange = true;
+                        await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
+
+                        using (var reader = await cmd.ExecuteReaderAsync(token).ConfigureAwait(this.ConfigureAwait))
+                        {
+                            this.CommandExecuted?.Invoke(cmd);
+                            this.Log(cmd);
+
+                            var list = new TList();
+
+                            if (list is ObservableCollectionEx<T> oce1)
+                            {
+                                oce1.SuppressNotifyCollectionChange = true;
+                            }
+
+                            await this.ReadToListInternalAsync<T>(
+                                list,
+                                reader,
+                                columns,
+                                columnToPropertyMap,
+                                converter,
+                                fetchRows,
+                                itemFactory,
+                                token).ConfigureAwait(this.ConfigureAwait);
+
+                            if (list is ObservableCollectionEx<T> oce2)
+                            {
+                                oce2.SuppressNotifyCollectionChange = true;
+                            }
+
+                            return list;
+                        }
                     }
-
-                    await this.ReadToListInternalAsync<T>(
-                        list,
-                        reader,
-                        columns,
-                        columnToPropertyMap,
-                        converter,
-                        fetchRows,
-                        itemFactory,
-                        ct).ConfigureAwait(this.ConfigureAwait);
-
-                    if (list is ObservableCollectionEx<T> oce2)
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
                     {
-                        oce2.SuppressNotifyCollectionChange = true;
-                    }
+                        attempt++;
+                        this.HandleDbException(ex, cmd);
+                        var delay = TimeSpan.FromMilliseconds(200 * attempt);
+                        await Task.Delay(delay, token).ConfigureAwait(this.ConfigureAwait);
+                        this.CloseConnection();
 
-                    return list;
+                        continue;
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // НЕ ретраим отмену
+                        throw;
+                    }
+                    catch (Exception ex)
+                    {
+                        throw this.HandleDbException(ex, cmd);
+                    }
+                    finally
+                    {
+                        if (cmd.Transaction != null)
+                        {
+                            this.CloseConnection();
+                        }
+                    }
                 }
-                finally
+            }
+        }
+
+        /// <summary>
+        /// Определение является ли исключение command timeout exception.
+        /// </summary>
+        /// <param name="ex">Исключение при выполнении DbCommand.</param>
+        /// <returns>Является ли исключение command timeout exception.</returns>
+        public static bool IsTimeoutException(Exception ex)
+        {
+            if (ex is DbException dbEx)
+            {
+                // SQL Server
+                if (dbEx.GetType().Name == "SqlException")
                 {
-                    reader.Dispose();
+                    var numberProp = dbEx.GetType().GetProperty("Number");
+                    if (numberProp != null)
+                    {
+                        var number = (int)numberProp.GetValue(dbEx);
+                        if (number == -2)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                // PostgreSQL / MySQL / fallback
+                if (dbEx.Message.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
                 }
             }
-            catch (Exception ex)
-            {
-                throw this.HandleDbException(ex, cmd);
-            }
-            finally
-            {
-                cmd.Dispose();
-                this.CloseConnection();
-            }
+
+            return false;
         }
 
         /// <summary>
@@ -2569,6 +2770,326 @@ namespace System.Data
             CancellationToken token = default)
             where TFrom : class => ChangeType<T>((await this.AggAsync("SUM", whereExpression, token, columnSelector.ConvertExpression())
                 .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов типа <typeparamref name="TItem" />.
+        /// </summary>
+        /// <typeparam name="TItem">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="query">SQL-запрос для выполнения. Если <c>null</c>, будет использован стандартный запрос.</param>
+        /// <param name="cmdParams">Параметры запроса.</param>
+        /// <param name="columns">Список столбцов для выборки. Может быть <c>null</c>.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="TItem" />. Может быть <c>null</c>.</param>
+        /// <returns>Список объектов типа <typeparamref name="TItem" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде коллекции объектов.
+        /// Если <paramref name="itemFactory" /> не задан, используется стандартное преобразование данных в объекты.</remarks>
+        public ObservableCollection<TItem> ToCollection<TItem>(
+            string query = null,
+            object cmdParams = null,
+            IEnumerable<string> columns = null,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbValueConverter<TItem> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], TItem> itemFactory = null)
+        {
+            var list = this.Query<ObservableCollection<TItem>, TItem>(
+                query,
+                cmdParams,
+                columns,
+                columnToPropertyMap,
+                converter,
+                fetchRows,
+                offsetRows,
+                itemFactory);
+
+            return list;
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа <typeparamref name="TItem" />.
+        /// </summary>
+        /// <typeparam name="TItem">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="TItem" />. Может быть <c>null</c>.</param>
+        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
+        /// <returns>Список объектов типа <typeparamref name="TItem" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос синхронно с фильтрацией по выражению <paramref name="whereExpression" /> и
+        /// возвращает результат в виде списка.</remarks>
+        public ObservableCollection<TItem> ToCollection<TItem>(
+            Expression<Func<TItem, bool>> whereExpression,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbValueConverter<TItem> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], TItem> itemFactory = null,
+            params (Expression<Func<TItem, object>>, bool)[] orderByExpression)
+        {
+            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam) +
+                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
+
+            return this.ToCollection(
+                query,
+                cmdParam,
+                null,
+                columnToPropertyMap,
+                converter,
+                fetchRows,
+                offsetRows,
+                itemFactory);
+        }
+
+        /// <summary>
+        /// Асинхронно выполняет SQL-запрос и возвращает результат в виде коллекции объектов типа <typeparamref name="T" />.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="query">SQL-запрос для выполнения. Если <c>null</c>, будет использован стандартный запрос.</param>
+        /// <param name="cmdParams">Параметры запроса.</param>
+        /// <param name="columns">Список столбцов для выборки. Может быть <c>null</c>.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="ct">Токен отмены операции.</param>
+        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос асинхронно и возвращает результат в виде коллекции объектов.
+        /// Если <paramref name="itemFactory" /> не задан, используется стандартное преобразование данных в объекты.</remarks>
+        public Task<ObservableCollection<T>> ToCollectionAsync<T>(
+            string query = null,
+            object cmdParams = null,
+            IEnumerable<string> columns = null,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbValueConverter<T> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], T> itemFactory = null,
+            CancellationToken ct = default) => this.QueryAsync<ObservableCollection<T>, T>(
+                query,
+                cmdParams,
+                columns,
+                columnToPropertyMap,
+                converter,
+                fetchRows,
+                offsetRows,
+                itemFactory,
+                null,
+                ct);
+
+        /// <summary>
+        /// Асинхронно выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа
+        /// <typeparamref name="T" />.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="ct">Токен отмены операции.</param>
+        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
+        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде коллекции.</remarks>
+        public Task<ObservableCollection<T>> ToCollectionAsync<T>(
+            Expression<Func<T, bool>> whereExpression,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbValueConverter<T> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], T> itemFactory = null,
+            CancellationToken ct = default,
+            params (Expression<Func<T, object>>, bool)[] orderByExpression)
+        {
+            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam) +
+                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
+
+            return this.ToCollectionAsync(
+                query,
+                cmdParam,
+                null,
+                columnToPropertyMap,
+                converter,
+                fetchRows,
+                offsetRows,
+                itemFactory,
+                ct);
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов типа <typeparamref name="TItem" />.
+        /// </summary>
+        /// <typeparam name="TItem">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="query">SQL-запрос для выполнения. Если <c>null</c>, будет использован стандартный запрос.</param>
+        /// <param name="cmdParams">Параметры запроса.</param>
+        /// <param name="columns">Список столбцов для выборки. Может быть <c>null</c>.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="TItem" />. Может быть <c>null</c>.</param>
+        /// <returns>Список объектов типа <typeparamref name="TItem" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде коллекции объектов.
+        /// Если <paramref name="itemFactory" /> не задан, используется стандартное преобразование данных в объекты.</remarks>
+        public ObservableCollectionEx<TItem> ToCollectionEx<TItem>(
+            string query = null,
+            object cmdParams = null,
+            IEnumerable<string> columns = null,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbValueConverter<TItem> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], TItem> itemFactory = null)
+        {
+            var list = this.Query<ObservableCollectionEx<TItem>, TItem>(
+                query,
+                cmdParams,
+                columns,
+                columnToPropertyMap,
+                converter,
+                fetchRows,
+                offsetRows,
+                itemFactory);
+
+            return list;
+        }
+
+        /// <summary>
+        /// Выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа <typeparamref name="TItem" />.
+        /// </summary>
+        /// <typeparam name="TItem">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="TItem" />. Может быть <c>null</c>.</param>
+        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
+        /// <returns>Список объектов типа <typeparamref name="TItem" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос синхронно с фильтрацией по выражению <paramref name="whereExpression" /> и
+        /// возвращает результат в виде списка.</remarks>
+        public ObservableCollectionEx<TItem> ToCollectionEx<TItem>(
+            Expression<Func<TItem, bool>> whereExpression,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbValueConverter<TItem> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], TItem> itemFactory = null,
+            params (Expression<Func<TItem, object>>, bool)[] orderByExpression)
+        {
+            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam) +
+                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
+
+            return this.ToCollectionEx(
+                query,
+                cmdParam,
+                null,
+                columnToPropertyMap,
+                converter,
+                fetchRows,
+                offsetRows,
+                itemFactory);
+        }
+
+        /// <summary>
+        /// Асинхронно выполняет SQL-запрос и возвращает результат в виде коллекции объектов типа <typeparamref name="T" />.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="query">SQL-запрос для выполнения. Если <c>null</c>, будет использован стандартный запрос.</param>
+        /// <param name="cmdParams">Параметры запроса.</param>
+        /// <param name="columns">Список столбцов для выборки. Может быть <c>null</c>.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="ct">Токен отмены операции.</param>
+        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос асинхронно и возвращает результат в виде коллекции объектов.
+        /// Если <paramref name="itemFactory" /> не задан, используется стандартное преобразование данных в объекты.</remarks>
+        public Task<ObservableCollectionEx<T>> ToCollectionExAsync<T>(
+            string query = null,
+            object cmdParams = null,
+            IEnumerable<string> columns = null,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbValueConverter<T> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], T> itemFactory = null,
+            CancellationToken ct = default) => this.QueryAsync<ObservableCollectionEx<T>, T>(
+                query,
+                cmdParams,
+                columns,
+                columnToPropertyMap,
+                converter,
+                fetchRows,
+                offsetRows,
+                itemFactory,
+                null,
+                ct);
+
+        /// <summary>
+        /// Асинхронно выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа
+        /// <typeparamref name="T" />.
+        /// </summary>
+        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
+        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
+        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
+        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
+        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
+        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
+        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="ct">Токен отмены операции.</param>
+        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
+        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
+        /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде коллекции.</remarks>
+        public Task<ObservableCollectionEx<T>> ToCollectionExAsync<T>(
+            Expression<Func<T, bool>> whereExpression,
+            IEnumerable<(string, string)> columnToPropertyMap = null,
+            DbValueConverter<T> converter = null,
+            int fetchRows = -1,
+            int offsetRows = 0,
+            Func<object[], string[], T> itemFactory = null,
+            CancellationToken ct = default,
+            params (Expression<Func<T, object>>, bool)[] orderByExpression)
+        {
+            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
+                             whereExpression,
+                             this.Options,
+                             true,
+                             out var cmdParam) +
+                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
+
+            return this.ToCollectionExAsync(
+                query,
+                cmdParam,
+                null,
+                columnToPropertyMap,
+                converter,
+                fetchRows,
+                offsetRows,
+                itemFactory,
+                ct);
+        }
 
         /// <summary>
         /// Выполняет SQL-запрос и возвращает результат в виде <see cref="DataTable" />.
@@ -3142,6 +3663,7 @@ namespace System.Data
                 fetchRows,
                 offsetRows,
                 itemFactory,
+                null,
                 ct);
 
         /// <summary>
@@ -3177,324 +3699,6 @@ namespace System.Data
                          " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
 
             return this.ToListAsync(
-                query,
-                cmdParam,
-                null,
-                columnToPropertyMap,
-                converter,
-                fetchRows,
-                offsetRows,
-                itemFactory,
-                ct);
-        }
-
-        /// <summary>
-        /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов типа <typeparamref name="TItem" />.
-        /// </summary>
-        /// <typeparam name="TItem">Тип объектов, которые будут содержаться в списке.</typeparam>
-        /// <param name="query">SQL-запрос для выполнения. Если <c>null</c>, будет использован стандартный запрос.</param>
-        /// <param name="cmdParams">Параметры запроса.</param>
-        /// <param name="columns">Список столбцов для выборки. Может быть <c>null</c>.</param>
-        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
-        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
-        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
-        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="TItem" />. Может быть <c>null</c>.</param>
-        /// <returns>Список объектов типа <typeparamref name="TItem" />.</returns>
-        /// <remarks>Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде коллекции объектов.
-        /// Если <paramref name="itemFactory" /> не задан, используется стандартное преобразование данных в объекты.</remarks>
-        public ObservableCollection<TItem> ToCollection<TItem>(
-            string query = null,
-            object cmdParams = null,
-            IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbValueConverter<TItem> converter = null,
-            int fetchRows = -1,
-            int offsetRows = 0,
-            Func<object[], string[], TItem> itemFactory = null)
-        {
-            var list = this.Query<ObservableCollection<TItem>, TItem>(
-                query,
-                cmdParams,
-                columns,
-                columnToPropertyMap,
-                converter,
-                fetchRows,
-                offsetRows,
-                itemFactory);
-
-            return list;
-        }
-
-        /// <summary>
-        /// Выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа <typeparamref name="TItem" />.
-        /// </summary>
-        /// <typeparam name="TItem">Тип объектов, которые будут содержаться в списке.</typeparam>
-        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
-        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
-        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
-        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
-        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="TItem" />. Может быть <c>null</c>.</param>
-        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
-        /// <returns>Список объектов типа <typeparamref name="TItem" />.</returns>
-        /// <remarks>Этот метод выполняет SQL-запрос синхронно с фильтрацией по выражению <paramref name="whereExpression" /> и
-        /// возвращает результат в виде списка.</remarks>
-        public ObservableCollection<TItem> ToCollection<TItem>(
-            Expression<Func<TItem, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbValueConverter<TItem> converter = null,
-            int fetchRows = -1,
-            int offsetRows = 0,
-            Func<object[], string[], TItem> itemFactory = null,
-            params (Expression<Func<TItem, object>>, bool)[] orderByExpression)
-        {
-            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
-                             this.Options,
-                             true,
-                             out var cmdParam) +
-                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
-
-            return this.ToCollection(
-                query,
-                cmdParam,
-                null,
-                columnToPropertyMap,
-                converter,
-                fetchRows,
-                offsetRows,
-                itemFactory);
-        }
-
-        /// <summary>
-        /// Асинхронно выполняет SQL-запрос и возвращает результат в виде коллекции объектов типа <typeparamref name="T" />.
-        /// </summary>
-        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
-        /// <param name="query">SQL-запрос для выполнения. Если <c>null</c>, будет использован стандартный запрос.</param>
-        /// <param name="cmdParams">Параметры запроса.</param>
-        /// <param name="columns">Список столбцов для выборки. Может быть <c>null</c>.</param>
-        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
-        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
-        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
-        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
-        /// <param name="ct">Токен отмены операции.</param>
-        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод выполняет SQL-запрос асинхронно и возвращает результат в виде коллекции объектов.
-        /// Если <paramref name="itemFactory" /> не задан, используется стандартное преобразование данных в объекты.</remarks>
-        public Task<ObservableCollection<T>> ToCollectionAsync<T>(
-            string query = null,
-            object cmdParams = null,
-            IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbValueConverter<T> converter = null,
-            int fetchRows = -1,
-            int offsetRows = 0,
-            Func<object[], string[], T> itemFactory = null,
-            CancellationToken ct = default) => this.QueryAsync<ObservableCollection<T>, T>(
-                query,
-                cmdParams,
-                columns,
-                columnToPropertyMap,
-                converter,
-                fetchRows,
-                offsetRows,
-                itemFactory,
-                ct);
-
-        /// <summary>
-        /// Асинхронно выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа
-        /// <typeparamref name="T" />.
-        /// </summary>
-        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
-        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
-        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
-        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
-        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
-        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
-        /// <param name="ct">Токен отмены операции.</param>
-        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
-        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде коллекции.</remarks>
-        public Task<ObservableCollection<T>> ToCollectionAsync<T>(
-            Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbValueConverter<T> converter = null,
-            int fetchRows = -1,
-            int offsetRows = 0,
-            Func<object[], string[], T> itemFactory = null,
-            CancellationToken ct = default,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression)
-        {
-            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
-                             this.Options,
-                             true,
-                             out var cmdParam) +
-                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
-
-            return this.ToCollectionAsync(
-                query,
-                cmdParam,
-                null,
-                columnToPropertyMap,
-                converter,
-                fetchRows,
-                offsetRows,
-                itemFactory,
-                ct);
-        }
-
-        /// <summary>
-        /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов типа <typeparamref name="TItem" />.
-        /// </summary>
-        /// <typeparam name="TItem">Тип объектов, которые будут содержаться в списке.</typeparam>
-        /// <param name="query">SQL-запрос для выполнения. Если <c>null</c>, будет использован стандартный запрос.</param>
-        /// <param name="cmdParams">Параметры запроса.</param>
-        /// <param name="columns">Список столбцов для выборки. Может быть <c>null</c>.</param>
-        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
-        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
-        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
-        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="TItem" />. Может быть <c>null</c>.</param>
-        /// <returns>Список объектов типа <typeparamref name="TItem" />.</returns>
-        /// <remarks>Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде коллекции объектов.
-        /// Если <paramref name="itemFactory" /> не задан, используется стандартное преобразование данных в объекты.</remarks>
-        public ObservableCollectionEx<TItem> ToCollectionEx<TItem>(
-            string query = null,
-            object cmdParams = null,
-            IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbValueConverter<TItem> converter = null,
-            int fetchRows = -1,
-            int offsetRows = 0,
-            Func<object[], string[], TItem> itemFactory = null)
-        {
-            var list = this.Query<ObservableCollectionEx<TItem>, TItem>(
-                query,
-                cmdParams,
-                columns,
-                columnToPropertyMap,
-                converter,
-                fetchRows,
-                offsetRows,
-                itemFactory);
-
-            return list;
-        }
-
-        /// <summary>
-        /// Выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа <typeparamref name="TItem" />.
-        /// </summary>
-        /// <typeparam name="TItem">Тип объектов, которые будут содержаться в списке.</typeparam>
-        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
-        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
-        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
-        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
-        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="TItem" />. Может быть <c>null</c>.</param>
-        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
-        /// <returns>Список объектов типа <typeparamref name="TItem" />.</returns>
-        /// <remarks>Этот метод выполняет SQL-запрос синхронно с фильтрацией по выражению <paramref name="whereExpression" /> и
-        /// возвращает результат в виде списка.</remarks>
-        public ObservableCollectionEx<TItem> ToCollectionEx<TItem>(
-            Expression<Func<TItem, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbValueConverter<TItem> converter = null,
-            int fetchRows = -1,
-            int offsetRows = 0,
-            Func<object[], string[], TItem> itemFactory = null,
-            params (Expression<Func<TItem, object>>, bool)[] orderByExpression)
-        {
-            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
-                             this.Options,
-                             true,
-                             out var cmdParam) +
-                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
-
-            return this.ToCollectionEx(
-                query,
-                cmdParam,
-                null,
-                columnToPropertyMap,
-                converter,
-                fetchRows,
-                offsetRows,
-                itemFactory);
-        }
-
-        /// <summary>
-        /// Асинхронно выполняет SQL-запрос и возвращает результат в виде коллекции объектов типа <typeparamref name="T" />.
-        /// </summary>
-        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
-        /// <param name="query">SQL-запрос для выполнения. Если <c>null</c>, будет использован стандартный запрос.</param>
-        /// <param name="cmdParams">Параметры запроса.</param>
-        /// <param name="columns">Список столбцов для выборки. Может быть <c>null</c>.</param>
-        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
-        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
-        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
-        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
-        /// <param name="ct">Токен отмены операции.</param>
-        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод выполняет SQL-запрос асинхронно и возвращает результат в виде коллекции объектов.
-        /// Если <paramref name="itemFactory" /> не задан, используется стандартное преобразование данных в объекты.</remarks>
-        public Task<ObservableCollectionEx<T>> ToCollectionExAsync<T>(
-            string query = null,
-            object cmdParams = null,
-            IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbValueConverter<T> converter = null,
-            int fetchRows = -1,
-            int offsetRows = 0,
-            Func<object[], string[], T> itemFactory = null,
-            CancellationToken ct = default) => this.QueryAsync<ObservableCollectionEx<T>, T>(
-                query,
-                cmdParams,
-                columns,
-                columnToPropertyMap,
-                converter,
-                fetchRows,
-                offsetRows,
-                itemFactory,
-                ct);
-
-        /// <summary>
-        /// Асинхронно выполняет SQL-запрос с фильтрацией и возвращает результат в виде коллекции объектов типа
-        /// <typeparamref name="T" />.
-        /// </summary>
-        /// <typeparam name="T">Тип объектов, которые будут содержаться в списке.</typeparam>
-        /// <param name="whereExpression">Выражение для фильтрации данных.</param>
-        /// <param name="columnToPropertyMap">Отображение столбцов SQL-запроса в свойства объектов. Может быть <c>null</c>.</param>
-        /// <param name="converter">Конвертер для преобразования данных. Может быть <c>null</c>.</param>
-        /// <param name="fetchRows">Количество строк для выборки. По умолчанию -1 (выбираются все строки).</param>
-        /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию - 0.</param>
-        /// <param name="itemFactory">Функция для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
-        /// <param name="ct">Токен отмены операции.</param>
-        /// <param name="orderByExpression">Выражение для сортировки. Может быть <c>null</c>.</param>
-        /// <returns>Задача, которая возвращает коллекцию объектов типа <typeparamref name="T" />.</returns>
-        /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде коллекции.</remarks>
-        public Task<ObservableCollectionEx<T>> ToCollectionExAsync<T>(
-            Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
-            DbValueConverter<T> converter = null,
-            int fetchRows = -1,
-            int offsetRows = 0,
-            Func<object[], string[], T> itemFactory = null,
-            CancellationToken ct = default,
-            params (Expression<Func<T, object>>, bool)[] orderByExpression)
-        {
-            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
-                             this.Options,
-                             true,
-                             out var cmdParam) +
-                         " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
-
-            return this.ToCollectionExAsync(
                 query,
                 cmdParam,
                 null,
@@ -4023,20 +4227,6 @@ namespace System.Data
         }
 
         /// <summary>
-        /// Replaces the parameter token.
-        /// </summary>
-        /// <param name="sql">The SQL.</param>
-        /// <param name="token">The token.</param>
-        /// <param name="replacement">The replacement.</param>
-        /// <returns>System.String.</returns>
-        private static string ReplaceParameterToken(string sql, string token, string replacement) =>
-            Regex.Replace(
-                sql,
-                $@"(?<==\s*){Regex.Escape(token)}(?!\w)",
-                replacement,
-                RegexOptions.CultureInvariant);
-
-        /// <summary>
         /// Logs the command.
         /// </summary>
         /// <param name="cmd">The command.</param>
@@ -4049,6 +4239,20 @@ namespace System.Data
                 Debug.WriteLine($"  {p.ParameterName} = {p.Value}");
             }
         }
+
+        /// <summary>
+        /// Replaces the parameter token.
+        /// </summary>
+        /// <param name="sql">The SQL.</param>
+        /// <param name="token">The token.</param>
+        /// <param name="replacement">The replacement.</param>
+        /// <returns>System.String.</returns>
+        private static string ReplaceParameterToken(string sql, string token, string replacement) =>
+            Regex.Replace(
+                sql,
+                $@"(?<==\s*){Regex.Escape(token)}(?!\w)",
+                replacement,
+                RegexOptions.CultureInvariant);
 
         /// <summary>
         /// Begins the connection.

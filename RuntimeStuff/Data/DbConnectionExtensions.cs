@@ -1111,7 +1111,7 @@ namespace System.Data
             Func<object[], string[], T> itemFactory = null,
             CancellationToken ct = default)
             where TList : ICollection<T>, IList, new()
-            => connection.AsDbClient().QueryAsync<TList, T>(query, cmdParams, columns, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, ct);
+            => connection.AsDbClient().QueryAsync<TList, T>(query, cmdParams, columns, columnToPropertyMap, valueConverter, fetchRows, offsetRows, itemFactory, null, ct);
 
         /// <summary>
         /// Добавляет параметр сервера базы данных в строку подключения.
