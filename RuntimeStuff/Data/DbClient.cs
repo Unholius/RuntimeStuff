@@ -329,6 +329,39 @@ namespace System.Data
         }
 
         /// <summary>
+        /// Определение является ли исключение command timeout exception.
+        /// </summary>
+        /// <param name="ex">Исключение при выполнении DbCommand.</param>
+        /// <returns>Является ли исключение command timeout exception.</returns>
+        public static bool IsTimeoutException(Exception ex)
+        {
+            if (ex is DbException dbEx)
+            {
+                // SQL Server
+                if (dbEx.GetType().Name == "SqlException")
+                {
+                    var numberProp = dbEx.GetType().GetProperty("Number");
+                    if (numberProp != null)
+                    {
+                        var number = (int)numberProp.GetValue(dbEx);
+                        if (number == -2)
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                // PostgreSQL / MySQL / fallback
+                if (dbEx.Message.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Устанавливает коллекцию параметров для команды.
         /// </summary>
         /// <param name="cmd">Команда, для которой устанавливаются параметры.</param>
@@ -2607,6 +2640,7 @@ namespace System.Data
         /// <param name="fetchRows">Количество строк для выборки. По умолчанию —1 (выбираются все строки).</param>
         /// <param name="offsetRows">Количество строк для пропуска перед выборкой. По умолчанию — 0.</param>
         /// <param name="itemFactory">Фабрика для создания объектов типа <typeparamref name="T" />. Может быть <c>null</c>.</param>
+        /// <param name="dbTransaction">Транзакция для запроса.</param>
         /// <param name="token">The cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <returns>Коллекция объектов типа <typeparamref name="T" />, которая содержит результат выполнения запроса.</returns>
         /// <remarks>Этот метод выполняет SQL-запрос синхронно и возвращает результат в виде коллекции объектов.</remarks>
@@ -2705,39 +2739,6 @@ namespace System.Data
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// Определение является ли исключение command timeout exception.
-        /// </summary>
-        /// <param name="ex">Исключение при выполнении DbCommand.</param>
-        /// <returns>Является ли исключение command timeout exception.</returns>
-        public static bool IsTimeoutException(Exception ex)
-        {
-            if (ex is DbException dbEx)
-            {
-                // SQL Server
-                if (dbEx.GetType().Name == "SqlException")
-                {
-                    var numberProp = dbEx.GetType().GetProperty("Number");
-                    if (numberProp != null)
-                    {
-                        var number = (int)numberProp.GetValue(dbEx);
-                        if (number == -2)
-                        {
-                            return true;
-                        }
-                    }
-                }
-
-                // PostgreSQL / MySQL / fallback
-                if (dbEx.Message.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         /// <summary>
