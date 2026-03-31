@@ -21,6 +21,13 @@ namespace System.MSTests
         }
 
         [TestMethod]
+        public void TestJoin_03()
+        {
+            var join = SqlQueryHelper.GetJoinClause<DTO.SQLite.UserProfile, DTO.SQLite.User>(x => x.UserId, x => x.Id, SqlProviderOptions.SqliteOptions);
+            Assert.AreEqual("INNER JOIN \"users\" ON \"users\".\"user_id\" = \"user_profiles\".\"user_id\"", join);
+        }
+
+        [TestMethod]
         public void WhereClause_Test_01()
         {
             var whereClause =

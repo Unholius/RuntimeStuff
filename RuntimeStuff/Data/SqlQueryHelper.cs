@@ -186,6 +186,45 @@ namespace System.Data
         }
 
         /// <summary>
+        /// Формирует SQL-выражение JOIN для соединения таблиц на основе переданных выражений свойств.
+        /// </summary>
+        /// <typeparam name="TFrom">Тип сущности, из которой берётся таблица для JOIN.</typeparam>
+        /// <typeparam name="TOn">Тип сущности, содержащей свойство для условия соединения.</typeparam>
+        /// <param name="fromPropertySelector">
+        /// Выражение, указывающее на свойство в таблице, которая присоединяется (JOIN).
+        /// </param>
+        /// <param name="onPropertySelector">
+        /// Выражение, указывающее на свойство, по которому выполняется условие соединения (ON).
+        /// </param>
+        /// <param name="options">
+        /// Параметры SQL-провайдера, содержащие префиксы и суффиксы имён таблиц и колонок.
+        /// </param>
+        /// <param name="joinType">
+        /// Тип соединения (например, INNER, LEFT, RIGHT). По умолчанию используется INNER JOIN.
+        /// </param>
+        /// <returns>
+        /// Строка SQL, представляющая собой выражение JOIN с условием ON.
+        /// </returns>
+        /// <remarks>
+        /// Метод извлекает имена таблиц и колонок из выражений свойств,
+        /// применяя настройки префиксов и суффиксов, указанных в <paramref name="options"/>.
+        /// </remarks>
+        public static string GetJoinClause<TFrom, TOn>(Expression<Func<TFrom, object>> fromPropertySelector, Expression<Func<TOn, object>> onPropertySelector, SqlProviderOptions options, JoinType joinType = JoinType.Inner)
+        {
+            var np = options.NamePrefix;
+            var ns = options.NameSuffix;
+            var fromPropInfo = fromPropertySelector.GetMemberCache();
+            var fromTable = fromPropInfo.DeclaringType.GetMemberCache().GetFullTableName(np, ns);
+            var fromColumnName = fromPropInfo.GetFullColumnName(np, ns);
+
+            var onPropInfo = onPropertySelector.GetMemberCache();
+            var onColumnName = onPropInfo.GetFullColumnName(np, ns);
+
+            var joinClause = $"{joinType.ToString().ToUpper()} JOIN {fromTable} ON {fromColumnName} = {onColumnName}";
+            return joinClause;
+        }
+
+        /// <summary>
         /// Генерирует SQL-клаузу JOIN между двумя сущностями.
         /// </summary>
         /// <param name="from">Тип основной сущности.</param>

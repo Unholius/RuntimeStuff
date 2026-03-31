@@ -154,14 +154,14 @@ namespace TestWinFormsApp
                 var dt = new DataTable();
                 dgv.RowTemplate.Height = 20;
                 FileItems.Clear();
-                //using (var con = new SqlConnection().Connect("serv40", "tamuz"))
-                //{
-                //    dgv.DataSource = await con.ToDataTableAsync("select top 1000 * from products", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
-                //}
-                using (var con = new SqlConnection().Connect("nas\\rssqlserver", "musiclib"))
+                using (var con = new SqlConnection().Connect("serv40", "tamuz"))
                 {
-                    dgv.DataSource = await con.ToDataTableAsync("select top 10000 * from files", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
+                    dgv.DataSource = await con.ToDataTableAsync("select top 10000 * from products", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
                 }
+                //using (var con = new SqlConnection().Connect("nas\\rssqlserver", "musiclib"))
+                //{
+                //    dgv.DataSource = await con.ToDataTableAsync("select top 10000 * from files", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
+                //}
             }
             catch (Exception ex)
             {
