@@ -7,6 +7,7 @@ namespace System.Data
     using System;
     using System.Collections.Generic;
     using System.Helpers;
+    using System.Linq;
 
     /// <summary>
     /// Предоставляет вспомогательные методы для работы с
@@ -19,6 +20,100 @@ namespace System.Data
     /// в объектные модели.</remarks>
     public static class DataTableHelperExtensions
     {
+        /// <summary>
+        /// Преобразует <see cref="DataRowView"/> в объект указанного типа,
+        /// используя список имен колонок (1:1 соответствие).
+        /// </summary>
+        /// <typeparam name="T">Тип результирующего объекта.</typeparam>
+        /// <param name="rowView">Источник данных.</param>
+        /// <param name="columnNames">Список имен колонок для сопоставления.</param>
+        /// <returns>Экземпляр типа <typeparamref name="T"/> с заполненными свойствами.</returns>
+        public static T ToObject<T>(this DataRowView rowView, params string[] columnNames)
+            where T : class
+        {
+            return ToObject<T>(rowView.Row, columnNames);
+        }
+
+        /// <summary>
+        /// Преобразует <see cref="DataRowView"/> в объект указанного типа,
+        /// используя словарь сопоставления колонок и свойств.
+        /// </summary>
+        /// <typeparam name="T">Тип результирующего объекта.</typeparam>
+        /// <param name="rowView">Источник данных.</param>
+        /// <param name="columnMap">
+        /// Словарь сопоставления: ключ — имя колонки, значение — имя свойства объекта.
+        /// </param>
+        /// <returns>Экземпляр типа <typeparamref name="T"/> с заполненными свойствами.</returns>
+        public static T ToObject<T>(this DataRowView rowView, IDictionary<string, string> columnMap)
+            where T : class
+        {
+            return ToObject<T>(rowView.Row, columnMap);
+        }
+
+        /// <summary>
+        /// Преобразует <see cref="DataRow"/> в объект указанного типа,
+        /// используя список имен колонок (1:1 соответствие).
+        /// </summary>
+        /// <typeparam name="T">Тип результирующего объекта.</typeparam>
+        /// <param name="row">Источник данных.</param>
+        /// <param name="columnNames">Список имен колонок для сопоставления.</param>
+        /// <returns>Экземпляр типа <typeparamref name="T"/> с заполненными свойствами.</returns>
+        public static T ToObject<T>(this DataRow row, params string[] columnNames)
+            where T : class
+        {
+            var map = columnNames?.Select(x => new KeyValuePair<string, string>(x, x))
+                                  .ToDictionary(x => x.Key, x => x.Value)
+                      ?? new Dictionary<string, string>();
+
+            return ToObject<T>(row, map);
+        }
+
+        /// <summary>
+        /// Преобразует <see cref="DataRow"/> в объект указанного типа,
+        /// используя словарь сопоставления колонок и свойств.
+        /// </summary>
+        /// <typeparam name="T">Тип результирующего объекта.</typeparam>
+        /// <param name="row">Источник данных.</param>
+        /// <param name="columnMap">
+        /// Словарь сопоставления: ключ — имя колонки, значение — имя свойства объекта.
+        /// Если словарь пустой, выполняется копирование 1:1 (имя колонки = имя свойства).
+        /// </param>
+        /// <returns>Экземпляр типа <typeparamref name="T"/> с заполненными свойствами.</returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="columnMap"/> равен null.</exception>
+        public static T ToObject<T>(this DataRow row, IDictionary<string, string> columnMap)
+            where T : class
+        {
+            if (columnMap == null)
+            {
+                throw new ArgumentNullException(nameof(columnMap));
+            }
+
+            var obj = Obj.New<T>();
+            var columns = row.Table.Columns;
+
+            // если маппинг пустой — просто копируем 1:1
+            if (columnMap.Count == 0)
+            {
+                foreach (DataColumn c in columns)
+                {
+                    Obj.Set(obj, c.ColumnName, row[c]);
+                }
+
+                return obj;
+            }
+
+            // если есть маппинг
+            foreach (DataColumn c in columns)
+            {
+                if (columnMap.TryGetValue(c.ColumnName, out var mappedName))
+                {
+                    Obj.Set(obj, mappedName, row[c]);
+                }
+            }
+
+            return obj;
+        }
+
         /// <summary>
         /// Добавляет колонку в таблицу данных.
         /// </summary>

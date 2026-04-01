@@ -175,6 +175,11 @@ namespace System.Data
         public bool EnableLogging { get; set; }
 
         /// <summary>
+        /// Использовать полные имена в запросах: к колонкам добавляется имя таблицы.
+        /// </summary>
+        public bool UseFullNamesInQueries { get; set; }
+
+        /// <summary>
         /// Gets a value indicating whether признак того, что экземпляр <see cref="DbClient" /> был освобождён.
         /// </summary>
         /// <value><c>true</c> if this instance is disposed; otherwise, <c>false</c>.</value>
@@ -424,7 +429,7 @@ namespace System.Data
 
             if (whereExpression != null)
             {
-                query += " " + SqlQueryHelper.GetWhereClause(whereExpression, this.Options, false, out _);
+                query += " " + SqlQueryHelper.GetWhereClause(this.Options, whereExpression, false, out _);
             }
 
             var table = this.ToDataTable(query);
@@ -482,7 +487,7 @@ namespace System.Data
 
             if (whereExpression != null)
             {
-                query += " " + SqlQueryHelper.GetWhereClause(whereExpression, this.Options, false, out _);
+                query += " " + SqlQueryHelper.GetWhereClause(this.Options, whereExpression, false, out _);
             }
 
             var table = await this.ToDataTableAsync(query, token: token).ConfigureAwait(this.ConfigureAwait);
@@ -791,8 +796,8 @@ namespace System.Data
             where T : class
         {
             var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                    whereExpression,
                     this.Options,
+                    whereExpression,
                     true,
                     out var cmdParam))
                 .Trim();
@@ -844,8 +849,8 @@ namespace System.Data
             where T : class
         {
             var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                    whereExpression,
                     this.Options,
+                    whereExpression,
                     true,
                     out var cmdParams))
                 .Trim();
@@ -1073,10 +1078,10 @@ namespace System.Data
             Expression<Func<T, TProp>> propertySelector,
             Expression<Func<T, bool>> whereExpression)
         {
-            var query = (SqlQueryHelper.GetSelectQuery(this.Options, propertySelector) + " " +
+            var query = (SqlQueryHelper.GetSelectQuery(this.Options, this.UseFullNamesInQueries, propertySelector) + " " +
                          SqlQueryHelper.GetWhereClause(
-                             whereExpression,
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam)).Trim();
             return this.ExecuteScalar<TProp>(query, cmdParam);
@@ -1175,10 +1180,10 @@ namespace System.Data
             Expression<Func<T, bool>> whereExpression,
             CancellationToken token = default)
         {
-            var query = (SqlQueryHelper.GetSelectQuery(this.Options, propertySelector) + " " +
+            var query = (SqlQueryHelper.GetSelectQuery(this.Options, this.UseFullNamesInQueries, propertySelector) + " " +
                          SqlQueryHelper.GetWhereClause(
-                             whereExpression,
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam)).Trim();
             return this.ExecuteScalarAsync<TProp>(query, cmdParam, token: token);
@@ -1261,7 +1266,7 @@ namespace System.Data
         /// </exception>
         public void Fill<T>(T item, params object[] id)
         {
-            var query = SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " +
+            var query = SqlQueryHelper.GetSelectQuery<T>(this.Options, this.UseFullNamesInQueries) + " " +
                         SqlQueryHelper.GetWhereClause<T>(this.Options, out _);
 
             var pCmdParams = GetKeyParams(item, id);
@@ -1295,7 +1300,7 @@ namespace System.Data
         /// </exception>
         public Task FillAsync<T>(T item, params object[] id)
         {
-            var query = SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " +
+            var query = SqlQueryHelper.GetSelectQuery<T>(this.Options, this.UseFullNamesInQueries) + " " +
                         SqlQueryHelper.GetWhereClause<T>(this.Options, out _);
 
             var pCmdParams = GetKeyParams(item, id);
@@ -2201,10 +2206,10 @@ namespace System.Data
         {
             if (string.IsNullOrEmpty(query))
             {
-                query = SqlQueryHelper.GetSelectQuery<T>(this.Options);
+                query = SqlQueryHelper.GetSelectQuery<T>(this.Options, this.UseFullNamesInQueries);
             }
 
-            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(this.Options, fetchRows, offsetRows, query, typeof(T));
 
             var cache = MemberCache.Create(typeof(T));
             if (itemFactory == null)
@@ -2375,14 +2380,14 @@ namespace System.Data
             var returnTypeCache = MemberCache.Create(returnType);
             if (string.IsNullOrEmpty(query))
             {
-                query = SqlQueryHelper.GetSelectQuery(this.Options, returnTypeCache.ElementType);
+                query = SqlQueryHelper.GetSelectQuery(this.Options, this.UseFullNamesInQueries, returnTypeCache.ElementType);
             }
 
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
+                this.Options,
                 fetchRows,
                 offsetRows,
                 query,
-                this.Options,
                 returnTypeCache.ElementType);
             if (itemFactory == null)
             {
@@ -2546,14 +2551,14 @@ namespace System.Data
             var returnTypeCache = MemberCache.Create(returnType);
             if (string.IsNullOrEmpty(query))
             {
-                query = SqlQueryHelper.GetSelectQuery(this.Options, returnTypeCache.ElementType);
+                query = SqlQueryHelper.GetSelectQuery(this.Options, this.UseFullNamesInQueries, returnTypeCache.ElementType);
             }
 
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
+                this.Options,
                 fetchRows,
                 offsetRows,
                 query,
-                this.Options,
                 returnTypeCache.ElementType);
             if (itemFactory == null)
             {
@@ -2659,10 +2664,10 @@ namespace System.Data
         {
             if (string.IsNullOrEmpty(query))
             {
-                query = SqlQueryHelper.GetSelectQuery<T>(this.Options);
+                query = SqlQueryHelper.GetSelectQuery<T>(this.Options, this.UseFullNamesInQueries);
             }
 
-            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(fetchRows, offsetRows, query, this.Options, typeof(T));
+            query = SqlQueryHelper.AddLimitOffsetClauseToQuery(this.Options, fetchRows, offsetRows, query, typeof(T));
 
             var cache = MemberCache.Create(typeof(T));
             if (itemFactory == null)
@@ -2833,9 +2838,9 @@ namespace System.Data
             Func<object[], string[], TItem> itemFactory = null,
             params (Expression<Func<TItem, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
+            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options, this.UseFullNamesInQueries) + " " + SqlQueryHelper.GetWhereClause(
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam) +
                          " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
@@ -2913,9 +2918,9 @@ namespace System.Data
             CancellationToken ct = default,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
+            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options, this.UseFullNamesInQueries) + " " + SqlQueryHelper.GetWhereClause(
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam) +
                          " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
@@ -2993,9 +2998,9 @@ namespace System.Data
             Func<object[], string[], TItem> itemFactory = null,
             params (Expression<Func<TItem, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
+            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options, this.UseFullNamesInQueries) + " " + SqlQueryHelper.GetWhereClause(
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam) +
                          " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
@@ -3073,9 +3078,9 @@ namespace System.Data
             CancellationToken ct = default,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
+            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options, this.UseFullNamesInQueries) + " " + SqlQueryHelper.GetWhereClause(
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam) +
                          " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
@@ -3112,17 +3117,17 @@ namespace System.Data
             Func<string, object, DataColumn, object> valueConverter = null,
             params Expression<Func<TFrom, object>>[] columnSelectors)
         {
-            var query = (SqlQueryHelper.GetSelectQuery(this.Options, columnSelectors) + " " +
+            var query = (SqlQueryHelper.GetSelectQuery(this.Options, this.UseFullNamesInQueries, columnSelectors) + " " +
                          SqlQueryHelper.GetWhereClause(
-                             whereExpression,
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam)).Trim();
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
+                this.Options,
                 fetchRows,
                 offsetRows,
                 query,
-                this.Options,
                 typeof(TFrom));
             return this.ToDataTables(query, cmdParam, valueConverter).FirstOrDefault();
         }
@@ -3162,17 +3167,17 @@ namespace System.Data
             int offsetRows = 0,
             params Expression<Func<TFrom, object>>[] columnSelectors)
         {
-            var query = (SqlQueryHelper.GetSelectQuery(this.Options, columnSelectors) + " " +
+            var query = (SqlQueryHelper.GetSelectQuery(this.Options, this.UseFullNamesInQueries, columnSelectors) + " " +
                          SqlQueryHelper.GetWhereClause(
-                             whereExpression,
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam)).Trim();
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
+                this.Options,
                 fetchRows,
                 offsetRows,
                 query,
-                this.Options,
                 typeof(TFrom));
             return (await this.ToDataTablesAsync(query, cmdParam).ConfigureAwait(this.ConfigureAwait)).FirstOrDefault();
         }
@@ -3441,19 +3446,20 @@ namespace System.Data
         {
             var query = (SqlQueryHelper.GetSelectQuery(
                              this.Options,
+                             this.UseFullNamesInQueries,
                              typeof(TFrom).GetMemberCache(),
                              keySelector.GetMemberCache(),
                              valueSelector.GetMemberCache()) + " " +
                          SqlQueryHelper.GetWhereClause(
-                             whereExpression,
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam)).Trim();
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
+                this.Options,
                 fetchRows,
                 offsetRows,
                 query,
-                this.Options,
                 typeof(TFrom));
             var list = this.ToList(
                 query,
@@ -3526,19 +3532,20 @@ namespace System.Data
         {
             var query = (SqlQueryHelper.GetSelectQuery(
                              this.Options,
+                             this.UseFullNamesInQueries,
                              typeof(TFrom).GetMemberCache(),
                              keySelector.GetMemberCache(),
                              valueSelector.GetMemberCache()) + " " +
                          SqlQueryHelper.GetWhereClause(
-                             whereExpression,
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam)).Trim();
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(
+                this.Options,
                 fetchRows,
                 offsetRows,
                 query,
-                this.Options,
                 typeof(TFrom));
             return (await this.ToListAsync(
                 query,
@@ -3612,9 +3619,9 @@ namespace System.Data
             Func<object[], string[], TItem> itemFactory = null,
             params (Expression<Func<TItem, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
+            var query = (SqlQueryHelper.GetSelectQuery<TItem>(this.Options, this.UseFullNamesInQueries) + " " + SqlQueryHelper.GetWhereClause(
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam) +
                          " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
@@ -3692,9 +3699,9 @@ namespace System.Data
             CancellationToken ct = default,
             params (Expression<Func<T, object>>, bool)[] orderByExpression)
         {
-            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
-                             whereExpression,
+            var query = (SqlQueryHelper.GetSelectQuery<T>(this.Options, this.UseFullNamesInQueries) + " " + SqlQueryHelper.GetWhereClause(
                              this.Options,
+                             whereExpression,
                              true,
                              out var cmdParam) +
                          " " + SqlQueryHelper.GetOrderBy(this.Options, orderByExpression)).Trim();
@@ -3825,7 +3832,7 @@ namespace System.Data
             var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
             var cmdParams = this.GetParams(item);
             query += " " + (whereExpression != null
-                ? SqlQueryHelper.GetWhereClause(whereExpression, this.Options, true, out cmdParams)
+                ? SqlQueryHelper.GetWhereClause(this.Options, whereExpression, true, out cmdParams)
                 : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
 
             return this.ExecuteNonQuery(query, cmdParams, dbTransaction);
@@ -3889,7 +3896,7 @@ namespace System.Data
             var cmdParams = this.GetParams(item);
             var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
             query += " " + (whereExpression != null
-                ? SqlQueryHelper.GetWhereClause(whereExpression, this.Options, true, out cmdParams)
+                ? SqlQueryHelper.GetWhereClause(this.Options, whereExpression, true, out cmdParams)
                 : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
 
             return this.ExecuteNonQueryAsync(query, cmdParams, dbTransaction, token);

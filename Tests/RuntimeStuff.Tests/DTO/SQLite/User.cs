@@ -13,4 +13,12 @@ namespace System.MSTests.DTO.SQLite
         public UserProfile? UserProfile { get; set; }
         public Guid Guid { get; set; }
     }
+
+    [Table("user_logs", Schema = "logs")]
+    public class UserLogs
+    {
+        public DateTime Created { get; set; }
+        public int UserId { get; set; }
+        public string Message { get; set; }
+    }
 }

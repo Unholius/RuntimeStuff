@@ -40,13 +40,13 @@ namespace System.Data
         /// <summary>
         /// Добавляет в SQL-запрос ограничения на количество строк и смещение (LIMIT/OFFSET).
         /// </summary>
+        /// <param name="options">Параметры SQL-провайдера.</param>
         /// <param name="fetchRows">Количество строк для выборки.</param>
         /// <param name="offsetRows">Количество строк для пропуска (смещение).</param>
         /// <param name="query">Исходный SQL-запрос.</param>
-        /// <param name="options">Параметры SQL-провайдера.</param>
         /// <param name="entityType">Тип сущности для генерации ORDER BY (если его нет).</param>
         /// <returns>SQL-запрос с добавленным LIMIT/OFFSET.</returns>
-        public static string AddLimitOffsetClauseToQuery(int fetchRows, int offsetRows, string query, SqlProviderOptions options, Type entityType = null)
+        public static string AddLimitOffsetClauseToQuery(SqlProviderOptions options, int fetchRows, int offsetRows, string query, Type entityType = null)
         {
             if (fetchRows < 0 || offsetRows < 0)
             {
@@ -112,7 +112,7 @@ namespace System.Data
             where T : class
         {
             var mi = MemberCache.Create(typeof(T));
-            var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.ParamPrefix, options.NameSuffix));
+            var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.ParamPrefix, options.NameSuffix));
             return query.ToString();
         }
 
@@ -129,7 +129,7 @@ namespace System.Data
             var query = new StringBuilder("INSERT INTO ");
             var mi = MemberCache.Create(typeof(T));
             query
-                .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.NamePrefix, options.NameSuffix))
+                .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.NamePrefix, options.NameSuffix))
                 .Append(" (");
 
             var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
@@ -190,14 +190,14 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="TFrom">Тип сущности, из которой берётся таблица для JOIN.</typeparam>
         /// <typeparam name="TOn">Тип сущности, содержащей свойство для условия соединения.</typeparam>
+        /// <param name="options">
+        /// Параметры SQL-провайдера, содержащие префиксы и суффиксы имён таблиц и колонок.
+        /// </param>
         /// <param name="fromPropertySelector">
         /// Выражение, указывающее на свойство в таблице, которая присоединяется (JOIN).
         /// </param>
         /// <param name="onPropertySelector">
         /// Выражение, указывающее на свойство, по которому выполняется условие соединения (ON).
-        /// </param>
-        /// <param name="options">
-        /// Параметры SQL-провайдера, содержащие префиксы и суффиксы имён таблиц и колонок.
         /// </param>
         /// <param name="joinType">
         /// Тип соединения (например, INNER, LEFT, RIGHT). По умолчанию используется INNER JOIN.
@@ -209,32 +209,33 @@ namespace System.Data
         /// Метод извлекает имена таблиц и колонок из выражений свойств,
         /// применяя настройки префиксов и суффиксов, указанных в <paramref name="options"/>.
         /// </remarks>
-        public static string GetJoinClause<TFrom, TOn>(Expression<Func<TFrom, object>> fromPropertySelector, Expression<Func<TOn, object>> onPropertySelector, SqlProviderOptions options, JoinType joinType = JoinType.Inner)
+        public static string GetJoinClause<TFrom, TOn>(SqlProviderOptions options, Expression<Func<TFrom, object>> fromPropertySelector, Expression<Func<TOn, object>> onPropertySelector, JoinType joinType = JoinType.Inner)
         {
             var np = options.NamePrefix;
             var ns = options.NameSuffix;
             var fromPropInfo = fromPropertySelector.GetMemberCache();
-            var fromTable = fromPropInfo.DeclaringType.GetMemberCache().GetFullTableName(np, ns);
-            var fromColumnName = fromPropInfo.GetFullColumnName(np, ns);
+            var fromColumnName = fromPropInfo.GetColumnName(np, ns);
 
             var onPropInfo = onPropertySelector.GetMemberCache();
-            var onColumnName = onPropInfo.GetFullColumnName(np, ns);
+            var onColumnName = onPropInfo.GetColumnName(np, ns);
 
-            var joinClause = $"{joinType.ToString().ToUpper()} JOIN {fromTable} ON {fromColumnName} = {onColumnName}";
+            var joinTable = onPropInfo.DeclaringType.GetMemberCache().GetTableName(np, ns);
+
+            var joinClause = $"{joinType.ToString().ToUpper()} JOIN {joinTable} ON {onColumnName} = {fromColumnName}";
             return joinClause;
         }
 
         /// <summary>
         /// Генерирует SQL-клаузу JOIN между двумя сущностями.
         /// </summary>
+        /// <param name="options">Параметры SQL-провайдера.</param>
         /// <param name="from">Тип основной сущности.</param>
         /// <param name="joinOn">Тип сущности для соединения.</param>
-        /// <param name="options">Параметры SQL-провайдера.</param>
         /// <param name="joinType">Тип соединения (INNER, LEFT, RIGHT, FULL).</param>
         /// <returns>SQL-клауза JOIN.</returns>
         /// <exception cref="ArgumentNullException">Если один из типов равен null.</exception>
         /// <exception cref="InvalidOperationException">Если не удалось определить колонки для соединения.</exception>
-        public static string GetJoinClause(Type from, Type joinOn, SqlProviderOptions options, JoinType joinType = JoinType.Inner)
+        public static string GetJoinClause(SqlProviderOptions options, Type from, Type joinOn, JoinType joinType = JoinType.Inner)
         {
             if (from == null)
             {
@@ -350,12 +351,13 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="useFullNames">Использовать полные имена: к колонкам добавляется имя таблицы.</param>
         /// <param name="selectColumns">
         /// Массив выражений для выбора свойств сущности, которые будут включены в SELECT.
         /// Если массив пустой или <c>null</c>, выбираются все колонки и первичные ключи.
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
-        public static string GetSelectQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] selectColumns)
+        public static string GetSelectQuery<T>(SqlProviderOptions options, bool useFullNames, params Expression<Func<T, object>>[] selectColumns)
         {
             var mi = MemberCache.Create(typeof(T));
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
@@ -369,7 +371,7 @@ namespace System.Data
                 return $"SELECT * FROM {options.NamePrefix}{options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.TableName}{options.NameSuffix}";
             }
 
-            return GetSelectQuery(options, mi, members);
+            return GetSelectQuery(options, useFullNames, mi, members);
         }
 
         /// <summary>
@@ -378,25 +380,47 @@ namespace System.Data
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <typeparam name="TProp">Тип свойств для выборки.</typeparam>
         /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="useFullNames">Использовать полные имена: к колонкам добавляется имя таблицы.</param>
         /// <param name="selectColumns">
         /// Массив выражений для выбора свойств сущности, которые будут включены в SELECT.
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
-        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, params Expression<Func<T, TProp>>[] selectColumns)
-            => GetSelectQuery(options, MemberCache.Create(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
+        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, bool useFullNames, params Expression<Func<T, TProp>>[] selectColumns)
+            => GetSelectQuery(options, useFullNames, MemberCache.Create(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
 
         /// <summary>
         /// Генерирует SQL-запрос SELECT для указанного типа сущности с выборкой конкретных колонок.
         /// </summary>
         /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
-        /// <param name="typeInfo">Метаданные сущности в виде <see cref="MemberCache"/>.</param>
+        /// <param name="useFullNames">Использовать полные имена: к колонкам добавляется имя таблицы.</param>
+        /// <param name="type">Метаданные сущности в виде <see cref="MemberCache"/>.</param>
         /// <param name="selectColumns">
         /// Массив колонок для выборки. Если массив пустой, выбираются все колонки сущности.
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
-        public static string GetSelectQuery(SqlProviderOptions options, MemberCache typeInfo, params MemberCache[] selectColumns)
+        public static string GetSelectQuery(SqlProviderOptions options, bool useFullNames, Type type, params PropertyInfo[] selectColumns)
         {
-            if (selectColumns.Length == 0)
+            return GetSelectQuery(options, useFullNames, type.GetMemberCache(), selectColumns?.Select(x => x.GetMemberCache())?.ToArray());
+        }
+
+        /// <summary>
+        /// Генерирует SQL-запрос SELECT для указанного типа сущности с выборкой конкретных колонок.
+        /// </summary>
+        /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="useFullNames">Использовать полные имена: к колонкам добавляется имя таблицы.</param>
+        /// <param name="typeInfo">Метаданные сущности для подстановки имени таблицы после FROM.</param>
+        /// <param name="selectColumns">
+        /// Массив колонок для выборки. Если массив пустой, выбираются все колонки сущности <see cref="MemberCache.GetColumns"/>.
+        /// </param>
+        /// <returns>Строка SQL-запроса SELECT.</returns>
+        public static string GetSelectQuery(SqlProviderOptions options, bool useFullNames, MemberCache typeInfo, params MemberCache[] selectColumns)
+        {
+            if (typeInfo == null)
+            {
+                typeInfo = selectColumns?.FirstOrDefault()?.DeclaringType.GetMemberCache();
+            }
+
+            if (selectColumns == null || selectColumns.Length == 0)
             {
                 selectColumns = typeInfo.GetColumns();
             }
@@ -405,6 +429,21 @@ namespace System.Data
 
             foreach (var pi in selectColumns)
             {
+                if (useFullNames)
+                {
+                    if (!string.IsNullOrEmpty(pi.SchemaName))
+                    {
+                        query.Append(options.NamePrefix)
+                            .Append(pi.SchemaName)
+                            .Append(options.NameSuffix);
+                    }
+
+                    query.Append(options.NamePrefix)
+                        .Append(options.Map?.ResolveTableName(pi.DeclaringType, null, null) ?? pi.TableName)
+                        .Append(options.NameSuffix)
+                        .Append(".");
+                }
+
                 query.Append(options.NamePrefix)
                     .Append(options.Map?.ResolveColumnName(pi, null, null) ?? pi.ColumnName)
                     .Append(options.NameSuffix)
@@ -416,8 +455,15 @@ namespace System.Data
                 query.Remove(query.Length - 2, 2);
             }
 
-            query.Append(" FROM ")
-                .Append(options.Map?.ResolveTableName(typeInfo, options.NamePrefix, options.NameSuffix) ?? typeInfo.GetFullTableName(options.NamePrefix, options.NameSuffix));
+            query.Append(" FROM ");
+            if (!string.IsNullOrEmpty(typeInfo.SchemaName))
+            {
+                query.Append(options.NamePrefix)
+                    .Append(typeInfo.SchemaName)
+                    .Append(options.NameSuffix);
+            }
+
+            query.Append(options.Map?.ResolveTableName(typeInfo, options.NamePrefix, options.NameSuffix) ?? typeInfo.GetTableName(options.NamePrefix, options.NameSuffix, string.Empty));
 
             return query.ToString();
         }
@@ -437,7 +483,7 @@ namespace System.Data
         {
             var mi = MemberCache.Create(typeof(T));
             var query = new StringBuilder("UPDATE ")
-                .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetFullTableName(options.NamePrefix, options.NameSuffix))
+                .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.NamePrefix, options.NameSuffix))
                 .Append(" SET ");
 
             var props = updateColumns?.Select(ExpressionHelper.GetPropertyName).ToList()
@@ -483,15 +529,15 @@ namespace System.Data
         /// Генерирует SQL-клауза WHERE на основе выражения для указанной сущности.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="whereExpression">Лямбда-выражение для фильтрации строк (например, x => x.Id == 5).</param>
         /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="whereExpression">Лямбда-выражение для фильтрации строк (например, x => x.Id == 5).</param>
         /// <param name="useParams">Если <c>true</c>, значения будут подставлены как параметры, иначе как литералы SQL.</param>
         /// <param name="cmdParams">
         /// Словарь параметров, которые нужно будет передать вместе с SQL-запросом.
         /// Ключ — имя параметра, значение — его значение.
         /// </param>
         /// <returns>Строка SQL-клаузы WHERE.</returns>
-        public static string GetWhereClause<T>(Expression<Func<T, bool>> whereExpression, SqlProviderOptions options, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
+        public static string GetWhereClause<T>(SqlProviderOptions options, Expression<Func<T, bool>> whereExpression, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
         {
             var dic = new Dictionary<string, object>();
             var whereClause = whereExpression == null ? string.Empty : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();
@@ -518,20 +564,21 @@ namespace System.Data
                 keys = mi.PublicBasicProperties.ToArray();
             }
 
-            return GetWhereClause(keys, options, out cmdParams);
+            return GetWhereClause(options, true, keys, out cmdParams);
         }
 
         /// <summary>
         /// Генерирует SQL-клауза WHERE для указанного набора колонок.
         /// </summary>
-        /// <param name="whereProperties">Массив колонок (MemberCache), по которым строится фильтр.</param>
         /// <param name="options">Параметры SQL-провайдера, включая префикс/суффикс имен колонок и карту имен таблиц.</param>
+        /// <param name="and">Конкантенация условий через AND иначе через OR.</param>
+        /// <param name="whereProperties">Массив колонок (MemberCache), по которым строится фильтр.</param>
         /// <param name="cmdParams">
         /// Словарь параметров, которые нужно будет передать вместе с SQL-запросом.
         /// Ключ — имя параметра, значение — его значение (инициализируется <c>null</c>).
         /// </param>
         /// <returns>Строка SQL-клаузы WHERE для указанных колонок.</returns>
-        public static string GetWhereClause(MemberCache[] whereProperties, SqlProviderOptions options, out Dictionary<string, object> cmdParams)
+        public static string GetWhereClause(SqlProviderOptions options, bool and, MemberCache[] whereProperties, out Dictionary<string, object> cmdParams)
         {
             cmdParams = new Dictionary<string, object>();
             var whereClause = new StringBuilder("WHERE ");
@@ -550,7 +597,7 @@ namespace System.Data
 
                 if (i < whereProperties.Length - 1)
                 {
-                    whereClause.Append(" AND ");
+                    whereClause.Append(and ? " AND " : " OR ");
                 }
 
                 cmdParams[key.ColumnName] = null;

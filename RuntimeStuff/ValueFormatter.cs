@@ -451,6 +451,12 @@ namespace System
         /// </remarks>
         public bool TryGetSerializer(Type type, out Func<object, ValueFormatter, string> serializer)
         {
+            if (this.serializerCache == null || type == null)
+            {
+                serializer = null;
+                return false;
+            }
+
             if (this.serializerCache.TryGetValue(type, out serializer))
             {
                 return serializer != null;

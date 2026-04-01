@@ -1042,6 +1042,41 @@ namespace System.Linq
         }
 
         /// <summary>
+        /// Преобразует последовательность в <see cref="DefaultDictionary{TKey, TValue}"/>,
+        /// используя указанную функцию выбора ключа.
+        /// </summary>
+        /// <typeparam name="TSource">
+        /// Тип элементов исходной последовательности.
+        /// </typeparam>
+        /// <typeparam name="TKey">
+        /// Тип ключа.
+        /// </typeparam>
+        /// <typeparam name="TValue">
+        /// Тип значения.
+        /// </typeparam>
+        /// <param name="source">
+        /// Исходная последовательность.
+        /// </param>
+        /// <param name="keySelector">
+        /// Функция выбора ключа из элемента.
+        /// </param>
+        /// <param name="valueSelector">
+        /// Функция выбора значения из элемента.
+        /// </param>
+        /// <returns>
+        /// Экземпляр <see cref="DefaultDictionary{TKey, TValue}"/>,
+        /// содержащий элементы последовательности.
+        /// </returns>
+        public static DefaultDictionary<TKey, TValue> ToDefaultDictionary<TSource, TKey, TValue>(
+            this IEnumerable<TSource> source,
+            Func<TSource, TKey> keySelector,
+            Func<TSource, TValue> valueSelector)
+        {
+            var dd = new DefaultDictionary<TKey, TValue>(source.ToDictionary(keySelector, valueSelector));
+            return dd;
+        }
+
+        /// <summary>
         /// Преобразует последовательность в словарь, игнорируя повторяющиеся ключи.
         /// </summary>
         /// <typeparam name="TSource">Тип элементов последовательности.</typeparam>

@@ -1944,23 +1944,24 @@ namespace System.Reflection
         /// Получает полное имя столбца в формате [Схема].[Таблица].[Столбец] с квадратными скобками.
         /// </summary>
         /// <returns>Полное имя столбца.</returns>
-        public string GetFullColumnName() => this.GetFullColumnName("[", "]");
+        public string GetFullColumnName() => this.GetColumnName("[", "]");
 
         /// <summary>
         /// Получает полное имя столбца с указанными префиксом и суффиксом для имен.
         /// </summary>
         /// <param name="namePrefix">Префикс для имен (например, "[").</param>
         /// <param name="nameSuffix">Суффикс для имен (например, "]").</param>
+        /// <param name="fullName">Полное имя включает в себя имя таблицы и схемы, если указаны.</param>
         /// <param name="defaultSchemaName">Имя схемы по умолчанию, если SchemaName не задан.</param>
         /// <returns>Полное имя столбца.</returns>
-        public string GetFullColumnName(string namePrefix, string nameSuffix, string defaultSchemaName = null) => this.GetFullTableName(namePrefix, nameSuffix, defaultSchemaName) +
-                                                                                                                  $".{namePrefix}{this.ColumnName}{nameSuffix}";
+        public string GetColumnName(string namePrefix, string nameSuffix, bool fullName = true, string defaultSchemaName = null) => (fullName ? this.GetTableName(namePrefix, nameSuffix, defaultSchemaName) + "." : string.Empty) +
+                                                                                                                  $"{namePrefix}{this.ColumnName}{nameSuffix}";
 
         /// <summary>
         /// Получает полное имя таблицы в формате [Схема].[Таблица] с квадратными скобками.
         /// </summary>
         /// <returns>Полное имя таблицы.</returns>
-        public string GetFullTableName() => this.GetFullTableName("[", "]");
+        public string GetFullTableName() => this.GetTableName("[", "]");
 
         /// <summary>
         /// Получает полное имя таблицы с указанными префиксом и суффиксом для имен.
@@ -1969,7 +1970,7 @@ namespace System.Reflection
         /// <param name="nameSuffix">Суффикс для имен (например, "]").</param>
         /// <param name="defaultSchemaName">Имя схемы по умолчанию, если SchemaName не задан.</param>
         /// <returns>Полное имя таблицы.</returns>
-        public string GetFullTableName(string namePrefix, string nameSuffix, string defaultSchemaName = null)
+        public string GetTableName(string namePrefix, string nameSuffix, string defaultSchemaName = null)
         {
             var schema = string.IsNullOrWhiteSpace(this.SchemaName) ? defaultSchemaName : this.SchemaName;
             var fullTableName = $"{namePrefix}{this.TableName}{nameSuffix}";

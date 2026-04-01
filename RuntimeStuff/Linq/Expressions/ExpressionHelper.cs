@@ -155,7 +155,7 @@ namespace System.Linq.Expressions
         /// </summary>
         /// <param name="expr">Выражение, которое должно представлять доступ к свойству.</param>
         /// <returns>Объект <see cref="PropertyInfo" />, если выражение представляет свойство; иначе <c>null</c>.</returns>
-        public static PropertyInfo GetPropertyInfo(Expression expr) => GetMemberInfo(expr) as PropertyInfo;
+        public static PropertyInfo GetPropertyInfo(Expression expr) => (PropertyInfo)GetMemberInfo(expr);
 
         /// <summary>
         /// Возвращает информацию о свойстве, заданном лямбда-выражением доступа к нему.
