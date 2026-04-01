@@ -65,7 +65,7 @@ namespace System.Data
                 clause.Append(" ORDER BY ");
                 _ = clause.Append(string.Join(
                     ", ",
-                    mi.PrimaryKeys.Length > 0 ? mi.PrimaryKeys.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix) : mi.ColumnProperties.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix)));
+                    mi.PrimaryKeys.Length > 0 ? mi.PrimaryKeys.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix) : mi.GetColumns().Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix)));
                 clause.Append(' ');
             }
 
@@ -135,7 +135,7 @@ namespace System.Data
             var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
             if (insertCols.Length == 0)
             {
-                insertCols = mi.ColumnProperties.Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
+                insertCols = mi.GetColumns(false, true).Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
             }
 
             if (insertCols.Length == 0)
@@ -363,12 +363,12 @@ namespace System.Data
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
             if (members.Length == 0)
             {
-                members = mi.ColumnProperties.Concat(mi.PrimaryKeys).ToArray();
+                members = mi.GetColumns();
             }
 
             if (members.Length == 0)
             {
-                return $"SELECT * FROM {options.NamePrefix}{options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.TableName}{options.NameSuffix}";
+                return $"SELECT * FROM {options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.NamePrefix, options.NameSuffix)}";
             }
 
             return GetSelectQuery(options, useFullNames, mi, members);
@@ -456,14 +456,7 @@ namespace System.Data
             }
 
             query.Append(" FROM ");
-            if (!string.IsNullOrEmpty(typeInfo.SchemaName))
-            {
-                query.Append(options.NamePrefix)
-                    .Append(typeInfo.SchemaName)
-                    .Append(options.NameSuffix);
-            }
-
-            query.Append(options.Map?.ResolveTableName(typeInfo, options.NamePrefix, options.NameSuffix) ?? typeInfo.GetTableName(options.NamePrefix, options.NameSuffix, string.Empty));
+            query.Append(options.Map?.ResolveTableName(typeInfo, options.NamePrefix, options.NameSuffix) ?? typeInfo.GetTableName(options.NamePrefix, options.NameSuffix));
 
             return query.ToString();
         }
@@ -491,8 +484,8 @@ namespace System.Data
 
             if (props.Count == 0)
             {
-                props.AddRange(mi.ColumnProperties
-                    .Where(x => !x.IsPrimaryKey && x.IsSetterPublic)
+                props.AddRange(mi.GetColumns(false)
+                    .Where(x => x.IsSetterPublic)
                     .Select(x => x.Name));
             }
 

@@ -7,6 +7,19 @@ namespace System.MSTests
     public class SqlQueryHelperTests
     {
         [TestMethod]
+        public void TestSelect_01()
+        {
+            var query = SqlQueryHelper.GetSelectQuery<DTO.SQLite.UserLogs>(SqlProviderOptions.SqliteOptions, false);
+            Assert.AreEqual("SELECT \"Created\", \"UserId\", \"Message\" FROM \"logs\".\"user_logs\"", query);
+        }
+
+        [TestMethod]
+        public void TestSelect_02()
+        {
+            var query = SqlQueryHelper.GetSelectQuery<DTO.SQLite.UserLogs>(SqlProviderOptions.SqliteOptions, true);
+        }
+
+        [TestMethod]
         public void TestJoin_01()
         {
             var join = SqlQueryHelper.GetJoinClause(SqlProviderOptions.SqliteOptions, typeof(DTO.SQLite.User), typeof(DTO.SQLite.UserProfile));

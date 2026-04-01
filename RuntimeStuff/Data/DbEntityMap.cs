@@ -225,8 +225,7 @@ namespace System.Data
         }
 
         /// <summary>
-        /// Определяет имя таблицы для указанного типа
-        /// с учётом заданного префикса и суффикса.
+        /// Возвращает сопоставленное имя таблицы для указанного типа в формате имя_схемы.имя_таблицы. null, если сопоставления нет.
         /// </summary>
         /// <param name="type">Тип сущности.</param>
         /// <param name="namePrefix">Префикс имени.</param>
@@ -241,7 +240,20 @@ namespace System.Data
                 return null;
             }
 
-            return this.TypeMap.TryGetValue(type, out var typeMapping) ? $"{namePrefix}{typeMapping.TableName}{nameSuffix}" : null;
+            if (this.TypeMap.TryGetValue(type, out var typeMapping))
+            {
+                var tableName = $"{namePrefix}{typeMapping.TableName}{nameSuffix}";
+                if (!string.IsNullOrEmpty(typeMapping.Schema))
+                {
+                    tableName = $"{namePrefix}{typeMapping.Schema}{nameSuffix}." + tableName;
+                }
+
+                return tableName;
+            }
+            else
+            {
+                return null;
+            }
         }
 
         /// <summary>

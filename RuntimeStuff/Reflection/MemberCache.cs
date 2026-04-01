@@ -422,7 +422,8 @@ namespace System.Reflection
         public string ColumnName { get; }
 
         /// <summary>
-        /// Получает массив свойств, которые представляют столбцы в таблице базы данных.
+        /// Получает массив свойств, которые представляют столбцы в таблице базы данных, кроме ключей <see cref="PrimaryKeys"/> и <see cref="ForeignKeys"/>.<br/>
+        /// Для получения колонок по условию <see cref="GetColumns(bool, bool)"/>.
         /// </summary>
         public MemberCache[] ColumnProperties
         {
@@ -435,6 +436,7 @@ namespace System.Reflection
 
                 this.columns = this.typeCache?.ColumnProperties ?? this.PublicBasicProperties.Where(x =>
                         !x.IsPrimaryKey
+                        && !x.IsForeignKey
                         && x.IsColumn
                         && x.GetAttribute("NotMappedAttribute") == null)
                     .ToArray();
@@ -1743,27 +1745,54 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Получает массив членов, которые представляют столбцы в базе данных.
+        /// Возвращает набор колонок сущности, включая первичные ключи,
+        /// внешние ключи и обычные колонки.
         /// </summary>
-        /// <returns>Массив MemberCache, представляющих столбцы.</returns>
-        public MemberCache[] GetColumns()
+        /// <param name="getPk">
+        /// Указывает, нужно ли включать первичные ключи в результат.
+        /// </param>
+        /// <param name="getFk">
+        /// Указывает, нужно ли включать внешние ключи в результат.
+        /// </param>
+        /// <returns>
+        /// Массив <see cref="MemberCache"/>, содержащий выбранные колонки:
+        /// первичные ключи, внешние ключи и обычные свойства.
+        /// </returns>
+        /// <remarks>
+        /// Порядок элементов в результирующем массиве:
+        /// сначала первичные ключи (если <paramref name="getPk"/> = true),
+        /// затем внешние ключи (если <paramref name="getFk"/> = true),
+        /// затем остальные колонки.
+        /// </remarks>
+        public MemberCache[] GetColumns(bool getPk = true, bool getFk = true)
         {
-            if (this.columns != null)
+            var result = new List<MemberCache>();
+            var seen = new HashSet<MemberCache>();
+
+            void AddRange(IEnumerable<MemberCache> items)
             {
-                return this.columns;
+                foreach (var item in items)
+                {
+                    if (seen.Add(item))
+                    {
+                        result.Add(item);
+                    }
+                }
             }
 
-            this.columns = this.GetProperties()
-                .Select(pi => this[pi])
-                .Where(x => x.IsProperty &&
-                            x.IsPublic &&
-                            x.IsBasic &&
-                            !x.IsCollection &&
-                            x.HasAnyAttributeOfType("ColumnAttribute", "KeyAttribute", "ForeignKeyAttribute")
-                            && !x.HasAnyAttributeOfType("NotMappedAttribute"))
-                .ToArray();
+            if (getPk)
+            {
+                AddRange(this.PrimaryKeys);
+            }
 
-            return this.columns;
+            if (getFk)
+            {
+                AddRange(this.ForeignKeys);
+            }
+
+            AddRange(this.ColumnProperties);
+
+            return result.ToArray();
         }
 
         /// <summary>
@@ -1952,10 +1981,9 @@ namespace System.Reflection
         /// <param name="namePrefix">Префикс для имен (например, "[").</param>
         /// <param name="nameSuffix">Суффикс для имен (например, "]").</param>
         /// <param name="fullName">Полное имя включает в себя имя таблицы и схемы, если указаны.</param>
-        /// <param name="defaultSchemaName">Имя схемы по умолчанию, если SchemaName не задан.</param>
         /// <returns>Полное имя столбца.</returns>
-        public string GetColumnName(string namePrefix, string nameSuffix, bool fullName = true, string defaultSchemaName = null) => (fullName ? this.GetTableName(namePrefix, nameSuffix, defaultSchemaName) + "." : string.Empty) +
-                                                                                                                  $"{namePrefix}{this.ColumnName}{nameSuffix}";
+        public string GetColumnName(string namePrefix, string nameSuffix, bool fullName = true)
+            => (fullName ? this.GetTableName(namePrefix, nameSuffix) + "." : string.Empty) + $"{namePrefix}{this.ColumnName}{nameSuffix}";
 
         /// <summary>
         /// Получает полное имя таблицы в формате [Схема].[Таблица] с квадратными скобками.
@@ -1968,15 +1996,13 @@ namespace System.Reflection
         /// </summary>
         /// <param name="namePrefix">Префикс для имен (например, "[").</param>
         /// <param name="nameSuffix">Суффикс для имен (например, "]").</param>
-        /// <param name="defaultSchemaName">Имя схемы по умолчанию, если SchemaName не задан.</param>
         /// <returns>Полное имя таблицы.</returns>
-        public string GetTableName(string namePrefix, string nameSuffix, string defaultSchemaName = null)
+        public string GetTableName(string namePrefix, string nameSuffix)
         {
-            var schema = string.IsNullOrWhiteSpace(this.SchemaName) ? defaultSchemaName : this.SchemaName;
             var fullTableName = $"{namePrefix}{this.TableName}{nameSuffix}";
-            if (!string.IsNullOrWhiteSpace(schema))
+            if (!string.IsNullOrWhiteSpace(this.SchemaName))
             {
-                fullTableName = $"{namePrefix}{schema}{nameSuffix}." + fullTableName;
+                fullTableName = $"{namePrefix}{this.SchemaName}{nameSuffix}." + fullTableName;
             }
 
             return fullTableName;
