@@ -40,13 +40,7 @@ namespace System.ComponentModel
         public bool SuspendNotifications
         {
             get => this.suspendNotifications;
-            set
-            {
-                if (this.suspendNotifications != value)
-                {
-                    this.suspendNotifications = value;
-                }
-            }
+            set => this.suspendNotifications = value;
         }
 
         /// <summary>
@@ -108,7 +102,7 @@ namespace System.ComponentModel
         {
             this.values ??= new Dictionary<string, IValueHolder>();
 
-            if (!this.values.TryGetValue(propertyName, out var holder) || !(holder is ValueHolder<T> typed))
+            if (!this.values.TryGetValue(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), out var holder) || !(holder is ValueHolder<T> typed))
             {
                 typed = new ValueHolder<T>();
                 this.values[propertyName] = typed;
@@ -147,7 +141,7 @@ namespace System.ComponentModel
         {
             var dict = this.values;
 
-            if (dict != null && dict.TryGetValue(propertyName, out var holder) && holder is ValueHolder<T> typed)
+            if (dict != null && dict.TryGetValue(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), out var holder) && holder is ValueHolder<T> typed)
             {
                 return typed.Value;
             }
@@ -164,7 +158,7 @@ namespace System.ComponentModel
             /// <summary>
             /// Компаратор для сравнения значений свойства.
             /// </summary>
-            public static readonly EqualityComparer<T> Comparer = EqualityComparer<T>.Default;
+            private static readonly EqualityComparer<T> Comparer = EqualityComparer<T>.Default;
 
             /// <summary>
             /// Значение свойства.
