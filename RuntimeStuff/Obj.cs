@@ -7,6 +7,7 @@ namespace System
     using System.Collections;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Data;
     using System.Diagnostics;
     using System.Globalization;
     using System.Linq;
@@ -16,7 +17,7 @@ namespace System
     using System.Runtime.CompilerServices;
 
     /// <summary>
-    /// v.2026.03.29 (RS) COPY-PASTE READY<br />
+    /// v.2026.04.02 (RS) COPY-PASTE READY<br />
     /// Вспомогательный класс для быстрого доступа к свойствам объектов с помощью скомпилированных делегатов.<br />
     /// Позволяет получать и изменять значения свойств по имени без постоянного использования Reflection.<br />
     /// Особенности:
@@ -36,11 +37,9 @@ namespace System
         /// <summary>
         /// Кеширование типов по сборкам.
         /// </summary>
-        private static readonly ConcurrentDictionary<Assembly, Type[]> AssemblyTypesCache = new ConcurrentDictionary<Assembly, Type[]>();
+        private static readonly ConcurrentDictionary<Assembly, Type[]> AssemblyTypesCache =
+            new ConcurrentDictionary<Assembly, Type[]>();
 
-        /// <summary>
-        /// The date formats.
-        /// </summary>
         private static readonly string[] DateFormats =
         {
             // --- Только дата ---
@@ -89,21 +88,26 @@ namespace System
         /// <summary>
         /// Словарь соответствий интерфейсов и фабрик по умолчанию для их реализации.
         /// </summary>
-        private static readonly Dictionary<Type, Func<Type[], object>> DefaultInterfaceMappings = new Dictionary<Type, Func<Type[], object>>()
-        {
-            { typeof(IEnumerable<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
-            { typeof(IList<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
-            { typeof(IList), _ => new ArrayList() },
-            { typeof(ICollection<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
-            { typeof(IDictionary<,>), args => Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(args)) },
-            { typeof(IDictionary), _ => new Hashtable() },
-            { typeof(ISet<>), args => Activator.CreateInstance(typeof(HashSet<>).MakeGenericType(args)) },
-        };
+        private static readonly Dictionary<Type, Func<Type[], object>> DefaultInterfaceMappings =
+            new Dictionary<Type, Func<Type[], object>>()
+            {
+                { typeof(IEnumerable<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
+                { typeof(IList<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
+                { typeof(IList), _ => new ArrayList() },
+                { typeof(ICollection<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
+                {
+                    typeof(IDictionary<,>),
+                    args => Activator.CreateInstance(typeof(Dictionary<,>).MakeGenericType(args))
+                },
+                { typeof(IDictionary), _ => new Hashtable() },
+                { typeof(ISet<>), args => Activator.CreateInstance(typeof(HashSet<>).MakeGenericType(args)) },
+            };
 
         /// <summary>
         /// The fields cache.
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, Dictionary<string, FieldInfo>> FieldsCache = new ConcurrentDictionary<Type, Dictionary<string, FieldInfo>>();
+        private static readonly ConcurrentDictionary<Type, Dictionary<string, FieldInfo>> FieldsCache =
+            new ConcurrentDictionary<Type, Dictionary<string, FieldInfo>>();
 
         /// <summary>
         /// The op codes.
@@ -118,7 +122,8 @@ namespace System
         /// <summary>
         /// The properties cache.
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> PropertiesCache = new ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>>();
+        private static readonly ConcurrentDictionary<Type, Dictionary<string, ObjPropertyInfo>> PropertiesCache =
+            new ConcurrentDictionary<Type, Dictionary<string, ObjPropertyInfo>>();
 
         /// <summary>
         /// Универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
@@ -198,7 +203,8 @@ namespace System
         /// <summary>
         /// Кеширование типов по имени.
         /// </summary>
-        private static readonly ConcurrentDictionary<string, Type> TypeCache = new ConcurrentDictionary<string, Type>(OrdinalIgnoreCaseComparer);
+        private static readonly ConcurrentDictionary<string, Type> TypeCache =
+            new ConcurrentDictionary<string, Type>(OrdinalIgnoreCaseComparer);
 
         static Obj()
         {
@@ -225,12 +231,12 @@ namespace System
                 typeof(bool?),
             };
 
-            BasicTypes = new HashSet<Type>(new Type[]
+            BasicTypes = new HashSet<Type>(new[]
                 {
                     typeof(object),
                     typeof(char), typeof(char?), typeof(string),
                     typeof(DateTime), typeof(DateTime?),
-                    typeof(TimeSpan?), typeof(TimeSpan?),
+                    typeof(TimeSpan), typeof(TimeSpan?),
                     typeof(Guid), typeof(Guid?),
                     typeof(Uri),
                     typeof(Enum),
@@ -239,25 +245,26 @@ namespace System
         }
 
         /// <summary>
-        /// Gets набор основных типов: числа, логические, строки, даты, Guid, Enum и др.
+        /// Набор основных типов: object, char, char?, string, DateTime, DateTime?, TimeSpan, TimeSpan?, Guid, Guid?, Uri,Enum, <see cref="NumberTypes"/>, <see cref="BoolTypes"/>.
         /// </summary>
         /// <value>The basic types.</value>
         public static HashSet<Type> BasicTypes { get; }
 
         /// <summary>
-        /// Gets типы, представляющие логические значения.
+        /// Типы, представляющие логические значения.
         /// </summary>
         /// <value>The bool types.</value>
         public static HashSet<Type> BoolTypes { get; }
 
         /// <summary>
-        /// Gets хранилище пользовательских конвертеров типов. Ключ первого уровня — исходный тип, ключ второго уровня —
+        /// Хранилище пользовательских конвертеров типов. Ключ первого уровня — исходный тип, ключ второго уровня —
         /// целевой тип, значение — функция преобразования.
         /// </summary>
-        public static Dictionary<Type, Dictionary<Type, Func<object, object>>> CustomTypeConverters { get; } = new Dictionary<Type, Dictionary<Type, Func<object, object>>>();
+        public static Dictionary<Type, Dictionary<Type, Func<object, object>>> CustomTypeConverters { get; } =
+            new Dictionary<Type, Dictionary<Type, Func<object, object>>>();
 
         /// <summary>
-        /// Gets типы, представляющие дату и время.
+        /// Типы, представляющие дату и время.
         /// </summary>
         /// <value>The date types.</value>
         public static HashSet<Type> DateTypes { get; } = new HashSet<Type>
@@ -266,70 +273,73 @@ namespace System
         };
 
         /// <summary>
-        /// Gets флаги для поиска членов класса по умолчанию.
+        /// Флаги для поиска членов класса по умолчанию.
         /// </summary>
         /// <value>The default binding flags.</value>
         public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
                                                                   BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
-        /// Gets the field getter cache.
+        /// Кеш делегатов для получения значений полей.
         /// </summary>
-        /// <value>The field getter cache.</value>
-        public static ConcurrentDictionary<FieldInfo, Func<object, object>> FieldGetterCache { get; } = new ConcurrentDictionary<FieldInfo, Func<object, object>>();
+        /// <value>Делегат для получения значений полей.</value>
+        public static ConcurrentDictionary<FieldInfo, Func<object, object>> FieldGetterCache { get; } =
+            new ConcurrentDictionary<FieldInfo, Func<object, object>>();
 
         /// <summary>
-        /// Gets the field setter cache.
+        /// Кеш делегатов для установки значений полей.
         /// </summary>
-        /// <value>The field setter cache.</value>
-        public static ConcurrentDictionary<FieldInfo, Action<object, object>> FieldSetterCache { get; } = new ConcurrentDictionary<FieldInfo, Action<object, object>>();
+        /// <value>Делегат для установки значений полей.</value>
+        public static ConcurrentDictionary<FieldInfo, Action<object, object>> FieldSetterCache { get; } =
+            new ConcurrentDictionary<FieldInfo, Action<object, object>>();
 
         /// <summary>
-        /// Gets типы с плавающей запятой (float, double, decimal).
+        /// Кеш делегатов для получения значений свойств.
+        /// </summary>
+        /// <value>Делегат для получения значений свойств.</value>
+        public static ConcurrentDictionary<PropertyInfo, Func<object, object>> PropertyGetterCache { get; } =
+            new ConcurrentDictionary<PropertyInfo, Func<object, object>>();
+
+        /// <summary>
+        /// Кеш делегатов для установки значений свойств.
+        /// </summary>
+        /// <value>Делегат для установки значений свойств.</value>
+        public static ConcurrentDictionary<PropertyInfo, Action<object, object>> PropertySetterCache { get; } =
+            new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
+
+        /// <summary>
+        /// Типы с плавающей запятой (float, double, decimal).
         /// </summary>
         /// <value>The float number types.</value>
         public static HashSet<Type> FloatNumberTypes { get; }
 
         /// <summary>
-        /// Gets целочисленные типы (byte, int, long и т.д. с nullable и без).
+        /// Целочисленные типы (byte, int, long и т.д. с nullable и без).
         /// </summary>
         /// <value>The int number types.</value>
         public static HashSet<Type> IntNumberTypes { get; }
 
         /// <summary>
-        /// Gets the member information cache.
+        /// Кеш информации о членах типов (полях, свойствах, методах и т.д.) для быстрого доступа по имени.
         /// </summary>
-        /// <value>The member information cache.</value>
-        public static ConcurrentDictionary<string, MemberInfo> MemberInfoCache { get; } = new ConcurrentDictionary<string, MemberInfo>();
+        /// <value><see cref="MemberCache"/>.</value>
+        public static ConcurrentDictionary<string, MemberInfo> MemberInfoCache { get; } =
+            new ConcurrentDictionary<string, MemberInfo>();
 
         /// <summary>
-        /// Gets значения, трактуемые как null (null, DBNull, NaN).
+        /// Значения, трактуемые как null (null, DBNull, NaN).
         /// </summary>
-        /// <value>The null values.</value>
+        /// <value>Значения, которые считать как null.</value>
         public static object[] NullValues { get; } = new object[] { null, DBNull.Value, double.NaN, float.NaN };
 
         /// <summary>
-        /// Gets все числовые типы: целочисленные и с плавающей точкой.
+        /// Объединение массивов <see cref="IntNumberTypes"/> и <see cref="FloatNumberTypes"/>.
         /// </summary>
-        /// <value>The number types.</value>
+        /// <value>Числовые типы.</value>
         public static HashSet<Type> NumberTypes { get; }
 
-        /// <summary>
-        /// Gets the property getter cache.
-        /// </summary>
-        /// <value>The property getter cache.</value>
-        public static ConcurrentDictionary<PropertyInfo, Func<object, object>> PropertyGetterCache { get; } = new ConcurrentDictionary<PropertyInfo, Func<object, object>>();
-
-        /// <summary>
-        /// Gets the property setter cache.
-        /// </summary>
-        /// <value>The property setter cache.</value>
-        public static ConcurrentDictionary<PropertyInfo, Action<object, object>> PropertySetterCache { get; } = new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
-
-        /// <summary>
-        /// Gets the ctor cache.
-        /// </summary>
-        private static ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache { get; } = new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
+        private static ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache { get; } =
+            new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
 
         /// <summary>
         /// Регистрирует пользовательский конвертер между двумя типами.
@@ -484,7 +494,8 @@ namespace System
             }
             catch (Exception ex)
             {
-                throw new InvalidCastException($"Ошибка преобразования значения '{value}' ({fromType.Name}) в ({toType.Name})!", ex);
+                throw new InvalidCastException(
+                    $"Ошибка преобразования значения '{value}' ({fromType.Name}) в ({toType.Name})!", ex);
             }
         }
 
@@ -495,7 +506,8 @@ namespace System
         /// <param name="value">Значение для преобразования.</param>
         /// <param name="formatProvider">Провайдер формата (по умолчанию <see cref="CultureInfo.InvariantCulture" />).</param>
         /// <returns>Преобразованное значение.</returns>
-        public static T ChangeType<T>(object value, IFormatProvider formatProvider = null) => (T)ChangeType(value, typeof(T), formatProvider);
+        public static T ChangeType<T>(object value, IFormatProvider formatProvider = null) =>
+            (T)ChangeType(value, typeof(T), formatProvider);
 
         /// <summary>
         /// Очищает все внутренние кеши.
@@ -508,10 +520,119 @@ namespace System
             FieldSetterCache.Clear();
             FieldsCache.Clear();
             PropertiesCache.Clear();
-            PropertySetterCache.Clear();
-            PropertyGetterCache.Clear();
             MemberInfoCache.Clear();
             TypeCache.Clear();
+        }
+
+        /// <summary>
+        /// Копирует значения указанных членов из исходного объекта в целевой объект. Поддерживает копирование как между
+        /// отдельными объектами, так и между коллекциями объектов.
+        /// </summary>
+        /// <typeparam name="TSource">Тип исходного объекта, из которого копируются значения. Должен быть ссылочным типом.</typeparam>
+        /// <typeparam name="TTarget">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
+        /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
+        /// <param name="target">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
+        /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
+        /// свойства исходного объекта.</param>
+        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="target" />
+        /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
+        /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
+        /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
+        public static void Copy<TSource, TTarget>(TSource source, TTarget target, params string[] memberNames)
+            where TSource : class
+            where TTarget : class
+        {
+            if (source == null || typeof(TSource) == typeof(string))
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (target == null || typeof(TTarget) == typeof(string))
+            {
+                throw new ArgumentNullException(nameof(target));
+            }
+
+            var sourceType = GetType(source);
+
+            if (memberNames == null || memberNames.Length == 0)
+            {
+                memberNames = GetPropertyNames(sourceType);
+            }
+
+            if (IsCollection(sourceType))
+            {
+                sourceType = GetCollectionItemType(sourceType);
+            }
+
+            var targetType = GetType(target);
+            if (IsCollection(targetType))
+            {
+                targetType = GetCollectionItemType(targetType);
+            }
+
+            if (source is IEnumerable srcList && !(source is string) && target is IEnumerable dstList &&
+                !(target is string))
+            {
+                var srcEnumerator = srcList.GetEnumerator();
+                var dstEnumerator = dstList.GetEnumerator();
+                var dstListChanged = false;
+                while (srcEnumerator.MoveNext())
+                {
+                    var srcItem = srcEnumerator.Current;
+                    object dstItem;
+
+                    if (!dstListChanged && dstEnumerator.MoveNext())
+                    {
+                        dstItem = dstEnumerator.Current;
+                    }
+                    else
+                    {
+                        dstItem = New(sourceType);
+                        if (dstList is IList dstIList)
+                        {
+                            dstListChanged = true;
+                            dstIList.Add(dstItem);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException(
+                                @"Целевая коллекция не реализует IList и не поддерживает добавление новых элементов.");
+                        }
+                    }
+
+                    Copy(srcItem, dstItem);
+                }
+
+                if (srcEnumerator is IDisposable disposableSrc)
+                {
+                    disposableSrc.Dispose();
+                }
+
+                if (dstEnumerator is IDisposable disposableDst)
+                {
+                    disposableDst.Dispose();
+                }
+            }
+            else
+            {
+                foreach (var memberName in memberNames)
+                {
+                    var get = GetMemberGetter(sourceType, memberName);
+                    if (get == null)
+                    {
+                        continue;
+                    }
+
+                    var set = GetMemberSetter(targetType, memberName, out _);
+                    if (set == null)
+                    {
+                        continue;
+                    }
+
+                    var value = get(source);
+                    set(target, value);
+                }
+            }
         }
 
         /// <summary>
@@ -520,10 +641,10 @@ namespace System
         /// <param name="fi">The fi.</param>
         /// <returns>Action&lt;System.Object, System.Object&gt;.</returns>
         public static Action<object, object> CreateDirectFieldSetter(FieldInfo fi) => (instance, value) =>
-                                                                                               {
-                                                                                                   var tr = __makeref(instance);
-                                                                                                   fi.SetValueDirect(tr, value);
-                                                                                               };
+        {
+            var tr = __makeref(instance);
+            fi.SetValueDirect(tr, value);
+        };
 
         /// <summary>
         /// Creates the factory.
@@ -567,7 +688,8 @@ namespace System
                     throw new ArgumentNullException(nameof(fi));
                 }
 
-                var declaringType = fi.DeclaringType ?? throw new ArgumentException(@"Field has no declaring type", nameof(fi));
+                var declaringType = fi.DeclaringType ??
+                                    throw new ArgumentException(@"Field has no declaring type", nameof(fi));
                 var fieldType = fi.FieldType;
 
                 // Проверяем, является ли поле константой
@@ -665,7 +787,9 @@ namespace System
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Failed to create field getter for field '{fi?.DeclaringType?.Name}.{fi?.Name}': {ex.Message}", ex);
+                throw new InvalidOperationException(
+                    $"Failed to create field getter for field '{fi?.DeclaringType?.Name}.{fi?.Name}': {ex.Message}",
+                    ex);
             }
         }
 
@@ -696,7 +820,7 @@ namespace System
             // __makeref((T)target)
             il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
             Debug.Assert(field.DeclaringType != null, "field.DeclaringType != null");
-            il.Emit(System.Reflection.Emit.OpCodes.Unbox, field.DeclaringType);
+            il.Emit(System.Reflection.Emit.OpCodes.Unbox, field.DeclaringType ?? throw new InvalidOperationException());
             il.Emit(System.Reflection.Emit.OpCodes.Mkrefany, field.DeclaringType);
             il.Emit(System.Reflection.Emit.OpCodes.Stloc_0);
 
@@ -783,7 +907,11 @@ namespace System
             var declaring = pi.DeclaringType;
             var propertyType = pi.PropertyType;
 
-            Debug.Assert(declaring?.Module != null, "declaring?.Module != null");
+            if (declaring == null)
+            {
+                throw new ArgumentException("Property must have a declaring type", nameof(pi));
+            }
+
             var dm = new DynamicMethod(
                 "get_" + pi.Name,
                 typeof(TObject),
@@ -890,7 +1018,11 @@ namespace System
             var declaring = pi.DeclaringType;
             var propertyType = pi.PropertyType;
 
-            Debug.Assert(declaring != null, nameof(declaring) + " != null");
+            if (declaring == null)
+            {
+                throw new ArgumentException("Property must have a declaring type", nameof(pi));
+            }
+
             var dm = new DynamicMethod(
                 "set_" + pi.Name,
                 null,
@@ -1282,7 +1414,8 @@ namespace System
         /// <param name="instance">Экземпляр объекта, из которого требуется получить значение.</param>
         /// <param name="pathToMemberName">Путь к полю или свойству.</param>
         /// <returns>Значение поля или свойства, приведённое к типу <typeparamref name="T" />.</returns>
-        public static T Get<T>(object instance, IEnumerable<string> pathToMemberName) => (T)Get(instance, pathToMemberName, typeof(T));
+        public static T Get<T>(object instance, IEnumerable<string> pathToMemberName) =>
+            (T)Get(instance, pathToMemberName, typeof(T));
 
         /// <summary>
         /// Возвращает значение поля или свойства объекта по имени члена, приведённое к указанному типу.
@@ -1494,7 +1627,8 @@ namespace System
         /// <typeparam name="TTo">Целевой тип.</typeparam>
         /// <returns>Функция преобразования из <typeparamref name="TFrom" /> в <typeparamref name="TTo" />,
         /// либо <see langword="null" />, если конвертер не зарегистрирован.</returns>
-        public static Func<TFrom, TTo> GetCustomTypeConverter<TFrom, TTo>() => (from) => (TTo)GetCustomTypeConverter(typeof(TFrom), typeof(TTo))(from);
+        public static Func<TFrom, TTo> GetCustomTypeConverter<TFrom, TTo>() =>
+            (from) => (TTo)GetCustomTypeConverter(typeof(TFrom), typeof(TTo))(from);
 
         /// <summary>
         /// Возвращает пользовательский конвертер между двумя типами.
@@ -1614,7 +1748,8 @@ namespace System
                 throw new ArgumentNullException(nameof(accessor));
             }
 
-            var declaringType = accessor.DeclaringType ?? throw new ArgumentException(@"Method has no declaring type", nameof(accessor));
+            var declaringType = accessor.DeclaringType ??
+                                throw new ArgumentException(@"Method has no declaring type", nameof(accessor));
             var propertyName = accessor.Name.Substring(4);
 
             // Вариант 1: Поиск автоматически сгенерированного поля для автосвойств
@@ -1704,21 +1839,21 @@ namespace System
         /// <param name="baseType">Базовый тип или интерфейс для поиска реализаций.</param>
         /// <returns>Массив типов, удовлетворяющих условию.</returns>
         public static Type[] GetImplementationsOf(Type baseType) => AppDomain.CurrentDomain
-                .GetAssemblies()
-                .SelectMany(a =>
+            .GetAssemblies()
+            .SelectMany(a =>
+            {
+                try
                 {
-                    try
-                    {
-                        return a.GetTypes();
-                    }
-                    catch (ReflectionTypeLoadException ex)
-                    {
-                        // Если часть типов не загружается, используем только доступные
-                        return ex.Types.Where(t => t != null);
-                    }
-                })
-                .Where(x => IsImplements(x, baseType) && x != baseType)
-                .ToArray();
+                    return a.GetTypes();
+                }
+                catch (ReflectionTypeLoadException ex)
+                {
+                    // Если часть типов не загружается, используем только доступные
+                    return ex.Types.Where(t => t != null);
+                }
+            })
+            .Where(x => IsImplements(x, baseType) && x != baseType)
+            .ToArray();
 
         /// <summary>
         /// Получает событие с наименьшего уровня иерархии.
@@ -1819,7 +1954,8 @@ namespace System
         /// <remarks>Если указанный член не существует или не поддерживается для чтения, возвращаемое
         /// значение будет null. Метод поддерживает все поля и свойства. Делегат не выполняет проверку
         /// типов во время выполнения; некорректное использование может привести к исключениям.</remarks>
-        public static Func<object, object> GetMemberGetter<T>(string memberName) => GetMemberGetter(typeof(T), memberName);
+        public static Func<object, object> GetMemberGetter<T>(string memberName) =>
+            GetMemberGetter(typeof(T), memberName);
 
         /// <summary>
         /// Возвращает делегат, позволяющий получить значение указанного поля или свойства объекта заданного типа по
@@ -1985,7 +2121,7 @@ namespace System
                     return FieldSetterCache.GetOrAdd(fi, CreateFieldSetter);
 
                 case PropertyInfo pi:
-                    return PropertySetterCache.GetOrAdd(pi, CreatePropertySetter);
+                    return PropertySetterCache.GetOrAdd(pi, CreatePropertySetter(pi));
             }
 
             return null;
@@ -2014,7 +2150,7 @@ namespace System
 
                 case PropertyInfo pi:
                     memberType = pi.PropertyType;
-                    return PropertySetterCache.GetOrAdd(pi, CreatePropertySetter);
+                    return PropertySetterCache.GetOrAdd(pi, CreatePropertySetter(pi));
             }
 
             memberType = null;
@@ -2033,27 +2169,18 @@ namespace System
         /// <remarks>Если указанный член является только для чтения или не существует, возвращаемое
         /// значение будет <see langword="null" />. Делегат использует отражение и может иметь меньшую производительность
         /// по сравнению с прямым доступом. Не рекомендуется использовать для часто вызываемых операций.</remarks>
-        public static Action<object, object> GetMemberSetter<T>(string memberName, out Type memberType) => GetMemberSetter(typeof(T), memberName, out memberType);
+        public static Action<object, object> GetMemberSetter<T>(string memberName, out Type memberType) =>
+            GetMemberSetter(typeof(T), memberName, out memberType);
 
         /// <summary>
-        /// Получает значения всех полей и свойств типа T из объекта TClass.
+        /// Получает все свойства указанного типа, которые имеют определённый тип данных.
         /// </summary>
-        /// <typeparam name="T">Тип члена, который ищем.</typeparam>
-        /// <param name="obj">Объект, из которого извлекаем значения.</param>
-        /// <param name="memberFilter">Опциональный фильтр значений.</param>
-        /// <param name="recursive">Если true, рекурсивно обходит вложенные объекты.</param>
-        /// <param name="searchInCollections">Если true, рекурсивно ищет элементы типа T в коллекциях.</param>
-        /// <returns>IEnumerable&lt;T&gt;.</returns>
-        /// <exception cref="System.ArgumentNullException">obj.</exception>
-        public static IEnumerable<T> GetMembersOfType<T>(this object obj, Func<T, bool> memberFilter = null, bool recursive = false, bool searchInCollections = false)
+        /// <param name="type">Тип в котором искать свойства.</param>
+        /// <param name="propertyType">Тип значения свойства.</param>
+        /// <returns>Свойства указанного типа.</returns>
+        public static IEnumerable<ObjPropertyInfo> GetPropertiesOfType(Type type, Type propertyType)
         {
-            if (obj == null)
-            {
-                throw new ArgumentNullException(nameof(obj));
-            }
-
-            var visited = new HashSet<object>();
-            return GetMembersInternal(obj, memberFilter, recursive, searchInCollections, visited);
+            return PropertiesCache.GetOrAdd(type, CacheTypeProperties).Values.Where(p => p.PropertyInfo.PropertyType == propertyType);
         }
 
         /// <summary>
@@ -2066,7 +2193,7 @@ namespace System
         /// <param name="valueFactory">Функция, создающая значение, если ключ отсутствует.</param>
         /// <returns>Значение, соответствующее ключу.</returns>
         /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="dictionary" /> равен <c>null</c>.</exception>
-        public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, Func<TValue> valueFactory)
+        public static TValue GetOrAdd<TKey, TValue>(IDictionary<TKey, TValue> dictionary, TKey key, Func<TValue> valueFactory)
         {
             if (dictionary.TryGetValue(key, out var val))
             {
@@ -2093,36 +2220,16 @@ namespace System
         /// </summary>
         /// <param name="type">Тип, для которого нужно получить свойства.</param>
         /// <returns>Массив <see cref="PropertyInfo" /> всех публичных свойств.</returns>
-        public static PropertyInfo[] GetProperties(Type type) => GetPropertiesMap(type).Values.ToArray();
-
-        /// <summary>
-        /// Возвращает отображение имён свойств типа на объекты <see cref="PropertyInfo" />.
-        /// </summary>
-        /// <typeparam name="T">Тип, свойства которого требуется получить.</typeparam>
-        /// <returns>Словарь «имя свойства ? PropertyInfo».</returns>
-        public static Dictionary<string, PropertyInfo> GetPropertiesMap<T>() => GetPropertiesMap(typeof(T));
+        public static PropertyInfo[] GetProperties(Type type) => PropertiesCache.GetOrAdd(type, CacheTypeProperties).Values.Select(x => x.PropertyInfo).ToArray();
 
         /// <summary>
         /// Возвращает отображение имён свойств указанного типа на объекты <see cref="PropertyInfo" />.
         /// </summary>
         /// <param name="type">Тип, свойства которого требуется получить.</param>
-        /// <returns>Словарь «имя свойства ? PropertyInfo».</returns>
-        public static Dictionary<string, PropertyInfo> GetPropertiesMap(Type type)
+        /// <returns>Словарь «имя свойства ? FieldInfo».</returns>
+        public static IDictionary<string, ObjPropertyInfo> GetPropertiesMap(Type type)
         {
-            if (PropertiesCache.TryGetValue(type, out var cached))
-            {
-                return cached;
-            }
-
-            var typeProperties = type.GetProperties(DefaultBindingFlags);
-            var dic = new Dictionary<string, PropertyInfo>();
-            foreach (var prop in typeProperties)
-            {
-                dic[prop.Name] = prop;
-            }
-
-            PropertiesCache[type] = dic;
-            return dic;
+            return PropertiesCache.GetOrAdd(type, CacheTypeProperties);
         }
 
         /// <summary>
@@ -2131,22 +2238,23 @@ namespace System
         /// <param name="type">Тип в котором искать свойство.</param>
         /// <param name="propertyName">Имя свойства.</param>
         /// <param name="stringComparison">Сравнение имен.</param>
-        /// <returns>PropertyInfo.</returns>
-        public static PropertyInfo GetProperty(Type type, string propertyName, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase)
+        /// <returns>FieldInfo.</returns>
+        public static PropertyInfo GetProperty(Type type, string propertyName, StringComparison stringComparison = StringComparison.Ordinal)
         {
             if (stringComparison == StringComparison.OrdinalIgnoreCase)
             {
-                return GetPropertiesMap(type).Values.FirstOrDefault(x => string.Compare(x.Name, propertyName, stringComparison) == 0);
+                return GetPropertiesMap(type).Values
+                    .FirstOrDefault(x => string.Compare(x.PropertyInfo.Name, propertyName, stringComparison) == 0)?.PropertyInfo;
             }
 
-            return GetPropertiesMap(type).TryGetValue(propertyName, out var pi) ? pi : null;
+            return PropertiesCache.GetOrAdd(type, CacheTypeProperties).TryGetValue(propertyName, out var propInfo) ? propInfo.PropertyInfo : null;
         }
 
         /// <summary>
         /// Получить свойство указанное в выражении.
         /// </summary>
         /// <param name="expr">The expr.</param>
-        /// <returns>PropertyInfo.</returns>
+        /// <returns>FieldInfo.</returns>
         public static PropertyInfo GetProperty(Expression expr) => GetMemberInfo(expr) as PropertyInfo;
 
         /// <summary>
@@ -2165,168 +2273,31 @@ namespace System
         public static string[] GetPropertyNames(Type type) => GetPropertiesMap(type).Keys.ToArray();
 
         /// <summary>
-        /// Получает значения указанных свойств объекта.
+        /// Определяет фактический тип переданного объекта с учетом <see cref="Nullable{T}"/>.
         /// </summary>
-        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
-        /// <param name="source">Объект, из которого извлекаются значения.</param>
-        /// <param name="memberNames">
-        /// Имена свойств, значения которых необходимо получить.
-        /// Если не указаны, будут использованы все публичные свойства.
+        /// <param name="obj">
+        /// Объект или экземпляр <see cref="Type"/>.
+        /// Может быть <c>null</c>.
         /// </param>
         /// <returns>
-        /// Массив значений свойств в порядке их выбора.
-        /// </returns>
-        public static object[] GetValues<TObject>(TObject source, params string[] memberNames)
-            where TObject : class
-        {
-            if (source == null)
-            {
-                return Array.Empty<object>();
-            }
-
-            var values = new List<object>();
-            var sourceType = GetType(source);
-            if (memberNames == null || memberNames.Length == 0)
-            {
-                memberNames = GetPropertyNames(sourceType);
-            }
-
-            foreach (var propName in memberNames)
-            {
-                values.Add(GetMemberGetter(sourceType, propName)?.Invoke(source));
-            }
-
-            return values.ToArray();
-        }
-
-        /// <summary>
-        /// Получает значения указанных свойств объекта с приведением к заданному типу.
-        /// </summary>
-        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
-        /// <typeparam name="TValue">Тип, к которому будут приведены значения.</typeparam>
-        /// <param name="source">Объект, из которого извлекаются значения.</param>
-        /// <param name="memberNames">
-        /// Имена свойств, значения которых необходимо получить.
-        /// Если не указаны, будут использованы все публичные свойства.
-        /// </param>
-        /// <returns>
-        /// Массив значений свойств, приведённых к типу <typeparamref name="TValue"/>.
+        /// Тип объекта без обертки <see cref="Nullable{T}"/>, если она присутствует.
+        /// Если <paramref name="obj"/> равен <c>null</c>, возвращается <c>null</c>.
         /// </returns>
         /// <remarks>
-        /// Для преобразования используется вспомогательный метод <c>Obj.ChangeType&lt;T&gt;</c>.
-        /// Если преобразование невозможно, может возникнуть исключение.
+        /// Если <paramref name="obj"/> уже является типом (<see cref="Type"/>),
+        /// он используется напрямую. В противном случае вызывается <see cref="object.GetType"/>.
+        /// Для nullable-типов возвращается базовый тип (например, для <c>int?</c> будет возвращен <c>int</c>).
         /// </remarks>
-        public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames)
-            where TObject : class
-                => GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
-
-        /// <summary>
-        /// Копирует значения указанных членов из исходного объекта в целевой объект. Поддерживает копирование как между
-        /// отдельными объектами, так и между коллекциями объектов.
-        /// </summary>
-        /// <typeparam name="TSource">Тип исходного объекта, из которого копируются значения. Должен быть ссылочным типом.</typeparam>
-        /// <typeparam name="TTarget">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
-        /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
-        /// <param name="target">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
-        /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
-        /// свойства исходного объекта.</param>
-        /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="target" />
-        /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
-        /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
-        /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
-        public static void Copy<TSource, TTarget>(TSource source, TTarget target, params string[] memberNames)
-            where TSource : class
-            where TTarget : class
+        public static Type GetType(object obj)
         {
-            if (source == null || typeof(TSource) == typeof(string))
+            var type = obj as Type ?? obj?.GetType();
+            if (type == null)
             {
-                throw new ArgumentNullException(nameof(source));
+                return null;
             }
 
-            if (target == null || typeof(TTarget) == typeof(string))
-            {
-                throw new ArgumentNullException(nameof(target));
-            }
-
-            var sourceType = GetType(source);
-
-            if (memberNames == null || memberNames.Length == 0)
-            {
-                memberNames = GetPropertyNames(sourceType);
-            }
-
-            if (IsCollection(sourceType))
-            {
-                sourceType = GetCollectionItemType(sourceType);
-            }
-
-            var targetType = GetType(target);
-            if (IsCollection(targetType))
-            {
-                targetType = GetCollectionItemType(targetType);
-            }
-
-            if (source is IEnumerable srcList && !(source is string) && target is IEnumerable dstList && !(target is string))
-            {
-                var srcEnumerator = srcList.GetEnumerator();
-                var dstEnumerator = dstList.GetEnumerator();
-                var dstListChanged = false;
-                while (srcEnumerator.MoveNext())
-                {
-                    var srcItem = srcEnumerator.Current;
-                    object dstItem;
-
-                    if (!dstListChanged && dstEnumerator.MoveNext())
-                    {
-                        dstItem = dstEnumerator.Current;
-                    }
-                    else
-                    {
-                        dstItem = New(sourceType);
-                        if (dstList is IList dstIList)
-                        {
-                            dstListChanged = true;
-                            dstIList.Add(dstItem);
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException(@"Целевая коллекция не реализует IList и не поддерживает добавление новых элементов.");
-                        }
-                    }
-
-                    Copy(srcItem, dstItem);
-                }
-
-                if (srcEnumerator is IDisposable disposableSrc)
-                {
-                    disposableSrc.Dispose();
-                }
-
-                if (dstEnumerator is IDisposable disposableDst)
-                {
-                    disposableDst.Dispose();
-                }
-            }
-            else
-            {
-                foreach (var memberName in memberNames)
-                {
-                    var get = GetMemberGetter(sourceType, memberName);
-                    if (get == null)
-                    {
-                        continue;
-                    }
-
-                    var set = GetMemberSetter(targetType, memberName, out _);
-                    if (set == null)
-                    {
-                        continue;
-                    }
-
-                    var value = get(source);
-                    set(target, value);
-                }
-            }
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            return type;
         }
 
         /// <summary>
@@ -2409,46 +2380,60 @@ namespace System
         }
 
         /// <summary>
-        /// Возвращает значение по ключу из коллекции пар ключ-значение или значение по умолчанию, если ключ отсутствует.
+        /// Получает значения указанных свойств объекта.
         /// </summary>
-        /// <typeparam name="TKey">Тип ключа.</typeparam>
-        /// <typeparam name="TValue">Тип значения.</typeparam>
-        /// <param name="dictionary">Коллекция пар ключ-значение.</param>
-        /// <param name="key">Ключ для поиска.</param>
-        /// <param name="comparer">Компаратор для сравнения ключей.
-        /// Если <c>null</c>, используется стандартное сравнение по <see cref="EqualityComparer{TKey}.Default" />.</param>
-        /// <returns>Значение, соответствующее ключу, или значение по умолчанию для <typeparamref name="TValue" />, если ключ не найден.</returns>
-        /// <exception cref="System.ArgumentNullException">dic.</exception>
-        /// <remarks>Метод выбирает стратегию поиска в зависимости от наличия компаратора и размера коллекции:
-        /// <list type="number"><item><description>Если компаратор не задан — выполняется линейный поиск.</description></item><item><description>Если коллекция небольшая (<c>Count &lt; ThresholdForSorted</c>) — также линейный поиск.</description></item><item><description>
-        /// Если коллекция большая — создаётся кэшированный <see cref="SortedDictionary{TKey, TValue}" />
-        /// для быстрого поиска.
-        /// </description></item></list></remarks>
-        public static TValue GetValueOrDefault<TKey, TValue>(
-            this IEnumerable<KeyValuePair<TKey, TValue>> dictionary,
-            TKey key,
-            IComparer<TKey> comparer = null)
+        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
+        /// <param name="source">Объект, из которого извлекаются значения.</param>
+        /// <param name="memberNames">
+        /// Имена свойств, значения которых необходимо получить.
+        /// Если не указаны, будут использованы все публичные свойства.
+        /// </param>
+        /// <returns>
+        /// Массив значений свойств в порядке их выбора.
+        /// </returns>
+        public static object[] GetValues<TObject>(TObject source, params string[] memberNames)
+            where TObject : class
         {
-            if (dictionary == null)
+            if (source == null)
             {
-                throw new ArgumentNullException(nameof(dictionary));
+                return Array.Empty<object>();
             }
 
-            // 1. Компаратор не задан — стандартное сравнение
-            if (comparer == null)
+            var values = new List<object>();
+            var sourceType = GetType(source);
+            if (memberNames == null || memberNames.Length == 0)
             {
-                return dictionary
-                    .Where(x => EqualityComparer<TKey>.Default.Equals(x.Key, key))
-                    .Select(x => x.Value)
-                    .FirstOrDefault();
+                memberNames = GetPropertyNames(sourceType);
             }
 
-            // 2. Компаратор задан
-            return dictionary
-                .Where(kv => comparer.Compare(kv.Key, key) == 0)
-                .Select(kv => kv.Value)
-                .FirstOrDefault();
+            foreach (var propName in memberNames)
+            {
+                values.Add(GetMemberGetter(sourceType, propName)?.Invoke(source));
+            }
+
+            return values.ToArray();
         }
+
+        /// <summary>
+        /// Получает значения указанных свойств объекта с приведением к заданному типу.
+        /// </summary>
+        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
+        /// <typeparam name="TValue">Тип, к которому будут приведены значения.</typeparam>
+        /// <param name="source">Объект, из которого извлекаются значения.</param>
+        /// <param name="memberNames">
+        /// Имена свойств, значения которых необходимо получить.
+        /// Если не указаны, будут использованы все публичные свойства.
+        /// </param>
+        /// <returns>
+        /// Массив значений свойств, приведённых к типу <typeparamref name="TValue"/>.
+        /// </returns>
+        /// <remarks>
+        /// Для преобразования используется вспомогательный метод <c>Obj.ChangeType&lt;T&gt;</c>.
+        /// Если преобразование невозможно, может возникнуть исключение.
+        /// </remarks>
+        public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames)
+            where TObject : class
+            => GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
 
         /// <summary>
         /// Проверяет, является ли тип простым (базовым).
@@ -2481,7 +2466,8 @@ namespace System
                 return false;
             }
 
-            return typeof(IList).IsAssignableFrom(t) || typeof(ICollection).IsAssignableFrom(t) || typeof(IEnumerable).IsAssignableFrom(t);
+            return typeof(IList).IsAssignableFrom(t) || typeof(ICollection).IsAssignableFrom(t) ||
+                   typeof(IEnumerable).IsAssignableFrom(t);
         }
 
         /// <summary>
@@ -2499,42 +2485,16 @@ namespace System
         public static bool IsDelegate(Type type) => typeof(MulticastDelegate).IsAssignableFrom(type.BaseType);
 
         /// <summary>
-        /// Определяет фактический тип переданного объекта с учетом <see cref="Nullable{T}"/>.
-        /// </summary>
-        /// <param name="obj">
-        /// Объект или экземпляр <see cref="Type"/>.
-        /// Может быть <c>null</c>.
-        /// </param>
-        /// <returns>
-        /// Тип объекта без обертки <see cref="Nullable{T}"/>, если она присутствует.
-        /// Если <paramref name="obj"/> равен <c>null</c>, возвращается <c>null</c>.
-        /// </returns>
-        /// <remarks>
-        /// Если <paramref name="obj"/> уже является типом (<see cref="Type"/>),
-        /// он используется напрямую. В противном случае вызывается <see cref="object.GetType"/>.
-        /// Для nullable-типов возвращается базовый тип (например, для <c>int?</c> будет возвращен <c>int</c>).
-        /// </remarks>
-        public static Type GetType(object obj)
-        {
-            var type = obj as Type ?? obj?.GetType();
-            if (type == null)
-            {
-                return null;
-            }
-
-            type = Nullable.GetUnderlyingType(type) ?? type;
-            return type;
-        }
-
-        /// <summary>
         /// Проверяет, является ли тип словарём.
         /// </summary>
         /// <param name="type">Тип для проверки.</param>
         /// <returns>True, если тип является словарём, иначе False.</returns>
         public static bool IsDictionary(Type type) => IsImplements<IDictionary>(type) ||
-                   (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Dictionary<,>)) || type
-                       .GetInterfaces()
-                       .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IDictionary<,>));
+                                                      (type.IsGenericType && type.GetGenericTypeDefinition() ==
+                                                          typeof(Dictionary<,>)) || type
+                                                          .GetInterfaces()
+                                                          .Any(i => i.IsGenericType && i.GetGenericTypeDefinition() ==
+                                                              typeof(IDictionary<,>));
 
         /// <summary>
         /// Проверяет, является ли тип числом с плавающей точкой.
@@ -2608,7 +2568,8 @@ namespace System
         /// </summary>
         /// <param name="t">Тип для проверки.</param>
         /// <returns>True, если тип является nullable, иначе False.</returns>
-        public static bool IsNullable(Type t) => !t.IsValueType || Nullable.GetUnderlyingType(t) != null || t == typeof(object);
+        public static bool IsNullable(Type t) =>
+            !t.IsValueType || Nullable.GetUnderlyingType(t) != null || t == typeof(object);
 
         /// <summary>
         /// Проверяет, является ли тип числовым.
@@ -2616,7 +2577,8 @@ namespace System
         /// <param name="t">Тип для проверки.</param>
         /// <param name="includeFloatTypes">Включать ли типы с плавающей точкой.</param>
         /// <returns>True, если тип является числовым, иначе False.</returns>
-        public static bool IsNumeric(Type t, bool includeFloatTypes = true) => includeFloatTypes ? IsFloat(t) || IsNaturalNumeric(t) : IsNaturalNumeric(t);
+        public static bool IsNumeric(Type t, bool includeFloatTypes = true) =>
+            includeFloatTypes ? IsFloat(t) || IsNaturalNumeric(t) : IsNaturalNumeric(t);
 
         /// <summary>
         /// Определяет, является ли указанный член типа приватным (<c>private</c>).
@@ -2843,7 +2805,8 @@ namespace System
                 return null;
             }
 
-            var ctor = FindConstructor(type, args) ?? throw new InvalidOperationException($"No constructor found for type {type}");
+            var ctor = FindConstructor(type, args) ??
+                       throw new InvalidOperationException($"No constructor found for type {type}");
             var factory = CtorCache.GetOrAdd(ctor, CreateFactory);
 
             return factory(args);
@@ -2857,7 +2820,9 @@ namespace System
         public static object NewItem(IEnumerable list)
         {
             var itemType = list.GetType().GetGenericArguments().FirstOrDefault();
-            return itemType == null ? throw new InvalidOperationException("Cannot determine item type of the collection.") : New(itemType);
+            return itemType == null
+                ? throw new InvalidOperationException("Cannot determine item type of the collection.")
+                : New(itemType);
         }
 
         /// <summary>
@@ -2876,6 +2841,28 @@ namespace System
             if (instance == null)
             {
                 return false;
+            }
+
+            if (instance is DataRow dataRow)
+            {
+                if (!dataRow.Table.Columns.Contains(memberName))
+                {
+                    return false;
+                }
+
+                dataRow[memberName] = value ?? DBNull.Value;
+                return true;
+            }
+
+            if (instance is DataRowView dataRowView)
+            {
+                if (!dataRowView.DataView.Table.Columns.Contains(memberName))
+                {
+                    return false;
+                }
+
+                dataRowView[memberName] = value ?? DBNull.Value;
+                return true;
             }
 
             var setter = GetMemberSetter(instance.GetType(), memberName, out var memberType);
@@ -3029,7 +3016,8 @@ namespace System
 
             if (item == null)
             {
-                var itemType = collection.GetType().GenericTypeArguments.FirstOrDefault() ?? throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}");
+                var itemType = collection.GetType().GenericTypeArguments.FirstOrDefault() ??
+                               throw new Exception($"{nameof(TryAdd)}: {collection.GetType().FullName}");
                 item = New(itemType);
             }
 
@@ -3115,6 +3103,19 @@ namespace System
             }
         }
 
+        private static Dictionary<string, ObjPropertyInfo> CacheTypeProperties(Type type)
+        {
+            var properties = type.GetProperties(DefaultBindingFlags);
+            var dic = new Dictionary<string, ObjPropertyInfo>();
+            foreach (var prop in properties)
+            {
+                dic[prop.Name] = new ObjPropertyInfo(prop, CreatePropertySetter(prop), CreatePropertyGetter(prop));
+            }
+
+            PropertiesCache[type] = dic;
+            return dic;
+        }
+
         /// <summary>
         /// Finds the field by naming patterns.
         /// </summary>
@@ -3174,7 +3175,7 @@ namespace System
         }
 
         /// <summary>
-        /// Gets the backing field from il.
+        /// the backing field from il.
         /// </summary>
         /// <param name="getter">The getter.</param>
         /// <returns>FieldInfo.</returns>
@@ -3210,8 +3211,10 @@ namespace System
                     if (OpCodes.TryGetValue(opCodeValue, out var opCode))
                     {
                         // Проверяем инструкции загрузки поля
-                        if ((opCode == System.Reflection.Emit.OpCodes.Ldfld || opCode == System.Reflection.Emit.OpCodes.Ldsfld ||
-                            opCode == System.Reflection.Emit.OpCodes.Ldflda || opCode == System.Reflection.Emit.OpCodes.Ldsflda) && i + 4 < ilBytes.Length)
+                        if ((opCode == System.Reflection.Emit.OpCodes.Ldfld ||
+                             opCode == System.Reflection.Emit.OpCodes.Ldsfld ||
+                             opCode == System.Reflection.Emit.OpCodes.Ldflda ||
+                             opCode == System.Reflection.Emit.OpCodes.Ldsflda) && i + 4 < ilBytes.Length)
                         {
                             var token = BitConverter.ToInt32(ilBytes, i + 1);
 
@@ -3245,7 +3248,7 @@ namespace System
         }
 
         /// <summary>
-        /// Gets the member information from lambda.
+        /// the member information from lambda.
         /// </summary>
         /// <param name="le">The le.</param>
         /// <returns>MemberInfo.</returns>
@@ -3259,7 +3262,7 @@ namespace System
         }
 
         /// <summary>
-        /// Gets the member information from method call.
+        /// the member information from method call.
         /// </summary>
         /// <param name="mce">The mce.</param>
         /// <returns>MemberInfo.</returns>
@@ -3270,111 +3273,7 @@ namespace System
         }
 
         /// <summary>
-        /// Gets the members internal.
-        /// </summary>
-        /// <typeparam name="T">Type.</typeparam>
-        /// <param name="obj">The object.</param>
-        /// <param name="memberFilter">The member filter.</param>
-        /// <param name="recursive">if set to <c>true</c> [recursive].</param>
-        /// <param name="searchInCollections">if set to <c>true</c> [search in collections].</param>
-        /// <param name="visited">The visited.</param>
-        /// <returns>IEnumerable&lt;T&gt;.</returns>
-        private static IEnumerable<T> GetMembersInternal<T>(object obj, Func<T, bool> memberFilter, bool recursive, bool searchInCollections, HashSet<object> visited)
-        {
-            if (obj == null)
-            {
-                yield break;
-            }
-
-            var type = obj.GetType();
-
-            // Для примитивов и строк обходим только если тип совпадает с T
-            if (type.IsPrimitive || obj is string)
-            {
-                if (obj is T tValue && (memberFilter == null || memberFilter(tValue)))
-                {
-                    yield return tValue;
-                }
-
-                yield break;
-            }
-
-            if (!visited.Add(obj))
-            {
-                yield break;
-            }
-
-            // Если коллекция и нужно искать в коллекциях
-            if (searchInCollections && obj is IEnumerable enumerable)
-            {
-                foreach (var item in enumerable)
-                {
-                    foreach (var nested in GetMembersInternal(item, memberFilter, recursive, true, visited))
-                    {
-                        yield return nested;
-                    }
-                }
-            }
-
-            // Поля
-            var fields = GetFieldsMap(type).Values;
-            foreach (var field in fields)
-            {
-                var value = field.GetValue(obj);
-                if (value == null)
-                {
-                    continue;
-                }
-
-                if (value is T tValue && (memberFilter == null || memberFilter(tValue)))
-                {
-                    yield return tValue;
-                }
-
-                if (recursive && !value.GetType().IsPrimitive && !(value is string))
-                {
-                    foreach (var nested in GetMembersInternal(value, memberFilter, true, searchInCollections, visited))
-                    {
-                        yield return nested;
-                    }
-                }
-            }
-
-            // Свойства
-            var properties = GetPropertiesMap(type).Values.Where(p => p.GetMethod != null);
-            foreach (var prop in properties)
-            {
-                object value;
-                try
-                {
-                    value = prop.GetValue(obj);
-                }
-                catch
-                {
-                    continue; // Пропускаем свойства с исключениями
-                }
-
-                switch (value)
-                {
-                    case null:
-                        continue;
-                    case T tValue when memberFilter == null || memberFilter(tValue):
-                        yield return tValue;
-                        break;
-                }
-
-                if (recursive && !value.GetType().IsPrimitive && !(value is string))
-                {
-                    foreach (var nested in GetMembersInternal(value, memberFilter, true, searchInCollections, visited))
-                    {
-                        yield return nested;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets the size of the operand.
+        /// the size of the operand.
         /// </summary>
         /// <param name="operandType">Type of the operand.</param>
         /// <param name="ilBytes">The il bytes.</param>
@@ -3531,12 +3430,64 @@ namespace System
             // Поле должно принадлежать этому типу или его базовому типу
             Debug.Assert(field.DeclaringType != null, "field.DeclaringType != null");
             if (!declaringType.IsAssignableFrom(field.DeclaringType) &&
+                field.DeclaringType != null &&
                 !field.DeclaringType.IsAssignableFrom(declaringType))
             {
                 return false;
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Кеш для информации о свойствах, включая делегаты доступа.
+        /// </summary>
+        public sealed class ObjPropertyInfo
+        {
+            /// <summary>
+            /// Initializes a new instance of the ObjPropertyInfo class with the specified property metadata and
+            /// accessor delegates.
+            /// </summary>
+            /// <param name="propertyInfo">The PropertyInfo object that describes the property to be accessed. Cannot be null.</param>
+            /// <param name="setter">A delegate used to set the value of the property. Cannot be null.</param>
+            /// <param name="getter">A delegate used to get the value of the property. Cannot be null.</param>
+            internal ObjPropertyInfo(PropertyInfo propertyInfo, Action<object, object> setter, Func<object, object> getter)
+            {
+                this.PropertyInfo = propertyInfo;
+                this.Setter = setter;
+                this.Getter = getter;
+            }
+
+            /// <summary>
+            /// Делегат для получения значения свойства. Принимает экземпляр объекта и возвращает значение свойства. Если свойство недоступно для чтения, будет равно null.
+            /// </summary>
+            public Func<object, object> Getter { get; }
+
+            /// <summary>
+            /// Информация о свойстве.
+            /// </summary>
+            public PropertyInfo PropertyInfo { get; }
+
+            /// <summary>
+            /// Делегат для установки значения свойства. Принимает экземпляр объекта и значение для установки. Если свойство недоступно для записи, будет равно null.
+            /// </summary>
+            public Action<object, object> Setter { get; }
+        }
+
+        private sealed class ObjFieldInfo
+        {
+            public ObjFieldInfo(FieldInfo fieldInfo, Action<object, object> setter, Func<object, object> getter)
+            {
+                this.FieldInfo = fieldInfo;
+                this.Setter = setter;
+                this.Getter = getter;
+            }
+
+            public FieldInfo FieldInfo { get; }
+
+            public Func<object, object> Getter { get; }
+
+            public Action<object, object> Setter { get; }
         }
     }
 }

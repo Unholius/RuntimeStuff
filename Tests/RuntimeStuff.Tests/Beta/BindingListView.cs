@@ -35,7 +35,7 @@
 //    public enum IndexType
 //    {
 //        /// <summary>
-//        /// Gets or sets the source from which the data is obtained.
+//        /// the source from which the data is obtained.
 //        /// </summary>
 //        Source,
 
@@ -170,7 +170,7 @@
 //        public event ListChangedEventHandler ListChanged;
 
 //        /// <summary>
-//        /// Gets or sets a value indicating whether разрешено ли редактирование элементов.
+//        /// a value indicating whether разрешено ли редактирование элементов.
 //        /// </summary>
 //        /// <value>The allow edit.</value>
 //        public bool AllowEdit
@@ -180,7 +180,7 @@
 //        }
 
 //        /// <summary>
-//        /// Gets or sets a value indicating whether разрешено ли добавление новых элементов.
+//        /// a value indicating whether разрешено ли добавление новых элементов.
 //        /// </summary>
 //        /// <value>The allow new.</value>
 //        public bool AllowNew
@@ -190,7 +190,7 @@
 //        }
 
 //        /// <summary>
-//        /// Gets or sets a value indicating whether разрешено ли удаление элементов.
+//        /// a value indicating whether разрешено ли удаление элементов.
 //        /// </summary>
 //        /// <value>The allow remove.</value>
 //        public bool AllowRemove
@@ -215,7 +215,7 @@
 //        }
 
 //        /// <summary>
-//        /// Gets or sets строка фильтрации для отображаемого списка. Формат: [ИмяСвойства] Оператор Значение. Операторы: ==, &lt; &gt;, &gt;
+//        /// строка фильтрации для отображаемого списка. Формат: [ИмяСвойства] Оператор Значение. Операторы: ==, &lt; &gt;, &gt;
 //        /// , &lt;, &gt;=, &lt;=, LIKE, IN.
 //        /// Строковые значения должны быть в одинарных кавычках. Несколько условий можно объединять логическими операторами
 //        /// AND, OR.
@@ -255,7 +255,7 @@
 //        public bool IsReadOnly => false;
 
 //        /// <summary>
-//        /// Gets or sets a value indicating whether отсортирован ли список.
+//        /// a value indicating whether отсортирован ли список.
 //        /// </summary>
 //        /// <value>The is sorted.</value>
 //        public bool IsSorted
@@ -271,7 +271,7 @@
 //        public bool IsSynchronized => false;
 
 //        /// <summary>
-//        /// Gets or sets фабрика для создания новых элементов при вызове AddNew().
+//        /// фабрика для создания новых элементов при вызове AddNew().
 //        /// </summary>
 //        /// <value>The new item factory.</value>
 //        public Func<T> NewItemFactory { get; set; }
@@ -283,7 +283,7 @@
 //        public PropertyInfo[] Properties { get; }
 
 //        /// <summary>
-//        /// Gets or sets строка с перечислением имён свойств, по которым нужно выполнить сортировку.
+//        /// строка с перечислением имён свойств, по которым нужно выполнить сортировку.
 //        /// Можно перечислять имена через запятую или точку с запятой.
 //        /// Через пробел после имени свойства можно указать направление сортировки: ASC (по возрастанию) или DESC (по
 //        /// убыванию).
@@ -345,7 +345,7 @@
 //        public bool SupportsSorting => true;
 
 //        /// <summary>
-//        /// Gets or sets a value indicating whether прекращает или возобновляет генерацию событий изменения списка.
+//        /// a value indicating whether прекращает или возобновляет генерацию событий изменения списка.
 //        /// </summary>
 //        /// <value>The suspend list changed events.</value>
 //        public bool SuspendListChangedEvents
@@ -528,7 +528,7 @@
 //                    }
 
 //                    // Обновляем существующий список вместо создания нового
-//                    this.sourceFilteredAndSortedList.Clear();
+//                    this.sourceFilteredAndSortedList.ClearQuery();
 //                    this.sourceFilteredAndSortedList.AddRange(filteredList);
 //                }
 //                catch (FormatException fe)
@@ -537,7 +537,7 @@
 //                    var filteredList = this.sourceList.FilterByText(this.filter).ToList();
 //                    filteredList.RemoveAll(x => !this.nodeMap[x].Visible);
 
-//                    this.sourceFilteredAndSortedList.Clear();
+//                    this.sourceFilteredAndSortedList.ClearQuery();
 //                    this.sourceFilteredAndSortedList.AddRange(filteredList);
 //                }
 
@@ -580,7 +580,7 @@
 //                    }
 
 //                    // Обновляем существующий список вместо создания нового
-//                    this.sourceFilteredAndSortedList.Clear();
+//                    this.sourceFilteredAndSortedList.ClearQuery();
 //                    this.sourceFilteredAndSortedList.AddRange(filteredList);
 //                }
 //                catch (FormatException fe)
@@ -589,7 +589,7 @@
 //                    var filteredList = this.sourceList.FilterByText(this.filter).ToList();
 //                    filteredList.RemoveAll(x => !this.nodeMap[x].Visible);
 
-//                    this.sourceFilteredAndSortedList.Clear();
+//                    this.sourceFilteredAndSortedList.ClearQuery();
 //                    this.sourceFilteredAndSortedList.AddRange(filteredList);
 //                }
 
@@ -664,7 +664,7 @@
 //        /// <summary>
 //        /// Очищает список.
 //        /// </summary>
-//        public void Clear()
+//        public void ClearQuery()
 //        {
 //            lock (this.syncRoot)
 //            {
@@ -673,9 +673,9 @@
 //                    this.SubscribeOnPropertyChanged(item, false);
 //                }
 
-//                this.sourceList.Clear();
-//                this.sourceFilteredAndSortedList.Clear();
-//                this.nodeMap.Clear();
+//                this.sourceList.ClearQuery();
+//                this.sourceFilteredAndSortedList.ClearQuery();
+//                this.nodeMap.ClearQuery();
 //            }
 
 //            this.RaiseResetEvents();
@@ -698,9 +698,9 @@
 //                    this.SubscribeOnPropertyChanged(item, false);
 //                }
 
-//                this.sourceList.Clear();
-//                this.sourceFilteredAndSortedList.Clear();
-//                this.nodeMap.Clear();
+//                this.sourceList.ClearQuery();
+//                this.sourceFilteredAndSortedList.ClearQuery();
+//                this.nodeMap.ClearQuery();
 
 //                // Очищаем кэши
 //                this.filter = null;
@@ -1294,7 +1294,7 @@
 //            public int SourceListIndex { get; internal set; }
 
 //            /// <summary>
-//            /// Gets or sets a value indicating whether the element is visible.
+//            /// a value indicating whether the element is visible.
 //            /// </summary>
 //            /// <value>The visible.</value>
 //            public bool Visible { get; set; } = true;

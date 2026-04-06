@@ -7,7 +7,7 @@ using System.Xml.Serialization;
 
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class XmlHelperTests

@@ -2,7 +2,7 @@
 using System.Helpers;
 using System.Reflection;
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class JsonHelperTests
@@ -136,7 +136,7 @@ namespace System.MSTests
         public void Serialize_EnumDefault_ReturnsNumber()
         {
             // Arrange
-            var value = MSTests.JsonHelperTests.TestEnum.Second;
+            var value = JsonHelperTests.TestEnum.Second;
 
             // Act
             var result = JsonHelper.Serialize(value);
@@ -149,7 +149,7 @@ namespace System.MSTests
         public void Serialize_EnumAsStrings_ReturnsString()
         {
             // Arrange
-            var value = MSTests.JsonHelperTests.TestEnum.Second;
+            var value = JsonHelperTests.TestEnum.Second;
 
             // Act
             var result = JsonHelper.Serialize(value, enumAsStrings: true);
@@ -347,7 +347,7 @@ namespace System.MSTests
         public void Serialize_SimpleObject_ReturnsJsonObject()
         {
             // Arrange
-            var obj = new MSTests.JsonHelperTests.SimpleObject
+            var obj = new SimpleObject
             {
                 Name = "John",
                 Age = 30,
@@ -386,7 +386,7 @@ namespace System.MSTests
         public void Serialize_ObjectWithNullProperties_ReturnsJsonObjectWithNull()
         {
             // Arrange
-            var obj = new MSTests.JsonHelperTests.SimpleObject
+            var obj = new SimpleObject
             {
                 Name = null,
                 Age = 30,
@@ -403,14 +403,14 @@ namespace System.MSTests
 
         private class ObjectWithEnum
         {
-            public MSTests.JsonHelperTests.TestEnum Status { get; set; }
+            public TestEnum Status { get; set; }
         }
 
         [TestMethod]
         public void Serialize_ObjectWithEnum_ReturnsJsonObjectWithEnumAsNumber()
         {
             // Arrange
-            var obj = new MSTests.JsonHelperTests.ObjectWithEnum { Status = MSTests.JsonHelperTests.TestEnum.Second };
+            var obj = new ObjectWithEnum { Status = JsonHelperTests.TestEnum.Second };
 
             // Act
             var result = JsonHelper.Serialize(obj);
@@ -423,7 +423,7 @@ namespace System.MSTests
         public void Serialize_ObjectWithEnumAsString_ReturnsJsonObjectWithEnumAsString()
         {
             // Arrange
-            var obj = new MSTests.JsonHelperTests.ObjectWithEnum { Status = MSTests.JsonHelperTests.TestEnum.Second };
+            var obj = new ObjectWithEnum { Status = JsonHelperTests.TestEnum.Second };
 
             // Act
             var result = JsonHelper.Serialize(obj, enumAsStrings: true);
@@ -435,17 +435,17 @@ namespace System.MSTests
         private class NestedObject
         {
             public string? Name { get; set; }
-            public MSTests.JsonHelperTests.SimpleObject? Inner { get; set; }
+            public SimpleObject? Inner { get; set; }
         }
 
         [TestMethod]
         public void Serialize_NestedObject_ReturnsJsonObjectWithNestedObject()
         {
             // Arrange
-            var obj = new MSTests.JsonHelperTests.NestedObject
+            var obj = new NestedObject
             {
                 Name = "Outer",
-                Inner = new MSTests.JsonHelperTests.SimpleObject
+                Inner = new SimpleObject
                 {
                     Name = "Inner",
                     Age = 25,
@@ -493,7 +493,7 @@ namespace System.MSTests
             // Arrange
             var dict = new Dictionary<string, object>
             {
-                ["object"] = new MSTests.JsonHelperTests.SimpleObject { Name = "Test", Age = 42 },
+                ["object"] = new SimpleObject { Name = "Test", Age = 42 },
                 ["array"] = new[] { 1.120, 2.300, 3.666 },
                 ["nestedDict"] = new Dictionary<string, string> { ["key"] = "value" }
             };

@@ -245,7 +245,7 @@
 
         public static DataGridViewExtender GetExtender(this DataGridView grid)
         {
-            return gridExtenders.GetOrAdd(grid.GetHashCode(), () => new DataGridViewExtender(grid));
+            return Obj.GetOrAdd(gridExtenders,grid.GetHashCode(), () => new DataGridViewExtender(grid));
         }
 
         private static Color bg = Color.FromArgb(100, Color.DimGray);

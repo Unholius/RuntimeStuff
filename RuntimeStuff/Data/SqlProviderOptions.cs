@@ -5,14 +5,16 @@
 namespace System.Data
 {
     using System;
+    using System.Helpers;
+    using System.Reflection;
 
     /// <summary>
     /// Опции провайдера SQL, определяющие особенности синтаксиса,
     /// форматирования значений и построения запросов для конкретной СУБД.
     /// </summary>
-    public sealed class SqlProviderOptions
+    public class SqlProviderOptions
     {
-        private DbEntityMap map = new DbEntityMap();
+        private DbEntityMap map;
 
         /// <summary>
         /// Инициализирует новый экземпляр класса <see cref="SqlProviderOptions"/>.
@@ -136,15 +138,7 @@ namespace System.Data
         /// </summary>
         public DbEntityMap Map
         {
-            get
-            {
-                if (this.map == null)
-                {
-                    this.map = new DbEntityMap();
-                }
-
-                return this.map;
-            }
+            get => this.map ?? (this.map = new DbEntityMap());
 
             set => this.map = value;
         }
@@ -232,6 +226,35 @@ namespace System.Data
                 default:
                     return Default;
             }
+        }
+
+        /// <summary>
+        /// Получает имя таблицы для указанного члена, учитывая отображение и синтаксис СУБД.
+        /// </summary>
+        /// <param name="memberInfo">Свойство или тип.</param>
+        /// <param name="alias">Добавить к имени псевдоним через AS.</param>
+        /// <returns>Форматированное имя таблицы.</returns>
+        public string GetTableName(MemberInfo memberInfo, string alias = null)
+        {
+            var mc = memberInfo.GetMemberCache();
+            var mappedTableName = this.Map.ResolveTableName(mc, this.NamePrefix, this.NameSuffix);
+            var tableName = mappedTableName ?? mc.GetTableName(this.NamePrefix, this.NameSuffix);
+            return string.IsNullOrWhiteSpace(alias) ? tableName : tableName + $" AS {this.NamePrefix}{alias}{this.NameSuffix}";
+        }
+
+        /// <summary>
+        /// Получает имя колонки для указанного свойства, учитывая отображение и синтаксис СУБД.
+        /// </summary>
+        /// <param name="memberInfo">Свойство класса.</param>
+        /// <param name="alias">Добавить к имени псевдоним через AS.</param>
+        /// <param name="fullName">Возвращать полное имя включая имя таблицы.</param>
+        /// <returns>Форматированное имя колонки.</returns>
+        public string GetColumnName(MemberInfo memberInfo, string alias = null, bool fullName = false)
+        {
+            var mc = memberInfo.GetMemberCache();
+            var mappedColumnName = this.Map.ResolveColumnName(mc, this.NamePrefix, this.NameSuffix, fullName);
+            var columnName = mappedColumnName ?? mc.GetColumnName(this.NamePrefix, this.NameSuffix, fullName);
+            return string.IsNullOrWhiteSpace(alias) ? columnName : columnName + $" AS {this.NamePrefix}{alias}{this.NameSuffix}";
         }
     }
 }

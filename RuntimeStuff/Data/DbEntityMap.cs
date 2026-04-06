@@ -6,6 +6,7 @@ namespace System.Data
 {
     using System;
     using System.Collections.Generic;
+    using System.Helpers;
     using System.Linq;
     using System.Reflection;
 
@@ -163,10 +164,11 @@ namespace System.Data
         /// <param name="property">Информация о свойстве.</param>
         /// <param name="namePrefix">Префикс имени.</param>
         /// <param name="nameSuffix">Суффикс имени.</param>
+        /// <param name="fullName">Возвращать полное имя колонки с именем таблицы и схемы.</param>
         /// <returns>
         /// Полное имя колонки или <c>null</c>, если сопоставление не найдено.
         /// </returns>
-        public string ResolveColumnName(PropertyInfo property, string namePrefix, string nameSuffix)
+        public string ResolveColumnName(PropertyInfo property, string namePrefix, string nameSuffix, bool fullName)
         {
             if (property?.DeclaringType == null)
             {
@@ -175,7 +177,12 @@ namespace System.Data
 
             if (this.TypeMap.TryGetValue(property.DeclaringType, out var typeMapping) && typeMapping.PropertyColumns.TryGetValue(property, out var propertyMapping))
             {
-                return $"{namePrefix}{propertyMapping.ColumnName}{nameSuffix}";
+                var mappedColumnName = $"{namePrefix}{propertyMapping.ColumnName}{nameSuffix}";
+                if (fullName)
+                {
+                    mappedColumnName = this.ResolveTableName(property.DeclaringType, namePrefix, nameSuffix) + "." + mappedColumnName;
+                    return mappedColumnName;
+                }
             }
 
             return null;

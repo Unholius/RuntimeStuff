@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -71,20 +72,24 @@ namespace WinFormsExtensions
 
         private BindingCollection<FilterRow> Values { get; set; } = new BindingCollection<FilterRow>();
 
-        public bool ColumnFrozen { get; set; }
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+        public bool ColumnFrozen { get; set; } = false;
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool ColumnCellLeftAligned
         {
             get;
             set;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool ColumnCellRightAligned
         {
             get;
             set;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool ColumnCellJustifyAligned
         {
             get;
@@ -490,7 +495,7 @@ namespace WinFormsExtensions
             SetSelection(false);
         }
 
-        internal class FilterRow : ObservableObjectEx
+        internal class FilterRow : PropertyChangedBase
         {
             private bool @checked;
             private object @value;

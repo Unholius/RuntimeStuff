@@ -58,7 +58,7 @@ namespace System.Data
         }
 
         /// <summary>
-        /// Gets or sets типизированное соединение с базой данных.
+        /// типизированное соединение с базой данных.
         /// </summary>
         /// <value>The connection.</value>
         public new T Connection

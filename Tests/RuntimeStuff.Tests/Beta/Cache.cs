@@ -713,7 +713,7 @@
 //            public TKey Key { get; }
 
 //            /// <summary>
-//            /// Gets or sets the last access.
+//            /// the last access.
 //            /// </summary>
 //            /// <value>The last access.</value>
 //            public DateTime LastAccess { get; internal set; }

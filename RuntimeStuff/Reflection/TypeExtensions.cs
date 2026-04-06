@@ -49,11 +49,23 @@ namespace System.Reflection
         /// </exception>
         public static object InvokeDefault(this MethodInfo methodInfo, object instance)
         {
+            if (methodInfo == null)
+            {
+                throw new ArgumentNullException(nameof(methodInfo));
+            }
+
             var parameters = methodInfo.GetParameters();
             var args = parameters
                 .Select(p => p.IsOptional ? Type.Missing : p.ParameterType.DefaultValue())
                 .ToArray();
-            return methodInfo.Invoke(instance, args);
+
+            // Убедимся, что instance == null для статических методов
+            if (methodInfo.IsStatic && instance != null)
+            {
+                throw new ArgumentException("Instance must be null for static methods.", nameof(instance));
+            }
+
+            return methodInfo.Invoke(methodInfo.IsStatic ? null : instance, args);
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-﻿namespace System.MSTests.DTO.SQLite
+﻿namespace RuntimeStuff.MSTests.DTO.SQLite
 {
     public sealed class TestTable
     {

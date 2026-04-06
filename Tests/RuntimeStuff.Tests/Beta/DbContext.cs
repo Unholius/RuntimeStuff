@@ -2,9 +2,10 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace System.Data
+namespace RuntimeStuff.MSTests.Beta
 {
     using System;
+    using System.Data;
 
     /// <summary>
     /// Предоставляет механизм разрешения (<c>resolve</c>) подключений к базе данных

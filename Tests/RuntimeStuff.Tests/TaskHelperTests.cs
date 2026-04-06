@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     using System;
@@ -513,7 +513,7 @@ namespace System.MSTests
         //    // Пытаемся изменить полученную коллекцию
         //    if (activeWaiters is List<string> list)
         //    {
-        //        list.Clear();
+        //        list.ClearQuery();
         //    }
 
         //    // Assert

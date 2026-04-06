@@ -1,4 +1,6 @@
-﻿namespace System.MSTests
+﻿using System.Helpers;
+
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class StringTokensTests

@@ -619,12 +619,12 @@ namespace System.Reflection
         public string GroupName { get; }
 
         /// <summary>
-        /// Получает значение, указывающее, является ли тип базовым (примитивным, строкой, DateTime, Decimal, Guid, Enum).
+        /// Получает значение, указывающее, является ли тип базовым <see cref="Obj.BasicTypes"/>.
         /// </summary>
         public bool IsBasic { get; }
 
         /// <summary>
-        /// Является ли член индексатором, this[].
+        /// Является ли член индексатором, this[]. (Определяется по количеству параметров индексаторов > 0 <see cref="PropertyInfo.GetIndexParameters"/>).
         /// </summary>
         public bool IsIndexer { get; }
 
@@ -1047,7 +1047,7 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Получает массив свойств-индексаторов this[].
+        /// Получает массив свойств-индексаторов this[] (<see cref="IsIndexer"/> == true).
         /// </summary>
         public MemberCache[] Indexers
         {
@@ -1064,7 +1064,7 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Получает массив публичных свойств.
+        /// Массив публичных свойств, кроме индексов (<see cref="IsPublic"/> == true и <see cref="IsIndexer"/> == false).
         /// </summary>
         public MemberCache[] PublicProperties
         {
@@ -1081,12 +1081,15 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Получает тип объекта, отраженного этим экземпляром.
+        /// Gets the class object that was used to obtain this member.
         /// </summary>
+        /// <remarks>This property may differ from the declaring type if the member was obtained through
+        /// reflection on a derived class. Use this property to determine the type through which reflection was
+        /// performed.</remarks>
         public override Type ReflectedType => this.MemberInfo.ReflectedType;
 
         /// <summary>
-        /// Получает имя схемы базы данных для таблицы.
+        /// Берется из атрибута TableAttribute, если его нет, то не заполняется.
         /// </summary>
         public string SchemaName { get; }
 
@@ -1096,7 +1099,7 @@ namespace System.Reflection
         public Action<object, object> Setter { get; }
 
         /// <summary>
-        /// Получает имя таблицы в базе данных.
+        /// Берется из атрибута TableAttribute, если его нет, то берется простое имя класса.
         /// </summary>
         public string TableName { get; }
 
@@ -1702,7 +1705,7 @@ namespace System.Reflection
                     continue;
                 }
 
-                for (int i = 0; i < methodParams.Length; i++)
+                for (var i = 0; i < methodParams.Length; i++)
                 {
                     if ((args[i] != null && !methodParams[i].ParameterType.IsAssignableFrom(args[i])) || methodParams[i].ParameterType == typeof(object))
                     {
@@ -2349,6 +2352,34 @@ namespace System.Reflection
             else
             {
                 this.Setter(source, valueConverter == null ? Obj.ChangeType(value, this.Type) : valueConverter(value));
+                this.OnPropertyChanged?.Invoke(source, new object[] { new PropertyChangedEventArgs(this.Name) });
+            }
+        }
+
+        /// <summary>
+        /// Устанавливает значение члена для указанного экземпляра.<br/>
+        /// Если конвертер значений не указан, то используется <see cref="Obj.ChangeType(object,System.Type,IFormatProvider)"/>.
+        /// </summary>
+        /// <typeparam name="T">Тип объекта.</typeparam>
+        /// <param name="source">Экземпляр объекта.</param>
+        /// <param name="value">Значение для установки.</param>
+        /// <param name="valueConverter">Конвертер значения (необязательный).</param>
+        public virtual void SetValueByRef<T>(ref T source, object value, Func<object, object> valueConverter = null)
+        {
+            if (this.IsField && this.DeclaringType?.IsValueType == true)
+            {
+                this.AsFieldInfo().SetValueDirect(__makeref(source), value);
+            }
+            else if (this.IsProperty)
+            {
+                object boxedSource = source;
+                if (this.Setter == null)
+                {
+                    throw new InvalidOperationException($"Свойство {this.Name} не имеет сеттера.");
+                }
+
+                this.AsPropertyInfo().SetValue(boxedSource, valueConverter == null ? Obj.ChangeType(value, this.Type) : valueConverter(value));
+                source = (T)boxedSource;
                 this.OnPropertyChanged?.Invoke(source, new object[] { new PropertyChangedEventArgs(this.Name) });
             }
         }

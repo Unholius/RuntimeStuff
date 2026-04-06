@@ -2,7 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     using System.Diagnostics;
 

@@ -1,4 +1,4 @@
-namespace System.MSTests;
+namespace RuntimeStuff.MSTests;
 
 // DUMB TESTS FOR KEEP CONST TESTS NUMBER 666
 

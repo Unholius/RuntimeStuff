@@ -31,6 +31,65 @@ namespace System.Linq
     public static class EnumerableExtensions
     {
         /// <summary>
+        /// Возвращает значение, связанное с указанным ключом, либо значение по умолчанию, если ключ не найден.
+        /// </summary>
+        /// <typeparam name="TKey">Тип ключа.</typeparam>
+        /// <typeparam name="TValue">Тип значения.</typeparam>
+        /// <param name="source">
+        /// Последовательность пар ключ-значение. Может быть как словарем, так и любой другой коллекцией.
+        /// </param>
+        /// <param name="key">Ключ, значение которого требуется получить.</param>
+        /// <param name="defaultValue">
+        /// Значение, возвращаемое в случае отсутствия ключа в коллекции.
+        /// </param>
+        /// <param name="comparer">
+        /// Компаратор для сравнения ключей. Если не задан, используется <see cref="EqualityComparer{T}.Default"/>.
+        /// </param>
+        /// <returns>
+        /// Значение, соответствующее ключу <paramref name="key"/>, если он найден;
+        /// в противном случае — <paramref name="defaultValue"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> равен <c>null</c>.
+        /// </exception>
+        /// <remarks>
+        /// Если <paramref name="source"/> реализует <see cref="IDictionary{TKey, TValue}"/>,
+        /// используется оптимизированный доступ через <c>TryGetValue</c>.
+        /// В противном случае выполняется последовательный перебор элементов.
+        /// </remarks>
+        public static TValue GetValueOrDefault<TKey, TValue>(
+            this IEnumerable<KeyValuePair<TKey, TValue>> source,
+            TKey key,
+            TValue defaultValue = default,
+            IEqualityComparer<TKey> comparer = null)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (source is IDictionary<TKey, TValue> dict)
+            {
+                return dict.TryGetValue(key, out var val) ? val : defaultValue;
+            }
+
+            if (comparer == null)
+            {
+                comparer = EqualityComparer<TKey>.Default;
+            }
+
+            foreach (var kv in source)
+            {
+                if (comparer.Equals(kv.Key, key))
+                {
+                    return kv.Value;
+                }
+            }
+
+            return defaultValue;
+        }
+
+        /// <summary>
         /// Принудительно уведомляет подписчиков о том, что коллекция была изменена.
         /// </summary>
         /// <param name="collection">Коллекция, реализующая <see cref="INotifyCollectionChanged"/>.</param>
@@ -220,7 +279,7 @@ namespace System.Linq
 
             var totalLength = array.Length;
 
-            foreach (T[] v in arrays)
+            foreach (var v in arrays)
             {
                 if (v != null)
                 {

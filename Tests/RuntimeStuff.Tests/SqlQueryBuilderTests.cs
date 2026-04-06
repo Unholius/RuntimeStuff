@@ -1,14 +1,28 @@
 ﻿#if DEBUG
+using RuntimeStuff.MSTests.Beta;
+using RuntimeStuff.MSTests.DTO.SQLite;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
-using System.MSTests.DTO.SQLite;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace RuntimeStuff.MSTests
 {
+
+    public class Entity
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public DateTime Created { get; set; }
+        public object[] Photo { get; set; }
+        public Guid Guid { get; set; }
+        public bool IsActive { get; set; }
+        public decimal Price { get; set; }
+        public double Rating { get; set; }
+        public float Discount { get; set; }
+    }
+
     [TestClass]
     public class SqlQueryBuilderTests
     {
@@ -20,6 +34,11 @@ namespace RuntimeStuff.MSTests
             sqb.Select<User>(x => x.Name, x => x.Id);
             var query = sqb.ToString();
             Assert.AreEqual("SELECT [users].[Name], [users].[Id] FROM [users]", query);
+
+            sqb.UseAliases = true;
+            sqb.Select<User>(x => x.Name);
+            query = sqb.ToString();
+            Assert.AreEqual("SELECT [users].[Name] AS [Name], [users].[Id] AS [Id], [users].[Name] AS [Name] FROM [users]", query);
         }
 
         [TestMethod]
@@ -62,9 +81,8 @@ namespace RuntimeStuff.MSTests
             sqb.UseFullNames = true;
             sqb.Select<UserLogs>(x => x.Created, x => x.UserId);
             var query = sqb.ToString();
-            Assert.AreEqual("SELECT [users].[Name], [users].[Id] FROM [users]", query);
+            Assert.AreEqual("SELECT [logs].[user_logs].[Created], [logs].[user_logs].[UserId] FROM [logs].[user_logs]", query);
         }
-
     }
 }
 #endif

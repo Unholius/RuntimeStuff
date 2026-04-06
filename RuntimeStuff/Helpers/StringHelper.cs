@@ -2,9 +2,8 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
-namespace System
+namespace System.Helpers
 {
-    using System;
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
@@ -2508,7 +2507,7 @@ namespace System
             }
 
             /// <summary>
-            /// Gets or sets пользовательские функции-трансформеры, применяемые к токену с учетом модели, если она
+            /// пользовательские функции-трансформеры, применяемые к токену с учетом модели, если она
             /// указана. По умолчанию равно значению <see cref="Text"/>.
             /// </summary>
             /// <value>The content transformers.</value>
@@ -2692,7 +2691,7 @@ namespace System
             public string Suffix { get; internal set; }
 
             /// <summary>
-            /// Gets or sets тег для хранения пользовательских данных.
+            /// тег для хранения пользовательских данных.
             /// </summary>
             /// <value>The tag.</value>
             public object Tag { get; set; }
@@ -2704,7 +2703,7 @@ namespace System
             public string Text { get; internal set; }
 
             /// <summary>
-            /// Gets or sets the identifier internal.
+            /// the identifier internal.
             /// </summary>
             internal static int IdInternal { get; set; } = 1;
 
@@ -2932,49 +2931,49 @@ namespace System
             }
 
             /// <summary>
-            /// Gets or sets a value indicating whether разрешает ли данная маска иметь вложенные токены.
+            /// a value indicating whether разрешает ли данная маска иметь вложенные токены.
             /// </summary>
             /// <value><c>true</c> if [allow children tokens]; otherwise, <c>false</c>.</value>
             public bool AllowChildrenTokens { get; set; } = true;
 
             /// <summary>
-            /// Gets or sets разрешённые маски для вложенных токенов.
+            /// разрешённые маски для вложенных токенов.
             /// </summary>
             /// <value>The allowed children masks.</value>
             public List<TokenMask> AllowedChildrenMasks { get; set; } = new List<TokenMask>();
 
             /// <summary>
-            /// Gets or sets разрешённые маски для следующих соседних токенов.
+            /// разрешённые маски для следующих соседних токенов.
             /// </summary>
             /// <value>The allowed next masks.</value>
             public List<TokenMask> AllowedNextMasks { get; set; } = new List<TokenMask>();
 
             /// <summary>
-            /// Gets or sets функция для трансформации содержимого токена.
+            /// функция для трансформации содержимого токена.
             /// </summary>
             /// <value>The content transformer.</value>
             public Func<Token, string> ContentTransformer { get; set; }
 
             /// <summary>
-            /// Gets or sets префикс токена.
+            /// префикс токена.
             /// </summary>
             /// <value>The prefix.</value>
             public string Prefix { get; set; }
 
             /// <summary>
-            /// Gets or sets функция для установки пользовательского тега токена.
+            /// функция для установки пользовательского тега токена.
             /// </summary>
             /// <value>The set tag.</value>
             public Func<Token, object> SetTag { get; set; }
 
             /// <summary>
-            /// Gets or sets суффикс токена.
+            /// суффикс токена.
             /// </summary>
             /// <value>The suffix.</value>
             public string Suffix { get; set; }
 
             /// <summary>
-            /// Gets or sets a value indicating whether выбрасывать ли исключение при попытке добавить неразрешённый вложенный токен.
+            /// a value indicating whether выбрасывать ли исключение при попытке добавить неразрешённый вложенный токен.
             /// </summary>
             /// <value><c>true</c> if [throw exception on not allowed token]; otherwise, <c>false</c>.</value>
             public bool ThrowExceptionOnNotAllowedToken { get; set; } = false;

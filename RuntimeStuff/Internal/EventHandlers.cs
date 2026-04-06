@@ -12,12 +12,12 @@ namespace System.Internal
     internal class EventHandlers
     {
         /// <summary>
-        /// Gets or sets the changed.
+        /// the changed.
         /// </summary>
         public PropertyChangedEventHandler Changed { get; set; }
 
         /// <summary>
-        /// Gets or sets the changing.
+        /// the changing.
         /// </summary>
         public PropertyChangingEventHandler Changing { get; set; }
     }

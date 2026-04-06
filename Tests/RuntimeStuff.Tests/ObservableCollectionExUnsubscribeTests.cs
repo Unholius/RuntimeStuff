@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Specialized;
 using System.ComponentModel;
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class ObservableCollectionExUnsubscribeTests

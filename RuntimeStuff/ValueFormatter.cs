@@ -4,10 +4,11 @@
 
 namespace System
 {
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Globalization;
+    using System.Helpers;
     using System.Linq;
-    using System.Reflection;
 
     /// <summary>
     /// Универсальный форматтер значений различных типов с поддержкой кастомных правил,
@@ -23,10 +24,10 @@ namespace System
     /// <item><description>Постобработку результата через цепочку функций.</description></item>
     /// </list>
     /// </remarks>
-    public class ValueFormatter
+    public class ValueFormatter : ICloneable
     {
-        private readonly Dictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new Dictionary<Type, Func<object, ValueFormatter, string>>();
-        private HashSet<object> nullValuesSet;
+        private readonly ConcurrentDictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new ConcurrentDictionary<Type, Func<object, ValueFormatter, string>>();
+        private HashSet<object> nullValuesSet = new HashSet<object>(Obj.NullValues);
 
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="ValueFormatter"/> с настройками по умолчанию.
@@ -199,10 +200,9 @@ namespace System
         /// <summary>
         /// Дополнительные значения, которые следует интерпретировать как <c>null</c>.
         /// </summary>
-        public List<object> NullValues
+        public HashSet<object> NullValues
         {
-            get => this.nullValuesSet?.ToList();
-            set => this.nullValuesSet = value != null ? new HashSet<object>(value) : null;
+            get => this.nullValuesSet;
         }
 
         /// <summary>
@@ -282,6 +282,70 @@ namespace System
         }
 
         /// <summary>
+        /// Creates a new ValueFormatter instance that is a copy of the current instance.
+        /// </summary>
+        /// <remarks>The returned clone copies all value and collection properties, ensuring that mutable
+        /// collections are not shared between the original and the clone. Changes to the collections in the cloned
+        /// instance do not affect the original instance.</remarks>
+        /// <returns>A new object that is a deep copy of this ValueFormatter instance.</returns>
+        public object Clone()
+        {
+            var clone = new ValueFormatter
+            {
+                // простые значения
+                BoolPrefix = this.BoolPrefix,
+                BoolSuffix = this.BoolSuffix,
+                CultureInfo = this.CultureInfo,
+                DateFormat = this.DateFormat,
+                DatePrefix = this.DatePrefix,
+                DateSuffix = this.DateSuffix,
+                DateTimeFormat = this.DateTimeFormat,
+                DecimalNumberFormat = this.DecimalNumberFormat,
+                EnumAsString = this.EnumAsString,
+                EnumerablePrefix = this.EnumerablePrefix,
+                EnumerableSeparator = this.EnumerableSeparator,
+                EnumerableSuffix = this.EnumerableSuffix,
+                EscapeMode = this.EscapeMode,
+                FalseValue = this.FalseValue,
+                NormalizeWhitespaces = this.NormalizeWhitespaces,
+                NullPrefix = this.NullPrefix,
+                NullSuffix = this.NullSuffix,
+                NullValue = this.NullValue,
+                NumberPrefix = this.NumberPrefix,
+                NumberSuffix = this.NumberSuffix,
+                ObjectPrefix = this.ObjectPrefix,
+                ObjectSuffix = this.ObjectSuffix,
+                StringPrefix = this.StringPrefix,
+                StringSuffix = this.StringSuffix,
+                TimeFormat = this.TimeFormat,
+                TrimNumberZeroes = this.TrimNumberZeroes,
+                TrimSpaces = this.TrimSpaces,
+                TrueValue = this.TrueValue,
+
+                // коллекции — новые инстансы
+                CustomTypeFormat = this.CustomTypeFormat != null
+                    ? new Dictionary<Type, string>(this.CustomTypeFormat)
+                    : null,
+
+                PostFormatters = this.PostFormatters != null
+                    ? new List<Func<string, string>>(this.PostFormatters)
+                    : null,
+
+                Serializers = this.Serializers != null
+                    ? new List<(Func<Type, bool>, Func<object, ValueFormatter, string>)>(this.Serializers)
+                    : null,
+            };
+
+            // HashSet отдельно (важно не шарить ссылку)
+            if (this.nullValuesSet != null)
+            {
+                clone.nullValuesSet = new HashSet<object>(this.nullValuesSet);
+            }
+
+            return clone;
+        }
+
+        /// <summary>
         /// Форматирует значение в строку в соответствии с текущими настройками.
         /// </summary>
         /// <param name="value">Значение для форматирования.</param>
@@ -352,14 +416,14 @@ namespace System
             // 5. Enum
             if (type.IsEnum)
             {
-                var enumText = this.EnumAsString ? StringHelper.ApplyAffixes(value.ToString(), this.StringPrefix, this.StringSuffix) : StringHelper.ApplyAffixes(Convert.ToInt64(value).ToString(this.CultureInfo), this.NullPrefix, this.NumberSuffix);
+                var enumText = this.EnumAsString ? StringHelper.ApplyAffixes(value.ToString(), this.StringPrefix, this.StringSuffix) : StringHelper.ApplyAffixes(Convert.ToInt64(value).ToString(this.CultureInfo), this.NumberPrefix, this.NumberSuffix);
                 return this.ApplyPost(enumText);
             }
 
             // 6. DateTime
             if (value is DateTime dt)
             {
-                var format = customTypeFormat ?? (dt.HasTime() && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "yyyy-MM-dd");
+                var format = customTypeFormat ?? (dt.TimeOfDay != TimeSpan.Zero && !string.IsNullOrWhiteSpace(this.DateTimeFormat) ? this.DateTimeFormat : this.DateFormat ?? "yyyy-MM-dd");
                 var text = dt.ToString(format, this.CultureInfo);
                 result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
                 return this.ApplyPost(result);
@@ -374,20 +438,20 @@ namespace System
             }
 
 #if NET6_0_OR_GREATER
-            if (value is DateOnly d)
-            {
-                var format = customTypeFormat ?? this.DateFormat ?? "yyyy-MM-dd";
-                var text = string.Format(this.CultureInfo, format, d);
-                result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
-                return this.ApplyPost(result);
-            }
+                        if (value is DateOnly d)
+                        {
+                            var format = customTypeFormat ?? this.DateFormat ?? "yyyy-MM-dd";
+                            var text = d.ToString(format, this.CultureInfo);
+                            result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
+                            return this.ApplyPost(result);
+                        }
 
-            if (value is TimeOnly tOnly)
-            {
-                var format = customTypeFormat ?? this.TimeFormat ?? "HH:mm:ss";
-                var text = string.Format(this.CultureInfo, format, tOnly);
-                return this.ApplyPost(text);
-            }
+                        if (value is TimeOnly tOnly)
+                        {
+                            var format = customTypeFormat ?? this.TimeFormat ?? "HH:mm:ss";
+                            var text = tOnly.ToString(format, this.CultureInfo);
+                            return this.ApplyPost(text);
+                        }
 #endif
             if (value is TimeSpan ts)
             {
@@ -414,9 +478,10 @@ namespace System
             }
 
             // 10. Numeric
-            if (type.IsNumeric())
+            if (Obj.NumberTypes.Contains(type))
             {
-                string text = (value as IFormattable)?.ToString(customTypeFormat ?? this.DecimalNumberFormat, this.CultureInfo);
+                var format = customTypeFormat ?? this.DecimalNumberFormat ?? "G";
+                var text = (value as IFormattable)?.ToString(format, this.CultureInfo);
 
                 if (this.TrimNumberZeroes && text?.Contains('.') == true)
                 {
@@ -451,7 +516,7 @@ namespace System
         /// </remarks>
         public bool TryGetSerializer(Type type, out Func<object, ValueFormatter, string> serializer)
         {
-            if (this.serializerCache == null || type == null)
+            if (type == null)
             {
                 serializer = null;
                 return false;
@@ -462,31 +527,25 @@ namespace System
                 return serializer != null;
             }
 
-            for (int i = 0; i < this.Serializers.Count; i++)
+            foreach (var (condition, serializer1) in this.Serializers)
             {
-                var entry = this.Serializers[i];
-
-                if (entry.Condition != null && entry.Condition(type))
+                if (condition == null || !condition(type))
                 {
-                    serializer = entry.Serializer;
-                    this.serializerCache[type] = serializer;
-                    return true;
+                    continue;
                 }
+
+                serializer = serializer1;
+                this.serializerCache[type] = serializer;
+                return true;
             }
 
             this.serializerCache[type] = null;
-            serializer = null;
             return false;
         }
 
         private static string NormalizeWs(string input)
         {
-            if (string.IsNullOrEmpty(input))
-            {
-                return input;
-            }
-
-            return string.Join(" ", input.Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
+            return string.IsNullOrEmpty(input) ? input : string.Join(" ", input.Split((char[])null, StringSplitOptions.RemoveEmptyEntries));
         }
 
         private static string TrimZeros(string text)

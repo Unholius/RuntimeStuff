@@ -8,7 +8,6 @@ namespace System.Data
     using System.Collections;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
-    using System.Data;
     using System.Data.Common;
     using System.Diagnostics;
     using System.Helpers;
@@ -27,29 +26,10 @@ namespace System.Data
     /// <remarks>Предназначен для использования как легковесная альтернатива ORM.</remarks>
     public class DbClient : IDisposable
     {
-        /// <summary>
-        /// The ignore case comparer.
-        /// </summary>
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
-
-        /// <summary>
-        /// The empty parameters.
-        /// </summary>
         private readonly IReadOnlyDictionary<string, object> emptyParams = new Dictionary<string, object>();
-
-        /// <summary>
-        /// The tr.
-        /// </summary>
         private readonly AsyncLocal<IDbTransaction> tr = new AsyncLocal<IDbTransaction>();
-
-        /// <summary>
-        /// The query log maximum size.
-        /// </summary>
         private int queryLogMaxSize = 100;
-
-        /// <summary>
-        /// The query logs.
-        /// </summary>
         private ConcurrentLogBuffer<string> queryLogs = new ConcurrentLogBuffer<string>(100);
 
         /// <summary>
@@ -146,7 +126,7 @@ namespace System.Data
         public static int RetryTimeoutStep { get; set; } = 10;
 
         /// <summary>
-        /// Gets or sets the trim chars.
+        /// the trim chars.
         /// </summary>
         /// <value>The trim chars.</value>
         public static char[] TrimChars { get; set; } = { '\uFEFF', '\u200B', ' ', '\r', '\n', '\t' };
@@ -157,19 +137,19 @@ namespace System.Data
         public static DbValueConverter TrimStringSpaces { get; } = (name, value, info, item) => value is string s ? s.Trim(TrimChars) : ChangeType(value, info.PropertyType);
 
         /// <summary>
-        /// Gets or sets a value indicating whether определяет, использовать ли ConfigureAwait(false) для асинхронных операций.
+        /// a value indicating whether определяет, использовать ли ConfigureAwait(false) для асинхронных операций.
         /// </summary>
         /// <value><c>true</c> if [configure await]; otherwise, <c>false</c>.</value>
         public bool ConfigureAwait { get; set; } = false;
 
         /// <summary>
-        /// Gets or sets активное соединение с базой данных.
+        /// Соединение с базой данных.
         /// </summary>
         /// <value>The connection.</value>
         public IDbConnection Connection { get; set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether включить логгирование запросов.
+        /// Включить логирование запросов.
         /// </summary>
         /// <value><c>true</c> if [enable logging]; otherwise, <c>false</c>.</value>
         public bool EnableLogging { get; set; }
@@ -180,14 +160,14 @@ namespace System.Data
         public bool UseFullNamesInQueries { get; set; }
 
         /// <summary>
-        /// Gets a value indicating whether признак того, что экземпляр <see cref="DbClient" /> был освобождён.
+        /// Признак того, что экземпляр <see cref="DbClient" /> был освобождён.
         /// </summary>
         /// <value><c>true</c> if this instance is disposed; otherwise, <c>false</c>.</value>
         /// <remarks>Устанавливается в <c>true</c> после вызова метода <see cref="Dispose()" />.</remarks>
         public bool IsDisposed { get; private set; }
 
         /// <summary>
-        /// Gets or sets параметры SQL-провайдера (кавычки, префиксы параметров, синтаксис LIMIT/OFFSET и т.п.).
+        /// Параметры SQL-провайдера (кавычки, префиксы параметров, синтаксис LIMIT/OFFSET и т.п.).
         /// </summary>
         /// <value>The options.</value>
         /// <remarks>Свойство является ковариантным (<c>out T</c>) и предназначено
@@ -196,9 +176,8 @@ namespace System.Data
         public SqlProviderOptions Options { get; set; } = new SqlProviderOptions();
 
         /// <summary>
-        /// Gets or sets the maximum size of the query log.
+        /// Максимальное количество записей в логах запросов. При достижении этого количества, самые старые записи будут удаляться.
         /// </summary>
-        /// <value>The maximum size of the query log.</value>
         public int QueryLogMaxSize
         {
             get => this.queryLogMaxSize;
@@ -210,14 +189,12 @@ namespace System.Data
         }
 
         /// <summary>
-        /// Retrieves a collection of query log entries in chronological order.
+        /// Коллекция логов выполненных SQL-запросов. Содержит текст SQL-запросов, которые были выполнены через этот экземпляр <see cref="DbClient" />.
         /// </summary>
-        /// <returns>An enumerable collection of strings, each representing a query log entry. The collection is ordered from
-        /// oltarget to newest entry. Returns an empty collection if no logs are available.</returns>
         public IEnumerable<string> QueryLogs => this.queryLogs;
 
         /// <summary>
-        /// Gets or sets функция преобразования значений, полученных из БД, в значения свойств объектов.
+        /// Функция преобразования значений, полученных из БД, в значения свойств объектов.
         /// </summary>
         /// <value>The value converter.</value>
         public DbValueConverter<object> ValueConverter { get; set; }
@@ -233,7 +210,7 @@ namespace System.Data
         public static DbClient<T> Create<T>(string connectionString, DbEntityMap map = null)
             where T : IDbConnection, new()
         {
-            var dbClient = DbClient.Create<T>(connectionString, map);
+            var dbClient = new DbClient<T>(connectionString, map);
             return dbClient;
         }
 
@@ -699,7 +676,7 @@ namespace System.Data
                     break;
 
                 case IEnumerable<DbParameter> dbParams:
-                    foreach (DbParameter dbParam in dbParams)
+                    foreach (var dbParam in dbParams)
                     {
                         cmd.Parameters.Add(dbParam);
                     }
@@ -964,7 +941,6 @@ namespace System.Data
                         attempt++;
                         this.HandleDbException(ex, cmd);
                         this.CloseConnection();
-                        continue;
                     }
                     catch (Exception ex)
                     {
@@ -1019,8 +995,6 @@ namespace System.Data
                         var delay = TimeSpan.FromMilliseconds(200 * attempt);
                         await Task.Delay(delay, token).ConfigureAwait(this.ConfigureAwait);
                         this.CloseConnection();
-
-                        continue;
                     }
                     catch (OperationCanceledException)
                     {
@@ -1987,7 +1961,6 @@ namespace System.Data
                     attempt++;
                     this.HandleDbException(ex, cmd);
                     this.CloseConnection();
-                    continue;
                 }
                 catch (Exception ex)
                 {
@@ -2025,7 +1998,7 @@ namespace System.Data
             where T : class
         {
             this.Options.Map.Table<T>(tableName);
-            return this.InsertRangeAsync<T>(list, insertColumns, dbTransaction, token);
+            return this.InsertRangeAsync(list, insertColumns, dbTransaction, token);
         }
 
         /// <summary>
@@ -2097,7 +2070,6 @@ namespace System.Data
                     attempt++;
                     this.HandleDbException(ex, cmd);
                     this.CloseConnection();
-                    continue;
                 }
                 catch (Exception ex)
                 {
@@ -2237,7 +2209,7 @@ namespace System.Data
                                 oce1.SuppressNotifyCollectionChange = true;
                             }
 
-                            this.ReadToListInternalAsync<T>(
+                            this.ReadToListInternalAsync(
                                 list,
                                 reader,
                                 columns,
@@ -2264,7 +2236,6 @@ namespace System.Data
                         attempt++;
                         this.HandleDbException(ex, cmd);
                         this.CloseConnection();
-                        continue;
                     }
                     catch (OperationCanceledException)
                     {
@@ -2433,7 +2404,6 @@ namespace System.Data
                         attempt++;
                         this.HandleDbException(ex, cmd);
                         this.CloseConnection();
-                        continue;
                     }
                     catch (OperationCanceledException)
                     {
@@ -2609,8 +2579,6 @@ namespace System.Data
                         var delay = TimeSpan.FromMilliseconds(200 * attempt);
                         await Task.Delay(delay, token).ConfigureAwait(this.ConfigureAwait);
                         this.CloseConnection();
-
-                        continue;
                     }
                     catch (OperationCanceledException)
                     {
@@ -2698,7 +2666,7 @@ namespace System.Data
                                 oce1.SuppressNotifyCollectionChange = true;
                             }
 
-                            await this.ReadToListInternalAsync<T>(
+                            await this.ReadToListInternalAsync(
                                 list,
                                 reader,
                                 columns,
@@ -2723,8 +2691,6 @@ namespace System.Data
                         var delay = TimeSpan.FromMilliseconds(200 * attempt);
                         await Task.Delay(delay, token).ConfigureAwait(this.ConfigureAwait);
                         this.CloseConnection();
-
-                        continue;
                     }
                     catch (OperationCanceledException)
                     {
@@ -3799,7 +3765,7 @@ namespace System.Data
             params Expression<Func<T, object>>[] updateColumns)
             where T : class
         {
-            return this.Update<T>(item, null, whereExpression, dbTransaction, updateColumns);
+            return this.Update(item, null, whereExpression, dbTransaction, updateColumns);
         }
 
         /// <summary>
@@ -3807,7 +3773,7 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="item">Объект, содержащий значения для обновления колонок.</param>
-        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="tableName">Имя таблицы в которую вставлять записи.</param>
         /// <param name="whereExpression">Лямбда-выражение, определяющее условие <c>WHERE</c>.
         /// Если указано, первичный ключ объекта не используется.</param>
         /// <param name="dbTransaction">Активная транзакция базы данных.
@@ -3928,7 +3894,7 @@ namespace System.Data
                 this.Options.Map.Table<T>(tableName);
             }
 
-            return this.UpdateRange<T>(list, dbTransaction, updateColumns);
+            return this.UpdateRange(list, dbTransaction, updateColumns);
         }
 
         /// <summary>

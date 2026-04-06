@@ -1,4 +1,4 @@
-﻿namespace System.MSTests.Models
+﻿namespace RuntimeStuff.MSTests.Models
 {
     public class TestClassWithBasicPropertiesWithNotifyPropertyChanged(int int32, string? str = null, bool? b = null, double? d = null)
         : System.ComponentModel.INotifyPropertyChanged

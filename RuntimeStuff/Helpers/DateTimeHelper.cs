@@ -1006,8 +1006,8 @@ namespace System.Helpers
             toDate = toDate.Date;
 
             // Случайный день
-            int dayRange = (toDate - fromDate).Days + 1;
-            int randDays = Rnd.Next(dayRange);
+            var dayRange = (toDate - fromDate).Days + 1;
+            var randDays = Rnd.Next(dayRange);
             var date = fromDate.AddDays(randDays);
 
             // Если время не задано — возвращаем только дату
@@ -1025,8 +1025,8 @@ namespace System.Helpers
             }
 
             // Случайное время (до миллисекунд)
-            long timeRange = (long)(endTime - startTime).TotalMilliseconds;
-            long randMs = (long)(Rnd.NextDouble() * (timeRange + 1));
+            var timeRange = (long)(endTime - startTime).TotalMilliseconds;
+            var randMs = (long)(Rnd.NextDouble() * (timeRange + 1));
 
             var time = startTime.Add(TimeSpan.FromMilliseconds(randMs));
 

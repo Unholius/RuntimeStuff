@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace System.MSTests.DTO.SQLite
+namespace RuntimeStuff.MSTests.DTO.SQLite
 {
     [Table("users")]
     public class User

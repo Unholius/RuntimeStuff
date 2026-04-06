@@ -1,6 +1,6 @@
 ﻿using System.Linq.Expressions;
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class ExpressionHelperTests

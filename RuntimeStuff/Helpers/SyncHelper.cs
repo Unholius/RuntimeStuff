@@ -30,7 +30,7 @@ namespace System.Helpers
         /// <returns>Количество отмененных ожиданий.</returns>
         public static int CancelAllWaiting(Func<string, bool> eventIdPredicate = null)
         {
-            int count = 0;
+            var count = 0;
             var keysToRemove = Waiters.Keys
                 .Where(k => eventIdPredicate == null || eventIdPredicate(k))
                 .ToList();

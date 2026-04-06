@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Text;
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class IniFileTests

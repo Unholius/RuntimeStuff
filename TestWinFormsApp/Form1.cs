@@ -1,3 +1,4 @@
+using System.Collections;
 using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
@@ -14,6 +15,7 @@ namespace TestWinFormsApp
             InitializeComponent();
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public BindingCollection<FileItem> FileItems { get; set; } = new BindingCollection<FileItem>();
 
         private async void Form1_Load(object sender, EventArgs e)
@@ -126,8 +128,6 @@ namespace TestWinFormsApp
             btnOpenForm2.Text = message;
         }
 
-        private readonly Model m = new();
-
         private void TextBoxEnabledChanged(object sender, object e)
         {
             MessageBox.Show("Changed because is Checked!");
@@ -137,40 +137,6 @@ namespace TestWinFormsApp
         {
             MessageBox.Show("Click");
             textBox1.Enabled = !textBox1.Enabled;
-        }
-
-        private void textBox1_TextChanged(object sender, EventArgs e)
-        {
-            if (m.Text != textBox1.Text)
-            {
-            }
-        }
-
-        private async void btnLoad_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                m.IsFree = false;
-                var dt = new DataTable();
-                dgv.RowTemplate.Height = 20;
-                FileItems.Clear();
-                using (var con = new SqlConnection().Connect("serv40", "tamuz"))
-                {
-                    dgv.DataSource = await con.ToDataTableAsync("select top 10000 * from products", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
-                }
-                //using (var con = new SqlConnection().Connect("nas\\rssqlserver", "musiclib"))
-                //{
-                //    dgv.DataSource = await con.ToDataTableAsync("select top 10000 * from files", valueConverter: (f, v, c) => v is string s ? s.Trim() : v);
-                //}
-            }
-            catch (Exception ex)
-            {
-                throw; // TODO handle exception
-            }
-            finally
-            {
-                m.IsFree = true;
-            }
         }
 
         private void dataGridView1_Click(object sender, EventArgs e)
@@ -204,27 +170,6 @@ namespace TestWinFormsApp
 
         private void dgv_DataError(object sender, DataGridViewDataErrorEventArgs e)
         {
-        }
-    }
-
-    public class Model : ObservableObjectEx
-    {
-        public string Text
-        {
-            get => Get<string>();
-            set => Set(value);
-        }
-
-        public int Number
-        {
-            get => Get<int>();
-            set => Set(value);
-        }
-
-        public bool IsFree
-        {
-            get => Get<bool>();
-            set => Set(value);
         }
     }
 

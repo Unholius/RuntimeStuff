@@ -1,4 +1,5 @@
 ﻿using FastMember;
+using RuntimeStuff.MSTests.Models;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -6,10 +7,9 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Linq.Expressions;
-using System.MSTests.Models;
 using System.Reflection;
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class MemberCacheTests
@@ -290,7 +290,7 @@ namespace System.MSTests
         public void IsDictionary_ForDictionary_ReturnsTrue()
         {
             // Arrange
-            var dictType = typeof(System.Collections.Generic.Dictionary<string, object>);
+            var dictType = typeof(Dictionary<string, object>);
 
             // Act
             var dictCache = MemberCache.Create(dictType);
@@ -581,6 +581,23 @@ namespace System.MSTests
             Assert.AreEqual(100, newValue);
         }
 
+        public struct Date
+        {
+            public int Day { get; set; }
+            public int Year;
+        }
+
+        [TestMethod]
+        public void SetValue_ByRef()
+        {
+            var d = new Date {Day = 1};
+            var mc = d.GetType().GetMemberCache();
+            mc["Day"].SetValueByRef(ref d, 15);
+            mc["Year"].SetValueByRef(ref d, 2000);
+            Assert.AreEqual(2000, d.Year);
+            Assert.AreEqual(15, d.Day);
+        }
+
         [TestMethod]
         public void GetValueT_ReturnsTypedValue()
         {
@@ -700,7 +717,7 @@ namespace System.MSTests
 
         #endregion Тесты для интерфейсов и наследования
 
-        public class ObservableObjectEx2 : ObservableObjectEx
+        public class ObservableObjectEx2 : PropertyChangedBase
         {
             public int Id { get; set; }
         }
@@ -913,6 +930,22 @@ namespace System.MSTests
         {
         }
 
+        [TestMethod]
+        public void MemberCache_Implicit_Operator_Test()
+        {
+            var origType = typeof(SimpleClass);
+            var origProp = typeof(SimpleClass).GetProperty(nameof(SimpleClass.Id));
+            MemberCache typeCache = origType.GetMemberCache();
+            MemberCache propertyCache = origProp.GetMemberCache();
+            var type = (Type)typeCache;
+            var prop = (PropertyInfo)propertyCache;
+
+            Assert.AreEqual(origType, type);
+            Assert.AreEqual(origProp, prop);
+            Assert.AreEqual(typeCache, (MemberCache)type);
+            Assert.AreEqual(propertyCache, (MemberCache)prop);
+        }
+
         #region Вспомогательные классы для тестов
 
         public class TestClassWithConstructor(string name, int value)
@@ -969,15 +1002,6 @@ namespace System.MSTests
             var m = memberInfo["Имя"];
             Assert.IsNull(m);
         }
-
-        //[TestMethod]
-        //public void GetMemberByColumnName()
-        //{
-        //    var memberInfo = typeof(TestClass).GetMemberCache();
-        //    var m = memberInfo.GetMember("namE", MemberNameType.ColumnName);
-        //    Assert.IsNotNull(m);
-        //    Assert.AreEqual(nameof(TestClass.Id), m.Name);
-        //}
 
         [TestMethod]
         public void GetMemberByColumnNameWithDifferentCase()

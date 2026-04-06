@@ -1,7 +1,7 @@
-﻿using System.Data;
-using System.MSTests.Models;
+﻿using RuntimeStuff.MSTests.Models;
+using System.Data;
 
-namespace System.MSTests
+namespace RuntimeStuff.MSTests
 {
     [TestClass]
     public class SqlQueryHelperTests

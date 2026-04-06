@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using System.Helpers;
 
-namespace System.MSTests;
+namespace RuntimeStuff.MSTests;
 
 [TestClass]
 public class DataTableHelperTests

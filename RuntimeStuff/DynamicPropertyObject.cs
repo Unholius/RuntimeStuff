@@ -42,7 +42,7 @@ namespace System
         }
 
         /// <summary>
-        /// Gets or sets функция для разрешения редактора по типу свойства.
+        /// функция для разрешения редактора по типу свойства.
         /// </summary>
         /// <value>The editor resolver.</value>
         public Func<Type, Type> EditorResolver { get; set; }
@@ -365,13 +365,13 @@ namespace System
             }
 
             /// <summary>
-            /// Gets or sets тип свойства.
+            /// тип свойства.
             /// </summary>
             /// <value>The type.</value>
             public Type Type { get; set; }
 
             /// <summary>
-            /// Gets or sets значение свойства.
+            /// значение свойства.
             /// </summary>
             /// <value>The value.</value>
             public object Value { get; set; }

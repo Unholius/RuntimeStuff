@@ -80,7 +80,7 @@ namespace System.IO
         public string FileName { get; set; }
 
         /// <summary>
-        /// Gets or sets содержимое INI-файла в виде строки.
+        /// содержимое INI-файла в виде строки.
         /// При установке значения null преобразуется в пустую строку.
         /// </summary>
         public string Content

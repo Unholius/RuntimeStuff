@@ -12,6 +12,7 @@
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0</TargetFrameworks>
 		<OutputType>Library</OutputType>
+		<LangVersion>14.0</LangVersion>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<Version>2026.04.1.1</Version>
 		<Authors>Rudnev Sergey</Authors>

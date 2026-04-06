@@ -65,7 +65,7 @@ namespace System.Data
                 clause.Append(" ORDER BY ");
                 _ = clause.Append(string.Join(
                     ", ",
-                    mi.PrimaryKeys.Length > 0 ? mi.PrimaryKeys.Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix) : mi.GetColumns().Select(x => options.Map?.ResolveColumnName(x, options.NamePrefix, options.NameSuffix) ?? options.NamePrefix + x.ColumnName + options.NameSuffix)));
+                    mi.PrimaryKeys.Length > 0 ? mi.PrimaryKeys.Select(x => options.GetColumnName(x)) : mi.GetColumns().Select(x => options.GetColumnName(x))));
                 clause.Append(' ');
             }
 
@@ -94,10 +94,10 @@ namespace System.Data
                                 columnSelectors.Select(c =>
                               {
                                   var col = c.column?.GetMemberCache()?.ColumnName;
-                                  var colName = $"{options.NamePrefix}{options.Map?.ResolveColumnName(c.column?.GetPropertyInfo(), null, null) ?? col ?? "*"}{options.NameSuffix}".Replace("\"*\"", "*");
+                                  var colName = $"{options.GetColumnName(c.column?.GetPropertyInfo()) ?? col ?? "*"}";
                                   return $"{c.aggFunction}({colName}) {(string.IsNullOrWhiteSpace(col) ? string.Empty : col + c.aggFunction)}";
                               }))
-                      + $" FROM {options.NamePrefix}{options.Map?.ResolveTableName(typeof(TFrom), null, null) ?? typeof(TFrom).GetMemberCache().TableName}{options.NameSuffix}");
+                      + $" FROM {options.GetTableName(typeof(TFrom))}");
 
             return query;
         }
@@ -153,9 +153,7 @@ namespace System.Data
                 var col = insertCols[i];
 
                 query
-                    .Append(options.NamePrefix)
-                    .Append(options.Map?.ResolveColumnName(mi[col], null, null) ?? mi[col].ColumnName)
-                    .Append(options.NameSuffix);
+                    .Append(options.GetColumnName(mi[col]));
 
                 if (i < insertCols.Length - 1)
                 {
@@ -250,8 +248,8 @@ namespace System.Data
             var parentCache = MemberCache.Create(from);
             var childrenCache = MemberCache.Create(joinOn);
 
-            var parentTable = parentCache.TableName;
-            var childTable = childrenCache.TableName;
+            var parentTable = options.GetTableName(parentCache);
+            var childTable = options.GetTableName(childrenCache);
 
             string parentColumn;
             string childColumn;
@@ -259,16 +257,16 @@ namespace System.Data
             var fkInChildren = childrenCache.GetForeignKey(from);
             if (fkInChildren != null)
             {
-                parentColumn = parentCache.PrimaryKeys.FirstOrDefault()?.ColumnName;
-                childColumn = fkInChildren.ColumnName;
+                parentColumn = options.GetColumnName(parentCache.PrimaryKeys.FirstOrDefault());
+                childColumn = options.GetColumnName(fkInChildren);
             }
             else
             {
                 var fkInParent = parentCache.GetForeignKey(joinOn);
                 if (fkInParent != null)
                 {
-                    parentColumn = fkInParent.ColumnName;
-                    childColumn = childrenCache.PrimaryKeys.FirstOrDefault()?.ColumnName;
+                    parentColumn = options.GetColumnName(fkInParent);
+                    childColumn = options.GetColumnName(childrenCache.PrimaryKeys.FirstOrDefault());
                 }
                 else
                 {
@@ -282,10 +280,7 @@ namespace System.Data
                 throw new InvalidOperationException("Failed to determine join columns.");
             }
 
-            var np = options.NamePrefix;
-            var ns = options.NameSuffix;
-
-            return $"{joinType.ToString().ToUpper()} JOIN {np}{childTable}{ns} ON {np}{childTable}{ns}.{np}{childColumn}{ns} = {np}{parentTable}{ns}.{np}{parentColumn}{ns}";
+            return $"{joinType.ToString().ToUpper()} JOIN {childTable} ON {childColumn} = {parentColumn}";
         }
 
         /// <summary>
@@ -332,9 +327,7 @@ namespace System.Data
             foreach (var mi in orderBy)
             {
                 query
-                    .Append(options.NamePrefix)
-                    .Append(options.Map?.ResolveColumnName(mi.Item1, null, null) ?? mi.Item1.ColumnName)
-                    .Append(options.NameSuffix)
+                    .Append(options.GetColumnName(mi.Item1))
                     .Append(mi.Item2 ? " ASC, " : " DESC, ");
             }
 
@@ -368,7 +361,7 @@ namespace System.Data
 
             if (members.Length == 0)
             {
-                return $"SELECT * FROM {options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.NamePrefix, options.NameSuffix)}";
+                return $"SELECT * FROM {options.GetTableName(mi)}";
             }
 
             return GetSelectQuery(options, useFullNames, mi, members);
@@ -429,24 +422,8 @@ namespace System.Data
 
             foreach (var pi in selectColumns)
             {
-                if (useFullNames)
-                {
-                    if (!string.IsNullOrEmpty(pi.SchemaName))
-                    {
-                        query.Append(options.NamePrefix)
-                            .Append(pi.SchemaName)
-                            .Append(options.NameSuffix);
-                    }
-
-                    query.Append(options.NamePrefix)
-                        .Append(options.Map?.ResolveTableName(pi.DeclaringType, null, null) ?? pi.TableName)
-                        .Append(options.NameSuffix)
-                        .Append(".");
-                }
-
-                query.Append(options.NamePrefix)
-                    .Append(options.Map?.ResolveColumnName(pi, null, null) ?? pi.ColumnName)
-                    .Append(options.NameSuffix)
+                query
+                    .Append(options.GetColumnName(pi, null, useFullNames))
                     .Append(", ");
             }
 
@@ -456,7 +433,7 @@ namespace System.Data
             }
 
             query.Append(" FROM ");
-            query.Append(options.Map?.ResolveTableName(typeInfo, options.NamePrefix, options.NameSuffix) ?? typeInfo.GetTableName(options.NamePrefix, options.NameSuffix));
+            query.Append(options.GetTableName(typeInfo));
 
             return query.ToString();
         }
@@ -500,9 +477,8 @@ namespace System.Data
                 foreach (var p in props)
                 {
                     var pi = mi[p];
-                    query.Append(options.NamePrefix)
-                        .Append(options.Map?.ResolveColumnName(pi, null, null) ?? pi.ColumnName)
-                        .Append(options.NameSuffix)
+                    query
+                        .Append(options.GetColumnName(pi))
                         .Append(" = ")
                         .Append(options.ParamPrefix)
                         .Append(pi.Name)
@@ -581,9 +557,7 @@ namespace System.Data
                 var key = whereProperties[i];
 
                 whereClause
-                    .Append(options.NamePrefix)
-                    .Append(options.Map?.ResolveColumnName(key, null, null) ?? key.ColumnName)
-                    .Append(options.NameSuffix)
+                    .Append(options.GetColumnName(key))
                     .Append(" = ")
                     .Append(options.ParamPrefix)
                     .Append(key.Name);
@@ -753,7 +727,7 @@ namespace System.Data
             var mi = MemberCache.Create(me.Member);
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
             {
-                return options.NamePrefix + (options.Map?.ResolveColumnName(mi, null, null) ?? mi.ColumnName) + options.NameSuffix;
+                return options.GetColumnName(mi);
             }
 
             var value = ExpressionHelper.GetValue(me);

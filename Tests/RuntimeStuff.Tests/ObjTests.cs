@@ -1,8 +1,7 @@
-﻿using System.MSTests.Models;
-
-namespace System.MSTests
+﻿namespace RuntimeStuff.MSTests
 {
     using Microsoft.VisualStudio.TestTools.UnitTesting;
+    using RuntimeStuff.MSTests.Models;
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -310,18 +309,6 @@ namespace System.MSTests
             Assert.IsTrue(properties.Any(p => p.Name == "Address"));
             Assert.IsTrue(properties.Any(p => p.Name == "Hobbies"));
             Assert.IsTrue(properties.Any(p => p.Name == "ReadOnlyProperty"));
-        }
-
-        [TestMethod]
-        public void GetPropertiesMap_ReturnsDictionary()
-        {
-            // Act
-            var map = Obj.GetPropertiesMap<TestPerson>();
-
-            // Assert
-            Assert.IsInstanceOfType(map, typeof(Dictionary<string, PropertyInfo>));
-            Assert.IsTrue(map.ContainsKey("Name"));
-            Assert.IsTrue(map.ContainsKey("Age"));
         }
 
         [TestMethod]
@@ -852,39 +839,6 @@ namespace System.MSTests
 
         #endregion New Tests
 
-        #region GetOrAdd Tests
-
-        [TestMethod]
-        public void GetOrAdd_ExistingKey_ReturnsValue()
-        {
-            // Arrange
-            var dict = new Dictionary<string, int> { { "key", 42 } };
-
-            // Act
-            var value = dict.GetOrAdd("key", () => 100);
-
-            // Assert
-            Assert.AreEqual(42, value);
-            Assert.AreEqual(1, dict.Count);
-        }
-
-        [TestMethod]
-        public void GetOrAdd_NewKey_AddsAndReturnsValue()
-        {
-            // Arrange
-            var dict = new Dictionary<string, int>();
-
-            // Act
-            var value = dict.GetOrAdd("key", () => 42);
-
-            // Assert
-            Assert.AreEqual(42, value);
-            Assert.AreEqual(1, dict.Count);
-            Assert.AreEqual(42, dict["key"]);
-        }
-
-        #endregion GetOrAdd Tests
-
         #region GetValueOrDefault Tests
 
         [TestMethod]
@@ -928,28 +882,6 @@ namespace System.MSTests
         }
 
         #endregion GetImplementationsOf Tests
-
-        #region GetMembersOfType Tests
-
-        [TestMethod]
-        public void GetMembersOfType_FindsStrings()
-        {
-            // Arrange
-            var person = new TestPerson
-            {
-                Name = "John",
-                Address = new TestAddress { City = "New York", Street = "5th Ave" }
-            };
-
-            // Act
-            var strings = person.GetMembersOfType<string>().ToList();
-
-            // Assert
-            Assert.IsTrue(strings.Count >= 3); // Name + City + Street + private fields
-            Assert.IsTrue(strings.Contains("John"));
-        }
-
-        #endregion GetMembersOfType Tests
 
         #region Cache Tests
 

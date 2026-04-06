@@ -16,6 +16,7 @@ namespace WinFormsExtensions
 
         private StringFilterBuilder filterBuilder = new StringFilterBuilder();
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public Type ValueType { get; set; }
 
         private void OnValueTypeChanged()
@@ -118,6 +119,7 @@ namespace WinFormsExtensions
             return filterBuilder.ToString();
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string FieldName { get; set; }
 
         public string SelectedPresetName => (Presets.CurrentRow?.DataBoundItem as PresetItem)?.PresetName;
