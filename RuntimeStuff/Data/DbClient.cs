@@ -3272,7 +3272,7 @@ namespace System.Data
             }
 
             var result = new List<DataTable>();
-            valueConverter ??= (fieldName, fieldValue, col) => fieldValue;
+            valueConverter ??= (_, fieldValue, _) => fieldValue;
 
             using (var cmd = this.CreateCommand(query, cmdParams))
             {
