@@ -41,7 +41,7 @@ namespace System.Data
 
             return (fieldName, fieldValue, propertyInfo, item) =>
             {
-                if (!(item is T typedItem))
+                if (item is not T typedItem)
                 {
                     throw new InvalidCastException(
                         $"Item must be of type {typeof(T).FullName}");

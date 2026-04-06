@@ -85,7 +85,7 @@ namespace System.IO
         /// </summary>
         public string Content
         {
-            get => this.content ?? (this.content = string.Empty);
+            get => this.content ??= string.Empty;
 
             set
             {
@@ -253,10 +253,7 @@ namespace System.IO
         {
             this.EnsureCache();
 
-            if (section == null)
-            {
-                section = string.Empty;
-            }
+            section ??= string.Empty;
 
             return this.keyCache.TryGetValue(section, out var keys) ? keys : Enumerable.Empty<string>();
         }
@@ -297,10 +294,7 @@ namespace System.IO
 
             this.EnsureCache();
 
-            if (section == null)
-            {
-                section = string.Empty;
-            }
+            section ??= string.Empty;
 
             if (this.valueCache.TryGetValue(section, out var keys) &&
                 keys.TryGetValue(key, out var values) &&
@@ -367,10 +361,7 @@ namespace System.IO
         {
             this.EnsureCache();
 
-            if (section == null)
-            {
-                section = string.Empty;
-            }
+            section ??= string.Empty;
 
             if (this.allowEscapeChars && value != null)
             {

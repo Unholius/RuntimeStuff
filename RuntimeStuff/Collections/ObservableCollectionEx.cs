@@ -412,7 +412,7 @@ namespace System.Collections
         /// </summary>
         private void Subscribe(T item)
         {
-            if (!(item is INotifyPropertyChanged inpc))
+            if (item is not INotifyPropertyChanged inpc)
             {
                 return;
             }

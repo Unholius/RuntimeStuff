@@ -115,7 +115,7 @@ namespace System.Helpers
 
             for (var i = 0; i < sorts.Length; i++)
             {
-                if (i == 0 && !(source is IOrderedEnumerable<T>))
+                if (i == 0 && source is not IOrderedEnumerable<T>)
                 {
                     result = sorts[i].order == ListSortDirection.Ascending
                         ? source.OrderBy(accessor[i])

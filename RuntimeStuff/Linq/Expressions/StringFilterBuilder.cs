@@ -212,7 +212,7 @@ namespace System.Linq.Expressions
             switch (operation)
             {
                 case Token.Between:
-                    if (value is IEnumerable e && !(value is string))
+                    if (value is IEnumerable e && value is not string)
                     {
                         var list = e.Cast<object>().ToList();
                         if (list.Count < 2)
@@ -226,7 +226,7 @@ namespace System.Linq.Expressions
                     throw new ArgumentException(@"Between operation requires an array or IEnumerable with at least two elements.", nameof(value));
 
                 case Token.In:
-                    if (value is IEnumerable inValues && !(value is string))
+                    if (value is IEnumerable inValues && value is not string)
                     {
                         return operation == Token.In ? this.In(inValues.Cast<object>()) : this.NotIn(inValues.Cast<object>());
                     }

@@ -102,7 +102,7 @@ namespace System.ComponentModel
         {
             this.values ??= new Dictionary<string, IValueHolder>();
 
-            if (!this.values.TryGetValue(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), out var holder) || !(holder is ValueHolder<T> typed))
+            if (!this.values.TryGetValue(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), out var holder) || holder is not ValueHolder<T> typed)
             {
                 typed = new ValueHolder<T>();
                 this.values[propertyName] = typed;

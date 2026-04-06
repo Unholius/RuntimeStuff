@@ -649,7 +649,7 @@ namespace System.Data
 
                 case "op_implicit":
                 case "in":
-                    if (!(mce.Arguments[0] is MemberExpression))
+                    if (mce.Arguments[0] is not MemberExpression)
                     {
                         break;
                     }

@@ -702,7 +702,7 @@ namespace System.Data
 
                     if (cmdParams != null)
                     {
-                        if (!(cmdParams is IEnumerable<KeyValuePair<string, object>>))
+                        if (cmdParams is not IEnumerable<KeyValuePair<string, object>>)
                         {
                             var cmdParamsCache = cmdParams.GetType().GetMemberCache();
                             foreach (var arrProp in cmdParamsCache.PublicBasicEnumerableProperties)
@@ -1628,7 +1628,7 @@ namespace System.Data
                 case IDictionary<string, object> idic:
                     return idic.ToDictionary(x => x.Key, x => x.Value);
 
-                case IEnumerable e when !(cmdParams is string) && memberCache.ElementType != null:
+                case IEnumerable e when cmdParams is not string && memberCache.ElementType != null:
                     {
                         var elementCache = MemberCache.Create(memberCache.ElementType);
 
@@ -2039,7 +2039,7 @@ namespace System.Data
                         var queryParams = new Dictionary<string, object>();
                         using (cmd = this.CreateCommand(query, dbTransaction))
                         {
-                            if (!(cmd is DbCommand dbCmd))
+                            if (cmd is not DbCommand dbCmd)
                             {
                                 throw new InvalidCastException($"Cannot cast argument '{nameof(cmd)}' to type '{typeof(DbCommand).FullName}'.");
                             }
@@ -2184,10 +2184,7 @@ namespace System.Data
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(this.Options, fetchRows, offsetRows, query, typeof(T));
 
             var cache = MemberCache.Create(typeof(T));
-            if (itemFactory == null)
-            {
-                itemFactory = BuildItemFactory<T>(cache, columnToPropertyMap);
-            }
+            itemFactory ??= BuildItemFactory<T>(cache, columnToPropertyMap);
 
             var attempt = 0;
             while (true)
@@ -2360,10 +2357,7 @@ namespace System.Data
                 offsetRows,
                 query,
                 returnTypeCache.ElementType);
-            if (itemFactory == null)
-            {
-                itemFactory = BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
-            }
+            itemFactory ??= BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
 
             var attempt = 0;
             while (true)
@@ -2530,10 +2524,7 @@ namespace System.Data
                 offsetRows,
                 query,
                 returnTypeCache.ElementType);
-            if (itemFactory == null)
-            {
-                itemFactory = BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
-            }
+            itemFactory ??= BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
 
             var attempt = 0;
             while (true)
@@ -2638,10 +2629,7 @@ namespace System.Data
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(this.Options, fetchRows, offsetRows, query, typeof(T));
 
             var cache = MemberCache.Create(typeof(T));
-            if (itemFactory == null)
-            {
-                itemFactory = BuildItemFactory<T>(cache, columnToPropertyMap);
-            }
+            itemFactory ??= BuildItemFactory<T>(cache, columnToPropertyMap);
 
             var attempt = 0;
             while (true)
@@ -3195,10 +3183,7 @@ namespace System.Data
             }
 
             var result = new List<DataTable>();
-            if (valueConverter == null)
-            {
-                valueConverter = (fieldName, fieldValue, column) => fieldValue;
-            }
+            valueConverter ??= (fieldName, fieldValue, column) => fieldValue;
 
             using (var cmd = this.CreateCommand(query, cmdParams))
             {
@@ -3287,10 +3272,7 @@ namespace System.Data
             }
 
             var result = new List<DataTable>();
-            if (valueConverter == null)
-            {
-                valueConverter = (fieldName, fieldValue, col) => fieldValue;
-            }
+            valueConverter ??= (fieldName, fieldValue, col) => fieldValue;
 
             using (var cmd = this.CreateCommand(query, cmdParams))
             {
@@ -4010,7 +3992,7 @@ namespace System.Data
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
-                        if (!(cmd is DbCommand dbCmd))
+                        if (cmd is not DbCommand dbCmd)
                         {
                             throw new InvalidCastException($"Cannot cast argument '{nameof(cmd)}' to type '{typeof(DbCommand).FullName}'.");
                         }

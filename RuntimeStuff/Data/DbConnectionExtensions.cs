@@ -379,7 +379,7 @@ namespace System.Data
                 throw new ArgumentNullException(nameof(commandText));
             }
 
-            if (!(connection is DbConnection dbConnection))
+            if (connection is not DbConnection dbConnection)
             {
                 throw new InvalidOperationException("Connection must be DbConnection");
             }

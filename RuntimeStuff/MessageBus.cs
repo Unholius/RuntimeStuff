@@ -314,7 +314,7 @@ namespace System
                     return;
                 }
 
-                if (!(obj is T message))
+                if (obj is not T message)
                 {
                     return;
                 }

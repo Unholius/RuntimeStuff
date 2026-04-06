@@ -385,10 +385,7 @@ namespace System
                 return value;
             }
 
-            if (formatProvider == null)
-            {
-                formatProvider = CultureInfo.InvariantCulture;
-            }
+            formatProvider ??= CultureInfo.InvariantCulture;
 
             toType = Nullable.GetUnderlyingType(toType) ?? toType;
 
@@ -570,8 +567,8 @@ namespace System
                 targetType = GetCollectionItemType(targetType);
             }
 
-            if (source is IEnumerable srcList && !(source is string) && target is IEnumerable dstList &&
-                !(target is string))
+            if (source is IEnumerable srcList && source is not string && target is IEnumerable dstList &&
+                target is not string)
             {
                 var srcEnumerator = srcList.GetEnumerator();
                 var dstEnumerator = dstList.GetEnumerator();

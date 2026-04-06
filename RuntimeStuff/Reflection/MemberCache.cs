@@ -1149,7 +1149,7 @@ namespace System.Reflection
                     this.xmlAttr = this.typeCache.xmlAttr;
                 }
 
-                return this.xmlAttr ?? (this.xmlAttr = string.Empty);
+                return this.xmlAttr ??= string.Empty;
             }
         }
 
@@ -1186,10 +1186,7 @@ namespace System.Reflection
                         }
                     }
 
-                    if (this.xmlElem == null)
-                    {
-                        this.xmlElem = string.Empty;
-                    }
+                    this.xmlElem ??= string.Empty;
                 }
                 else
                 {
@@ -1492,10 +1489,7 @@ namespace System.Reflection
         /// <exception cref="InvalidOperationException">Выбрасывается, если не найден подходящий конструктор.</exception>
         public static object New(Type type, params object[] ctorArgs)
         {
-            if (ctorArgs == null)
-            {
-                ctorArgs = Array.Empty<object>();
-            }
+            ctorArgs ??= Array.Empty<object>();
 
             if (type == null)
             {
@@ -2022,7 +2016,7 @@ namespace System.Reflection
             where TMember : MemberInfo
         {
             var memberInfo = this.GetMember(memberName, memberTypes)?.MemberInfo;
-            if (!(memberInfo is TMember info))
+            if (memberInfo is not TMember info)
             {
                 return null;
             }
@@ -2454,10 +2448,7 @@ namespace System.Reflection
         public void ToDictionary<T>(T instance, Dictionary<string, object> dictionary, Func<MemberCache, bool> propertyFilter = null)
             where T : class
         {
-            if (propertyFilter == null)
-            {
-                propertyFilter = x => x.IsPublic && !x.IsIndexer;
-            }
+            propertyFilter ??= x => x.IsPublic && !x.IsIndexer;
 
             var props = this.Properties.Where(propertyFilter).ToArray();
 

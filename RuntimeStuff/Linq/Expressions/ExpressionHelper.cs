@@ -267,7 +267,7 @@ namespace System.Linq.Expressions
 
             while (expr is MemberExpression m)
             {
-                if (!(m.Member is PropertyInfo pi))
+                if (m.Member is not PropertyInfo pi)
                 {
                     break;
                 }
