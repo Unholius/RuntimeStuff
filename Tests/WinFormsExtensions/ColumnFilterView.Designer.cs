@@ -455,12 +455,10 @@
             // valueFilterTemplate1
             // 
             valueFilterTemplate1.Dock = System.Windows.Forms.DockStyle.Fill;
-            valueFilterTemplate1.FieldName = null;
             valueFilterTemplate1.Location = new System.Drawing.Point(3, 3);
             valueFilterTemplate1.Name = "valueFilterTemplate1";
             valueFilterTemplate1.Size = new System.Drawing.Size(208, 217);
             valueFilterTemplate1.TabIndex = 0;
-            valueFilterTemplate1.ValueType = null;
             // 
             // tabConstructor
             // 

@@ -13,6 +13,7 @@ namespace System
     using System.Linq.Expressions;
     using System.Reflection;
     using System.Text;
+    using static System.Helpers.StringHelper;
 
     /// <summary>
     /// Предоставляет набор методов-расширений для работы со строками, включая замену, удаление и обрезку подстрок, а
@@ -24,6 +25,66 @@ namespace System
     /// строку, а возвращают новую строку с применёнными изменениями.</remarks>
     public static class StringExtensions
     {
+        /// <summary>
+        /// Преобразует входную строку в указанный регистр.
+        /// </summary>
+        /// <param name="s">Исходная строка (например: "hello world").</param>
+        /// <param name="stringCase">Тип регистра, в который необходимо преобразовать строку.</param>
+        /// <returns>Строка, преобразованная в указанный регистр.</returns>
+        /// <remarks>
+        /// Примеры:
+        /// <code>
+        /// ConvertCase("hello world", StringCase.Lower)       => "hello world"
+        /// ConvertCase("hello world", StringCase.Upper)       => "HELLO WORLD"
+        /// ConvertCase("hello world", StringCase.Pascal)      => "HelloWorld"
+        /// ConvertCase("hello world", StringCase.Camel)       => "helloWorld"
+        /// ConvertCase("hello world", StringCase.Kebab)       => "hello-world"
+        /// ConvertCase("hello world", StringCase.UpperKebab)  => "HELLO-WORLD"
+        /// ConvertCase("hello world", StringCase.Snake)       => "hello_world"
+        /// ConvertCase("hello world", StringCase.UpperSnake)  => "HELLO_WORLD"
+        /// </code>
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">
+        /// Может быть выброшено, если <paramref name="s"/> равно <c>null</c>.
+        /// </exception>
+        public static string ConvertCase(this string s, StringCase stringCase) => StringHelper.ConvertCase(s, stringCase);
+
+        /// <summary>
+        /// Преобразует строку в формат <c>PascalCase</c> (UpperCamelCase).
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>PascalCase</c>.</returns>
+        public static string ToPascalCase(this string s) => StringHelper.ToPascalCase(s);
+
+        /// <summary>
+        /// Преобразует строку в формат <c>kebab-case</c>.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>kebab-case</c>.</returns>
+        public static string ToKebabCase(this string s) => StringHelper.ToKebabCase(s);
+
+        /// <summary>
+        /// Преобразует строку в формат <c>camelCase</c> (lowerCamelCase).
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>camelCase</c>.
+        /// Если входная строка пуста или не содержит слов, возвращается пустая строка.</returns>
+        public static string ToCamelCase(this string s) => StringHelper.ToCamelCase(s);
+
+        /// <summary>
+        /// Преобразует строку в формат <c>snake_case</c>.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>snake_case</c>.</returns>
+        public static string ToSnakeCase(this string s) => StringHelper.ToSnakeCase(s);
+
+        /// <summary>
+        /// Преобразует строку в формат <c>UPPER_SNAKE_CASE</c>.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>UPPER_SNAKE_CASE</c>.</returns>
+        public static string ToUpperSnakeCase(this string s) => StringHelper.ToUpperSnakeCase(s);
+
         /// <summary>
         /// Преобразует первую текстовую единицу строки (графему) в верхний регистр с учётом указанной культуры.
         /// </summary>

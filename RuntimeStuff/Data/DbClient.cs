@@ -54,7 +54,7 @@ namespace System.Data
             : this(map)
         {
             this.Connection = con ?? throw new ArgumentNullException(nameof(con));
-            this.Options = SqlProviderOptions.GetInstance(con.GetType().Name);
+            this.Options = SqlDialect.GetInstance(con.GetType().Name);
             this.Options.Map = map;
         }
 
@@ -173,7 +173,7 @@ namespace System.Data
         /// <remarks>Свойство является ковариантным (<c>out T</c>) и предназначено
         /// только для чтения. Для изменения опций рекомендуется использовать
         /// методы самого объекта опций или создавать новый экземпляр.</remarks>
-        public SqlProviderOptions Options { get; set; } = new SqlProviderOptions();
+        public SqlDialect Options { get; set; } = new SqlDialect();
 
         /// <summary>
         /// Максимальное количество записей в логах запросов. При достижении этого количества, самые старые записи будут удаляться.

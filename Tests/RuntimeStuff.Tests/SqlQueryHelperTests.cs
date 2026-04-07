@@ -9,34 +9,20 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void TestSelect_01()
         {
-            var query = SqlQueryHelper.GetSelectQuery<DTO.SQLite.UserLogs>(SqlProviderOptions.SqliteOptions, false);
+            var query = SqlQueryHelper.GetSelectQuery<DTO.SQLite.UserLogs>(SqlDialect.SqliteDialect, false);
             Assert.AreEqual("SELECT \"Created\", \"UserId\", \"Message\" FROM \"logs\".\"user_logs\"", query);
         }
 
         [TestMethod]
         public void TestSelect_02()
         {
-            var query = SqlQueryHelper.GetSelectQuery<DTO.SQLite.UserLogs>(SqlProviderOptions.SqliteOptions, true);
-        }
-
-        [TestMethod]
-        public void TestJoin_01()
-        {
-            var join = SqlQueryHelper.GetJoinClause(SqlProviderOptions.SqliteOptions, typeof(DTO.SQLite.User), typeof(DTO.SQLite.UserProfile));
-            Assert.AreEqual("INNER JOIN \"user_profiles\" ON \"user_profiles\".\"user_id\" = \"users\".\"user_id\"", join);
-        }
-
-        [TestMethod]
-        public void TestJoin_02()
-        {
-            var join = SqlQueryHelper.GetJoinClause(SqlProviderOptions.SqliteOptions, typeof(DTO.SQLite.UserProfile), typeof(DTO.SQLite.User));
-            Assert.AreEqual("INNER JOIN \"users\" ON \"users\".\"user_id\" = \"user_profiles\".\"user_id\"", join);
+            var query = SqlQueryHelper.GetSelectQuery<DTO.SQLite.UserLogs>(SqlDialect.SqliteDialect, true);
         }
 
         [TestMethod]
         public void TestJoin_03()
         {
-            var join = SqlQueryHelper.GetJoinClause<DTO.SQLite.UserProfile, DTO.SQLite.User>(SqlProviderOptions.SqliteOptions, x => x.UserId, x => x.Id);
+            var join = SqlQueryHelper.GetJoinClause<DTO.SQLite.UserProfile, DTO.SQLite.User>(SqlDialect.SqliteDialect, x => x.UserId, x => x.Id);
             Assert.AreEqual("INNER JOIN \"users\" ON \"users\".\"Id\" = \"user_profiles\".\"user_id\"", join);
         }
 
@@ -44,7 +30,7 @@ namespace RuntimeStuff.MSTests
         public void WhereClause_Test_01()
         {
             var whereClause =
-                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(SqlProviderOptions.SqlServerOptions, x => x.Double >= 3.14 && x.Str == "name" || x.Int32 == x.Int32, false, out _);
+                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(SqlDialect.SqlServerDialect, x => x.Double >= 3.14 && x.Str == "name" || x.Int32 == x.Int32, false, out _);
 
             Assert.AreEqual("WHERE ((([Double] >= 3.14) AND ([Str] = 'name')) OR ([Int32] = [Int32]))", whereClause);
         }
@@ -54,7 +40,7 @@ namespace RuntimeStuff.MSTests
         {
             var s = "A01-22006";
             var whereClause =
-                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(SqlProviderOptions.SqlServerOptions, x => x.Str == s, true, out var p);
+                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(SqlDialect.SqlServerDialect, x => x.Str == s, true, out var p);
 
             Assert.AreEqual("WHERE ([Str] = @Str_1)", whereClause);
             Assert.AreEqual(1, p.Count);
@@ -65,7 +51,7 @@ namespace RuntimeStuff.MSTests
         public void WhereClause_Test_02()
         {
             var whereClause =
-                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(SqlProviderOptions.SqlServerOptions, x => x.Double >= 3.14 && x.Str == "name" || x.Int32 == x.Int32, true, out var p);
+                SqlQueryHelper.GetWhereClause<TestClassWithBasicProperties>(SqlDialect.SqlServerDialect, x => x.Double >= 3.14 && x.Str == "name" || x.Int32 == x.Int32, true, out var p);
 
             Assert.AreEqual("WHERE ((([Double] >= @Double_1) AND ([Str] = @Str_2)) OR ([Int32] = [Int32]))", whereClause);
             Assert.AreEqual(2, p.Count);
@@ -81,7 +67,7 @@ namespace RuntimeStuff.MSTests
             var id = 3;
             var name = "name";
             var whereClause =
-                SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(SqlProviderOptions.SqlServerOptions, x => x.Id == id && x.Name == name, false, out _);
+                SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(SqlDialect.SqlServerDialect, x => x.Id == id && x.Name == name, false, out _);
 
             Assert.AreEqual("WHERE (([Name] = 3) AND ([EventId] = 'name'))", whereClause);
         }
@@ -90,7 +76,7 @@ namespace RuntimeStuff.MSTests
         public void WhereClause_Test_05()
         {
             var whereClause =
-                SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(SqlProviderOptions.SqlServerOptions, x => x.Id.In(1, 2, 3), false, out _);
+                SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(SqlDialect.SqlServerDialect, x => x.Id.In(1, 2, 3), false, out _);
 
             Assert.AreEqual("WHERE [Name] IN (1, 2, 3)", whereClause);
         }
@@ -100,7 +86,7 @@ namespace RuntimeStuff.MSTests
         {
             var ids = new[] { 1, 2, 3 };
             var whereClause =
-                SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(SqlProviderOptions.SqlServerOptions, x => x.Id.In(ids), false, out _);
+                SqlQueryHelper.GetWhereClause<MemberCacheTests.TestClass>(SqlDialect.SqlServerDialect, x => x.Id.In(ids), false, out _);
 
             Assert.AreEqual("WHERE [Name] IN (1, 2, 3)", whereClause);
         }

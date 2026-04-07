@@ -5,6 +5,7 @@
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Data;
+    using System.Helpers;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -12,26 +13,18 @@
 
     public class SqlQueryBuilder
     {
-        private readonly Dictionary<MemberCache, string> aliases = new DefaultDictionary<MemberCache, string>();
-        private readonly SqlProviderOptions providerOptions = SqlProviderOptions.SqlServerOptions;
+        private readonly Dictionary<string, MemberCache> aliases = new DefaultDictionary<string, MemberCache>(StringComparer.OrdinalIgnoreCase);
+        private readonly SqlDialect sqlDialect = SqlDialect.SqlServerDialect;
         private readonly List<QueryPart> query = new List<QueryPart>();
+        private readonly StringBuilder sb = new StringBuilder();
 
         public SqlQueryBuilder()
         {
         }
 
-        public SqlQueryBuilder(SqlProviderOptions providerOptions)
+        public SqlQueryBuilder(SqlDialect providerOptions)
         {
-            this.providerOptions = providerOptions;
-        }
-
-        public enum ParamType
-        {
-            Column,
-            Operator,
-            Values,
-            Prefix,
-            Suffix,
+            this.sqlDialect = providerOptions;
         }
 
         public enum QueryPartType
@@ -87,8 +80,13 @@
         public bool IndentFormat { get; set; }
 
         public bool UseAliases { get; set; }
-
+        public bool UseAsKeywordInAliases { get; set; } = true;
         public bool UseFullNames { get; set; }
+
+        public StringHelper.StringCase AliasStringCase { get; set; } = StringHelper.StringCase.Pascal;
+        public StringHelper.StringCase ColumnStringCase { get; set; } = StringHelper.StringCase.Pascal;
+        public StringHelper.StringCase TableStringCase { get; set; } = StringHelper.StringCase.Pascal;
+
 
         public SqlQueryBuilder Add<T>(QueryPartType queryPartType, params Expression<Func<T, object>>[] propertySelectors)
             where T : class
@@ -103,31 +101,25 @@
 
         public SqlQueryBuilder Add(QueryPartType queryPartType, params PropertyInfo[] properties)
         {
-            foreach (var property in properties)
+            foreach (PropertyInfo property in properties)
             {
                 var mc = (MemberCache)property;
                 if (mc.IsBasic)
                 {
-                    this.Add(queryPartType, (ParamType.Column, property));
+                    query.Add(new QueryPart(this, queryPartType, property));
                 }
 
                 if (mc.IsObject)
                 {
-                    this.Add(queryPartType, mc.PropertyType);
+                    query.Add(new QueryPart(this, queryPartType, mc.PropertyType));
                 }
 
                 if (mc.IsCollection)
                 {
-                    this.Add(queryPartType, mc.ElementType);
+                    query.Add(new QueryPart(this, queryPartType, mc.ElementType));
                 }
             }
 
-            return this;
-        }
-
-        public SqlQueryBuilder Add(QueryPartType queryPartType, params (ParamType, object)[] args)
-        {
-            this.query.Add(new QueryPart(this, queryPartType, args));
             return this;
         }
 
@@ -203,7 +195,7 @@
 
         public SqlQueryBuilder SetAlias(MemberInfo member, string alias)
         {
-            this.aliases[member.GetMemberCache()] = alias;
+            this.aliases[alias] = member.GetMemberCache();
             return this;
         }
 
@@ -235,32 +227,12 @@
 
         public SqlQueryBuilder Where(bool and, PropertyInfo property, SqlOperator sqlOperator, params object[] args)
         {
-            if (this.query.Count(x => x.QueryPartType == QueryPartType.Where) == 0)
-            {
-                this.Add(
-                    QueryPartType.Where,
-                    (ParamType.Prefix, and ? " AND " : " OR "));
-            }
-
-            return this.Add(
-                QueryPartType.Where,
-                (ParamType.Column, property),
-                (ParamType.Operator, sqlOperator),
-                (ParamType.Values, args));
+            throw new NotImplementedException();
         }
 
         public SqlQueryBuilder WhereGroup(bool begin)
         {
-            if (begin)
-            {
-                this.Add(QueryPartType.Where, (ParamType.Prefix, "( "));
-            }
-            else
-            {
-                this.Add(QueryPartType.Where, (ParamType.Suffix, " )"));
-            }
-
-            return this;
+            throw new NotImplementedException();
         }
 
         private void BuildSelect(StringBuilder sb)
@@ -274,20 +246,17 @@
                 sb.Append(this.Format(1));
                 for (int i = 0; i < selectParts.Length; i++)
                 {
-                    var pi = selectParts[i].Params[ParamType.Column] as PropertyInfo;
-                    var mc = pi.GetMemberCache();
-                    Format(sb, mc); //mc.GetColumnName(this.providerOptions.NamePrefix, this.providerOptions.NameSuffix, this.UseFullNames));
+                    Format(sb, selectParts[i].Member);
                     if (i < selectParts.Length - 1)
                     {
                         sb.Append(", ");
                     }
                 }
 
-                var mc0 = (selectParts[0].Params[ParamType.Column] as PropertyInfo)?.GetMemberCache();
                 sb.Append(" FROM");
                 sb.Append(this.Format());
                 sb.Append(this.Format(1));
-                sb.Append(mc0.GetTableName(this.providerOptions.NamePrefix, this.providerOptions.NameSuffix));
+                sb.Append(selectParts[0].Member.GetTableName(this.sqlDialect.NamePrefix, this.sqlDialect.NameSuffix));
             }
         }
 
@@ -304,19 +273,6 @@
 
                 for (int i = 0; i < whereParts.Length; i++)
                 {
-                    this.Prefix(sb, whereParts[i], i);
-                    var pi = whereParts[i].Params[ParamType.Column] as PropertyInfo;
-                    if (pi != null)
-                    {
-                        var mc = pi.GetMemberCache();
-                        sb.Append(mc.GetColumnName(this.providerOptions.NamePrefix, this.providerOptions.NameSuffix, this.UseFullNames));
-                        sb.Append(' ');
-                        sb.Append(((SqlOperator)whereParts[i].Params[ParamType.Operator]).GetDescription());
-                        sb.Append(' ');
-                        sb.Append(this.providerOptions.ValueFormatter.Format(whereParts[i].Params[ParamType.Values]));
-                    }
-
-                    this.Suffix(sb, whereParts[i], i);
                 }
             }
         }
@@ -346,13 +302,13 @@
 
             if (member.IsProperty)
             {
-                sb.Append(member.GetColumnName(this.providerOptions.NamePrefix, this.providerOptions.NameSuffix, fullName.Value));
+                sb.Append(member.GetColumnName(this.sqlDialect.NamePrefix, this.sqlDialect.NameSuffix, fullName.Value));
             }
             else
             {
                 if (member.IsType)
                 {
-                    sb.Append(member.GetTableName(this.providerOptions.NamePrefix, this.providerOptions.NameSuffix));
+                    sb.Append(member.GetTableName(this.sqlDialect.NamePrefix, this.sqlDialect.NameSuffix));
                 }
                 else
                 {
@@ -362,44 +318,41 @@
 
             if (useAliases.Value)
             {
-                sb.Append(" AS ");
-                sb.Append(this.providerOptions.NamePrefix);
+                if (UseAsKeywordInAliases)
+                {
+                    sb.Append(" AS ");
+                }
+                else
+                {
+                    sb.Append(' ');
+                }
+                sb.Append(this.sqlDialect.NamePrefix);
                 sb.Append(GetAlias(member));
-                sb.Append(this.providerOptions.NameSuffix);
+                sb.Append(this.sqlDialect.NameSuffix);
             }
         }
 
         private string GetAlias(MemberCache member)
         {
-            if (this.aliases.TryGetValue(member, out var alias))
-            {
-                return alias;
-            }
-
-            var names = query
-                .Where(x => x.QueryPartType == QueryPartType.Select)
-                .Select(x => (x.Params[ParamType.Column] as MemberCache)?.ColumnName)
-                .Concat(aliases.Values).ToArray();
-
-            alias = member.ColumnName;
+            var alias = member.ColumnName;
             var i = 0;
-            while (names.Contains(alias, StringComparer.OrdinalIgnoreCase))
+            while (aliases.ContainsKey(alias))
             {
                 switch (i)
                 {
                     case 0:
-                        alias = member.TableName + member.ColumnName;
+                        alias = StringHelper.ConvertCase(member.TableName + member.ColumnName, AliasStringCase);
                         break;
 
                     default:
-                        alias = $"{member.ColumnName}_{i}";
+                        alias = StringHelper.ConvertCase($"{member.ColumnName}{i + 1}", AliasStringCase);
                         break;
                 }
 
                 i++;
             }
 
-            aliases[member] = alias;
+            aliases[alias] = member;
             return alias;
         }
 
@@ -427,39 +380,29 @@
             }
         }
 
-        private void Prefix(StringBuilder sb, QueryPart qp, int index)
-        {
-            var s = qp.Params[ParamType.Prefix];
-            if (s != null)
-            {
-                sb.Append($"{s}");
-            }
-        }
-
-        private void Suffix(StringBuilder sb, QueryPart qp, int index)
-        {
-            var s = qp.Params[ParamType.Suffix];
-            if (s != null)
-            {
-                sb.Append($"{s}");
-            }
-        }
-
         internal sealed class QueryPart
         {
             private readonly SqlQueryBuilder sqlQueryBuilder;
 
-            public QueryPart(SqlQueryBuilder sqlQueryBuilder, QueryPartType queryPartType, params (ParamType, object)[] args)
+            public QueryPart(SqlQueryBuilder sqlQueryBuilder, QueryPartType queryPartType, MemberCache member)
             {
                 this.sqlQueryBuilder = sqlQueryBuilder;
                 this.QueryPartType = queryPartType;
-                if (args != null && args.Length > 0)
-                {
-                    this.Params = args.ToDefaultDictionary(x => x.Item1, x => x.Item2);
-                }
+                this.Member = member;
+                
             }
 
-            public DefaultDictionary<ParamType, object> Params { get; set; } = new DefaultDictionary<ParamType, object>();
+            public QueryPart(SqlQueryBuilder sqlQueryBuilder, QueryPartType queryPartType, string token)
+            {
+                this.sqlQueryBuilder = sqlQueryBuilder;
+                this.QueryPartType = queryPartType;
+                this.Token = token;
+            }
+
+            public MemberCache Member { get; }
+
+            public string Token { get; }
+
             public QueryPartType QueryPartType { get; }
         }
     }

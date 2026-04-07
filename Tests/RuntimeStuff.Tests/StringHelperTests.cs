@@ -183,7 +183,7 @@ namespace RuntimeStuff.MSTests
             var expected = "SnakeCaseExample";
 
             // Act
-            var result = StringHelper.ToCamelCase(input);
+            var result = StringHelper.ToPascalCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -197,7 +197,7 @@ namespace RuntimeStuff.MSTests
             var expected = "KebabCaseExample";
 
             // Act
-            var result = StringHelper.ToCamelCase(input);
+            var result = StringHelper.ToPascalCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -211,7 +211,7 @@ namespace RuntimeStuff.MSTests
             var expected = "snakeCaseExample";
 
             // Act
-            var result = StringHelper.ToLowerCamelCase(input);
+            var result = StringHelper.ToCamelCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -225,7 +225,7 @@ namespace RuntimeStuff.MSTests
             var expected = "pascalCase";
 
             // Act
-            var result = StringHelper.ToLowerCamelCase(input);
+            var result = StringHelper.ToCamelCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -239,7 +239,7 @@ namespace RuntimeStuff.MSTests
             var expected = "single";
 
             // Act
-            var result = StringHelper.ToLowerCamelCase(input);
+            var result = StringHelper.ToCamelCase(input);
 
             // Assert
             Assert.AreEqual(expected, result);
@@ -312,8 +312,8 @@ namespace RuntimeStuff.MSTests
                 // Assert
                 Assert.AreEqual("", StringHelper.ToSnakeCase(input));
                 Assert.AreEqual("", StringHelper.ToUpperSnakeCase(input));
+                Assert.AreEqual("", StringHelper.ToPascalCase(input));
                 Assert.AreEqual("", StringHelper.ToCamelCase(input));
-                Assert.AreEqual("", StringHelper.ToLowerCamelCase(input));
                 Assert.AreEqual("", StringHelper.ToKebabCase(input));
             }
         }

@@ -54,7 +54,7 @@ namespace System.Data
         public DbEntityMap MapToCamelCase<T>()
             where T : class
         {
-            return this.AutoMap<T>(StringHelper.ToCamelCase);
+            return this.AutoMap<T>(StringHelper.ToPascalCase);
         }
 
         /// <summary>

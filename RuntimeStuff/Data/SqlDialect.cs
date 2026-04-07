@@ -12,23 +12,23 @@ namespace System.Data
     /// Опции провайдера SQL, определяющие особенности синтаксиса,
     /// форматирования значений и построения запросов для конкретной СУБД.
     /// </summary>
-    public class SqlProviderOptions
+    public class SqlDialect
     {
         private DbEntityMap map;
 
         /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="SqlProviderOptions"/>.
+        /// Инициализирует новый экземпляр класса <see cref="SqlDialect"/>.
         /// </summary>
-        public SqlProviderOptions()
+        public SqlDialect()
         {
         }
 
         /// <summary>
-        /// Инициализирует новый экземпляр класса <see cref="SqlProviderOptions"/>
+        /// Инициализирует новый экземпляр класса <see cref="SqlDialect"/>
         /// с применением набора конфигураций.
         /// </summary>
         /// <param name="configure">Массив делегатов для настройки опций.</param>
-        internal SqlProviderOptions(params Action<SqlProviderOptions>[] configure)
+        internal SqlDialect(params Action<SqlDialect>[] configure)
         {
             foreach (var setter in configure)
             {
@@ -39,12 +39,12 @@ namespace System.Data
         /// <summary>
         /// Экземпляр опций по умолчанию, который может использоваться для СУБД с общими синтаксическими правилами.
         /// </summary>
-        public static SqlProviderOptions Default { get; } = new SqlProviderOptions();
+        public static SqlDialect Default { get; } = new SqlDialect();
 
         /// <summary>
         /// Преднастроенные опции для PostgreSQL.
         /// </summary>
-        public static SqlProviderOptions PostgreSqlOptions { get; } = new SqlProviderOptions(
+        public static SqlDialect PostgreSqlDialect { get; } = new SqlDialect(
             x => x.ValueFormatter.StringPrefix = "'",
             x => x.ValueFormatter.StringSuffix = "'",
             x => x.ValueFormatter.DatePrefix = "'",
@@ -67,7 +67,7 @@ namespace System.Data
         /// <summary>
         /// Преднастроенные опции для SQLite.
         /// </summary>
-        public static SqlProviderOptions SqliteOptions { get; } = new SqlProviderOptions(
+        public static SqlDialect SqliteDialect { get; } = new SqlDialect(
             x => x.ValueFormatter.StringPrefix = "'",
             x => x.ValueFormatter.StringSuffix = "'",
             x => x.ValueFormatter.DatePrefix = "'",
@@ -89,7 +89,7 @@ namespace System.Data
         /// <summary>
         /// Преднастроенные опции для Microsoft SQL Server.
         /// </summary>
-        public static SqlProviderOptions SqlServerOptions { get; } = new SqlProviderOptions(
+        public static SqlDialect SqlServerDialect { get; } = new SqlDialect(
             x => x.ValueFormatter.StringPrefix = "'",
             x => x.ValueFormatter.StringSuffix = "'",
             x => x.ValueFormatter.DatePrefix = "'",
@@ -202,26 +202,26 @@ namespace System.Data
         /// Получает экземпляр опций на основе типа подключения.
         /// </summary>
         /// <param name="dbConnection">Объект подключения к базе данных.</param>
-        /// <returns>Экземпляр <see cref="SqlProviderOptions"/>.</returns>
-        public static SqlProviderOptions GetInstance(IDbConnection dbConnection) => GetInstance(dbConnection.GetType().Name);
+        /// <returns>Экземпляр <see cref="SqlDialect"/>.</returns>
+        public static SqlDialect GetInstance(IDbConnection dbConnection) => GetInstance(dbConnection.GetType().Name);
 
         /// <summary>
         /// Получает экземпляр опций на основе имени типа подключения.
         /// </summary>
         /// <param name="sqlConnectionTypeName">Имя типа подключения.</param>
-        /// <returns>Экземпляр <see cref="SqlProviderOptions"/>.</returns>
-        public static SqlProviderOptions GetInstance(string sqlConnectionTypeName)
+        /// <returns>Экземпляр <see cref="SqlDialect"/>.</returns>
+        public static SqlDialect GetInstance(string sqlConnectionTypeName)
         {
             switch (sqlConnectionTypeName.ToLower())
             {
                 case "sqlconnection":
-                    return SqlServerOptions;
+                    return SqlServerDialect;
 
                 case "sqliteconnection":
-                    return SqliteOptions;
+                    return SqliteDialect;
 
                 case "npgsqlconnection":
-                    return PostgreSqlOptions;
+                    return PostgreSqlDialect;
 
                 default:
                     return Default;

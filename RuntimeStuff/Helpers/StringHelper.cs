@@ -1821,11 +1821,122 @@ namespace System.Helpers
         }
 
         /// <summary>
+        /// Определяет стиль преобразования регистра строк.
+        /// </summary>
+        /// <remarks>
+        /// Примеры:
+        /// <code>
+        /// "hello world" → Lower        => "hello world"
+        /// "hello world" → Upper        => "HELLO WORLD"
+        /// "hello world" → Pascal       => "HelloWorld"
+        /// "hello world" → Camel        => "helloWorld"
+        /// "hello world" → Snake        => "hello_world"
+        /// "hello world" → UpperSnake   => "HELLO_WORLD"
+        /// "hello world" → Kebab        => "hello-world"
+        /// "hello world" → UpperKebab   => "HELLO-WORLD"
+        /// </code>
+        /// </remarks>
+        public enum StringCase
+        {
+            /// <summary>
+            /// Строка без изменений.
+            /// </summary>
+            None,
+
+            /// <summary>
+            /// lower case — вся строка в нижнем регистре без изменения разделителей.
+            /// Пример: "hello world"
+            /// </summary>
+            Lower,
+
+            /// <summary>
+            /// UPPER CASE — вся строка в верхнем регистре без изменения разделителей.
+            /// Пример: "HELLO WORLD"
+            /// </summary>
+            Upper,
+
+            /// <summary>
+            /// PascalCase — каждое слово начинается с заглавной буквы, разделители удаляются.
+            /// Пример: "HelloWorld"
+            /// </summary>
+            Pascal,
+
+            /// <summary>
+            /// camelCase — первая буква строчная, каждое следующее слово с заглавной, разделители удаляются.
+            /// Пример: "helloWorld"
+            /// </summary>
+            Camel,
+
+            /// <summary>
+            /// snake_case — слова разделяются символом подчеркивания, все буквы строчные.
+            /// Пример: "hello_world"
+            /// </summary>
+            Snake,
+
+            /// <summary>
+            /// UPPER_SNAKE_CASE — слова разделяются символом подчеркивания, все буквы заглавные.
+            /// Пример: "HELLO_WORLD"
+            /// </summary>
+            UpperSnake,
+
+            /// <summary>
+            /// kebab-case — слова разделяются дефисом, все буквы строчные.
+            /// Пример: "hello-world"
+            /// </summary>
+            Kebab,
+
+            /// <summary>
+            /// UPPER-KEBAB-CASE — слова разделяются дефисом, все буквы заглавные.
+            /// Пример: "HELLO-WORLD"
+            /// </summary>
+            UpperKebab,
+        }
+
+        /// <summary>
+        /// Преобразует входную строку в указанный регистр.
+        /// </summary>
+        /// <param name="s">Исходная строка (например: "hello world").</param>
+        /// <param name="stringCase">Тип регистра, в который необходимо преобразовать строку.</param>
+        /// <returns>Строка, преобразованная в указанный регистр.</returns>
+        /// <remarks>
+        /// Примеры:
+        /// <code>
+        /// ConvertCase("hello world", StringCase.Lower)       => "hello world"
+        /// ConvertCase("hello world", StringCase.Upper)       => "HELLO WORLD"
+        /// ConvertCase("hello world", StringCase.Pascal)      => "HelloWorld"
+        /// ConvertCase("hello world", StringCase.Camel)       => "helloWorld"
+        /// ConvertCase("hello world", StringCase.Kebab)       => "hello-world"
+        /// ConvertCase("hello world", StringCase.UpperKebab)  => "HELLO-WORLD"
+        /// ConvertCase("hello world", StringCase.Snake)       => "hello_world"
+        /// ConvertCase("hello world", StringCase.UpperSnake)  => "HELLO_WORLD"
+        /// </code>
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">
+        /// Может быть выброшено, если <paramref name="s"/> равно <c>null</c>.
+        /// </exception>
+        public static string ConvertCase(string s, StringCase stringCase)
+        {
+            return stringCase switch
+            {
+                StringCase.None => s,
+                StringCase.Lower => s.ToLowerInvariant(),
+                StringCase.Upper => s.ToUpperInvariant(),
+                StringCase.Pascal => ToPascalCase(s),
+                StringCase.Camel => ToCamelCase(s),
+                StringCase.Kebab => ToKebabCase(s),
+                StringCase.UpperKebab => ToKebabCase(s).ToUpperInvariant(),
+                StringCase.Snake => ToSnakeCase(s),
+                StringCase.UpperSnake => ToUpperSnakeCase(s),
+                _ => throw new NotImplementedException(),
+            };
+        }
+
+        /// <summary>
         /// Преобразует строку в формат <c>PascalCase</c> (UpperCamelCase).
         /// </summary>
         /// <param name="s">Исходная строка.</param>
         /// <returns>Строка в формате <c>PascalCase</c>.</returns>
-        public static string ToCamelCase(string s)
+        public static string ToPascalCase(string s)
         {
             var words = SplitWords(s);
             return string.Concat(words.Select(w =>
@@ -1849,7 +1960,7 @@ namespace System.Helpers
         /// <param name="s">Исходная строка.</param>
         /// <returns>Строка в формате <c>camelCase</c>.
         /// Если входная строка пуста или не содержит слов, возвращается пустая строка.</returns>
-        public static string ToLowerCamelCase(string s)
+        public static string ToCamelCase(string s)
         {
             var words = SplitWords(s);
             if (words.Length == 0)
@@ -1872,7 +1983,7 @@ namespace System.Helpers
         public static string ToSnakeCase(string s)
         {
             var words = SplitWords(s);
-            return string.Join("_", words);
+            return string.Join("_", words).ToLowerInvariant();
         }
 
         /// <summary>

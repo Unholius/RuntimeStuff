@@ -66,12 +66,16 @@ namespace RuntimeStuff.MSTests
         public void Select_Test_04()
         {
             var sqb = new SqlQueryBuilder();
-            sqb.UseFullNames = false;
-            sqb.Select<User>(x => x.Name, x => x.Id);
-            sqb.Where<User>(x => x.Id, SqlQueryBuilder.SqlOperator.GreaterOrEqual, 666);
-            sqb.Where<User>(x => x.Name, SqlQueryBuilder.SqlOperator.Equal, "name");
+            sqb.UseFullNames = true;
+            sqb.Select<User>(x => x.Id);
+            sqb.Select<User>(x => x.Id);
+            sqb.Select<User>(x => x.Id);
+            sqb.Select<User>(x => x.Id);
             var query = sqb.ToString();
-            Assert.AreEqual("SELECT [Name], [Id] FROM [users]", query);
+            Assert.AreEqual("SELECT [users].[Id], [users].[Id], [users].[Id], [users].[Id] FROM [users]", query);
+            sqb.UseAliases = true;
+            query = sqb.ToString();
+            Assert.AreEqual("SELECT [users].[Id] AS [Id], [users].[Id] AS [UsersId], [users].[Id] AS [Id2], [users].[Id] AS [Id3] FROM [users]", query);
         }
 
         [TestMethod]

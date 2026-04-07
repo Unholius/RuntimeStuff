@@ -15,7 +15,7 @@ namespace System.Data
 
     /// <summary>
     /// Статический класс для генерации SQL-запросов (SELECT, INSERT, UPDATE, DELETE, JOIN, WHERE и т.д.).
-    /// Поддерживает различные провайдеры SQL через <see cref="SqlProviderOptions"/>.
+    /// Поддерживает различные провайдеры SQL через <see cref="SqlDialect"/>.
     /// </summary>
     public static class SqlQueryHelper
     {
@@ -46,7 +46,7 @@ namespace System.Data
         /// <param name="query">Исходный SQL-запрос.</param>
         /// <param name="entityType">Тип сущности для генерации ORDER BY (если его нет).</param>
         /// <returns>SQL-запрос с добавленным LIMIT/OFFSET.</returns>
-        public static string AddLimitOffsetClauseToQuery(SqlProviderOptions options, int fetchRows, int offsetRows, string query, Type entityType = null)
+        public static string AddLimitOffsetClauseToQuery(SqlDialect options, int fetchRows, int offsetRows, string query, Type entityType = null)
         {
             if (fetchRows < 0 || offsetRows < 0)
             {
@@ -84,7 +84,7 @@ namespace System.Data
         /// <param name="options">Параметры SQL-провайдера.</param>
         /// <param name="columnSelectors">Список колонок и агрегатных функций.</param>
         /// <returns>SQL-запрос SELECT с агрегатными функциями.</returns>
-        public static string GetAggSelectClause<TFrom>(SqlProviderOptions options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
+        public static string GetAggSelectClause<TFrom>(SqlDialect options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
             where TFrom : class
         {
             var query = "SELECT " + (columnSelectors.Length == 0
@@ -108,7 +108,7 @@ namespace System.Data
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="options">Параметры SQL-провайдера.</param>
         /// <returns>SQL-запрос DELETE.</returns>
-        public static string GetDeleteQuery<T>(SqlProviderOptions options)
+        public static string GetDeleteQuery<T>(SqlDialect options)
             where T : class
         {
             var mi = MemberCache.Create(typeof(T));
@@ -123,7 +123,7 @@ namespace System.Data
         /// <param name="options">Параметры SQL-провайдера.</param>
         /// <param name="insertColumns">Колонки для вставки. Если не указаны, вставляются все публичные свойства с сеттером.</param>
         /// <returns>SQL-запрос INSERT.</returns>
-        public static string GetInsertQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] insertColumns)
+        public static string GetInsertQuery<T>(SqlDialect options, params Expression<Func<T, object>>[] insertColumns)
             where T : class
         {
             var query = new StringBuilder("INSERT INTO ");
@@ -207,7 +207,7 @@ namespace System.Data
         /// Метод извлекает имена таблиц и колонок из выражений свойств,
         /// применяя настройки префиксов и суффиксов, указанных в <paramref name="options"/>.
         /// </remarks>
-        public static string GetJoinClause<TFrom, TOn>(SqlProviderOptions options, Expression<Func<TFrom, object>> fromPropertySelector, Expression<Func<TOn, object>> onPropertySelector, JoinType joinType = JoinType.Inner)
+        public static string GetJoinClause<TFrom, TOn>(SqlDialect options, Expression<Func<TFrom, object>> fromPropertySelector, Expression<Func<TOn, object>> onPropertySelector, JoinType joinType = JoinType.Inner)
         {
             var np = options.NamePrefix;
             var ns = options.NameSuffix;
@@ -224,66 +224,6 @@ namespace System.Data
         }
 
         /// <summary>
-        /// Генерирует SQL-клаузу JOIN между двумя сущностями.
-        /// </summary>
-        /// <param name="options">Параметры SQL-провайдера.</param>
-        /// <param name="from">Тип основной сущности.</param>
-        /// <param name="joinOn">Тип сущности для соединения.</param>
-        /// <param name="joinType">Тип соединения (INNER, LEFT, RIGHT, FULL).</param>
-        /// <returns>SQL-клауза JOIN.</returns>
-        /// <exception cref="ArgumentNullException">Если один из типов равен null.</exception>
-        /// <exception cref="InvalidOperationException">Если не удалось определить колонки для соединения.</exception>
-        public static string GetJoinClause(SqlProviderOptions options, Type from, Type joinOn, JoinType joinType = JoinType.Inner)
-        {
-            if (from == null)
-            {
-                throw new ArgumentNullException(nameof(from));
-            }
-
-            if (joinOn == null)
-            {
-                throw new ArgumentNullException(nameof(joinOn));
-            }
-
-            var parentCache = MemberCache.Create(from);
-            var childrenCache = MemberCache.Create(joinOn);
-
-            var parentTable = options.GetTableName(parentCache);
-            var childTable = options.GetTableName(childrenCache);
-
-            string parentColumn;
-            string childColumn;
-
-            var fkInChildren = childrenCache.GetForeignKey(from);
-            if (fkInChildren != null)
-            {
-                parentColumn = options.GetColumnName(parentCache.PrimaryKeys.FirstOrDefault());
-                childColumn = options.GetColumnName(fkInChildren);
-            }
-            else
-            {
-                var fkInParent = parentCache.GetForeignKey(joinOn);
-                if (fkInParent != null)
-                {
-                    parentColumn = options.GetColumnName(fkInParent);
-                    childColumn = options.GetColumnName(childrenCache.PrimaryKeys.FirstOrDefault());
-                }
-                else
-                {
-                    throw new InvalidOperationException(
-                        $"Foreign key between {from.Name} and {joinOn.Name} not found");
-                }
-            }
-
-            if (parentColumn == null || childColumn == null)
-            {
-                throw new InvalidOperationException("Failed to determine join columns.");
-            }
-
-            return $"{joinType.ToString().ToUpper()} JOIN {childTable} ON {childColumn} = {parentColumn}";
-        }
-
-        /// <summary>
         /// Генерирует SQL-клауза ORDER BY для указанной сущности.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
@@ -293,7 +233,7 @@ namespace System.Data
         /// второй — направление сортировки: <c>true</c> для ASC, <c>false</c> для DESC.
         /// </param>
         /// <returns>Строка SQL-клаузы ORDER BY, либо пустая строка, если параметр <paramref name="orderBy"/> равен <c>null</c> или пуст.</returns>
-        public static string GetOrderBy<T>(SqlProviderOptions options, params (Expression<Func<T, object>>, bool)[] orderBy)
+        public static string GetOrderBy<T>(SqlDialect options, params (Expression<Func<T, object>>, bool)[] orderBy)
         {
             if (orderBy == null)
             {
@@ -315,7 +255,7 @@ namespace System.Data
         /// <returns>
         /// Строка SQL-клаузы ORDER BY. Если массив <paramref name="orderBy"/> пуст или равен <c>null</c>, возвращается пустая строка.
         /// </returns>
-        public static string GetOrderBy(SqlProviderOptions options, params (MemberCache, bool)[] orderBy)
+        public static string GetOrderBy(SqlDialect options, params (MemberCache, bool)[] orderBy)
         {
             if (orderBy == null || orderBy.Length == 0)
             {
@@ -350,7 +290,7 @@ namespace System.Data
         /// Если массив пустой или <c>null</c>, выбираются все колонки и первичные ключи.
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
-        public static string GetSelectQuery<T>(SqlProviderOptions options, bool useFullNames, params Expression<Func<T, object>>[] selectColumns)
+        public static string GetSelectQuery<T>(SqlDialect options, bool useFullNames, params Expression<Func<T, object>>[] selectColumns)
         {
             var mi = MemberCache.Create(typeof(T));
             var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
@@ -378,7 +318,7 @@ namespace System.Data
         /// Массив выражений для выбора свойств сущности, которые будут включены в SELECT.
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
-        public static string GetSelectQuery<T, TProp>(SqlProviderOptions options, bool useFullNames, params Expression<Func<T, TProp>>[] selectColumns)
+        public static string GetSelectQuery<T, TProp>(SqlDialect options, bool useFullNames, params Expression<Func<T, TProp>>[] selectColumns)
             => GetSelectQuery(options, useFullNames, MemberCache.Create(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
 
         /// <summary>
@@ -391,7 +331,7 @@ namespace System.Data
         /// Массив колонок для выборки. Если массив пустой, выбираются все колонки сущности.
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
-        public static string GetSelectQuery(SqlProviderOptions options, bool useFullNames, Type type, params PropertyInfo[] selectColumns)
+        public static string GetSelectQuery(SqlDialect options, bool useFullNames, Type type, params PropertyInfo[] selectColumns)
         {
             return GetSelectQuery(options, useFullNames, type.GetMemberCache(), selectColumns?.Select(x => x.GetMemberCache())?.ToArray());
         }
@@ -406,7 +346,7 @@ namespace System.Data
         /// Массив колонок для выборки. Если массив пустой, выбираются все колонки сущности <see cref="MemberCache.GetColumns"/>.
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
-        public static string GetSelectQuery(SqlProviderOptions options, bool useFullNames, MemberCache typeInfo, params MemberCache[] selectColumns)
+        public static string GetSelectQuery(SqlDialect options, bool useFullNames, MemberCache typeInfo, params MemberCache[] selectColumns)
         {
             if (typeInfo == null)
             {
@@ -448,7 +388,7 @@ namespace System.Data
         /// Если массив пустой, обновляются все публичные свойства с доступным сеттером, кроме первичных ключей.
         /// </param>
         /// <returns>Строка SQL-запроса UPDATE с указанием колонок и параметров для их значений.</returns>
-        public static string GetUpdateQuery<T>(SqlProviderOptions options, params Expression<Func<T, object>>[] updateColumns)
+        public static string GetUpdateQuery<T>(SqlDialect options, params Expression<Func<T, object>>[] updateColumns)
             where T : class
         {
             var mi = MemberCache.Create(typeof(T));
@@ -506,7 +446,7 @@ namespace System.Data
         /// Ключ — имя параметра, значение — его значение.
         /// </param>
         /// <returns>Строка SQL-клаузы WHERE.</returns>
-        public static string GetWhereClause<T>(SqlProviderOptions options, Expression<Func<T, bool>> whereExpression, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
+        public static string GetWhereClause<T>(SqlDialect options, Expression<Func<T, bool>> whereExpression, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
         {
             var dic = new Dictionary<string, object>();
             var whereClause = whereExpression == null ? string.Empty : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();
@@ -524,7 +464,7 @@ namespace System.Data
         /// Ключ — имя параметра, значение — его значение.
         /// </param>
         /// <returns>Строка SQL-клаузы WHERE для первичных ключей или публичных свойств, если первичные ключи отсутствуют.</returns>
-        public static string GetWhereClause<T>(SqlProviderOptions options, out Dictionary<string, object> cmdParams)
+        public static string GetWhereClause<T>(SqlDialect options, out Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(typeof(T));
             var keys = mi.PrimaryKeys.ToArray();
@@ -547,7 +487,7 @@ namespace System.Data
         /// Ключ — имя параметра, значение — его значение (инициализируется <c>null</c>).
         /// </param>
         /// <returns>Строка SQL-клаузы WHERE для указанных колонок.</returns>
-        public static string GetWhereClause(SqlProviderOptions options, bool and, MemberCache[] whereProperties, out Dictionary<string, object> cmdParams)
+        public static string GetWhereClause(SqlDialect options, bool and, MemberCache[] whereProperties, out Dictionary<string, object> cmdParams)
         {
             cmdParams = new Dictionary<string, object>();
             var whereClause = new StringBuilder("WHERE ");
@@ -606,7 +546,7 @@ namespace System.Data
             }
         }
 
-        private static string Visit(Expression exp, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
+        private static string Visit(Expression exp, SqlDialect options, bool useParams, Dictionary<string, object> cmdParams)
         {
             switch (exp)
             {
@@ -634,7 +574,7 @@ namespace System.Data
             throw new NotSupportedException($"Expression '{exp.NodeType}' is not supported.");
         }
 
-        private static string VisitMethodCall(MethodCallExpression mce, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
+        private static string VisitMethodCall(MethodCallExpression mce, SqlDialect options, bool useParams, Dictionary<string, object> cmdParams)
         {
             var methodName = mce.Method.Name.ToLower();
             MemberExpression propertyExpression = null;
@@ -686,7 +626,7 @@ namespace System.Data
             }
         }
 
-        private static string VisitBinary(BinaryExpression be, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
+        private static string VisitBinary(BinaryExpression be, SqlDialect options, bool useParams, Dictionary<string, object> cmdParams)
         {
             var left = Visit(be.Left, options, useParams, cmdParams);
             var right = Visit(be.Right, options, useParams, cmdParams);
@@ -720,9 +660,9 @@ namespace System.Data
             return $"({left} {op} {right})";
         }
 
-        private static string VisitConstant(ConstantExpression ce, SqlProviderOptions options) => options.ValueFormatter.Format(ce.Value);
+        private static string VisitConstant(ConstantExpression ce, SqlDialect options) => options.ValueFormatter.Format(ce.Value);
 
-        private static string VisitMember(MemberExpression me, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
+        private static string VisitMember(MemberExpression me, SqlDialect options, bool useParams, Dictionary<string, object> cmdParams)
         {
             var mi = MemberCache.Create(me.Member);
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
@@ -735,7 +675,7 @@ namespace System.Data
             return useParams ? options.ParamPrefix + paramName : options.ValueFormatter.Format(value);
         }
 
-        private static string VisitUnary(UnaryExpression ue, SqlProviderOptions options, bool useParams, Dictionary<string, object> cmdParams)
+        private static string VisitUnary(UnaryExpression ue, SqlDialect options, bool useParams, Dictionary<string, object> cmdParams)
         {
             switch (ue.NodeType)
             {
