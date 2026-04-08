@@ -1,7 +1,7 @@
 ﻿<Project Sdk="MSTest.Sdk/3.6.4">
 
   <PropertyGroup>
-    <TargetFramework>net462</TargetFramework>
+    <TargetFramework>net461</TargetFramework>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

@@ -171,6 +171,15 @@ namespace TestWinFormsApp
         private void dgv_DataError(object sender, DataGridViewDataErrorEventArgs e)
         {
         }
+
+        private void btnLoad_Click(object sender, EventArgs e)
+        {
+            using (var con = new SqlConnection().Server("serv40").Database("Tamuz").IntegratedSecurity(true))
+            {
+                dgv.DataSource = con.ToDataTable("select top 1000 * from products");
+            }
+                
+        }
     }
 
     public class FileItem

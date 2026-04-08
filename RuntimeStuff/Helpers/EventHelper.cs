@@ -76,6 +76,7 @@ namespace System.Helpers
             EventInfo eventInfo,
             Action<T, TArgs> action,
             Func<T, TArgs, bool> canExecuteAction = null)
+            where T : class
         {
             if (eventInfo == null)
             {
@@ -545,16 +546,17 @@ namespace System.Helpers
         }
 
         private sealed class EventBinding<TSource, TEventArgs> : IDisposable
+            where TSource : class
         {
             private readonly Action<TSource, TEventArgs> action;
             private readonly Func<TSource, TEventArgs, bool> canExecute;
             private readonly EventInfo eventInfo;
-            private readonly object target;
+            private readonly WeakReference<TSource> target;
             private bool disposed;
 
             public EventBinding(TSource target, EventInfo eventInfo, Action<TSource, TEventArgs> action, Func<TSource, TEventArgs, bool> canExecute)
             {
-                this.target = target;
+                this.target = new WeakReference<TSource>(target);
                 this.eventInfo = eventInfo;
                 this.action = action;
                 this.canExecute = canExecute;

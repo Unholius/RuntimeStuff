@@ -108,6 +108,7 @@
             // 
             // propertyGrid1
             // 
+            propertyGrid1.BackColor = SystemColors.Control;
             propertyGrid1.Location = new Point(3, 3);
             propertyGrid1.Name = "propertyGrid1";
             propertyGrid1.Size = new Size(295, 391);
@@ -181,6 +182,7 @@
             btnLoad.TabIndex = 1;
             btnLoad.Text = "Load";
             btnLoad.UseVisualStyleBackColor = true;
+            btnLoad.Click += btnLoad_Click;
             // 
             // tabPage3
             // 
@@ -253,7 +255,6 @@
             // 
             listBox1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             listBox1.FormattingEnabled = true;
-            listBox1.ItemHeight = 15;
             listBox1.Location = new Point(140, 6);
             listBox1.Name = "listBox1";
             listBox1.Size = new Size(1089, 604);
