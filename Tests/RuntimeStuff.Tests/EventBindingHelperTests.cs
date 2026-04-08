@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace RuntimeStuff.MSTests
 {
@@ -35,11 +30,11 @@ namespace RuntimeStuff.MSTests
             sw.Stop();
             var s1 = sw.ElapsedMilliseconds;
 
-            Obj.Set(x1, "Id", 1);
             sw.Restart();
+            x1.SuppressNotifyPropertyChange = true;
             for (int i = 0; i < n; i++)
             {
-                Obj.Set(x1, "Id", i);
+                x1.Id = i;
             }
             sw.Stop();
             var s2 = sw.ElapsedMilliseconds;
@@ -50,20 +45,43 @@ namespace RuntimeStuff.MSTests
         {
             var x1 = new TestClass1() { Id = 1 };
             var x2 = new TestClass1();
-            x1.BindToProperty(x => x.Id, x2, x => x.Id);
 
+            var b = x1.BindToProperty(x => x.Id, x2, x => x.Id);
             Assert.AreEqual(x1.Id, x2.Id);
+
             x1.Id = 2;
             Assert.AreEqual(x1.Id, x2.Id);
-            x1.SuspendNotifications = true;
+
+            x1.SuppressNotifyPropertyChange = true;
             x1.Id = 3;
+            x1.SuppressNotifyPropertyChange = false;
             Assert.AreNotEqual(x1.Id, x2.Id);
+
+            x2.Id = 4;
+            Assert.AreNotEqual(x1.Id, x2.Id);
+
+            x1.Id = 2;
+            Assert.AreEqual(x1.Id, x2.Id);
+
+            b.Dispose();
         }
     }
 
     public class TestClass0 : INotifyPropertyChanged
     {
-        public int Id { get; set; }
+        private int id;
+
+        public int Id
+        {
+            get => id;
+            set
+            {
+                if (id == value)
+                    return;
+                id = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Id)));
+            }
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
     }

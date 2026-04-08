@@ -836,8 +836,8 @@ namespace RuntimeStuff.MSTests
             {
                 try
                 {
-                    var setter2 = Obj.CreatePropertySetter(p);
-                    var getter2 = Obj.CreatePropertyGetter(p);
+                    var setter2 = Obj.GetMemberSetter(p);
+                    var getter2 = Obj.GetMemberGetter(p);
 
                     setter2(instance, "test_value");
                     var val = getter2(instance);
@@ -866,8 +866,8 @@ namespace RuntimeStuff.MSTests
             }
 
             object kv = new KeyValuePair<string, string>("key1", "value1");
-            var kvKeyGetter = Obj.CreatePropertyGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
-            var kvKeySetter = Obj.CreatePropertySetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            var kvKeyGetter = Obj.GetMemberGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            var kvKeySetter = Obj.GetMemberSetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
 
             var key = kvKeyGetter(kv);
             kvKeySetter(kv, "key2");

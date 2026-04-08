@@ -604,11 +604,11 @@ namespace System.Helpers
             private readonly Func<TTarget, TTargetArgs, bool> canAcceptTargetEvent;
             private readonly Action<object, PropertyChangedEventArgs> onPropertyChanged;
             private bool disposed;
-            private WeakReference source;
+            private WeakReference sourceRef;
             private EventInfo sourceEvent;
             private MemberCache[] sourcePropertyInfo;
             private Func<TSrcValue, TTargetValue> sourceToTargetConverter;
-            private WeakReference target;
+            private WeakReference targetRef;
             private EventInfo targetEvent;
             private MemberCache[] targetPropertyInfo;
             private Func<TTargetValue, TSrcValue> targetToSourceConverter;
@@ -632,8 +632,8 @@ namespace System.Helpers
                 this.targetToSourceConverter = targetToSourceConverter;
                 this.sourceEvent = sourceEvent;
                 this.targetEvent = targetEvent;
-                this.source = new WeakReference(src);
-                this.target = new WeakReference(target);
+                this.sourceRef = new WeakReference(src);
+                this.targetRef = new WeakReference(target);
                 this.canAcceptSourceEvent = canAcceptSourceEvent;
                 this.canAcceptTargetEvent = canAcceptTargetEvent;
                 this.onPropertyChanged = onPropertyChanged;
@@ -662,27 +662,29 @@ namespace System.Helpers
                     return;
                 }
 
-                var src = this.source?.Target;
-                var dst = this.target?.Target;
+                var src = this.sourceRef?.Target;
+                var dst = this.targetRef?.Target;
 
                 if (src != null && this.sourceEvent != null && this.SrcEventHandler != null)
                 {
-                    EventHelper.UnBindActionFromEvent(this.source.Target, this.sourceEvent, this.SrcEventHandler);
+                    EventHelper.UnBindActionFromEvent(this.sourceRef.Target, this.sourceEvent, this.SrcEventHandler);
                 }
 
                 if (dst != null && this.targetEvent != null && this.DstEventHandler != null)
                 {
-                    EventHelper.UnBindActionFromEvent(this.target.Target, this.targetEvent, this.DstEventHandler);
+                    EventHelper.UnBindActionFromEvent(this.targetRef.Target, this.targetEvent, this.DstEventHandler);
                 }
 
                 this.sourcePropertyInfo = null;
                 this.targetPropertyInfo = null;
                 this.sourceToTargetConverter = null;
                 this.targetToSourceConverter = null;
+                this.SrcEventHandler = null;
+                this.DstEventHandler = null;
                 this.sourceEvent = null;
                 this.targetEvent = null;
-                this.source = null;
-                this.target = null;
+                this.sourceRef = null;
+                this.targetRef = null;
                 this.disposed = true;
             }
 
@@ -698,16 +700,16 @@ namespace System.Helpers
                     return;
                 }
 
-                if (this.source.Target == null)
+                if (this.sourceRef.Target == null)
                 {
                     this.Dispose();
                     return;
                 }
 
-                if (this.target.Target != null)
+                if (this.targetRef.Target != null)
                 {
                     var senderValue = MemberCache.GetPathValues(sender, this.sourcePropertyInfo);
-                    var targetValue = MemberCache.GetPathValues(this.target.Target, this.targetPropertyInfo);
+                    var targetValue = MemberCache.GetPathValues(this.targetRef.Target, this.targetPropertyInfo);
                     var convertedValue = this.sourceToTargetConverter != null
                         ? this.sourceToTargetConverter((TSrcValue)senderValue.LastOrDefault())
                         : senderValue.LastOrDefault();
@@ -716,10 +718,10 @@ namespace System.Helpers
                         return;
                     }
 
-                    this.targetPropertyInfo[this.targetPropertyInfo.Length - 1].SetValue(this.targetPropertyInfo.Length == 1 ? this.target.Target : targetValue[targetValue.Length - 2], convertedValue);
+                    this.targetPropertyInfo[this.targetPropertyInfo.Length - 1].SetValue(this.targetPropertyInfo.Length == 1 ? this.targetRef.Target : targetValue[targetValue.Length - 2], convertedValue);
                 }
 
-                this.onPropertyChanged?.Invoke(this.target.Target, new PropertyChangedEventArgs(this.targetPropertyInfo[this.targetPropertyInfo.Length - 1].Name));
+                this.onPropertyChanged?.Invoke(this.targetRef.Target, new PropertyChangedEventArgs(this.targetPropertyInfo[this.targetPropertyInfo.Length - 1].Name));
             }
 
             internal void OnTargetEvent(object sender, object args)
@@ -734,14 +736,14 @@ namespace System.Helpers
                     return;
                 }
 
-                if (this.source.Target == null || this.target.Target == null)
+                if (this.sourceRef.Target == null || this.targetRef.Target == null)
                 {
                     this.Dispose();
                     return;
                 }
 
                 var sourceValue = MemberCache.GetPathValues(sender, this.targetPropertyInfo);
-                var targetValue = MemberCache.GetPathValues(this.source.Target, this.sourcePropertyInfo);
+                var targetValue = MemberCache.GetPathValues(this.sourceRef.Target, this.sourcePropertyInfo);
                 var convertedValue = this.targetToSourceConverter != null
                     ? this.targetToSourceConverter((TTargetValue)sourceValue.LastOrDefault())
                     : sourceValue.LastOrDefault();
@@ -750,8 +752,8 @@ namespace System.Helpers
                     return;
                 }
 
-                this.sourcePropertyInfo[this.sourcePropertyInfo.Length - 1].SetValue(this.sourcePropertyInfo.Length == 1 ? this.source.Target : sourceValue[sourceValue.Length - 2], convertedValue);
-                this.onPropertyChanged?.Invoke(this.source.Target, new PropertyChangedEventArgs(this.sourcePropertyInfo[this.sourcePropertyInfo.Length - 1].Name));
+                this.sourcePropertyInfo[this.sourcePropertyInfo.Length - 1].SetValue(this.sourcePropertyInfo.Length == 1 ? this.sourceRef.Target : sourceValue[sourceValue.Length - 2], convertedValue);
+                this.onPropertyChanged?.Invoke(this.sourceRef.Target, new PropertyChangedEventArgs(this.sourcePropertyInfo[this.sourcePropertyInfo.Length - 1].Name));
             }
         }
     }

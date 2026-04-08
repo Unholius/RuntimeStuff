@@ -7,6 +7,7 @@ namespace System
     using System.Collections;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Data;
     using System.Diagnostics;
     using System.Globalization;
@@ -122,8 +123,8 @@ namespace System
         /// <summary>
         /// The properties cache.
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, Dictionary<string, ObjPropertyInfo>> PropertiesCache =
-            new ConcurrentDictionary<Type, Dictionary<string, ObjPropertyInfo>>();
+        private static readonly ConcurrentDictionary<Type, ReadOnlyDictionary<string, ObjPropertyInfo>> PropertiesCache =
+            new ConcurrentDictionary<Type, ReadOnlyDictionary<string, ObjPropertyInfo>>();
 
         /// <summary>
         /// Универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
@@ -865,7 +866,7 @@ namespace System
         /// Для ссылочных типов, если объект не совместим с ожидаемым типом, будет выброшено <see cref="InvalidCastException"/>.
         /// </para>
         /// </remarks>
-        public static Func<object, object> CreatePropertyGetter(PropertyInfo pi)
+        internal static Func<object, object> CreatePropertyGetter(PropertyInfo pi)
         {
             return CreatePropertyGetter<object, object>(pi);
         }
@@ -893,7 +894,7 @@ namespace System
         /// Для ссылочных типов, если объект не совместим с ожидаемым типом, будет выброшено <see cref="InvalidCastException"/>.
         /// </para>
         /// </remarks>
-        public static Func<TObject, TProperty> CreatePropertyGetter<TObject, TProperty>(PropertyInfo pi)
+        internal static Func<TObject, TProperty> CreatePropertyGetter<TObject, TProperty>(PropertyInfo pi)
         {
             var getter = pi.GetGetMethod(true);
             if (getter == null)
@@ -2224,7 +2225,7 @@ namespace System
         /// </summary>
         /// <param name="type">Тип, свойства которого требуется получить.</param>
         /// <returns>Словарь «имя свойства ? FieldInfo».</returns>
-        public static IDictionary<string, ObjPropertyInfo> GetPropertiesMap(Type type)
+        public static IReadOnlyDictionary<string, ObjPropertyInfo> GetPropertiesMap(Type type)
         {
             return PropertiesCache.GetOrAdd(type, CacheTypeProperties);
         }
@@ -2823,7 +2824,7 @@ namespace System
         }
 
         /// <summary>
-        /// Устанавливает значение поля или свойства объекта по имени члена.<br/>
+        /// Устанавливает значение поля или свойства объекта по имени или пути свойства/поля.<br/>
         /// Если в имени присутствует путь к вложенному члену (например, "Address.Street"), метод рекурсивно обрабатывает каждый уровень вложенности.<br/>
         /// Для максимальной производительности рекомендуется использовать полученные делегаты сеттеров напрямую <see cref="GetMemberSetter(MemberInfo)"/> <see cref="GetMemberSetter{T}(string, out Type)"/>, так как этот метод выполняет поиск члена и преобразование типов при каждом вызове.
         /// </summary>
@@ -2862,7 +2863,19 @@ namespace System
                 return true;
             }
 
-            var setter = GetMemberSetter(instance.GetType(), memberName, out var memberType);
+            var objMap = GetPropertiesMap(instance.GetType());
+            Action<object, object> setter = null;
+            Type memberType = null;
+            if (objMap.TryGetValue(memberName, out var mapItem))
+            {
+                setter = mapItem.Setter;
+                memberType = mapItem.PropertyInfo.PropertyType;
+            }
+            else
+            {
+                GetMemberSetter(instance.GetType(), memberName, out memberType);
+            }
+
             if (setter == null)
             {
                 var path = memberName.Split('.', '/', '\\');
@@ -3100,15 +3113,10 @@ namespace System
             }
         }
 
-        private static Dictionary<string, ObjPropertyInfo> CacheTypeProperties(Type type)
+        private static ReadOnlyDictionary<string, ObjPropertyInfo> CacheTypeProperties(Type type)
         {
             var properties = type.GetProperties(DefaultBindingFlags);
-            var dic = new Dictionary<string, ObjPropertyInfo>();
-            foreach (var prop in properties)
-            {
-                dic[prop.Name] = new ObjPropertyInfo(prop, CreatePropertySetter(prop), CreatePropertyGetter(prop));
-            }
-
+            var dic = new ReadOnlyDictionary<string, ObjPropertyInfo>(properties.ToDictionary(k => k.Name, v => new ObjPropertyInfo(v, CreatePropertySetter(v), CreatePropertyGetter(v))));
             PropertiesCache[type] = dic;
             return dic;
         }

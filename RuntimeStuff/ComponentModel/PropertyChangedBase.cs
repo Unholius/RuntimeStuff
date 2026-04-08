@@ -14,8 +14,10 @@ namespace System.ComponentModel
     /// </summary>
     public abstract class PropertyChangedBase : INotifyPropertyChanged, INotifyPropertyChanging
     {
+        private static Dictionary<string, int> propertyIndex;
         private bool suspendNotifications;
-        private Dictionary<string, IValueHolder> values;
+        //private Dictionary<string, IValueHolder> values;
+        private object[] values;
 
         /// <summary>
         /// Событие, возникающее после изменения значения свойства.
@@ -37,7 +39,7 @@ namespace System.ComponentModel
         /// <summary>
         /// При установке в <c>true</c> временно приостанавливает уведомления об изменении свойств.
         /// </summary>
-        public bool SuspendNotifications
+        public bool SuppressNotifyPropertyChange
         {
             get => this.suspendNotifications;
             set => this.suspendNotifications = value;
@@ -100,26 +102,31 @@ namespace System.ComponentModel
         /// <returns>Возвращает <c>true</c>, если значение изменилось, иначе <c>false</c>.</returns>
         public virtual bool Set<T>(T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
         {
-            this.values ??= new Dictionary<string, IValueHolder>();
-
-            if (!this.values.TryGetValue(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), out var holder) || holder is not ValueHolder<T> typed)
+            if (propertyName == null)
             {
-                typed = new ValueHolder<T>();
-                this.values[propertyName] = typed;
+                throw new ArgumentNullException(nameof(propertyName));
             }
 
-            if (typed.ValueEquals(value))
+            var index = GetIndex(propertyName);
+
+            var current = (this.values != null && index < this.values.Length)
+                ? (T)this.values[index]
+                : default;
+
+            if (EqualityComparer<T>.Default.Equals(current, value))
             {
                 return false;
             }
 
             var notify = !this.suspendNotifications;
+
             if (notify)
             {
                 this.OnPropertyChanging(propertyName);
             }
 
-            typed.Value = value;
+            this.EnsureCapacity(index);
+            this.values[index] = value;
 
             onChanged?.Invoke();
 
@@ -141,12 +148,45 @@ namespace System.ComponentModel
         {
             var dict = this.values;
 
-            if (dict != null && dict.TryGetValue(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), out var holder) && holder is ValueHolder<T> typed)
+            //if (dict != null && dict.TryGetValue(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), out var holder) && holder is ValueHolder<T> typed)
+            //{
+            //    return typed.Value;
+            //}
+
+            var index = GetIndex(propertyName);
+
+            if (this.values != null && index < this.values.Length)
             {
-                return typed.Value;
+                return (T)this.values[index];
             }
 
             return default;
+        }
+
+        private static int GetIndex(string propertyName)
+        {
+            propertyIndex ??= new Dictionary<string, int>();
+            if (!propertyIndex.TryGetValue(propertyName, out var index))
+            {
+                index = propertyIndex.Count;
+                propertyIndex[propertyName] = index;
+            }
+
+            return index;
+        }
+
+        private void EnsureCapacity(int index)
+        {
+            if (this.values == null)
+            {
+                this.values = new object[index + 1];
+                return;
+            }
+
+            if (index >= this.values.Length)
+            {
+                Array.Resize(ref this.values, Math.Max(this.values.Length * 2, index + 1));
+            }
         }
 
         /// <summary>
