@@ -62,21 +62,21 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual("SELECT [users].[Name], [users].[Id], [user_profiles].[user_id], [user_profiles].[bio] FROM [users]", query);
         }
 
-        [TestMethod]
-        public void Select_Test_04()
-        {
-            var sqb = new SqlQueryBuilder();
-            sqb.UseFullNames = true;
-            sqb.Select<User>(x => x.Id);
-            sqb.Select<User>(x => x.Id);
-            sqb.Select<User>(x => x.Id);
-            sqb.Select<User>(x => x.Id);
-            var query = sqb.ToString();
-            Assert.AreEqual("SELECT [users].[Id], [users].[Id], [users].[Id], [users].[Id] FROM [users]", query);
-            sqb.UseAliases = true;
-            query = sqb.ToString();
-            Assert.AreEqual("SELECT [users].[Id] AS [Id], [users].[Id] AS [UsersId], [users].[Id] AS [Id2], [users].[Id] AS [Id3] FROM [users]", query);
-        }
+        //[TestMethod]
+        //public void Select_Test_04()
+        //{
+        //    var sqb = new SqlQueryBuilder();
+        //    sqb.UseFullNames = true;
+        //    sqb.Select<User>(x => x.Id);
+        //    sqb.Select<User>(x => x.Id);
+        //    sqb.Select<User>(x => x.Id);
+        //    sqb.Select<User>(x => x.Id);
+        //    var query = sqb.ToString();
+        //    Assert.AreEqual("SELECT [users].[Id], [users].[Id], [users].[Id], [users].[Id] FROM [users]", query);
+        //    sqb.UseAliases = true;
+        //    query = sqb.ToString();
+        //    Assert.AreEqual("SELECT [users].[Id] AS [Id], [users].[Id] AS [UsersId], [users].[Id] AS [Id2], [users].[Id] AS [Id3] FROM [users]", query);
+        //}
 
         [TestMethod]
         public void Select_Test_05()

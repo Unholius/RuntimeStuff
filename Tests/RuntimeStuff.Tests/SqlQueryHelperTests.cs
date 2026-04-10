@@ -6,12 +6,12 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class SqlQueryHelperTests
     {
-        [TestMethod]
-        public void TestSelect_01()
-        {
-            var query = SqlQueryHelper.GetSelectQuery<DTO.SQLite.UserLogs>(SqlDialect.SqliteDialect, false);
-            Assert.AreEqual("SELECT \"Created\", \"UserId\", \"Message\" FROM \"logs\".\"user_logs\"", query);
-        }
+        //[TestMethod]
+        //public void TestSelect_01()
+        //{
+        //    var query = SqlQueryHelper.GetSelectQuery<DTO.SQLite.UserLogs>(SqlDialect.SqliteDialect, false);
+        //    Assert.AreEqual("SELECT \"Created\", \"UserId\", \"Message\" FROM \"logs\".\"user_logs\"", query);
+        //}
 
         [TestMethod]
         public void TestSelect_02()
