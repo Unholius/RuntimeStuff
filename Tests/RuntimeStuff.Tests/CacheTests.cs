@@ -91,7 +91,7 @@
 //            // Arrange
 //            static int factory(string key) => key.Length;
 //            var cache = new Cache<string, int>(factory);
-//            cache.Get("test"); // Create entry
+//            cache.Get("test"); // Get entry
 
 //            // Act
 //            var result = cache["test"];
@@ -113,7 +113,7 @@
 //            var expiration = TimeSpan.FromMilliseconds(50);
 //            var cache = new Cache<string, int>(factory, expiration);
 
-//            // Create initial value
+//            // Get initial value
 //            cache.Get("test");
 //            Thread.Sleep(100); // Wait for expiration
 
@@ -229,7 +229,7 @@
 //            var expiration = TimeSpan.FromMilliseconds(50);
 //            var cache = new Cache<string, int>(factory, expiration);
 
-//            // Create initial value
+//            // Get initial value
 //            await cache.GetAsync("test");
 //            await Task.Delay(100); // Wait for expiration
 

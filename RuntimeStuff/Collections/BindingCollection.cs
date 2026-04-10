@@ -19,9 +19,9 @@ namespace System.Collections
     /// <typeparam name="T">Тип элементов в списке.</typeparam>
     public class BindingCollection<T> : BindingList<T>, IBindingListView, INotifyCollectionChanged, INotifyPropertyChanged
     {
-        private readonly List<ListSortDirection> sortDirections = new List<ListSortDirection>();
-        private readonly List<PropertyDescriptor> sortProperties = new List<PropertyDescriptor>();
-        private readonly List<T> source = new List<T>();
+        private readonly List<ListSortDirection> sortDirections = new();
+        private readonly List<PropertyDescriptor> sortProperties = new();
+        private readonly List<T> source = new();
 
         private string filter;
         private Func<T, int, bool> filterFunc;

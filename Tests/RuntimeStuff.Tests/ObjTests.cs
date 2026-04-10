@@ -7,7 +7,6 @@
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Data;
-    using System.Data.SqlClient;
     using System.Helpers;
     using System.Linq;
     using System.Reflection;
@@ -1035,18 +1034,6 @@
 
         #endregion Get-Set
 
-        [TestMethod]
-        public void GetStringCache()
-        {
-            var mc = MemberCache.Create(typeof(string));
-            var p = new SqlParameter();
-            Obj.Set(p, "SqlDbType", SqlDbType.Structured);
-            var dt = new DataTable("dbo.StrList");
-            p.Value = dt;
-            Obj.Set(p, "SqlDbType", SqlDbType.Structured);
-            Obj.Set(p, "TypeName", ((DataTable)dt).TableName);
-            Obj.Set(p, "SqlValue", dt);
-        }
 
         [TestMethod]
         public void FromCsv_Test_01()

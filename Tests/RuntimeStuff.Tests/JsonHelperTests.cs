@@ -239,7 +239,7 @@ namespace RuntimeStuff.MSTests
         public void Serialize_Array_ReturnsJsonArray()
         {
             // Arrange
-            int[] array = { 1, 2, 3 };
+            int[] array = [1, 2, 3];
 
             // Act
             var result = JsonHelper.Serialize(array);

@@ -21,13 +21,13 @@ namespace System
     /// </remarks>
     public sealed partial class MessageBus : IDisposable
     {
-        private static readonly ConcurrentDictionary<string, MessageBus> Channels = new ConcurrentDictionary<string, MessageBus>();
-        private readonly ConcurrentDictionary<Type, List<Delegate>> handlers = new ConcurrentDictionary<Type, List<Delegate>>();
-        private readonly ConcurrentQueue<object> queue = new ConcurrentQueue<object>();
-        private readonly AutoResetEvent signal = new AutoResetEvent(false);
-        private readonly ConcurrentDictionary<Type, List<Action<object>>> waitingHandlers = new ConcurrentDictionary<Type, List<Action<object>>>();
+        private static readonly ConcurrentDictionary<string, MessageBus> Channels = new();
+        private readonly ConcurrentDictionary<Type, List<Delegate>> handlers = new();
+        private readonly ConcurrentQueue<object> queue = new();
+        private readonly AutoResetEvent signal = new(false);
+        private readonly ConcurrentDictionary<Type, List<Action<object>>> waitingHandlers = new();
         private readonly Thread[] workers;
-        private readonly ConcurrentDictionary<Delegate, Delegate> wrappedHandlers = new ConcurrentDictionary<Delegate, Delegate>();
+        private readonly ConcurrentDictionary<Delegate, Delegate> wrappedHandlers = new();
         private bool disposed = false;
         private volatile bool running = true;
 
@@ -90,7 +90,7 @@ namespace System
         public string Name { get; }
 
         /// <summary>
-        /// Gets the <see cref="MessageBus"/> with the specified channel name.
+        /// the <see cref="MessageBus"/> with the specified channel name.
         /// </summary>
         /// <param name="channelName">Name of the channel.</param>
         /// <returns>MessageBus.</returns>
@@ -411,8 +411,10 @@ namespace System
                     {
                         tcs.TrySetException(t.Exception.InnerExceptions);
                     }
-                }, task);
-            }, TaskContinuationOptions.ExecuteSynchronously);
+                },
+                    task);
+            },
+                TaskContinuationOptions.ExecuteSynchronously);
 
             return tcs.Task;
         }

@@ -14,7 +14,7 @@ namespace System.Linq.Expressions
     /// </summary>
     internal class FilterExpressionStringBuilder : ExpressionVisitor
     {
-        private readonly StringBuilder sb = new StringBuilder();
+        private readonly StringBuilder sb = new();
 
         /// <summary>
         /// Преобразует <see cref="Expression"/> в строковое представление фильтра.

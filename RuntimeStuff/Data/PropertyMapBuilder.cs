@@ -124,7 +124,7 @@ namespace System.Data
         /// </returns>
         public EntityMapBuilder<TTable> Table<TTable>(string tableName)
             where TTable : class
-            => new EntityMapBuilder<TTable>(this.entityMapBuilder.Map, tableName);
+            => new(this.entityMapBuilder.Map, tableName);
 
         /// <summary>
         /// Привязывает имя колонки к указанному свойству.

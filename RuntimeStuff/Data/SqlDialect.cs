@@ -1,4 +1,4 @@
-﻿// <copyright file="SqlProviderOptions.cs" company="Rudnev Sergey">
+﻿// <copyright file="SqlDialect.cs" company="Rudnev Sergey">
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
@@ -212,20 +212,13 @@ namespace System.Data
         /// <returns>Экземпляр <see cref="SqlDialect"/>.</returns>
         public static SqlDialect GetInstance(string sqlConnectionTypeName)
         {
-            switch (sqlConnectionTypeName.ToLower())
+            return sqlConnectionTypeName.ToLower() switch
             {
-                case "sqlconnection":
-                    return SqlServerDialect;
-
-                case "sqliteconnection":
-                    return SqliteDialect;
-
-                case "npgsqlconnection":
-                    return PostgreSqlDialect;
-
-                default:
-                    return Default;
-            }
+                "sqlconnection" => SqlServerDialect,
+                "sqliteconnection" => SqliteDialect,
+                "npgsqlconnection" => PostgreSqlDialect,
+                _ => Default,
+            };
         }
 
         /// <summary>

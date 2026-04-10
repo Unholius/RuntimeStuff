@@ -22,10 +22,10 @@ namespace TestWinFormsApp
         {
             //var sw = new Stopwatch();
             //sw.Start();
-            //var formCache = MemberCache.Create(this.GetType());
+            //var formCache = MemberCache.Get(this.GetType());
             //for (var i = 0; i < 1_000_000; i++)
             //{
-            //    formCache = MemberCache.Create(this.GetType());
+            //    formCache = MemberCache.Get(this.GetType());
             //    var p = formCache["BackgroundImageLayout"];
             //}
             //sw.Stop();

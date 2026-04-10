@@ -17,7 +17,7 @@ namespace System
         /// <summary>
         /// The properties.
         /// </summary>
-        private readonly Dictionary<string, PropertyData> properties = new Dictionary<string, PropertyData>(StringComparison.OrdinalIgnoreCase.ToStringComparer());
+        private readonly Dictionary<string, PropertyData> properties = new(StringComparison.OrdinalIgnoreCase.ToStringComparer());
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DynamicPropertyObject"/> class.
@@ -48,7 +48,7 @@ namespace System
         public Func<Type, Type> EditorResolver { get; set; }
 
         /// <summary>
-        /// Gets словарь соответствий типов свойства и типов редакторов.
+        /// словарь соответствий типов свойства и типов редакторов.
         /// </summary>
         /// <value>The editors.</value>
         public Dictionary<Type, Type> Editors { get; private set; } = new Dictionary<Type, Type>();
@@ -151,7 +151,7 @@ namespace System
         /// Возвращает коллекцию динамических свойств компонента.
         /// </summary>
         /// <returns>A <see cref="T:System.ComponentModel.PropertyDescriptorCollection"></see> that represents the properties for this component instance.</returns>
-        public PropertyDescriptorCollection GetProperties() => new PropertyDescriptorCollection(
+        public PropertyDescriptorCollection GetProperties() => new(
                 this.properties.Keys.Select(name => new DynamicPropertyDescriptor(name, this))
                     .ToArray<PropertyDescriptor>());
 
@@ -260,32 +260,32 @@ namespace System
             }
 
             /// <summary>
-            /// Gets словарь редакторов для всех свойств.
+            /// словарь редакторов для всех свойств.
             /// </summary>
             /// <value>The editors.</value>
             public static Dictionary<Type, Type> Editors { get; } = new Dictionary<Type, Type>();
 
             /// <summary>
-            /// Gets тип компонента.
+            /// тип компонента.
             /// </summary>
             /// <value>The type of the component.</value>
             public override Type ComponentType => typeof(DynamicPropertyObject);
 
             /// <summary>
-            /// Gets конвертер свойства.
+            /// конвертер свойства.
             /// </summary>
             /// <value>The converter.</value>
             public override TypeConverter Converter =>
                 this.PropertyType.IsEnum ? new EnumConverter(this.PropertyType) : base.Converter;
 
             /// <summary>
-            /// Gets a value indicating whether признак доступности для изменения.
+            /// a value indicating whether признак доступности для изменения.
             /// </summary>
             /// <value><c>true</c> if this instance is read only; otherwise, <c>false</c>.</value>
             public override bool IsReadOnly => false;
 
             /// <summary>
-            /// Gets тип свойства.
+            /// тип свойства.
             /// </summary>
             /// <value>The type of the property.</value>
             public override Type PropertyType => this.owner.GetPropertyType(this.Name);

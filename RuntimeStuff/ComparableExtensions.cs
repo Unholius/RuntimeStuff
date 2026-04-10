@@ -178,7 +178,7 @@ namespace System
         public static TThen Case<TWhen, TThen>(
             this TWhen obj,
             Func<TWhen, TThen> defaultValue,
-            params (TWhen when, TThen then)[] cases)
+            params (TWhen When, TThen Then)[] cases)
         {
             if (defaultValue == null)
             {
@@ -212,7 +212,7 @@ namespace System
             this TWhen obj,
             Func<TWhen, TThen> defaultValue,
             Func<TWhen, TWhen> objParser,
-            params (TWhen when, TThen then)[] cases)
+            params (TWhen When, TThen Then)[] cases)
         {
             if (defaultValue == null)
             {
@@ -247,7 +247,7 @@ namespace System
         /// <param name="defaultValue">Значение по умолчанию.</param>
         /// <param name="cases">Массив пар (значение для сравнения, возвращаемое значение).</param>
         /// <returns>Значение then для первого совпадения или defaultValue.</returns>
-        public static TThen Case<TWhen, TThen>(this TWhen obj, Func<TWhen, TThen> defaultValue, params (Func<TWhen, bool> when, TThen then)[] cases)
+        public static TThen Case<TWhen, TThen>(this TWhen obj, Func<TWhen, TThen> defaultValue, params (Func<TWhen, bool> When, TThen Then)[] cases)
         {
             foreach (var (when, then) in cases)
             {

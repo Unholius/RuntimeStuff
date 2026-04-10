@@ -36,7 +36,7 @@ namespace System.Reflection
         /// <summary>
         /// Статический кэш экземпляров MemberCache для типов.
         /// </summary>
-        protected static readonly ConcurrentDictionary<Type, MemberCache> TypeCache = new ConcurrentDictionary<Type, MemberCache>();
+        protected static readonly ConcurrentDictionary<Type, MemberCache> TypeCache = new();
 
 #if DEBUG
 
@@ -48,19 +48,19 @@ namespace System.Reflection
 #endif
 
         private static readonly MemberTypes[] DefaultMemberTypes =
-        {
+        [
             MemberTypes.Property, MemberTypes.Field,
-        };
+        ];
 
-        private static readonly char[] NamesSeparator = new[] { '.' };
+        private static readonly char[] NamesSeparator = ['.'];
 
-        private readonly CasePriorityDictionary<Attribute> memberAttributesMap = new CasePriorityDictionary<Attribute>();
-        private readonly ConcurrentDictionary<MemberInfo, MemberCache> memberCacheMap = new ConcurrentDictionary<MemberInfo, MemberCache>();
-        private readonly CasePriorityDictionary<EventInfo> memberEventsMap = new CasePriorityDictionary<EventInfo>();
-        private readonly CasePriorityDictionary<FieldInfo> memberFieldsMap = new CasePriorityDictionary<FieldInfo>();
-        private readonly CasePriorityDictionary<MethodInfo> memberMethodsMap = new CasePriorityDictionary<MethodInfo>();
-        private readonly CasePriorityDictionary<PropertyInfo> memberPropertiesMap = new CasePriorityDictionary<PropertyInfo>();
-        private readonly ConcurrentDictionary<string, MemberCache> quickCache = new ConcurrentDictionary<string, MemberCache>();
+        private readonly CasePriorityDictionary<Attribute> memberAttributesMap = new();
+        private readonly ConcurrentDictionary<MemberInfo, MemberCache> memberCacheMap = new();
+        private readonly CasePriorityDictionary<EventInfo> memberEventsMap = new();
+        private readonly CasePriorityDictionary<FieldInfo> memberFieldsMap = new();
+        private readonly CasePriorityDictionary<MethodInfo> memberMethodsMap = new();
+        private readonly CasePriorityDictionary<PropertyInfo> memberPropertiesMap = new();
+        private readonly ConcurrentDictionary<string, MemberCache> quickCache = new();
         private readonly Type type;
         private readonly MemberCache typeCache;
         private Type[] baseTypes;
@@ -858,7 +858,7 @@ namespace System.Reflection
                             x.Name.Equals(this.TableName + "id", StringComparison.OrdinalIgnoreCase));
                     if (p != null)
                     {
-                        this.pks = new[] { p };
+                        this.pks = [p];
                     }
                 }
 
@@ -1081,7 +1081,7 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Gets the class object that was used to obtain this member.
+        /// the class object that was used to obtain this member.
         /// </summary>
         /// <remarks>This property may differ from the declaring type if the member was obtained through
         /// reflection on a derived class. Use this property to determine the type through which reflection was
@@ -1284,7 +1284,7 @@ namespace System.Reflection
         /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
         public static implicit operator MemberCache(PropertyInfo memberInfo)
         {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
         }
 
         /// <summary>
@@ -1294,7 +1294,7 @@ namespace System.Reflection
         /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
         public static implicit operator MemberCache(FieldInfo memberInfo)
         {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
         }
 
         /// <summary>
@@ -1304,7 +1304,7 @@ namespace System.Reflection
         /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
         public static implicit operator MemberCache(MethodInfo memberInfo)
         {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
         }
 
         /// <summary>
@@ -1314,7 +1314,7 @@ namespace System.Reflection
         /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
         public static implicit operator MemberCache(EventInfo memberInfo)
         {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
         }
 
         /// <summary>
@@ -1324,7 +1324,7 @@ namespace System.Reflection
         /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
         public static implicit operator MemberCache(ConstructorInfo memberInfo)
         {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
         }
 
         /// <summary>
@@ -1334,7 +1334,7 @@ namespace System.Reflection
         /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
         public static implicit operator MemberCache(Type memberInfo)
         {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Create(memberInfo);
+            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
         }
 
         /// <summary>
@@ -1376,9 +1376,9 @@ namespace System.Reflection
         /// <typeparam name="T">Тип.</typeparam>
         /// <returns>Кэшированная информация о типе.</returns>
         /// <exception cref="InvalidOperationException">Выбрасывается, если DeclaringType равен null.</exception>
-        public static MemberCache Create<T>()
+        public static MemberCache Get<T>()
         {
-            return Create(typeof(T));
+            return Get(typeof(T));
         }
 
         /// <summary>
@@ -1430,7 +1430,7 @@ namespace System.Reflection
         /// <param name="memberInfo">Информация о члене типа.</param>
         /// <returns>Кэшированная информация о члене.</returns>
         /// <exception cref="InvalidOperationException">Выбрасывается, если DeclaringType равен null.</exception>
-        public static MemberCache Create(MemberInfo memberInfo)
+        public static MemberCache Get(MemberInfo memberInfo)
         {
             if (memberInfo == null)
             {
@@ -1496,7 +1496,7 @@ namespace System.Reflection
                 throw new ArgumentNullException(nameof(type));
             }
 
-            var typeInfo = Create(type);
+            var typeInfo = Get(type);
             if (typeInfo.DefaultConstructor != null && ctorArgs.Length == 0)
             {
                 return typeInfo.DefaultConstructor();
@@ -1519,7 +1519,7 @@ namespace System.Reflection
                     var genericArgs = type.GetGenericArguments();
                     if (genericArgs.Length == 0)
                     {
-                        genericArgs = new[] { typeof(object) };
+                        genericArgs = [typeof(object)];
                     }
 
                     if (lstType != null && lstType.IsGenericTypeDefinition)
@@ -1940,7 +1940,7 @@ namespace System.Reflection
         /// <returns>MemberCache внешнего ключа или null, если не найден.</returns>
         public MemberCache GetForeignKey(Type children)
         {
-            var childrenCache = Create(children);
+            var childrenCache = Get(children);
             return childrenCache.ForeignKeys.FirstOrDefault(fk =>
             {
                 var nav = childrenCache.GetProperty(x => x.Name == fk.ForeignKeyName);
@@ -2162,9 +2162,10 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Получает все свойства текущего типа.
+        /// Возвращает массив всех уникальных свойств текущего типа и его базовых типов (исключая интерфейсы).
+        /// Результаты кэшируются во внутреннем поле для последующего использования.
         /// </summary>
-        /// <returns>Массив свойств.</returns>
+        /// <returns>Массив объектов <see cref="PropertyInfo"/>, представляющих свойства типа.</returns>
         public PropertyInfo[] GetProperties()
         {
             if (this.memberProperties != null)
@@ -2186,6 +2187,34 @@ namespace System.Reflection
                 .ToArray();
 
             return this.memberProperties;
+        }
+
+        /// <summary>
+        /// Возвращает массив свойств, имена которых совпадают с заданным списком имен,
+        /// используя указанный способ сравнения строк.
+        /// </summary>
+        /// <param name="nameComparison">Правила сравнения имен свойств (регистрозависимость, культура и т.д.).</param>
+        /// <param name="propertyNames">Список имен искомых свойств.</param>
+        /// <returns>Массив найденных свойств <see cref="PropertyInfo"/>.</returns>
+        public PropertyInfo[] GetProperties(StringComparison nameComparison, params string[] propertyNames)
+        {
+            if (propertyNames == null || propertyNames.Length == 0)
+            {
+                return this.GetProperties();
+            }
+
+            return this.GetProperties().Where(x => propertyNames.Contains(x.Name, nameComparison.ToStringComparer()))
+                .ToArray();
+        }
+
+        /// <summary>
+        /// Возвращает массив свойств по их именам. Сравнение имен производится по правилу <see cref="StringComparison.Ordinal"/>.
+        /// </summary>
+        /// <param name="propertyNames">Список имен искомых свойств.</param>
+        /// <returns>Массив найденных свойств <see cref="PropertyInfo"/>.</returns>
+        public PropertyInfo[] GetProperties(params string[] propertyNames)
+        {
+            return this.GetProperties(StringComparison.Ordinal, propertyNames);
         }
 
         /// <summary>
@@ -2346,7 +2375,7 @@ namespace System.Reflection
             else
             {
                 this.Setter(source, valueConverter == null ? Obj.ChangeType(value, this.Type) : valueConverter(value));
-                this.OnPropertyChanged?.Invoke(source, new object[] { new PropertyChangedEventArgs(this.Name) });
+                this.OnPropertyChanged?.Invoke(source, [new PropertyChangedEventArgs(this.Name)]);
             }
         }
 
@@ -2374,7 +2403,7 @@ namespace System.Reflection
 
                 this.AsPropertyInfo().SetValue(boxedSource, valueConverter == null ? Obj.ChangeType(value, this.Type) : valueConverter(value));
                 source = (T)boxedSource;
-                this.OnPropertyChanged?.Invoke(source, new object[] { new PropertyChangedEventArgs(this.Name) });
+                this.OnPropertyChanged?.Invoke(source, [new PropertyChangedEventArgs(this.Name)]);
             }
         }
 
@@ -2576,10 +2605,10 @@ namespace System.Reflection
             where TValue : class
         {
             private readonly ConcurrentDictionary<string, TValue> exactMap =
-                new ConcurrentDictionary<string, TValue>(StringComparer.Ordinal);
+                new(StringComparer.Ordinal);
 
             private readonly ConcurrentDictionary<string, TValue> ignoreCaseMap =
-                new ConcurrentDictionary<string, TValue>(StringComparer.OrdinalIgnoreCase);
+                new(StringComparer.OrdinalIgnoreCase);
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public TValue GetOrAdd(string key, Func<string, TValue> valueFactory, Func<TValue, string> keySelector, bool ignoreCase = true)

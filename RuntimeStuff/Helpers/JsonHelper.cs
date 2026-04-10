@@ -26,14 +26,14 @@ namespace System.Helpers
     /// </remarks>
     public static class JsonHelper
     {
-        private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertyCache = new ConcurrentDictionary<Type, PropertyInfo[]>();
+        private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PropertyCache = new();
 
         private static readonly Regex PropertyRegex =
-                    new Regex(
+                    new(
                         "\"(?<name>[^\"]+)\"\\s*:\\s*(?<value>\\{.*?\\}|\\[.*?\\]|\".*?\"|true|false|null|-?\\d+(\\.\\d+)?)",
                         RegexOptions.Singleline);
 
-        private static ValueFormatter defaultValueFormatter = new ValueFormatter()
+        private static ValueFormatter defaultValueFormatter = new()
         {
             StringPrefix = "\"",
             StringSuffix = "\"",
@@ -564,24 +564,11 @@ namespace System.Helpers
                 return false;
             }
 
-            switch (Type.GetTypeCode(obj.GetType()))
+            return Type.GetTypeCode(obj.GetType()) switch
             {
-                case TypeCode.Byte:
-                case TypeCode.SByte:
-                case TypeCode.UInt16:
-                case TypeCode.UInt32:
-                case TypeCode.UInt64:
-                case TypeCode.Int16:
-                case TypeCode.Int32:
-                case TypeCode.Int64:
-                case TypeCode.Decimal:
-                case TypeCode.Double:
-                case TypeCode.Single:
-                    return true;
-
-                default:
-                    return false;
-            }
+                TypeCode.Byte or TypeCode.SByte or TypeCode.UInt16 or TypeCode.UInt32 or TypeCode.UInt64 or TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64 or TypeCode.Decimal or TypeCode.Double or TypeCode.Single => true,
+                _ => false,
+            };
         }
 
         private static Dictionary<string, string> ParseObject(string json)

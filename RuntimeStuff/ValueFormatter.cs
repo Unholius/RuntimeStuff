@@ -26,8 +26,8 @@ namespace System
     /// </remarks>
     public class ValueFormatter : ICloneable
     {
-        private readonly ConcurrentDictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new ConcurrentDictionary<Type, Func<object, ValueFormatter, string>>();
-        private HashSet<object> nullValuesSet = new HashSet<object>(Obj.NullValues);
+        private readonly ConcurrentDictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new();
+        private HashSet<object> nullValuesSet = new(Obj.NullValues);
 
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="ValueFormatter"/> с настройками по умолчанию.

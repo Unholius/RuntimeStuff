@@ -26,7 +26,7 @@ namespace RuntimeStuff.MSTests.Beta
         /// Используется, если не определён более специфичный механизм разрешения.
         /// Делегат должен возвращать новый или валидный экземпляр <see cref="IDbConnection"/>.
         /// </remarks>
-        public static Func<IDbConnection> DefaultConnection { get; set; }
+        public static Func<IDbConnection>? DefaultConnection { get; set; }
 
         /// <summary>
         /// Получает или задаёт фабрику подключения,
@@ -36,7 +36,7 @@ namespace RuntimeStuff.MSTests.Beta
         /// Позволяет реализовать стратегию разделения подключений
         /// по типам сущностей (например, разные базы данных или шарды).
         /// </remarks>
-        public static Func<Type, IDbConnection> DefaultEntityConnection { get; set; }
+        public static Func<Type, IDbConnection>? DefaultEntityConnection { get; set; }
 
         /// <summary>
         /// Получает глобальную карту сопоставлений сущностей.
@@ -54,7 +54,7 @@ namespace RuntimeStuff.MSTests.Beta
         /// Позволяет централизованно заменить стратегию разрешения
         /// подключений в приложении.
         /// </remarks>
-        public static DbContext Instance { get; set; }
+        public static DbContext? Instance { get; set; }
 
         /// <summary>
         /// Разрешает подключение к базе данных для указанного типа сущности.

@@ -620,7 +620,7 @@ namespace RuntimeStuff.MSTests
 
         private class AnotherMessage
         {
-            public string Data { get; set; }
+            public string? Data { get; set; }
         }
 
         #endregion Вспомогательные классы

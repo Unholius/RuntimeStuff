@@ -184,7 +184,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void String_Member_Cache_Element_Type_Must_Be_Char()
         {
-            var mc = MemberCache.Create<string>();
+            var mc = MemberCache.Get<string>();
             Assert.IsTrue(mc.ElementType == typeof(char));
         }
 
@@ -195,7 +195,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(SimpleClass);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
 
             // Assert
             Assert.IsNotNull(memberCache);
@@ -211,7 +211,7 @@ namespace RuntimeStuff.MSTests
             var property = typeof(SimpleClass).GetProperty("Id");
 
             // Act
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Assert
             Assert.IsNotNull(memberCache);
@@ -227,7 +227,7 @@ namespace RuntimeStuff.MSTests
             var field = typeof(SimpleClass).GetField("PublicField");
 
             // Act
-            var memberCache = MemberCache.Create(field);
+            var memberCache = MemberCache.Get(field);
 
             // Assert
             Assert.IsNotNull(memberCache);
@@ -241,10 +241,10 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var type = typeof(SimpleClass);
-            var memberCache1 = MemberCache.Create(type);
+            var memberCache1 = MemberCache.Get(type);
 
             // Act
-            var memberCache2 = MemberCache.Create(memberCache1);
+            var memberCache2 = MemberCache.Get(memberCache1);
 
             // Assert
             Assert.AreSame(memberCache1, memberCache2);
@@ -263,9 +263,9 @@ namespace RuntimeStuff.MSTests
             var boolType = typeof(bool);
 
             // Act
-            var intCache = MemberCache.Create(intType);
-            var stringCache = MemberCache.Create(stringType);
-            var boolCache = MemberCache.Create(boolType);
+            var intCache = MemberCache.Get(intType);
+            var stringCache = MemberCache.Get(stringType);
+            var boolCache = MemberCache.Get(boolType);
 
             // Assert
             Assert.IsTrue(intCache.IsBasic);
@@ -280,7 +280,7 @@ namespace RuntimeStuff.MSTests
             var arrayType = typeof(string[]);
 
             // Act
-            var arrayCache = MemberCache.Create(arrayType);
+            var arrayCache = MemberCache.Get(arrayType);
 
             // Assert
             Assert.IsTrue(arrayCache.IsCollection);
@@ -293,7 +293,7 @@ namespace RuntimeStuff.MSTests
             var dictType = typeof(Dictionary<string, object>);
 
             // Act
-            var dictCache = MemberCache.Create(dictType);
+            var dictCache = MemberCache.Get(dictType);
 
             // Assert
             Assert.IsTrue(dictCache.IsDictionary);
@@ -306,7 +306,7 @@ namespace RuntimeStuff.MSTests
             var nullableType = typeof(int?);
 
             // Act
-            var nullableCache = MemberCache.Create(nullableType);
+            var nullableCache = MemberCache.Get(nullableType);
 
             // Assert
             Assert.IsTrue(nullableCache.IsNullable);
@@ -319,7 +319,7 @@ namespace RuntimeStuff.MSTests
             var publicProperty = typeof(SimpleClass).GetProperty("Id");
 
             // Act
-            var memberCache = MemberCache.Create(publicProperty);
+            var memberCache = MemberCache.Get(publicProperty);
 
             // Assert
             Assert.IsTrue(memberCache.IsPublic);
@@ -336,7 +336,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithAttributes);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
 
             // Assert
             Assert.IsTrue(memberCache.GetAttribute("TableAttribute") != null);
@@ -350,7 +350,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithAttributes);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
 
             // Assert
             Assert.AreEqual("TestTable", memberCache.TableName);
@@ -368,7 +368,7 @@ namespace RuntimeStuff.MSTests
             var property = typeof(ClassWithAttributes).GetProperty("Id");
 
             // Act
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Assert
             Assert.AreEqual("ID", memberCache.ColumnName);
@@ -381,7 +381,7 @@ namespace RuntimeStuff.MSTests
             var property = typeof(ClassWithAttributes).GetProperty("Name");
 
             // Act
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Assert
             Assert.AreEqual("Full Name", memberCache.DisplayName);
@@ -394,7 +394,7 @@ namespace RuntimeStuff.MSTests
             var property = typeof(ClassWithAttributes).GetProperty("Id");
 
             // Act
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Assert
             Assert.IsTrue(memberCache.IsPrimaryKey);
@@ -407,7 +407,7 @@ namespace RuntimeStuff.MSTests
             var property = typeof(ClassWithAttributes).GetProperty("ForeignKeyProperty");
 
             // Act
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Assert
             Assert.IsTrue(memberCache.IsForeignKey);
@@ -421,7 +421,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithAttributes);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
 
             // Assert
             Assert.IsNotNull(memberCache.PrimaryKeys);
@@ -437,7 +437,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var type = typeof(SimpleClass);
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
 
             // Act
             var foundMember = memberCache["Id"];
@@ -453,7 +453,7 @@ namespace RuntimeStuff.MSTests
         //{
         //    // Arrange
         //    var type = typeof(ClassWithAttributes);
-        //    var memberCache = MemberCache.Create(type);
+        //    var memberCache = MemberCache.Get(type);
 
         //    // Act
         //    var foundMember = memberCache["ID", MemberNameType.ColumnName];
@@ -469,7 +469,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var type = typeof(SimpleClass);
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
 
             // Act
             var foundMember = memberCache["NonExistent"];
@@ -485,7 +485,7 @@ namespace RuntimeStuff.MSTests
         //    var type = typeof(SimpleClass);
 
         //    // Act
-        //    var memberCache = MemberCache.Create(type);
+        //    var memberCache = MemberCache.Get(type);
         //    var members = memberCache.Members;
 
         //    // Assert
@@ -506,7 +506,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithAttributes);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var columns = memberCache.GetColumns();
 
             // Assert
@@ -523,7 +523,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithCollections);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var tables = memberCache.GetTables();
 
             // Assert
@@ -538,7 +538,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithAttributes);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var primaryKeys = memberCache.GetPrimaryKeys();
 
             // Assert
@@ -552,7 +552,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithAttributes);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var foreignKeys = memberCache.GetForeignKeys();
 
             // Assert
@@ -569,7 +569,7 @@ namespace RuntimeStuff.MSTests
             // Arrange
             var obj = new SimpleClass { Id = 42, Name = "Test" };
             var property = typeof(SimpleClass).GetProperty("Id");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             var value = memberCache.GetValue(obj);
@@ -604,7 +604,7 @@ namespace RuntimeStuff.MSTests
             // Arrange
             var obj = new SimpleClass { Id = 42 };
             var property = typeof(SimpleClass).GetProperty("Id");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             var value = memberCache.ConvertValue<int>(obj);
@@ -619,7 +619,7 @@ namespace RuntimeStuff.MSTests
             // Arrange
             var obj = new SimpleClass { Id = 1, Name = "Old" };
             var type = typeof(SimpleClass);
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
 
             // Act
             var nameValue = memberCache[obj, "Name"];
@@ -671,7 +671,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(SimpleClass);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var constructor = memberCache.DefaultConstructor;
 
             // Assert
@@ -691,7 +691,7 @@ namespace RuntimeStuff.MSTests
             var type = typeof(ClassWithInterface);
 
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var baseTypes = memberCache.BaseTypes;
 
             // Assert
@@ -706,8 +706,8 @@ namespace RuntimeStuff.MSTests
         //    var derivedType = typeof(DerivedClass);
 
         //    // Act
-        //    var baseCache = MemberCache.Create(baseType);
-        //    var derivedCache = MemberCache.Create(derivedType);
+        //    var baseCache = MemberCache.Get(baseType);
+        //    var derivedCache = MemberCache.Get(derivedType);
 
         //    // Assert
         //    Assert.IsTrue(baseCache.Members.Any(m => m.Name == "BaseProperty"));
@@ -726,7 +726,7 @@ namespace RuntimeStuff.MSTests
         public void MemberCache_GetValues_Test_01()
         {
             var x = new TestClass03();
-            var mx = MemberCache.Create<TestClass03>();
+            var mx = MemberCache.Get<TestClass03>();
             var p = mx[nameof(TestClass03.Parent)];
             var values1 = MemberCache.GetPathValues(x, p);
             Assert.IsNotNull(values1);
@@ -750,14 +750,14 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void MethodInfo_Tests_00()
         {
-            var m1 = MemberCache.Create<ObservableObjectEx2>();
+            var m1 = MemberCache.Get<ObservableObjectEx2>();
             Assert.IsNotNull(m1.PropertyChanged);
         }
 
         [TestMethod]
         public void MethodInfo_Tests_01()
         {
-            var m1 = MemberCache.Create<ObservableCollectionEx<string>>();
+            var m1 = MemberCache.Get<ObservableCollectionEx<string>>();
             Assert.IsNotNull(m1.OnPropertyChanged);
             Assert.IsNull(m1.OnPropertyChanging);
         }
@@ -765,7 +765,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void MethodInfo_Tests_02()
         {
-            var m1 = MemberCache.Create<ObservableCollection<int>>();
+            var m1 = MemberCache.Get<ObservableCollection<int>>();
             Assert.IsNotNull(m1.OnPropertyChanged);
             Assert.IsNotNull(m1.OnCollectionChanged);
         }
@@ -777,7 +777,7 @@ namespace RuntimeStuff.MSTests
             var anonymousObject = new { Id = 1, Name = "Anonymous" };
             var type = anonymousObject.GetType();
             // Act
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var idMember = memberCache["Id"];
             var nameMember = memberCache["Name"];
             // Assert
@@ -794,7 +794,7 @@ namespace RuntimeStuff.MSTests
         {
             var count = 1_000_000;
             var x = new DtoTestClass();
-            var mc = MemberCache.Create(typeof(DtoTestClass));
+            var mc = MemberCache.Get(typeof(DtoTestClass));
             var sw = new Stopwatch();
             mc["ColNullableInt"].Setter(x, 1);
             sw.Restart();
@@ -830,7 +830,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Test_Setters_And_Getters()
         {
-            var mc = MemberCache.Create(typeof(TestClassForSetterAndGetters));
+            var mc = MemberCache.Get(typeof(TestClassForSetterAndGetters));
             var instance = new TestClassForSetterAndGetters();
             foreach (var p in mc.Properties)
             {
@@ -897,14 +897,14 @@ namespace RuntimeStuff.MSTests
 
         public void Test_Implicit_Operators()
         {
-            var mc = MemberCache.Create(typeof(SimpleClass));
+            var mc = MemberCache.Get(typeof(SimpleClass));
             PropInfo(mc);
         }
 
         [TestMethod]
         public void CreateInstance_Test_01()
         {
-            var mc = MemberCache.Create(typeof(TestClass));
+            var mc = MemberCache.Get(typeof(TestClass));
             var x = mc.CreateInstance();
             Assert.IsTrue(x is TestClass);
         }
@@ -912,7 +912,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void CreateInstance_Test_02()
         {
-            var mc = MemberCache.Create(typeof(KeyValuePair<string, string>));
+            var mc = MemberCache.Get(typeof(KeyValuePair<string, string>));
             var x = mc.CreateInstance();
             Assert.IsTrue(x is KeyValuePair<string, string>);
         }
@@ -920,7 +920,7 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void CreateInstance_Test_03()
         {
-            var mc = MemberCache.Create(typeof(KeyValuePair<string, string>));
+            var mc = MemberCache.Get(typeof(KeyValuePair<string, string>));
             var x = mc.CreateInstance<KeyValuePair<string, string>>("1", "2");
             Assert.AreEqual("1", x.Key);
             Assert.AreEqual("2", x.Value);
@@ -983,8 +983,8 @@ namespace RuntimeStuff.MSTests
 
         public class TestClass03
         {
-            public string Id { get; set; }
-            public TestClass03 Parent { get; set; }
+            public string? Id { get; set; }
+            public TestClass03? Parent { get; set; }
         }
 
         public class TestAccessModifiersClass

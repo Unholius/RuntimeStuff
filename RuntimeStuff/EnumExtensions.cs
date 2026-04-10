@@ -78,7 +78,7 @@ namespace System
                 return enumValue.ToString();
             }
 
-            var cache = MemberCache.Create(enumValue.GetType()).GetField(name);
+            var cache = MemberCache.Get(enumValue.GetType()).GetField(name);
             return string.IsNullOrEmpty(cache.Description) ? name : cache.Description;
         }
 
@@ -114,7 +114,7 @@ namespace System
                 return enumValue.ToString();
             }
 
-            var cache = MemberCache.Create(enumValue.GetType()).GetField(name);
+            var cache = MemberCache.Get(enumValue.GetType()).GetField(name);
             return string.IsNullOrEmpty(cache.DisplayName) ? name : cache.DisplayName;
         }
 
@@ -130,29 +130,16 @@ namespace System
         /// <exception cref="ArgumentException">Invalid StringComparison value - comparison.</exception>
         public static StringComparer ToStringComparer(this StringComparison comparison)
         {
-            switch (comparison)
+            return comparison switch
             {
-                case StringComparison.CurrentCulture:
-                    return CurrentCulture;
-
-                case StringComparison.CurrentCultureIgnoreCase:
-                    return CurrentCultureIgnoreCase;
-
-                case StringComparison.InvariantCulture:
-                    return InvariantCulture;
-
-                case StringComparison.InvariantCultureIgnoreCase:
-                    return InvariantCultureIgnoreCase;
-
-                case StringComparison.Ordinal:
-                    return Ordinal;
-
-                case StringComparison.OrdinalIgnoreCase:
-                    return OrdinalIgnoreCase;
-
-                default:
-                    throw new ArgumentException(@"Invalid StringComparison value", nameof(comparison));
-            }
+                StringComparison.CurrentCulture => CurrentCulture,
+                StringComparison.CurrentCultureIgnoreCase => CurrentCultureIgnoreCase,
+                StringComparison.InvariantCulture => InvariantCulture,
+                StringComparison.InvariantCultureIgnoreCase => InvariantCultureIgnoreCase,
+                StringComparison.Ordinal => Ordinal,
+                StringComparison.OrdinalIgnoreCase => OrdinalIgnoreCase,
+                _ => throw new ArgumentException(@"Invalid StringComparison value", nameof(comparison)),
+            };
         }
 
         /// <summary>

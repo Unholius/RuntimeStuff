@@ -473,7 +473,7 @@ public class DataTableHelperTests
         [TestMethod]
         public void FullFlow_CreateTableAddRowsConvertBack_WorksCorrectly()
         {
-            // Arrange - Create table structure
+            // Arrange - Get table structure
             var table = new DataTable();
 
             DataTableHelper.AddCol(table, "Id", typeof(int), true);

@@ -170,7 +170,7 @@
 //        public event Action<TKey, RemovalReason> ItemRemoved;
 
 //        /// <summary>
-//        /// Gets количество актуальных элементов кэша.
+//        /// количество актуальных элементов кэша.
 //        /// Учитываются только успешно созданные и неистёкшие элементы.
 //        /// </summary>
 //        /// <value>The count.</value>
@@ -181,7 +181,7 @@
 //                (this.expiration == null || Now() - p.Value.Value.Result.Created < this.expiration));
 
 //        /// <summary>
-//        /// Gets возвращает ключи актуальных элементов кэша.
+//        /// возвращает ключи актуальных элементов кэша.
 //        /// Не запускает фабрику и не блокирует поток.
 //        /// </summary>
 //        /// <value>The keys.</value>
@@ -193,7 +193,7 @@
 //                .Select(p => p.Key);
 
 //        /// <summary>
-//        /// Gets возвращает значения актуальных элементов кэша.
+//        /// возвращает значения актуальных элементов кэша.
 //        /// Только успешно созданные и неистёкшие элементы.
 //        /// </summary>
 //        /// <value>The values.</value>
@@ -310,7 +310,7 @@
 //        }
 
 //        /// <summary>
-//        /// Gets the entries.
+//        /// the entries.
 //        /// </summary>
 //        /// <returns>IEnumerable&lt;System.ValueTuple&lt;TKey, TValue, DateTime, DateTime&gt;&gt;.</returns>
 //        public IEnumerable<(TKey Key, TValue Value, DateTime Created, DateTime LastAccess)> GetEntries() => this.cache.Values.Select(x => (x.Value.Result.Key, x.Value.Result.Value, x.Value.Result.Created, x.Value.Result.LastAccess));
@@ -701,13 +701,13 @@
 //            }
 
 //            /// <summary>
-//            /// Gets the created.
+//            /// the created.
 //            /// </summary>
 //            /// <value>The created.</value>
 //            public DateTime Created { get; }
 
 //            /// <summary>
-//            /// Gets the key.
+//            /// the key.
 //            /// </summary>
 //            /// <value>The key.</value>
 //            public TKey Key { get; }
@@ -719,7 +719,7 @@
 //            public DateTime LastAccess { get; internal set; }
 
 //            /// <summary>
-//            /// Gets the value.
+//            /// the value.
 //            /// </summary>
 //            /// <value>The value.</value>
 //            public TValue Value { get; }

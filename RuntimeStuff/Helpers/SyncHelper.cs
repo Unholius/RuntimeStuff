@@ -18,10 +18,10 @@ namespace System.Helpers
         where T : struct, Enum
     {
         private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, object>> EventParams
-            = new ConcurrentDictionary<string, ConcurrentDictionary<string, object>>();
+            = new();
 
         private static readonly ConcurrentDictionary<string, TaskCompletionSource<EventResult>> Waiters
-                    = new ConcurrentDictionary<string, TaskCompletionSource<EventResult>>();
+                    = new();
 
         /// <summary>
         /// Отменяет все ожидающие события, соответствующие указанному предикату.
@@ -390,7 +390,8 @@ namespace System.Helpers
                 {
                     registration.Dispose();
                     timeoutCts?.Dispose();
-                }, TaskContinuationOptions.ExecuteSynchronously);
+                },
+                TaskContinuationOptions.ExecuteSynchronously);
         }
 
         /// <summary>

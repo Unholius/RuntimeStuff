@@ -40,7 +40,7 @@ namespace System.Data
         /// <param name="whereExpression">The where expression.</param>
         /// <param name="columnSelectors">Пары (селектор колонки, агрегирующая функция).</param>
         /// <returns>Словарь с результатами агрегации.</returns>
-        public static Dictionary<string, object> Agg<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
+        public static Dictionary<string, object> Agg<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
         => connection.AsDbClient().Agg(whereExpression, columnSelectors);
 
@@ -67,7 +67,7 @@ namespace System.Data
         /// <param name="token">Токен отмены.</param>
         /// <param name="columnSelectors">Пары (селектор колонки, агрегирующая функция).</param>
         /// <returns>Задача, возвращающая словарь с результатами агрегации.</returns>
-        public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
+        public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
             => connection.AsDbClient().AggAsync(whereExpression, token, columnSelectors);
 
@@ -367,7 +367,7 @@ namespace System.Data
         /// using var reader = cmd.ExecuteReader();
         /// </code>
         /// </example>
-        public static DbCommand CreateCommand(this IDbConnection connection, string commandText, CommandType commandType, params (string paramName, object paramValue)[] parameters)
+        public static DbCommand CreateCommand(this IDbConnection connection, string commandText, CommandType commandType, params (string Name, object Value)[] parameters)
         {
             if (connection == null)
             {
@@ -625,7 +625,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null)
@@ -646,7 +646,7 @@ namespace System.Data
         public static T First<T>(
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
@@ -671,7 +671,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null)
@@ -693,7 +693,7 @@ namespace System.Data
         public static Task<T> FirstAsync<T>(
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
@@ -733,7 +733,7 @@ namespace System.Data
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="pageSize">Размер страницы.</param>
         /// <returns>Словарь с информацией о страницах (номер страницы → смещение и количество).</returns>
-        public static Dictionary<int, (int offset, int count)> GetPages<TFrom>(this IDbConnection connection, int pageSize)
+        public static Dictionary<int, (int Offset, int Count)> GetPages<TFrom>(this IDbConnection connection, int pageSize)
             where TFrom : class
             => connection.AsDbClient().GetPages<TFrom>(pageSize);
 
@@ -745,7 +745,7 @@ namespace System.Data
         /// <param name="pageSize">Размер страницы.</param>
         /// <param name="token">Токен отмены.</param>
         /// <returns>Задача, возвращающая словарь с информацией о страницах.</returns>
-        public static Task<Dictionary<int, (int offset, int count)>> GetPagesAsync<TFrom>(this IDbConnection connection, int pageSize, CancellationToken token = default)
+        public static Task<Dictionary<int, (int Offset, int Count)>> GetPagesAsync<TFrom>(this IDbConnection connection, int pageSize, CancellationToken token = default)
             where TFrom : class
             => connection.AsDbClient().GetPagesAsync<TFrom>(pageSize, token);
 
@@ -1075,7 +1075,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -1104,7 +1104,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = -1,
@@ -1180,7 +1180,7 @@ namespace System.Data
         public static ObservableCollection<T> ToCollection<T>(
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -1207,7 +1207,7 @@ namespace System.Data
         public static Task<ObservableCollection<T>> ToCollectionAsync<T>(
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -1234,7 +1234,7 @@ namespace System.Data
         public static ObservableCollectionEx<T> ToCollectionEx<T>(
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -1261,7 +1261,7 @@ namespace System.Data
         public static Task<ObservableCollectionEx<T>> ToCollectionExAsync<T>(
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -1361,7 +1361,7 @@ namespace System.Data
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания пар ключ-значение (опционально).</param>
         /// <returns>Словарь с результатами запроса.</returns>
-        public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IDbConnection connection, string query, object cmdParams = null, IEnumerable<string> columns = null, IEnumerable<(string, string)> columnToPropertyMap = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
+        public static Dictionary<TKey, TValue> ToDictionary<TKey, TValue>(this IDbConnection connection, string query, object cmdParams = null, IEnumerable<string> columns = null, IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
             => connection.AsDbClient().ToDictionary(query, cmdParams, columns, columnToPropertyMap, fetchRows, offsetRows, itemFactory);
 
         /// <summary>
@@ -1395,7 +1395,7 @@ namespace System.Data
         /// <param name="offsetRows">Количество пропускаемых строк.</param>
         /// <param name="itemFactory">Фабрика для создания пар ключ-значение (опционально).</param>
         /// <returns>Задача, возвращающая словарь с результатами запроса.</returns>
-        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IDbConnection connection, string query, object cmdParams = null, IEnumerable<string> columns = null, IEnumerable<(string, string)> columnToPropertyMap = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
+        public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IDbConnection connection, string query, object cmdParams = null, IEnumerable<string> columns = null, IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null, int fetchRows = -1, int offsetRows = 0, Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null)
             => connection.AsDbClient().ToDictionaryAsync(query, cmdParams, columns, columnToPropertyMap, fetchRows, offsetRows, itemFactory);
 
         /// <summary>
@@ -1434,7 +1434,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<TItem> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -1457,7 +1457,7 @@ namespace System.Data
         public static List<T> ToList<T>(
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -1485,7 +1485,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> valueConverter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -1510,7 +1510,7 @@ namespace System.Data
         public static Task<List<T>> ToListAsync<T>(
             this IDbConnection connection,
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbClient.DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,

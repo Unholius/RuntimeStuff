@@ -40,7 +40,7 @@
 //        Source,
 
 //        /// <summary>
-//        /// Gets the collection of items after applying the current filters and sort order.
+//        /// the collection of items after applying the current filters and sort order.
 //        /// </summary>
 //        FilteredSorted,
 //    }
@@ -200,7 +200,7 @@
 //        }
 
 //        /// <summary>
-//        /// Gets количество элементов в отображаемом списке.
+//        /// количество элементов в отображаемом списке.
 //        /// </summary>
 //        /// <value>The count.</value>
 //        public int Count
@@ -237,19 +237,19 @@
 //        }
 
 //        /// <summary>
-//        /// Gets a value indicating whether отфильтрован ли список.
+//        /// a value indicating whether отфильтрован ли список.
 //        /// </summary>
 //        /// <value>The is filtered.</value>
 //        public bool IsFiltered => this.Count != this.TotalCount;
 
 //        /// <summary>
-//        /// Gets a value indicating whether является ли список фиксированного размера.
+//        /// a value indicating whether является ли список фиксированного размера.
 //        /// </summary>
 //        /// <value>The size of the is fixed.</value>
 //        public bool IsFixedSize => false;
 
 //        /// <summary>
-//        /// Gets a value indicating whether является ли список только для чтения.
+//        /// a value indicating whether является ли список только для чтения.
 //        /// </summary>
 //        /// <value>The is read only.</value>
 //        public bool IsReadOnly => false;
@@ -265,7 +265,7 @@
 //        }
 
 //        /// <summary>
-//        /// Gets a value indicating whether является ли доступ к списку синхронизированным.
+//        /// a value indicating whether является ли доступ к списку синхронизированным.
 //        /// </summary>
 //        /// <value>The is synchronized.</value>
 //        public bool IsSynchronized => false;
@@ -277,7 +277,7 @@
 //        public Func<T> NewItemFactory { get; set; }
 
 //        /// <summary>
-//        /// Gets the properties.
+//        /// the properties.
 //        /// </summary>
 //        /// <value>The properties.</value>
 //        public PropertyInfo[] Properties { get; }
@@ -297,49 +297,49 @@
 //        }
 
 //        /// <summary>
-//        /// Gets описания сортировки для списка.
+//        /// описания сортировки для списка.
 //        /// </summary>
 //        /// <value>The sort descriptions.</value>
 //        public ListSortDescriptionCollection SortDescriptions { get; private set; }
 
 //        /// <summary>
-//        /// Gets направление сортировки.
+//        /// направление сортировки.
 //        /// </summary>
 //        /// <value>The sort direction.</value>
 //        public ListSortDirection SortDirection { get; private set; }
 
 //        /// <summary>
-//        /// Gets свойство, по которому выполняется сортировка.
+//        /// свойство, по которому выполняется сортировка.
 //        /// </summary>
 //        /// <value>The sort property.</value>
 //        public PropertyDescriptor SortProperty { get; private set; }
 
 //        /// <summary>
-//        /// Gets a value indicating whether поддерживает ли расширенную сортировку.
+//        /// a value indicating whether поддерживает ли расширенную сортировку.
 //        /// </summary>
 //        /// <value>The supports advanced sorting.</value>
 //        public bool SupportsAdvancedSorting => true;
 
 //        /// <summary>
-//        /// Gets a value indicating whether поддерживает ли уведомления об изменениях.
+//        /// a value indicating whether поддерживает ли уведомления об изменениях.
 //        /// </summary>
 //        /// <value>The supports change notification.</value>
 //        public bool SupportsChangeNotification => true;
 
 //        /// <summary>
-//        /// Gets a value indicating whether поддерживает ли фильтрацию.
+//        /// a value indicating whether поддерживает ли фильтрацию.
 //        /// </summary>
 //        /// <value>The supports filtering.</value>
 //        public bool SupportsFiltering => true;
 
 //        /// <summary>
-//        /// Gets a value indicating whether поддерживает ли поиск.
+//        /// a value indicating whether поддерживает ли поиск.
 //        /// </summary>
 //        /// <value>The supports searching.</value>
 //        public bool SupportsSearching => true;
 
 //        /// <summary>
-//        /// Gets a value indicating whether поддерживает ли сортировку.
+//        /// a value indicating whether поддерживает ли сортировку.
 //        /// </summary>
 //        /// <value>The supports sorting.</value>
 //        public bool SupportsSorting => true;
@@ -355,13 +355,13 @@
 //        }
 
 //        /// <summary>
-//        /// Gets объект синхронизации для многопоточного доступа.
+//        /// объект синхронизации для многопоточного доступа.
 //        /// </summary>
 //        /// <value>The synchronize root.</value>
 //        public object SyncRoot { get; } = new object();
 
 //        /// <summary>
-//        /// Gets возвращает общее количество элементов в исходном списке.
+//        /// возвращает общее количество элементов в исходном списке.
 //        /// </summary>
 //        /// <value>The total count.</value>
 //        public int TotalCount => this.sourceList.Count;
@@ -1282,13 +1282,13 @@
 //            }
 
 //            /// <summary>
-//            /// Gets the value stored in the current instance.
+//            /// the value stored in the current instance.
 //            /// </summary>
 //            /// <value>The item.</value>
 //            public T Item { get; internal set; }
 
 //            /// <summary>
-//            /// Gets the zero-based index of the item in the source list.
+//            /// the zero-based index of the item in the source list.
 //            /// </summary>
 //            /// <value>The index of the source list.</value>
 //            public int SourceListIndex { get; internal set; }
@@ -1300,7 +1300,7 @@
 //            public bool Visible { get; set; } = true;
 
 //            /// <summary>
-//            /// Gets the zero-based index that determines the visible position of the element within its container.
+//            /// the zero-based index that determines the visible position of the element within its container.
 //            /// </summary>
 //            /// <value>The index of the visible.</value>
 //            public int VisibleIndex { get; internal set; }

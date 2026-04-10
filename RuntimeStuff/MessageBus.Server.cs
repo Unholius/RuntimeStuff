@@ -21,9 +21,9 @@ namespace System
     public sealed partial class MessageBus
     {
         private static readonly ConcurrentQueue<PendingMessage> MessageQueue =
-            new ConcurrentQueue<PendingMessage>();
+            new();
 
-        private static readonly object RetryLock = new object();
+        private static readonly object RetryLock = new();
 
         private static HttpClient httpClient;
         private static bool isProcessingQueue = false;
@@ -32,9 +32,9 @@ namespace System
 
         // Интервал повторных попыток по умолчанию
         private readonly ConcurrentDictionary<int, HttpListener> activeServers =
-            new ConcurrentDictionary<int, HttpListener>();
+            new();
 
-        private readonly CancellationTokenSource serverCts = new CancellationTokenSource();
+        private readonly CancellationTokenSource serverCts = new();
 
         /// <summary>
         /// Получает количество сообщений в очереди.
@@ -187,7 +187,8 @@ namespace System
                     {
                         this.activeServers.TryRemove(port, out _);
                     }
-                }, this.serverCts.Token);
+                },
+                this.serverCts.Token);
             return Task.CompletedTask;
         }
 
@@ -400,7 +401,7 @@ namespace System
                         .GetMethod(nameof(this.Publish))
                         ?.MakeGenericMethod(messageType);
 
-                    publishMethod?.Invoke(this, new[] { message });
+                    publishMethod?.Invoke(this, [message]);
 
                     response.StatusCode = 202; // Accepted
                     response.ContentType = "application/json";

@@ -277,7 +277,7 @@ namespace System.Reflection
         /// <remarks>
         /// Используется кэширование через <see cref="MemberCache"/> для ускорения повторных вызовов.
         /// </remarks>
-        public static MethodInfo[] GetMethods(this Type type, params Type[] args) => MemberCache.Create(type).GetMethods(args);
+        public static MethodInfo[] GetMethods(this Type type, params Type[] args) => MemberCache.Get(type).GetMethods(args);
 
         /// <summary>
         /// Уведомляет подписчиков о изменении одного или нескольких свойств объекта.
@@ -304,7 +304,7 @@ namespace System.Reflection
                 throw new ArgumentNullException(nameof(observable));
             }
 
-            var type = MemberCache.Create(observable.GetType());
+            var type = MemberCache.Get(observable.GetType());
 
             if (propertyNames == null || propertyNames.Length == 0)
             {

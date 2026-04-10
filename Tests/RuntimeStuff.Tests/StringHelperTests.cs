@@ -9,7 +9,8 @@ namespace RuntimeStuff.MSTests
         public void SplitToList_Test_03()
         {
             var text = "2006310001105 95118164\r\n2007130000002 95114600\r\n2007130000003 95112930\r\n2001620007444 99017320\r\n2005600005426 96213874\r\n2004160004233 122220\r\n2006300001465 95117496\r\n2006300001467 95043926\r\n2005450004856 8180047903\r\n2004970017754 0\r\n2004090005388 0\r\n2004610008220 0";
-            var list = StringHelper.SplitToList<KeyValuePair<string, string>>(text, null, new string[] { " ", "|", ";", "\t" }, new string[] { Environment.NewLine, "\r", "\n" });
+            var list = StringHelper.SplitToList<KeyValuePair<string, string>>(text, null, [" ", "|", ";", "\t"],
+                [Environment.NewLine, "\r", "\n"]);
             Assert.AreEqual(12, list.Count);
         }
 

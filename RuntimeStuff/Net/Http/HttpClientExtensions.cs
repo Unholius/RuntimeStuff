@@ -480,7 +480,7 @@ namespace System.Net.Http
             }
 
             /// <summary>
-            /// Gets получает тело HTTP-ответа в виде строки.
+            /// получает тело HTTP-ответа в виде строки.
             /// </summary>
             /// <value>
             /// Строка, содержащая тело ответа. Может быть пустой строкой или null, если ответ не содержит тела.
@@ -488,19 +488,19 @@ namespace System.Net.Http
             public string Result { get; }
 
             /// <summary>
-            /// Gets the status code.
+            /// the status code.
             /// </summary>
             /// <value>The status code.</value>
             public HttpStatusCode StatusCode { get; }
 
             /// <summary>
-            /// Gets a value indicating whether this instance is success status code.
+            /// a value indicating whether this instance is success status code.
             /// </summary>
             /// <value><c>true</c> if this instance is success status code; otherwise, <c>false</c>.</value>
             public bool IsSuccessStatusCode { get; }
 
             /// <summary>
-            /// Gets the request string.
+            /// the request string.
             /// </summary>
             /// <value>The request string.</value>
             public string RequestString { get; }

@@ -85,6 +85,6 @@ namespace System.Data
         /// <remarks>Данный метод позволяет использовать стандартные
         /// <see cref="Func{T1,T2,T3,T4,TResult}" /> в местах,
         /// где требуется тип <see cref="DbClient.DbValueConverter" />.</remarks>
-        public static DbClient.DbValueConverter ToDbValueConverter(this Func<string, object, PropertyInfo, object, object> func) => new DbClient.DbValueConverter(func);
+        public static DbClient.DbValueConverter ToDbValueConverter(this Func<string, object, PropertyInfo, object, object> func) => new(func);
     }
 }

@@ -14,7 +14,7 @@ namespace System.Reflection
         /// </summary>
         /// <param name="memberInfo">Информация о члене класса.</param>
         /// <returns>Расширенная информация о члене класса.</returns>
-        public static MemberCache GetMemberCache(this MemberInfo memberInfo) => MemberCache.Create(memberInfo);
+        public static MemberCache GetMemberCache(this MemberInfo memberInfo) => MemberCache.Get(memberInfo);
 
         /// <summary>
         /// Получить имя колонки из метаданных свойства.

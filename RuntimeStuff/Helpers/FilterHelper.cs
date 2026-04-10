@@ -25,17 +25,17 @@ namespace System.Helpers
         /// <summary>
         /// The number regex.
         /// </summary>
-        private static readonly Regex NumberRegex = new Regex(@"^\d+(\.\d+)?$", RegexOptions.Compiled);
+        private static readonly Regex NumberRegex = new(@"^\d+(\.\d+)?$", RegexOptions.Compiled);
 
         /// <summary>
         /// The property regex.
         /// </summary>
-        private static readonly Regex PropertyRegex = new Regex(@"^\[(.+)\]$", RegexOptions.Compiled);
+        private static readonly Regex PropertyRegex = new(@"^\[(.+)\]$", RegexOptions.Compiled);
 
         /// <summary>
         /// The string regex.
         /// </summary>
-        private static readonly Regex StringRegex = new Regex(@"^'(.*)'$", RegexOptions.Compiled);
+        private static readonly Regex StringRegex = new(@"^'(.*)'$", RegexOptions.Compiled);
 
         /// <summary>
         /// Базовый класс для всех узлов синтаксического дерева.
@@ -97,7 +97,7 @@ namespace System.Helpers
                 return source;
             }
 
-            var sourceItemTypeCache = MemberCache.Create(typeof(T));
+            var sourceItemTypeCache = MemberCache.Get(typeof(T));
             var filteredProps = sourceItemTypeCache.PublicProperties.Where(x => x.Getter != null).ToArray();
 
             // если свойства не заданы — берем все публичные
@@ -521,13 +521,13 @@ namespace System.Helpers
             if (expr is UnaryExpr u)
             {
                 var operand = ToExpression(u.Operand, param);
-                switch (u.Op)
+                return u.Op switch
                 {
-                    case "!": return Expression.Not(operand);
-                    case "-": return Expression.Negate(operand);
-                    case "+": return operand;
-                    default: throw new NotSupportedException(u.Op);
-                }
+                    "!" => Expression.Not(operand),
+                    "-" => Expression.Negate(operand),
+                    "+" => operand,
+                    _ => throw new NotSupportedException(u.Op),
+                };
             }
 
             if (expr is BinaryExpr b)
@@ -642,7 +642,7 @@ namespace System.Helpers
                 }
 
                 var listType = typeof(List<>).MakeGenericType(leftExpr.Type);
-                var ctor = listType.GetConstructor(new[] { typeof(IEnumerable<>).MakeGenericType(leftExpr.Type) });
+                var ctor = listType.GetConstructor([typeof(IEnumerable<>).MakeGenericType(leftExpr.Type)]);
                 var listExpr = Expression.New(ctor ?? throw new InvalidOperationException(), Expression.Constant(array));
 
                 var containsMethod = typeof(Enumerable)
@@ -767,25 +767,25 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets the left.
+            /// the left.
             /// </summary>
             /// <value>The left.</value>
             public IExpr Left { get; }
 
             /// <summary>
-            /// Gets the lower.
+            /// the lower.
             /// </summary>
             /// <value>The lower.</value>
             public IExpr Lower { get; }
 
             /// <summary>
-            /// Gets a value indicating whether this <see cref="BetweenExpr"/> is not.
+            /// a value indicating whether this <see cref="BetweenExpr"/> is not.
             /// </summary>
             /// <value><c>true</c> if not; otherwise, <c>false</c>.</value>
             public bool Not { get; }
 
             /// <summary>
-            /// Gets the upper.
+            /// the upper.
             /// </summary>
             /// <value>The upper.</value>
             public IExpr Upper { get; }
@@ -816,19 +816,19 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets the left.
+            /// the left.
             /// </summary>
             /// <value>The left.</value>
             public IExpr Left { get; }
 
             /// <summary>
-            /// Gets the op.
+            /// the op.
             /// </summary>
             /// <value>The op.</value>
             public string Op { get; }
 
             /// <summary>
-            /// Gets the right.
+            /// the right.
             /// </summary>
             /// <value>The right.</value>
             public IExpr Right { get; }
@@ -855,7 +855,7 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets the value.
+            /// the value.
             /// </summary>
             /// <value>The value.</value>
             public object Value { get; }
@@ -886,19 +886,19 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets the left.
+            /// the left.
             /// </summary>
             /// <value>The left.</value>
             public IExpr Left { get; }
 
             /// <summary>
-            /// Gets a value indicating whether this <see cref="InExpr"/> is not.
+            /// a value indicating whether this <see cref="InExpr"/> is not.
             /// </summary>
             /// <value><c>true</c> if not; otherwise, <c>false</c>.</value>
             public bool Not { get; }
 
             /// <summary>
-            /// Gets the values.
+            /// the values.
             /// </summary>
             /// <value>The values.</value>
             public List<IExpr> Values { get; }
@@ -926,7 +926,7 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets the name.
+            /// the name.
             /// </summary>
             /// <value>The name.</value>
             public string Name { get; }
@@ -955,13 +955,13 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets the op.
+            /// the op.
             /// </summary>
             /// <value>The op.</value>
             public string Op { get; }
 
             /// <summary>
-            /// Gets the operand.
+            /// the operand.
             /// </summary>
             /// <value>The operand.</value>
             public IExpr Operand { get; }

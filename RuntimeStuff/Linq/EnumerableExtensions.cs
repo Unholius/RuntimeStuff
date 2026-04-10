@@ -117,7 +117,7 @@ namespace System.Linq
                 throw new ArgumentNullException(nameof(collection));
             }
 
-            var type = MemberCache.Create(collection.GetType());
+            var type = MemberCache.Get(collection.GetType());
 
             if (type.CollectionChanged?.GetValue(collection) is NotifyCollectionChangedEventHandler handler)
             {
@@ -1069,7 +1069,7 @@ namespace System.Linq
         /// <remarks>Если параметр columnSelectors не задан, в таблицу будут включены все публичные
         /// свойства типа T. Метод полезен для экспорта коллекций в табличный вид, например, для последующей
         /// сериализации или отображения.</remarks>
-        public static DataTable ToDataTable<T>(this IEnumerable<T> source, string tableName, params (Expression<Func<T, object>> propertySelector, string columnName)[] columnSelectors)
+        public static DataTable ToDataTable<T>(this IEnumerable<T> source, string tableName, params (Expression<Func<T, object>> PropertySelector, string ColumnName)[] columnSelectors)
             where T : class => DataTableHelper.ToDataTable(source, tableName, columnSelectors);
 
         /// <summary>

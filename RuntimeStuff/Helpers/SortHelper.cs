@@ -101,7 +101,7 @@ namespace System.Helpers
         /// <param name="sorts">The sorts.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
         /// <exception cref="System.ArgumentException">Нужно указать хотя бы одно свойство.</exception>
-        private static IOrderedEnumerable<T> ApplySort<T>(IEnumerable<T> source, params (string propertyName, ListSortDirection order)[] sorts)
+        private static IOrderedEnumerable<T> ApplySort<T>(IEnumerable<T> source, params (string PropertyName, ListSortDirection Order)[] sorts)
             where T : class
         {
             if (sorts == null || sorts.Length == 0)
@@ -111,19 +111,19 @@ namespace System.Helpers
 
             IOrderedEnumerable<T> result = null;
 
-            var accessor = sorts.Select((x, i) => Obj.GetMemberGetter(Obj.FindMember(typeof(T), sorts[i].propertyName) as PropertyInfo)).ToArray<Func<T, object>>();
+            var accessor = sorts.Select((x, i) => Obj.GetMemberGetter(Obj.FindMember(typeof(T), sorts[i].PropertyName) as PropertyInfo)).ToArray<Func<T, object>>();
 
             for (var i = 0; i < sorts.Length; i++)
             {
                 if (i == 0 && source is not IOrderedEnumerable<T>)
                 {
-                    result = sorts[i].order == ListSortDirection.Ascending
+                    result = sorts[i].Order == ListSortDirection.Ascending
                         ? source.OrderBy(accessor[i])
                         : source.OrderByDescending(accessor[i]);
                 }
                 else
                 {
-                    result = sorts[i].order == ListSortDirection.Ascending
+                    result = sorts[i].Order == ListSortDirection.Ascending
                         ? (result ?? (IOrderedEnumerable<T>)source).ThenBy(accessor[i])
                         : (result ?? (IOrderedEnumerable<T>)source).ThenByDescending(accessor[i]);
                 }

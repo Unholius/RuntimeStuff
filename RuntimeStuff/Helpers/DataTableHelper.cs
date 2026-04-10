@@ -168,7 +168,7 @@ namespace System.Helpers
 
             var row = table.NewRow();
 
-            var typeCache = MemberCache.Create(typeof(T));
+            var typeCache = MemberCache.Get(typeof(T));
 
             if (typeCache.IsBasic)
             {
@@ -280,7 +280,7 @@ namespace System.Helpers
         /// <remarks>Каждое публичное свойство типа <typeparamref name="T" /> становится отдельным столбцом
         /// таблицы. Значения свойств, равные null, записываются как <see cref="DBNull.Value" />. Название таблицы
         /// соответствует имени типа <typeparamref name="T" />.</remarks>
-        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName, params (Expression<Func<T, object>> propSelector, string columnName)[] propertySelectors)
+        public static DataTable ToDataTable<T>(IEnumerable<T> list, string tableName, params (Expression<Func<T, object>> PropertySelector, string ColumnName)[] propertySelectors)
             where T : class
         {
             if (list == null)
@@ -289,15 +289,15 @@ namespace System.Helpers
             }
 
             var table = new DataTable(tableName ?? typeof(T).Name);
-            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.propSelector), x.columnName)).ToArray() : MemberCache.Create(typeof(T)).Properties.Select(x => (x, x.ColumnName)).ToArray();
+            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.PropertySelector), x.ColumnName)).ToArray() : MemberCache.Get(typeof(T)).Properties.Select(x => (x, x.ColumnName)).ToArray();
             var pks = new List<DataColumn>();
             foreach (var prop in props)
             {
                 var colType = Nullable.GetUnderlyingType(prop.Item1.PropertyType) ?? prop.Item1.PropertyType;
-                AddCol(table, prop.Item2 ?? prop.Item1.ColumnName, colType);
+                AddCol(table, prop.ColumnName ?? prop.Item1.ColumnName, colType);
                 if (prop.Item1.IsPrimaryKey)
                 {
-                    pks.Add(table.Columns[prop.Item2 ?? prop.Item1.ColumnName]);
+                    pks.Add(table.Columns[prop.ColumnName ?? prop.Item1.ColumnName]);
                 }
             }
 
@@ -308,7 +308,7 @@ namespace System.Helpers
                 foreach (var prop in props)
                 {
                     var value = prop.Item1.GetValue(item);
-                    row[prop.Item2 ?? prop.Item1.ColumnName] = value ?? DBNull.Value;
+                    row[prop.ColumnName ?? prop.Item1.ColumnName] = value ?? DBNull.Value;
                 }
 
                 table.Rows.Add(row);
@@ -386,7 +386,7 @@ namespace System.Helpers
             }
 
             var result = new List<T>(table.Rows.Count);
-            var typeCache = MemberCache.Create(typeof(T));
+            var typeCache = MemberCache.Get(typeof(T));
             var propsMap = new List<(DataColumn Col, MemberCache Prop)>();
             foreach (DataColumn col in table.Columns)
             {

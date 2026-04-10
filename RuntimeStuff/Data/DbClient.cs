@@ -28,9 +28,9 @@ namespace System.Data
     {
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
         private readonly IReadOnlyDictionary<string, object> emptyParams = new Dictionary<string, object>();
-        private readonly AsyncLocal<IDbTransaction> tr = new AsyncLocal<IDbTransaction>();
+        private readonly AsyncLocal<IDbTransaction> tr = new();
         private int queryLogMaxSize = 100;
-        private ConcurrentLogBuffer<string> queryLogs = new ConcurrentLogBuffer<string>(100);
+        private ConcurrentLogBuffer<string> queryLogs = new(100);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
@@ -129,10 +129,10 @@ namespace System.Data
         /// the trim chars.
         /// </summary>
         /// <value>The trim chars.</value>
-        public static char[] TrimChars { get; set; } = { '\uFEFF', '\u200B', ' ', '\r', '\n', '\t' };
+        public static char[] TrimChars { get; set; } = ['\uFEFF', '\u200B', ' ', '\r', '\n', '\t'];
 
         /// <summary>
-        /// Gets the trim string spaces.
+        /// the trim string spaces.
         /// </summary>
         public static DbValueConverter TrimStringSpaces { get; } = (name, value, info, item) => value is string s ? s.Trim(TrimChars) : ChangeType(value, info.PropertyType);
 
@@ -230,7 +230,7 @@ namespace System.Data
         /// Создаёт новый экземпляр <see cref="DbClient" /> без привязанного соединения.
         /// </summary>
         /// <returns>Новый экземпляр <see cref="DbClient" />.</returns>
-        public static DbClient Create() => new DbClient();
+        public static DbClient Create() => new();
 
         /// <summary>
         /// Получить словарь ключевых параметров для типа {T}.
@@ -242,7 +242,7 @@ namespace System.Data
         public static IReadOnlyDictionary<string, object> GetKeyParams<T>(T item, params object[] id)
         {
             var parameters = new Dictionary<string, object>();
-            var typeCache = MemberCache.Create<T>();
+            var typeCache = MemberCache.Get<T>();
             for (var i = 0; i < typeCache.PrimaryKeys.Length; i++)
             {
                 parameters[typeCache.PrimaryKeys[i].Name] = i < id.Length && id[i] != null ? id[i] : typeCache.PrimaryKeys[i].Getter(item);
@@ -385,7 +385,7 @@ namespace System.Data
             params Expression<Func<TFrom, object>>[] columnSelectors)
             where TFrom : class => this.Agg(
                 whereExpression,
-                columnSelectors.Length > 0 ? columnSelectors.Select(c => (c, aggFunction)).ToArray() : new[] { ((Expression<Func<TFrom, object>>)null, aggFunction) });
+                columnSelectors.Length > 0 ? columnSelectors.Select(c => (c, aggFunction)).ToArray() : [((Expression<Func<TFrom, object>>)null, aggFunction)]);
 
         /// <summary>
         /// Выполняет агрегацию с несколькими агрегационными функциями для выбранных столбцов.
@@ -398,7 +398,7 @@ namespace System.Data
         /// MAX, SUM, AVG).</remarks>
         public Dictionary<string, object> Agg<TFrom>(
             Expression<Func<TFrom, bool>> whereExpression = null,
-            params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
+            params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
         {
             var result = new Dictionary<string, object>(IgnoreCaseComparer);
@@ -442,7 +442,7 @@ namespace System.Data
             where TFrom : class => this.AggAsync(
                 whereExpression,
                 token,
-                columnSelectors.Length > 0 ? columnSelectors.Select(c => (c, aggFunction)).ToArray() : new[] { ((Expression<Func<TFrom, object>>)null, aggFunction) });
+                columnSelectors.Length > 0 ? columnSelectors.Select(c => (c, aggFunction)).ToArray() : [((Expression<Func<TFrom, object>>)null, aggFunction)]);
 
         /// <summary>
         /// Асинхронно выполняет агрегацию с несколькими агрегационными функциями для выбранных столбцов.
@@ -456,7 +456,7 @@ namespace System.Data
         public async Task<Dictionary<string, object>> AggAsync<TFrom>(
             Expression<Func<TFrom, bool>> whereExpression = null,
             CancellationToken token = default,
-            params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
+            params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
         {
             var result = new Dictionary<string, object>(IgnoreCaseComparer);
@@ -1304,7 +1304,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null) => this.ToList(query, cmdParams, columns, columnToPropertyMap, converter, 1, offsetRows, itemFactory)
@@ -1326,7 +1326,7 @@ namespace System.Data
         /// или <c>null</c>, если данные отсутствуют.</remarks>
         public T First<T>(
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
@@ -1358,7 +1358,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null) => (await this.ToListAsync(
@@ -1389,7 +1389,7 @@ namespace System.Data
         /// результата или <c>null</c>, если данные отсутствуют.</remarks>
         public async Task<T> FirstAsync<T>(
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int offsetRows = 0,
             Func<object[], string[], T> itemFactory = null,
@@ -1496,7 +1496,7 @@ namespace System.Data
         /// <returns>Словарь с ключом — номер страницы, значением — кортеж с смещением и количеством элементов на странице.</returns>
         /// <exception cref="System.ArgumentOutOfRangeException">pageSize.</exception>
         /// <remarks>Этот метод разбивает данные на страницы с учетом заданного размера страницы.</remarks>
-        public Dictionary<int, (int offset, int count)> GetPages<TFrom>(int pageSize)
+        public Dictionary<int, (int Offset, int Count)> GetPages<TFrom>(int pageSize)
             where TFrom : class
         {
             if (pageSize <= 0)
@@ -1507,7 +1507,7 @@ namespace System.Data
             var total = this.Count<TFrom>();
             var pagesCount = (int)Math.Ceiling(total / (double)pageSize);
 
-            var pages = new Dictionary<int, (int offset, int count)>(pagesCount);
+            var pages = new Dictionary<int, (int Offset, int Count)>(pagesCount);
 
             for (var page = 1; page <= pagesCount; page++)
             {
@@ -1530,7 +1530,7 @@ namespace System.Data
         /// элементов.</returns>
         /// <exception cref="System.ArgumentOutOfRangeException">pageSize.</exception>
         /// <remarks>Этот метод асинхронно разбивает данные на страницы с учетом заданного размера страницы.</remarks>
-        public async Task<Dictionary<int, (int offset, int count)>> GetPagesAsync<TFrom>(
+        public async Task<Dictionary<int, (int Offset, int Count)>> GetPagesAsync<TFrom>(
             int pageSize,
             CancellationToken token = default)
             where TFrom : class
@@ -1543,7 +1543,7 @@ namespace System.Data
             var total = await this.CountAsync<TFrom>(token: token).ConfigureAwait(this.ConfigureAwait);
             var pagesCount = (int)Math.Ceiling(total / (double)pageSize);
 
-            var pages = new Dictionary<int, (int offset, int count)>(pagesCount);
+            var pages = new Dictionary<int, (int Offset, int Count)>(pagesCount);
 
             for (var page = 1; page <= pagesCount; page++)
             {
@@ -1615,7 +1615,7 @@ namespace System.Data
                 return this.emptyParams;
             }
 
-            var memberCache = MemberCache.Create(cmdParams.GetType());
+            var memberCache = MemberCache.Get(cmdParams.GetType());
             switch (cmdParams)
             {
                 case KeyValuePair<string, object> kvp:
@@ -1630,7 +1630,7 @@ namespace System.Data
 
                 case IEnumerable e when cmdParams is not string && memberCache.ElementType != null:
                     {
-                        var elementCache = MemberCache.Create(memberCache.ElementType);
+                        var elementCache = MemberCache.Get(memberCache.ElementType);
 
                         var key = elementCache["Key"] ??
                                   elementCache["Item1", MemberTypes.Field];
@@ -1802,7 +1802,7 @@ namespace System.Data
             {
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                 id = this.ExecuteScalar<object>(query, this.GetParams(item));
-                var mi = MemberCache.Create(item?.GetType() ?? typeof(T));
+                var mi = MemberCache.Get(item?.GetType() ?? typeof(T));
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Length == 1)
                 {
                     var pi = mi.PrimaryKeys[0];
@@ -1870,7 +1870,7 @@ namespace System.Data
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                 id = await this.ExecuteScalarAsync<object>(query, this.GetParams(item), dbTransaction, token)
                     .ConfigureAwait(this.ConfigureAwait);
-                var mi = MemberCache.Create(item?.GetType() ?? typeof(T));
+                var mi = MemberCache.Get(item?.GetType() ?? typeof(T));
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Length == 1)
                 {
                     mi.PrimaryKeys[0].SetValue(
@@ -1931,7 +1931,7 @@ namespace System.Data
                             query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                         }
 
-                        var typeCache = MemberCache.Create(typeof(T));
+                        var typeCache = MemberCache.Get(typeof(T));
                         var pk = typeCache.PrimaryKeys.FirstOrDefault();
                         var queryParams = new Dictionary<string, object>();
                         using (cmd = this.CreateCommand(query, dbTransaction))
@@ -2034,7 +2034,7 @@ namespace System.Data
                             query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                         }
 
-                        var typeCache = MemberCache.Create(typeof(T));
+                        var typeCache = MemberCache.Get(typeof(T));
                         var pk = typeCache.PrimaryKeys.FirstOrDefault();
                         var queryParams = new Dictionary<string, object>();
                         using (cmd = this.CreateCommand(query, dbTransaction))
@@ -2168,7 +2168,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2183,7 +2183,7 @@ namespace System.Data
 
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(this.Options, fetchRows, offsetRows, query, typeof(T));
 
-            var cache = MemberCache.Create(typeof(T));
+            var cache = MemberCache.Get(typeof(T));
             itemFactory ??= BuildItemFactory<T>(cache, columnToPropertyMap);
 
             var attempt = 0;
@@ -2338,14 +2338,14 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<object> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], object> itemFactory = null,
             IDbTransaction dbTransaction = null)
         {
-            var returnTypeCache = MemberCache.Create(returnType);
+            var returnTypeCache = MemberCache.Get(returnType);
             if (string.IsNullOrEmpty(query))
             {
                 query = SqlQueryHelper.GetSelectQuery(this.Options, this.UseFullNamesInQueries, returnTypeCache.ElementType);
@@ -2504,7 +2504,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<object> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2512,7 +2512,7 @@ namespace System.Data
             IDbTransaction dbTransaction = null,
             CancellationToken token = default)
         {
-            var returnTypeCache = MemberCache.Create(returnType);
+            var returnTypeCache = MemberCache.Get(returnType);
             if (string.IsNullOrEmpty(query))
             {
                 query = SqlQueryHelper.GetSelectQuery(this.Options, this.UseFullNamesInQueries, returnTypeCache.ElementType);
@@ -2612,7 +2612,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2628,7 +2628,7 @@ namespace System.Data
 
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(this.Options, fetchRows, offsetRows, query, typeof(T));
 
-            var cache = MemberCache.Create(typeof(T));
+            var cache = MemberCache.Get(typeof(T));
             itemFactory ??= BuildItemFactory<T>(cache, columnToPropertyMap);
 
             var attempt = 0;
@@ -2750,7 +2750,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<TItem> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2785,7 +2785,7 @@ namespace System.Data
         /// возвращает результат в виде списка.</remarks>
         public ObservableCollection<TItem> ToCollection<TItem>(
             Expression<Func<TItem, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<TItem> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2830,7 +2830,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2864,7 +2864,7 @@ namespace System.Data
         /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде коллекции.</remarks>
         public Task<ObservableCollection<T>> ToCollectionAsync<T>(
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2910,7 +2910,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<TItem> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2945,7 +2945,7 @@ namespace System.Data
         /// возвращает результат в виде списка.</remarks>
         public ObservableCollectionEx<TItem> ToCollectionEx<TItem>(
             Expression<Func<TItem, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<TItem> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -2990,7 +2990,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -3024,7 +3024,7 @@ namespace System.Data
         /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде коллекции.</remarks>
         public Task<ObservableCollectionEx<T>> ToCollectionExAsync<T>(
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -3103,7 +3103,8 @@ namespace System.Data
         ///     позволяет
         ///     отображать столбцы запроса в соответствии с их именами в объекте.
         /// </remarks>
-        public DataTable ToDataTable(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap) => this.ToDataTables(query, cmdParams, valueConverter, columnMap).FirstOrDefault();
+        public DataTable ToDataTable(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap)
+            => this.ToDataTables(query, cmdParams, valueConverter, columnMap).FirstOrDefault();
 
         /// <summary>
         /// Асинхронно выполняет SQL-запрос и возвращает результат в виде <see cref="DataTable" />.
@@ -3191,13 +3192,13 @@ namespace System.Data
                 {
                     this.BeginConnection();
 
-                    var dataTable = new DataTable(query);
-                    dataTable.BeginLoadData();
-
                     using (var r = cmd.ExecuteReader())
                     {
                         do
                         {
+                            var dataTable = new DataTable(query);
+                            dataTable.BeginLoadData();
+
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
                             var map = GetReaderFieldToPropertyMap(r, columnMap);
@@ -3280,13 +3281,13 @@ namespace System.Data
                 {
                     await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
 
-                    var dataTable = new DataTable(query);
-                    dataTable.BeginLoadData();
-
                     using (var r = await cmd.ExecuteReaderAsync(token).ConfigureAwait(this.ConfigureAwait))
                     {
                         do
                         {
+                            var dataTable = new DataTable(query);
+                            dataTable.BeginLoadData();
+
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
                             var map = GetReaderFieldToPropertyMap(r, columnMap);
@@ -3355,7 +3356,7 @@ namespace System.Data
             string query,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null) => this.ToList(
@@ -3441,7 +3442,7 @@ namespace System.Data
             string query,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             int fetchRows = -1,
             int offsetRows = 0,
             Func<object[], string[], KeyValuePair<TKey, TValue>> itemFactory = null) => (await this.ToListAsync(
@@ -3525,7 +3526,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<TItem> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -3560,7 +3561,7 @@ namespace System.Data
         /// возвращает результат в виде списка.</remarks>
         public List<TItem> ToList<TItem>(
             Expression<Func<TItem, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<TItem> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -3605,7 +3606,7 @@ namespace System.Data
             string query = null,
             object cmdParams = null,
             IEnumerable<string> columns = null,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -3639,7 +3640,7 @@ namespace System.Data
         /// <remarks>Этот метод выполняет SQL-запрос асинхронно с фильтрацией и сортировкой, и возвращает результат в виде списка.</remarks>
         public Task<List<T>> ToListAsync<T>(
             Expression<Func<T, bool>> whereExpression,
-            IEnumerable<(string, string)> columnToPropertyMap = null,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap = null,
             DbValueConverter<T> converter = null,
             int fetchRows = -1,
             int offsetRows = 0,
@@ -3904,7 +3905,7 @@ namespace System.Data
                 using (dbTransaction ?? this.BeginTransaction())
                 {
                     var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
-                    var typeCache = MemberCache.Create(typeof(T));
+                    var typeCache = MemberCache.Get(typeof(T));
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
@@ -3988,7 +3989,7 @@ namespace System.Data
                 using (dbTransaction ?? this.BeginTransaction())
                 {
                     var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
-                    var typeCache = MemberCache.Create(typeof(T));
+                    var typeCache = MemberCache.Get(typeof(T));
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
@@ -4076,7 +4077,7 @@ namespace System.Data
         /// <returns>Func&lt;System.Object[], System.String[], T&gt;.</returns>
         private static Func<object[], string[], T> BuildItemFactory<T>(
             MemberCache itemTypeCache,
-            IEnumerable<(string, string)> columnToPropertyMap)
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap)
         {
             var ctor = itemTypeCache.Constructors.FirstOrDefault(x => x.IsPublic) ??
                        itemTypeCache.Constructors.FirstOrDefault();
@@ -4101,7 +4102,7 @@ namespace System.Data
                     .Select(p =>
                         names.IndexOf(n =>
                             p.Name.Equals(
-                                columnToPropertyMap?.FirstOrDefault(m => m.Item1 == n).Item2 ?? n,
+                                columnToPropertyMap?.FirstOrDefault(m => m.ColumnName == n).PropertyName ?? n,
                                 StringComparison.OrdinalIgnoreCase)))
                     .ToArray();
 
@@ -4141,7 +4142,7 @@ namespace System.Data
         private static object ChangeType(object value, Type targetType) => Obj.ChangeType(value, targetType);
 
         /// <summary>
-        /// Gets the reader field to property map.
+        /// the reader field to property map.
         /// </summary>
         /// <param name="reader">The reader.</param>
         /// <param name="customMap">The custom map.</param>
@@ -4149,11 +4150,11 @@ namespace System.Data
         /// <returns>Dictionary&lt;System.Int32, System.String&gt;.</returns>
         private static Dictionary<int, string> GetReaderFieldToPropertyMap(
             DbDataReader reader,
-            IEnumerable<(string, string)> customMap = null,
+            IEnumerable<(string FieldName, string PropertyName)> customMap = null,
             bool onlyFromCustomMap = true)
         {
             var customMapDic =
-                customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
+                customMap?.ToDictionary(k => k.FieldName, v => v.PropertyName) ?? new Dictionary<string, string>();
             var map = new Dictionary<int, string>();
 
             var columnsCount = reader.FieldCount;
@@ -4297,7 +4298,7 @@ namespace System.Data
         }
 
         /// <summary>
-        /// Gets the reader field to property map.
+        /// the reader field to property map.
         /// </summary>
         /// <param name="itemType">Type of the item.</param>
         /// <param name="reader">The reader.</param>
@@ -4307,7 +4308,7 @@ namespace System.Data
         private Dictionary<int, MemberCache> GetReaderFieldToPropertyMap(
             Type itemType,
             DbDataReader reader,
-            IEnumerable<(string, string)> customMap = null,
+            IEnumerable<(string FieldName, string PropertyName)> customMap = null,
             IEnumerable<string> columns = null)
         {
             if (customMap == null)
@@ -4316,9 +4317,9 @@ namespace System.Data
             }
 
             var customMapDic =
-                customMap?.ToDictionary(k => k.Item1, v => v.Item2) ?? new Dictionary<string, string>();
+                customMap?.ToDictionary(k => k.FieldName, v => v.PropertyName) ?? new Dictionary<string, string>();
             var map = new Dictionary<int, MemberCache>();
-            var typeInfoEx = MemberCache.Create(itemType);
+            var typeInfoEx = MemberCache.Get(itemType);
             var columnsCount = reader.FieldCount;
 
             for (var i = 0; i < columnsCount; i++)
@@ -4427,13 +4428,13 @@ namespace System.Data
             IList list,
             DbDataReader reader,
             IEnumerable<string> columns,
-            IEnumerable<(string, string)> columnToPropertyMap,
+            IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap,
             DbValueConverter<T> converter,
             int fetchRows,
             Func<object[], string[], T> itemFactory,
             CancellationToken ct)
         {
-            var itemTypeCache = MemberCache.Create(typeof(T));
+            var itemTypeCache = MemberCache.Get(typeof(T));
             var readerValues = new object[reader.FieldCount];
             var readerColumns = Enumerable.Range(0, reader.FieldCount)
                 .Select(reader.GetName)

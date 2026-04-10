@@ -39,11 +39,10 @@ namespace System
         /// Кеширование типов по сборкам.
         /// </summary>
         private static readonly ConcurrentDictionary<Assembly, Type[]> AssemblyTypesCache =
-            new ConcurrentDictionary<Assembly, Type[]>();
+            new();
 
         private static readonly string[] DateFormats =
-        {
-            // --- Только дата ---
+        [
             "yyyy-MM-dd",
             "dd.MM.yyyy",
             "MM/dd/yyyy",
@@ -59,19 +58,16 @@ namespace System
             "dd/MM/yy",
             "MM/dd/yy",
 
-            // --- Дата + время ---
             "yyyy-MM-dd HH:mm:ss",
             "dd.MM.yyyy HH:mm:ss",
             "MM/dd/yyyy HH:mm:ss",
             "yyyy/MM/dd HH:mm:ss",
             "dd-MM-yyyy HH:mm:ss",
 
-            // --- Дата + время + миллисекунды ---
             "yyyy-MM-dd HH:mm:ss.fff",
             "dd.MM.yyyy HH:mm:ss.fff",
             "MM/dd/yyyy HH:mm:ss.fff",
 
-            // --- ISO и с часовым поясом ---
             "yyyy-MM-ddTHH:mm:ss",
             "yyyy-MM-ddTHH:mm:ssZ",
             "yyyy-MM-ddTHH:mm:ss.fffZ",
@@ -80,17 +76,16 @@ namespace System
             "o", // ISO 8601 Round-trip
             "s", // Sortable
 
-            // --- Только время ---
             "HH:mm",
             "HH:mm:ss",
             "HH:mm:ss.fff",
-        };
+        ];
 
         /// <summary>
         /// Словарь соответствий интерфейсов и фабрик по умолчанию для их реализации.
         /// </summary>
         private static readonly Dictionary<Type, Func<Type[], object>> DefaultInterfaceMappings =
-            new Dictionary<Type, Func<Type[], object>>()
+            new()
             {
                 { typeof(IEnumerable<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
                 { typeof(IList<>), args => Activator.CreateInstance(typeof(List<>).MakeGenericType(args)) },
@@ -108,7 +103,7 @@ namespace System
         /// The fields cache.
         /// </summary>
         private static readonly ConcurrentDictionary<Type, Dictionary<string, FieldInfo>> FieldsCache =
-            new ConcurrentDictionary<Type, Dictionary<string, FieldInfo>>();
+            new();
 
         /// <summary>
         /// The op codes.
@@ -124,7 +119,7 @@ namespace System
         /// The properties cache.
         /// </summary>
         private static readonly ConcurrentDictionary<Type, ReadOnlyDictionary<string, ObjPropertyInfo>> PropertiesCache =
-            new ConcurrentDictionary<Type, ReadOnlyDictionary<string, ObjPropertyInfo>>();
+            new();
 
         /// <summary>
         /// Универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
@@ -156,9 +151,9 @@ namespace System
                 return d;
             }
 
-            var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
+            var dateTimeParts = s.Split([' ', 'T'], StringSplitOptions.RemoveEmptyEntries);
             var dateParts = dateTimeParts[0]
-                .Split(new[] { '.', '\\', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
+                .Split(['.', '\\', '/', '-'], StringSplitOptions.RemoveEmptyEntries);
             var yearIndex = IndexOf(dateParts, (x, _) => x.Length == 4);
             var dayForSureIndex = IndexOf(dateParts, (x, _) =>
                 x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 12 &&
@@ -205,7 +200,7 @@ namespace System
         /// Кеширование типов по имени.
         /// </summary>
         private static readonly ConcurrentDictionary<string, Type> TypeCache =
-            new ConcurrentDictionary<string, Type>(OrdinalIgnoreCaseComparer);
+            new(OrdinalIgnoreCaseComparer);
 
         static Obj()
         {
@@ -295,20 +290,6 @@ namespace System
             new ConcurrentDictionary<FieldInfo, Action<object, object>>();
 
         /// <summary>
-        /// Кеш делегатов для получения значений свойств.
-        /// </summary>
-        /// <value>Делегат для получения значений свойств.</value>
-        public static ConcurrentDictionary<PropertyInfo, Func<object, object>> PropertyGetterCache { get; } =
-            new ConcurrentDictionary<PropertyInfo, Func<object, object>>();
-
-        /// <summary>
-        /// Кеш делегатов для установки значений свойств.
-        /// </summary>
-        /// <value>Делегат для установки значений свойств.</value>
-        public static ConcurrentDictionary<PropertyInfo, Action<object, object>> PropertySetterCache { get; } =
-            new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
-
-        /// <summary>
         /// Типы с плавающей запятой (float, double, decimal).
         /// </summary>
         /// <value>The float number types.</value>
@@ -331,13 +312,27 @@ namespace System
         /// Значения, трактуемые как null (null, DBNull, NaN).
         /// </summary>
         /// <value>Значения, которые считать как null.</value>
-        public static object[] NullValues { get; } = new object[] { null, DBNull.Value, double.NaN, float.NaN };
+        public static object[] NullValues { get; } = [null, DBNull.Value, double.NaN, float.NaN];
 
         /// <summary>
         /// Объединение массивов <see cref="IntNumberTypes"/> и <see cref="FloatNumberTypes"/>.
         /// </summary>
         /// <value>Числовые типы.</value>
         public static HashSet<Type> NumberTypes { get; }
+
+        /// <summary>
+        /// Кеш делегатов для получения значений свойств.
+        /// </summary>
+        /// <value>Делегат для получения значений свойств.</value>
+        public static ConcurrentDictionary<PropertyInfo, Func<object, object>> PropertyGetterCache { get; } =
+            new ConcurrentDictionary<PropertyInfo, Func<object, object>>();
+
+        /// <summary>
+        /// Кеш делегатов для установки значений свойств.
+        /// </summary>
+        /// <value>Делегат для установки значений свойств.</value>
+        public static ConcurrentDictionary<PropertyInfo, Action<object, object>> PropertySetterCache { get; } =
+            new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
 
         private static ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache { get; } =
             new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
@@ -701,7 +696,7 @@ namespace System
                 var dm = new DynamicMethod(
                     $"get_{declaringType.Name}_{fi.Name}",
                     typeof(object),
-                    new[] { typeof(object) },
+                    [typeof(object)],
                     declaringType.Module,
                     true);
 
@@ -807,7 +802,7 @@ namespace System
             var dm = new DynamicMethod(
                 $"Set_{field.Name}",
                 typeof(void),
-                new[] { typeof(object), typeof(object) },
+                [typeof(object), typeof(object)],
                 restrictedSkipVisibility: true);
 
             var il = dm.GetILGenerator();
@@ -846,155 +841,6 @@ namespace System
         }
 
         /// <summary>
-        /// Создаёт делегат для получения значения свойства.
-        /// Делегат создается динамически с помощью <see cref="DynamicMethod"/> и IL-кода, что позволяет обходить ограничения обычного рефлексивного вызова.
-        /// </summary>
-        /// <param name="pi">Метаданные свойства (<see cref="PropertyInfo"/>), для которого создается геттер.</param>
-        /// <returns>
-        /// Делегат <see cref="Func{Object, Object}"/>, который возвращает значение указанного свойства.
-        /// Если свойство не имеет метода get, возвращается <c>null</c>.
-        /// </returns>
-        /// <remarks>
-        /// <para>
-        /// Метод поддерживает как статические, так и нестатические свойства, а также свойства value-типа и ссылочного типа.
-        /// </para>
-        /// <para>
-        /// Для value-типа аргумент должен быть упакованным объектом (boxed value type).
-        /// В случае попытки передачи <c>null</c> для value-типа будет выброшено <see cref="NullReferenceException"/>.
-        /// </para>
-        /// <para>
-        /// Для ссылочных типов, если объект не совместим с ожидаемым типом, будет выброшено <see cref="InvalidCastException"/>.
-        /// </para>
-        /// </remarks>
-        internal static Func<object, object> CreatePropertyGetter(PropertyInfo pi)
-        {
-            return CreatePropertyGetter<object, object>(pi);
-        }
-
-        /// <summary>
-        /// Создаёт делегат для получения значения свойства <typeparamref name="TProperty"/> объекта <typeparamref name="TObject"/>.
-        /// Делегат создается динамически с помощью <see cref="DynamicMethod"/> и IL-кода, что позволяет обходить ограничения обычного рефлексивного вызова.
-        /// </summary>
-        /// <typeparam name="TObject">Тип объекта, содержащего свойство.</typeparam>
-        /// <typeparam name="TProperty">Тип значения свойства.</typeparam>
-        /// <param name="pi">Метаданные свойства (<see cref="PropertyInfo"/>), для которого создается геттер.</param>
-        /// <returns>
-        /// Делегат <see cref="Func{TObject, TProperty}"/>, который возвращает значение указанного свойства.
-        /// Если свойство не имеет метода get, возвращается <c>null</c>.
-        /// </returns>
-        /// <remarks>
-        /// <para>
-        /// Метод поддерживает как статические, так и нестатические свойства, а также свойства value-типа и ссылочного типа.
-        /// </para>
-        /// <para>
-        /// Для value-типа аргумент <typeparamref name="TObject"/> должен быть упакованным объектом (boxed value type).
-        /// В случае попытки передачи <c>null</c> для value-типа будет выброшено <see cref="NullReferenceException"/>.
-        /// </para>
-        /// <para>
-        /// Для ссылочных типов, если объект не совместим с ожидаемым типом, будет выброшено <see cref="InvalidCastException"/>.
-        /// </para>
-        /// </remarks>
-        internal static Func<TObject, TProperty> CreatePropertyGetter<TObject, TProperty>(PropertyInfo pi)
-        {
-            var getter = pi.GetGetMethod(true);
-            if (getter == null)
-            {
-                return null;
-            }
-
-            var declaring = pi.DeclaringType;
-            var propertyType = pi.PropertyType;
-
-            if (declaring == null)
-            {
-                throw new ArgumentException("Property must have a declaring type", nameof(pi));
-            }
-
-            var dm = new DynamicMethod(
-                "get_" + pi.Name,
-                typeof(TObject),
-                new[] { typeof(TProperty) },
-                declaring.Module,
-                true);
-
-            var il = dm.GetILGenerator();
-
-            // Для статических методов
-            if (getter.IsStatic)
-            {
-                il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
-                if (propertyType.IsValueType && !propertyType.IsPrimitive)
-                {
-                    il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
-                }
-
-                il.Emit(System.Reflection.Emit.OpCodes.Ret);
-                return (Func<TObject, TProperty>)dm.CreateDelegate(typeof(Func<TObject, TProperty>));
-            }
-
-            // Для нестатических методов
-            if (!declaring.IsValueType)
-            {
-                // Для ссылочных типов
-                var lblOk = il.DefineLabel();
-
-                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
-                il.Emit(System.Reflection.Emit.OpCodes.Isinst, declaring);
-                il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
-
-                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
-                il.Emit(System.Reflection.Emit.OpCodes.Throw);
-
-                il.MarkLabel(lblOk);
-                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
-                il.Emit(System.Reflection.Emit.OpCodes.Castclass, declaring);
-                il.Emit(System.Reflection.Emit.OpCodes.Callvirt, getter);
-            }
-            else
-            {
-                // Для value types
-                // Создаем локальную переменную для хранения распакованной структуры
-                var local = il.DeclareLocal(declaring);
-
-                // Загружаем аргумент (упакованную структуру)
-                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
-
-                // Проверяем, что это не null (для упакованных структур)
-                var lblNotNull = il.DefineLabel();
-                il.Emit(System.Reflection.Emit.OpCodes.Dup);
-                il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
-
-                // Если null, выбрасываем исключение
-                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
-                il.Emit(System.Reflection.Emit.OpCodes.Throw);
-
-                il.MarkLabel(lblNotNull);
-
-                // Распаковываем структуру
-                il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, declaring);
-
-                // Сохраняем в локальную переменную
-                il.Emit(System.Reflection.Emit.OpCodes.Stloc, local);
-
-                // Загружаем адрес локальной переменной (для вызова метода структуры)
-                il.Emit(System.Reflection.Emit.OpCodes.Ldloca_S, local);
-
-                // Вызываем getter
-                il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
-            }
-
-            // Бокс возвращаемого значения, если это value type
-            if (propertyType.IsValueType)
-            {
-                il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
-            }
-
-            il.Emit(System.Reflection.Emit.OpCodes.Ret);
-
-            return (Func<TObject, TProperty>)dm.CreateDelegate(typeof(Func<TObject, TProperty>));
-        }
-
-        /// <summary>
         /// Creates the property setter.
         /// </summary>
         /// <param name="pi">The pi.</param>
@@ -1024,7 +870,7 @@ namespace System
             var dm = new DynamicMethod(
                 "set_" + pi.Name,
                 null,
-                new[] { typeof(object), typeof(object) },
+                [typeof(object), typeof(object)],
                 declaring.Module,
                 true);
 
@@ -1998,17 +1844,12 @@ namespace System
         /// </remarks>
         public static Func<object, object> GetMemberGetter(MemberInfo memberInfo)
         {
-            switch (memberInfo)
+            return memberInfo switch
             {
-                case FieldInfo fi:
-                    return FieldGetterCache.GetOrAdd(fi, CreateFieldGetter);
-
-                case PropertyInfo pi:
-                    return PropertyGetterCache.GetOrAdd(pi, CreatePropertyGetter);
-
-                default:
-                    return null;
-            }
+                FieldInfo fi => FieldGetterCache.GetOrAdd(fi, CreateFieldGetter),
+                PropertyInfo pi => PropertyGetterCache.GetOrAdd(pi, CreatePropertyGetter),
+                _ => null,
+            };
         }
 
         /// <summary>
@@ -2023,16 +1864,16 @@ namespace System
                 return null;
             }
 
-            switch (expr)
+            return expr switch
             {
-                case LambdaExpression le: return GetMemberInfoFromLambda(le);
-                case BinaryExpression be: return GetMemberInfo(be.Left);
-                case MemberExpression me: return me.Member;
-                case UnaryExpression ue: return GetMemberInfo(ue.Operand);
-                case MethodCallExpression mc: return GetMemberInfoFromMethodCall(mc);
-                case ConditionalExpression ce: return GetMemberInfo(ce.IfTrue) ?? GetMemberInfo(ce.IfFalse);
-                default: return null;
-            }
+                LambdaExpression le => GetMemberInfoFromLambda(le),
+                BinaryExpression be => GetMemberInfo(be.Left),
+                MemberExpression me => me.Member,
+                UnaryExpression ue => GetMemberInfo(ue.Operand),
+                MethodCallExpression mc => GetMemberInfoFromMethodCall(mc),
+                ConditionalExpression ce => GetMemberInfo(ce.IfTrue) ?? GetMemberInfo(ce.IfFalse),
+                _ => null,
+            };
         }
 
         /// <summary>
@@ -2067,20 +1908,13 @@ namespace System
                 return null;
             }
 
-            switch (memberInfo)
+            return memberInfo switch
             {
-                case PropertyInfo pi:
-                    return pi.PropertyType;
-
-                case FieldInfo fi:
-                    return fi.FieldType;
-
-                case MethodInfo mi:
-                    return mi.ReturnType;
-
-                default:
-                    return null;
-            }
+                PropertyInfo pi => pi.PropertyType,
+                FieldInfo fi => fi.FieldType,
+                MethodInfo mi => mi.ReturnType,
+                _ => null,
+            };
         }
 
         /// <summary>
@@ -2113,16 +1947,12 @@ namespace System
         /// </remarks>
         public static Action<object, object> GetMemberSetter(MemberInfo memberInfo)
         {
-            switch (memberInfo)
+            return memberInfo switch
             {
-                case FieldInfo fi:
-                    return FieldSetterCache.GetOrAdd(fi, CreateFieldSetter);
-
-                case PropertyInfo pi:
-                    return PropertySetterCache.GetOrAdd(pi, CreatePropertySetter(pi));
-            }
-
-            return null;
+                FieldInfo fi => FieldSetterCache.GetOrAdd(fi, CreateFieldSetter),
+                PropertyInfo pi => PropertySetterCache.GetOrAdd(pi, CreatePropertySetter(pi)),
+                _ => null,
+            };
         }
 
         /// <summary>
@@ -2171,17 +2001,6 @@ namespace System
             GetMemberSetter(typeof(T), memberName, out memberType);
 
         /// <summary>
-        /// Получает все свойства указанного типа, которые имеют определённый тип данных.
-        /// </summary>
-        /// <param name="type">Тип в котором искать свойства.</param>
-        /// <param name="propertyType">Тип значения свойства.</param>
-        /// <returns>Свойства указанного типа.</returns>
-        public static IEnumerable<ObjPropertyInfo> GetPropertiesOfType(Type type, Type propertyType)
-        {
-            return PropertiesCache.GetOrAdd(type, CacheTypeProperties).Values.Where(p => p.PropertyInfo.PropertyType == propertyType);
-        }
-
-        /// <summary>
         /// Возвращает значение по ключу из словаря или добавляет его, если ключ отсутствует.
         /// </summary>
         /// <typeparam name="TKey">Тип ключа словаря.</typeparam>
@@ -2228,6 +2047,17 @@ namespace System
         public static IReadOnlyDictionary<string, ObjPropertyInfo> GetPropertiesMap(Type type)
         {
             return PropertiesCache.GetOrAdd(type, CacheTypeProperties);
+        }
+
+        /// <summary>
+        /// Получает все свойства указанного типа, которые имеют определённый тип данных.
+        /// </summary>
+        /// <param name="type">Тип в котором искать свойства.</param>
+        /// <param name="propertyType">Тип значения свойства.</param>
+        /// <returns>Свойства указанного типа.</returns>
+        public static IEnumerable<ObjPropertyInfo> GetPropertiesOfType(Type type, Type propertyType)
+        {
+            return PropertiesCache.GetOrAdd(type, CacheTypeProperties).Values.Where(p => p.PropertyInfo.PropertyType == propertyType);
         }
 
         /// <summary>
@@ -2641,28 +2471,16 @@ namespace System
         /// </remarks>
         public static bool IsPrivate(MemberInfo memberInfo)
         {
-            switch (memberInfo)
+            return memberInfo switch
             {
-                case PropertyInfo pi:
-                    return pi.GetAccessors().Any(m => m.IsPrivate);
-
-                case FieldInfo fi:
-                    return fi.IsPrivate;
-
-                case MethodInfo mi:
-                    return mi.IsPrivate;
-
-                case EventInfo ei:
-                    return ei.AddMethod?.IsPrivate == true || ei.RemoveMethod?.IsPrivate == true;
-
-                case Type t:
-                    return !t.IsPublic;
-
-                case ConstructorInfo ci:
-                    return ci.IsPrivate;
-            }
-
-            throw new NotSupportedException($"Member type {memberInfo.GetType()} is not supported for IsPublic check.");
+                PropertyInfo pi => pi.GetAccessors().Any(m => m.IsPrivate),
+                FieldInfo fi => fi.IsPrivate,
+                MethodInfo mi => mi.IsPrivate,
+                EventInfo ei => ei.AddMethod?.IsPrivate == true || ei.RemoveMethod?.IsPrivate == true,
+                Type t => !t.IsPublic,
+                ConstructorInfo ci => ci.IsPrivate,
+                _ => throw new NotSupportedException($"Member type {memberInfo.GetType()} is not supported for IsPublic check."),
+            };
         }
 
         /// <summary>
@@ -2723,28 +2541,16 @@ namespace System
         /// </remarks>
         public static bool IsPublic(MemberInfo memberInfo)
         {
-            switch (memberInfo)
+            return memberInfo switch
             {
-                case PropertyInfo pi:
-                    return pi.GetAccessors().Any(m => m.IsPublic);
-
-                case FieldInfo fi:
-                    return fi.IsPublic;
-
-                case MethodInfo mi:
-                    return mi.IsPublic;
-
-                case EventInfo ei:
-                    return ei.AddMethod?.IsPublic == true || ei.RemoveMethod?.IsPublic == true;
-
-                case Type t:
-                    return t.IsPublic;
-
-                case ConstructorInfo ci:
-                    return ci.IsPublic;
-            }
-
-            throw new NotSupportedException($"Member type {memberInfo.GetType()} is not supported for IsPublic check.");
+                PropertyInfo pi => pi.GetAccessors().Any(m => m.IsPublic),
+                FieldInfo fi => fi.IsPublic,
+                MethodInfo mi => mi.IsPublic,
+                EventInfo ei => ei.AddMethod?.IsPublic == true || ei.RemoveMethod?.IsPublic == true,
+                Type t => t.IsPublic,
+                ConstructorInfo ci => ci.IsPublic,
+                _ => throw new NotSupportedException($"Member type {memberInfo.GetType()} is not supported for IsPublic check."),
+            };
         }
 
         /// <summary>
@@ -2865,7 +2671,7 @@ namespace System
 
             var objMap = GetPropertiesMap(instance.GetType());
             Action<object, object> setter = null;
-            Type memberType = null;
+            Type memberType;
             if (objMap.TryGetValue(memberName, out var mapItem))
             {
                 setter = mapItem.Setter;
@@ -3113,9 +2919,158 @@ namespace System
             }
         }
 
+        /// <summary>
+        /// Создаёт делегат для получения значения свойства.
+        /// Делегат создается динамически с помощью <see cref="DynamicMethod"/> и IL-кода, что позволяет обходить ограничения обычного рефлексивного вызова.
+        /// </summary>
+        /// <param name="pi">Метаданные свойства (<see cref="PropertyInfo"/>), для которого создается геттер.</param>
+        /// <returns>
+        /// Делегат <see cref="Func{Object, Object}"/>, который возвращает значение указанного свойства.
+        /// Если свойство не имеет метода get, возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Метод поддерживает как статические, так и нестатические свойства, а также свойства value-типа и ссылочного типа.
+        /// </para>
+        /// <para>
+        /// Для value-типа аргумент должен быть упакованным объектом (boxed value type).
+        /// В случае попытки передачи <c>null</c> для value-типа будет выброшено <see cref="NullReferenceException"/>.
+        /// </para>
+        /// <para>
+        /// Для ссылочных типов, если объект не совместим с ожидаемым типом, будет выброшено <see cref="InvalidCastException"/>.
+        /// </para>
+        /// </remarks>
+        internal static Func<object, object> CreatePropertyGetter(PropertyInfo pi)
+        {
+            return CreatePropertyGetter<object, object>(pi);
+        }
+
+        /// <summary>
+        /// Создаёт делегат для получения значения свойства <typeparamref name="TProperty"/> объекта <typeparamref name="TObject"/>.
+        /// Делегат создается динамически с помощью <see cref="DynamicMethod"/> и IL-кода, что позволяет обходить ограничения обычного рефлексивного вызова.
+        /// </summary>
+        /// <typeparam name="TObject">Тип объекта, содержащего свойство.</typeparam>
+        /// <typeparam name="TProperty">Тип значения свойства.</typeparam>
+        /// <param name="pi">Метаданные свойства (<see cref="PropertyInfo"/>), для которого создается геттер.</param>
+        /// <returns>
+        /// Делегат <see cref="Func{TObject, TProperty}"/>, который возвращает значение указанного свойства.
+        /// Если свойство не имеет метода get, возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Метод поддерживает как статические, так и нестатические свойства, а также свойства value-типа и ссылочного типа.
+        /// </para>
+        /// <para>
+        /// Для value-типа аргумент <typeparamref name="TObject"/> должен быть упакованным объектом (boxed value type).
+        /// В случае попытки передачи <c>null</c> для value-типа будет выброшено <see cref="NullReferenceException"/>.
+        /// </para>
+        /// <para>
+        /// Для ссылочных типов, если объект не совместим с ожидаемым типом, будет выброшено <see cref="InvalidCastException"/>.
+        /// </para>
+        /// </remarks>
+        internal static Func<TObject, TProperty> CreatePropertyGetter<TObject, TProperty>(PropertyInfo pi)
+        {
+            var getter = pi.GetGetMethod(true);
+            if (getter == null)
+            {
+                return null;
+            }
+
+            var declaring = pi.DeclaringType;
+            var propertyType = pi.PropertyType;
+
+            if (declaring == null)
+            {
+                throw new ArgumentException("Property must have a declaring type", nameof(pi));
+            }
+
+            var dm = new DynamicMethod(
+                "get_" + pi.Name,
+                typeof(TObject),
+                [typeof(TProperty)],
+                declaring.Module,
+                true);
+
+            var il = dm.GetILGenerator();
+
+            // Для статических методов
+            if (getter.IsStatic)
+            {
+                il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
+                if (propertyType.IsValueType && !propertyType.IsPrimitive)
+                {
+                    il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
+                }
+
+                il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                return (Func<TObject, TProperty>)dm.CreateDelegate(typeof(Func<TObject, TProperty>));
+            }
+
+            // Для нестатических методов
+            if (!declaring.IsValueType)
+            {
+                // Для ссылочных типов
+                var lblOk = il.DefineLabel();
+
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                il.Emit(System.Reflection.Emit.OpCodes.Isinst, declaring);
+                il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblOk);
+
+                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(InvalidCastException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                il.Emit(System.Reflection.Emit.OpCodes.Throw);
+
+                il.MarkLabel(lblOk);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                il.Emit(System.Reflection.Emit.OpCodes.Castclass, declaring);
+                il.Emit(System.Reflection.Emit.OpCodes.Callvirt, getter);
+            }
+            else
+            {
+                // Для value types
+                // Создаем локальную переменную для хранения распакованной структуры
+                var local = il.DeclareLocal(declaring);
+
+                // Загружаем аргумент (упакованную структуру)
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+
+                // Проверяем, что это не null (для упакованных структур)
+                var lblNotNull = il.DefineLabel();
+                il.Emit(System.Reflection.Emit.OpCodes.Dup);
+                il.Emit(System.Reflection.Emit.OpCodes.Brtrue_S, lblNotNull);
+
+                // Если null, выбрасываем исключение
+                il.Emit(System.Reflection.Emit.OpCodes.Newobj, typeof(NullReferenceException).GetConstructor(Type.EmptyTypes) ?? throw new InvalidOperationException());
+                il.Emit(System.Reflection.Emit.OpCodes.Throw);
+
+                il.MarkLabel(lblNotNull);
+
+                // Распаковываем структуру
+                il.Emit(System.Reflection.Emit.OpCodes.Unbox_Any, declaring);
+
+                // Сохраняем в локальную переменную
+                il.Emit(System.Reflection.Emit.OpCodes.Stloc, local);
+
+                // Загружаем адрес локальной переменной (для вызова метода структуры)
+                il.Emit(System.Reflection.Emit.OpCodes.Ldloca_S, local);
+
+                // Вызываем getter
+                il.Emit(System.Reflection.Emit.OpCodes.Call, getter);
+            }
+
+            // Бокс возвращаемого значения, если это value type
+            if (propertyType.IsValueType)
+            {
+                il.Emit(System.Reflection.Emit.OpCodes.Box, propertyType);
+            }
+
+            il.Emit(System.Reflection.Emit.OpCodes.Ret);
+
+            return (Func<TObject, TProperty>)dm.CreateDelegate(typeof(Func<TObject, TProperty>));
+        }
+
         private static ReadOnlyDictionary<string, ObjPropertyInfo> CacheTypeProperties(Type type)
         {
-            var properties = type.GetProperties(DefaultBindingFlags);
+            var properties = type.GetProperties(DefaultBindingFlags).DistinctBy(x => x.Name);
             var dic = new ReadOnlyDictionary<string, ObjPropertyInfo>(properties.ToDictionary(k => k.Name, v => new ObjPropertyInfo(v, CreatePropertySetter(v), CreatePropertyGetter(v))));
             PropertiesCache[type] = dic;
             return dic;

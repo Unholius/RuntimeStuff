@@ -23,7 +23,77 @@ namespace System.Helpers
     /// создания экземпляра класса. Класс потокобезопасен при условии корректного использования входных данных.</remarks>
     public static class StringHelper
     {
-        private static readonly char[] Separator = new[] { '_' };
+        private static readonly char[] Separator = ['_'];
+
+        static StringHelper()
+        {
+            OpeningQuotes =
+                [
+                    '\u0022', // " Default
+                    '\u00AB', // « French, Russian opening
+                    '\u2039', // ‹ Single guillemet opening
+                    '\u201C', // “ Left double quotation mark
+                    '\u2018', // ‘ Left single quotation mark
+                    '\u201E', // „ Double low-9 quotation mark (German opening)
+                    '\u201A', // ‚ Single low-9 quotation mark
+                    '\u300C', // 「 CJK corner bracket opening
+                    '\u300E', // 『 CJK white corner bracket opening
+                    '\u3008', // 〈 CJK angle bracket opening
+                    '\u300A', // 《 CJK double angle bracket opening
+                    '\u300C', // 「 Japanese opening quote
+                    '\uFE41', // ﹁ Small corner bracket opening
+                    '\uFE43', // ﹃ Small white corner bracket opening
+                    '\uFF62', // ｢ Halfwidth corner bracket opening
+                ];
+
+            ClosingQuotes =
+            [
+                '\u0022', // " Default
+                '\u00BB', // » French, Russian closing
+                '\u203A', // › Single guillemet closing
+                '\u201D', // ” Right double quotation mark
+                '\u2019', // ’ Right single quotation mark
+                '\u201F', // ‟ Double high-reversed-9 quotation mark
+                '\u300F', // 』 CJK white corner bracket closing
+                '\u300D', // 」 CJK corner bracket closing
+                '\u3009', // 〉 CJK angle bracket closing
+                '\u300B', // 》 CJK double angle bracket closing
+                '\uFE42', // ﹂ Small corner bracket closing
+                '\uFE44', // ﹄ Small white corner bracket closing
+                '\uFF63', // ｣ Halfwidth corner bracket closing
+            ];
+
+            WhitespaceChars =
+                    [
+                        ' ',
+                        '\t',
+                        '\r',
+                        '\n',
+                        '\0',
+                        '\v', // U+000B Vertical Tab
+                        '\f', // U+000C Form Feed
+                        '\u00A0', // NO-BREAK SPACE
+                        '\u2007', // Figure Space
+                        '\u202F', // Narrow No-Break Space
+                        '\u2028', // Line Separator
+                        '\u2029', // Paragraph Separator
+                        '\u200B', // Zero Width Space
+                        '\u200C', // Zero Width Non-Joiner
+                        '\u200D', // Zero Width Joiner
+                        '\u2060', // Word Joiner
+                        '\uFEFF', // BOM (Zero Width No-Break Space)
+                    ];
+
+            AllQuotes =
+                OpeningQuotes
+                .Concat(ClosingQuotes)
+                .Distinct()
+                .ToArray();
+
+            DefaultColumnSeparators = ["\t", ";", "|"];
+            DefaultColumnSeparatorsAndSpace = [" ", "\t", ";", "|"];
+            DefaultLineSeparators = [Environment.NewLine, "\r", "\n"];
+        }
 
         /// <summary>
         /// Определяет стратегию экранирования (escaping) строки
@@ -113,96 +183,113 @@ namespace System.Helpers
         }
 
         /// <summary>
-        /// Коллекция открывающих кавычек.
+        /// Определяет стиль преобразования регистра строк.
         /// </summary>
-        public static char[] OpeningQuotes { get; } = new char[]
+        /// <remarks>
+        /// Примеры:
+        /// <code>
+        /// "hello world" → Lower        => "hello world"
+        /// "hello world" → Upper        => "HELLO WORLD"
+        /// "hello world" → Pascal       => "HelloWorld"
+        /// "hello world" → Camel        => "helloWorld"
+        /// "hello world" → Snake        => "hello_world"
+        /// "hello world" → UpperSnake   => "HELLO_WORLD"
+        /// "hello world" → Kebab        => "hello-world"
+        /// "hello world" → UpperKebab   => "HELLO-WORLD"
+        /// </code>
+        /// </remarks>
+        public enum StringCase
         {
-            '"', // Default
-            '«', // French, Russian opening
-            '‹', // Single guillemet opening
-            '“', // Left double quotation mark
-            '‘', // Left single quotation mark
-            '„', // Double low-9 quotation mark (German opening)
-            '‚', // Single low-9 quotation mark
-            '?', // CJK corner bracket opening
-            '?', // CJK white corner bracket opening
-            '?', // CJK angle bracket opening
-            '?', // CJK double angle bracket opening
-            '?', // Japanese opening quote
-            '?', // Small corner bracket opening
-            '?', // Small white corner bracket opening
-            '?',  // Halfwidth corner bracket opening
-        };
+            /// <summary>
+            /// Строка без изменений.
+            /// </summary>
+            None,
 
-        /// <summary>
-        /// Коллекция закрывающих кавычек.
-        /// </summary>
-        public static char[] ClosingQuotes { get; } = new char[]
-        {
-            '"', // Default
-            '»', // French, Russian closing
-            '›', // Single guillemet closing
-            '”', // Right double quotation mark
-            '’', // Right single quotation mark
-            '?', // Double high-reversed-9 quotation mark
-            '?', // CJK white corner bracket closing
-            '?', // CJK corner bracket closing
-            '?', // CJK angle bracket closing
-            '?', // CJK double angle bracket closing
-            '?', // Small corner bracket closing
-            '?', // Small white corner bracket closing
-            '?',  // Halfwidth corner bracket closing
-        };
+            /// <summary>
+            /// lower case — вся строка в нижнем регистре без изменения разделителей.
+            /// Пример: "hello world".
+            /// </summary>
+            Lower,
+
+            /// <summary>
+            /// UPPER CASE — вся строка в верхнем регистре без изменения разделителей.
+            /// Пример: "HELLO WORLD".
+            /// </summary>
+            Upper,
+
+            /// <summary>
+            /// PascalCase — каждое слово начинается с заглавной буквы, разделители удаляются.
+            /// Пример: "HelloWorld".
+            /// </summary>
+            Pascal,
+
+            /// <summary>
+            /// camelCase — первая буква строчная, каждое следующее слово с заглавной, разделители удаляются.
+            /// Пример: "helloWorld".
+            /// </summary>
+            Camel,
+
+            /// <summary>
+            /// snake_case — слова разделяются символом подчеркивания, все буквы строчные.
+            /// Пример: "hello_world".
+            /// </summary>
+            Snake,
+
+            /// <summary>
+            /// UPPER_SNAKE_CASE — слова разделяются символом подчеркивания, все буквы заглавные.
+            /// Пример: "HELLO_WORLD".
+            /// </summary>
+            UpperSnake,
+
+            /// <summary>
+            /// kebab-case — слова разделяются дефисом, все буквы строчные.
+            /// Пример: "hello-world".
+            /// </summary>
+            Kebab,
+
+            /// <summary>
+            /// UPPER-KEBAB-CASE — слова разделяются дефисом, все буквы заглавные.
+            /// Пример: "HELLO-WORLD".
+            /// </summary>
+            UpperKebab,
+        }
 
         /// <summary>
         /// Коллекция кавычек. Комбинация уникальных значений <see cref="OpeningQuotes"/> и <see cref="ClosingQuotes"/>.
         /// </summary>
-        public static char[] AllQuotes { get; } =
-            OpeningQuotes
-                .Concat(ClosingQuotes)
-                .Distinct()
-                .ToArray();
+        public static char[] AllQuotes { get; }
+
+        /// <summary>
+        /// Коллекция закрывающих кавычек.
+        /// </summary>
+        public static char[] ClosingQuotes { get; }
 
         /// <summary>
         /// Разделители для колонок. ("\t", ";", "|").
         /// </summary>
-        public static string[] DefaultColumnSeparators { get; } = new string[] { "\t", ";", "|" };
+        public static string[] DefaultColumnSeparators { get; }
 
         /// <summary>
         /// Разделители для колонок. (" ", "\t", ";", "|").
         /// </summary>
-        public static string[] DefaultColumnSeparatorsAndSpace { get; } = new string[] { " ", "\t", ";", "|" };
+        public static string[] DefaultColumnSeparatorsAndSpace { get; }
 
         /// <summary>
         /// Разделители для строк. (Environment.NewLine, "\r", "\n").
         /// </summary>
-        public static string[] DefaultLineSeparators { get; } = new string[] { Environment.NewLine, "\r", "\n" };
+        public static string[] DefaultLineSeparators { get; }
 
         /// <summary>
-        /// Gets whitespace chars.
+        /// Коллекция открывающих кавычек.
+        /// </summary>
+        public static char[] OpeningQuotes { get; }
+
+        /// <summary>
+        /// whitespace chars.
         /// Набор пробельных символов, используемых при разборе строк.
         /// Включает пробел, перевод строки, табуляция, пустой символ.
         /// </summary>
-        public static char[] WhitespaceChars { get; } = new char[]
-        {
-            ' ',
-            '\t',
-            '\r',
-            '\n',
-            '\0',
-            '\v', // U+000B Vertical Tab
-            '\f', // U+000C Form Feed
-            '\u00A0', // NO-BREAK SPACE
-            '\u2007', // Figure Space
-            '\u202F', // Narrow No-Break Space
-            '\u2028', // Line Separator
-            '\u2029', // Paragraph Separator
-            '\u200B', // Zero Width Space
-            '\u200C', // Zero Width Non-Joiner
-            '\u200D', // Zero Width Joiner
-            '\u2060', // Word Joiner
-            '\uFEFF', // BOM (Zero Width No-Break Space)
-        };
+        public static char[] WhitespaceChars { get; }
 
         /// <summary>
         /// Добавляет к строке префикс и/или суффикс.
@@ -235,110 +322,6 @@ namespace System.Helpers
             }
 
             return string.Concat(prefix, value, suffix);
-        }
-
-        /// <summary>
-        /// Извлекает строку формата из составного форматного выражения.
-        /// </summary>
-        /// <param name="format">
-        /// Строка формата, например <c>"{0:yyyy-MM-dd}"</c> или уже готовый формат <c>"yyyy-MM-dd"</c>.
-        /// </param>
-        /// <returns>
-        /// Строка формата без обёртки составного форматирования.
-        /// <para/>
-        /// Если входная строка имеет вид <c>"{0:...}"</c>, возвращается содержимое после двоеточия.
-        /// В противном случае возвращается исходная строка.
-        /// <para/>
-        /// Если <paramref name="format"/> равен <c>null</c> или пустой строке — возвращается <c>null</c>.
-        /// </returns>
-        /// <remarks>
-        /// Метод выполняет простое извлечение подстроки и не поддерживает сложные случаи,
-        /// такие как вложенные форматные выражения или экранирование фигурных скобок.
-        /// </remarks>
-        /// <example>
-        /// <code>
-        /// ExtractFormat("{0:yyyy-MM-dd}") → "yyyy-MM-dd"
-        /// ExtractFormat("HH:mm:ss") → "HH:mm:ss"
-        /// ExtractFormat(null) → null
-        /// </code>
-        /// </example>
-        public static string ExtractFormat(string format)
-        {
-            if (string.IsNullOrEmpty(format))
-            {
-                return null;
-            }
-
-            // "{0:yyyy-MM-dd}" → "yyyy-MM-dd"
-            if (format.Length > 4 && format[0] == '{')
-            {
-                var colonIndex = format.IndexOf(':');
-                var endIndex = format.LastIndexOf('}');
-
-                if (colonIndex >= 0 && endIndex > colonIndex)
-                {
-                    return format.Substring(colonIndex + 1, endIndex - colonIndex - 1);
-                }
-            }
-
-            return format;
-        }
-
-        /// <summary>
-        /// Приводит строку формата к составному формату вида <c>"{index:format}"</c>.
-        /// </summary>
-        /// <param name="format">
-        /// Строка формата (например, <c>"yyyy-MM-dd"</c> или <c>"{0:yyyy-MM-dd}"</c>).
-        /// </param>
-        /// <param name="index">
-        /// Индекс аргумента в составной строке форматирования.
-        /// По умолчанию — <c>0</c>.
-        /// </param>
-        /// <returns>
-        /// Строка в виде составного форматного выражения.
-        /// <para/>
-        /// Если <paramref name="format"/> пустая или состоит только из пробелов,
-        /// возвращается <c>"{index}"</c>.
-        /// </returns>
-        /// <remarks>
-        /// <para>
-        /// Если входная строка уже содержит формат, но не начинается с <c>"{index:"</c>,
-        /// префикс будет добавлен.
-        /// </para>
-        /// <para>
-        /// Если строка не заканчивается символом <c>'}'</c>, он будет добавлен.
-        /// </para>
-        /// <para>
-        /// Метод не выполняет строгую валидацию формата и может некорректно обработать
-        /// сложные или вложенные форматные выражения.
-        /// </para>
-        /// </remarks>
-        /// <example>
-        /// <code>
-        /// NormalizeFormat("yyyy-MM-dd") → "{0:yyyy-MM-dd}"
-        /// NormalizeFormat("{0:HH:mm}") → "{0:HH:mm}"
-        /// NormalizeFormat(null) → "{0}"
-        /// NormalizeFormat("HH:mm", 1) → "{1:HH:mm}"
-        /// </code>
-        /// </example>
-        public static string NormalizeFormat(string format, int index = 0)
-        {
-            if (string.IsNullOrWhiteSpace(format))
-            {
-                return $"{{{index}}}";
-            }
-
-            if (!format.StartsWith($"{{{index}:"))
-            {
-                format = $"{{{index}:" + format;
-            }
-
-            if (!format.EndsWith("}"))
-            {
-                format += "}";
-            }
-
-            return format;
         }
 
         /// <summary>
@@ -387,123 +370,6 @@ namespace System.Helpers
             var restIndex = enumerator.ElementIndex + first.Length;
 
             return culture.TextInfo.ToUpper(first) + s.Substring(restIndex);
-        }
-
-        /// <summary>
-        /// Проверяет, содержит ли строка хотя бы одну из указанных подстрок.
-        /// </summary>
-        /// <param name="s">Исходная строка, в которой выполняется поиск.</param>
-        /// <param name="comparison">
-        /// Тип сравнения строк, используемый при поиске подстрок
-        /// (например, <see cref="StringComparison.OrdinalIgnoreCase"/>).
-        /// </param>
-        /// <param name="values">Массив подстрок, наличие которых необходимо проверить.</param>
-        /// <returns>
-        /// <c>true</c>, если строка содержит хотя бы одну из указанных подстрок;
-        /// иначе <c>false</c>.
-        /// Если исходная строка пуста, массив подстрок равен <c>null</c> или пуст,
-        /// метод возвращает <c>false</c>.
-        /// </returns>
-        public static bool StartsWithAny(string s, StringComparison comparison, params string[] values)
-        {
-            if (string.IsNullOrEmpty(s) || values == null || values.Length == 0)
-            {
-                return false;
-            }
-
-            foreach (var value in values)
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    continue;
-                }
-
-                if (s.StartsWith(value, comparison))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Удаляет указанную подстроку из начала и конца строки.
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <param name="trimString">Подстрока, которую необходимо удалить.</param>
-        /// <param name="comparison">
-        /// Тип сравнения строк при поиске подстроки.
-        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
-        /// </param>
-        /// <returns>
-        /// Строка без указанной подстроки в начале и конце.
-        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
-        /// </returns>
-        public static string Trim(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
-        {
-            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
-            {
-                return s;
-            }
-
-            return TrimEnd(TrimStart(s, trimString, comparison), trimString, comparison);
-        }
-
-        /// <summary>
-        /// Удаляет указанную подстроку из начала строки.
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <param name="trimString">Подстрока, которую необходимо удалить из начала строки.</param>
-        /// <param name="comparison">
-        /// Тип сравнения строк при проверке начала строки.
-        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
-        /// </param>
-        /// <returns>
-        /// Строка без указанной подстроки в начале.
-        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
-        /// </returns>
-        public static string TrimStart(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
-        {
-            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
-            {
-                return s;
-            }
-
-            while (s.StartsWith(trimString, comparison))
-            {
-                s = s.Substring(trimString.Length);
-            }
-
-            return s;
-        }
-
-        /// <summary>
-        /// Удаляет указанную подстроку из конца строки.
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <param name="trimString">Подстрока, которую необходимо удалить из конца строки.</param>
-        /// <param name="comparison">
-        /// Тип сравнения строк при проверке конца строки.
-        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
-        /// </param>
-        /// <returns>
-        /// Строка без указанной подстроки в конце.
-        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
-        /// </returns>
-        public static string TrimEnd(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
-        {
-            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
-            {
-                return s;
-            }
-
-            while (s.EndsWith(trimString, comparison))
-            {
-                s = s.Substring(0, s.Length - trimString.Length);
-            }
-
-            return s;
         }
 
         /// <summary>
@@ -574,6 +440,45 @@ namespace System.Helpers
             }
 
             return values.Any(x => source.IndexOf(x, comparison) >= 0);
+        }
+
+        /// <summary>
+        /// Преобразует входную строку в указанный регистр.
+        /// </summary>
+        /// <param name="s">Исходная строка (например: "hello world").</param>
+        /// <param name="stringCase">Тип регистра, в который необходимо преобразовать строку.</param>
+        /// <returns>Строка, преобразованная в указанный регистр.</returns>
+        /// <remarks>
+        /// Примеры:
+        /// <code>
+        /// ConvertCase("hello world", StringCase.Lower)       => "hello world"
+        /// ConvertCase("hello world", StringCase.Upper)       => "HELLO WORLD"
+        /// ConvertCase("hello world", StringCase.Pascal)      => "HelloWorld"
+        /// ConvertCase("hello world", StringCase.Camel)       => "helloWorld"
+        /// ConvertCase("hello world", StringCase.Kebab)       => "hello-world"
+        /// ConvertCase("hello world", StringCase.UpperKebab)  => "HELLO-WORLD"
+        /// ConvertCase("hello world", StringCase.Snake)       => "hello_world"
+        /// ConvertCase("hello world", StringCase.UpperSnake)  => "HELLO_WORLD"
+        /// </code>
+        /// </remarks>
+        /// <exception cref="System.ArgumentNullException">
+        /// Может быть выброшено, если <paramref name="s"/> равно <c>null</c>.
+        /// </exception>
+        public static string ConvertCase(string s, StringCase stringCase)
+        {
+            return stringCase switch
+            {
+                StringCase.None => s,
+                StringCase.Lower => s.ToLowerInvariant(),
+                StringCase.Upper => s.ToUpperInvariant(),
+                StringCase.Pascal => ToPascalCase(s),
+                StringCase.Camel => ToCamelCase(s),
+                StringCase.Kebab => ToKebabCase(s),
+                StringCase.UpperKebab => ToKebabCase(s).ToUpperInvariant(),
+                StringCase.Snake => ToSnakeCase(s),
+                StringCase.UpperSnake => ToUpperSnakeCase(s),
+                _ => throw new NotImplementedException(),
+            };
         }
 
         /// <summary>
@@ -690,22 +595,66 @@ namespace System.Helpers
                 return null;
             }
 
-            switch (mode)
+            return mode switch
             {
-                case EscapeMode.None: return value;
-                case EscapeMode.Url: return Uri.EscapeDataString(value);
-                case EscapeMode.Sql: return value.Replace("'", "''");
-                case EscapeMode.Json: return EscapeJson(value);
-                case EscapeMode.XmlText: return EscapeXmlText(value);
-                case EscapeMode.XmlAttribute: return EscapeXmlAttribute(value);
-                case EscapeMode.Csv: return EscapeCsv(value);
-                case EscapeMode.CSharp: return EscapeCSharp(value);
-                case EscapeMode.Base64:
-                    return Convert.ToBase64String(Encoding.UTF8.GetBytes(value));
+                EscapeMode.None => value,
+                EscapeMode.Url => Uri.EscapeDataString(value),
+                EscapeMode.Sql => value.Replace("'", "''"),
+                EscapeMode.Json => EscapeJson(value),
+                EscapeMode.XmlText => EscapeXmlText(value),
+                EscapeMode.XmlAttribute => EscapeXmlAttribute(value),
+                EscapeMode.Csv => EscapeCsv(value),
+                EscapeMode.CSharp => EscapeCSharp(value),
+                EscapeMode.Base64 => Convert.ToBase64String(Encoding.UTF8.GetBytes(value)),
+                _ => throw new ArgumentOutOfRangeException(nameof(mode)),
+            };
+        }
 
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(mode));
+        /// <summary>
+        /// Извлекает строку формата из составного форматного выражения.
+        /// </summary>
+        /// <param name="format">
+        /// Строка формата, например <c>"{0:yyyy-MM-dd}"</c> или уже готовый формат <c>"yyyy-MM-dd"</c>.
+        /// </param>
+        /// <returns>
+        /// Строка формата без обёртки составного форматирования.
+        /// <para/>
+        /// Если входная строка имеет вид <c>"{0:...}"</c>, возвращается содержимое после двоеточия.
+        /// В противном случае возвращается исходная строка.
+        /// <para/>
+        /// Если <paramref name="format"/> равен <c>null</c> или пустой строке — возвращается <c>null</c>.
+        /// </returns>
+        /// <remarks>
+        /// Метод выполняет простое извлечение подстроки и не поддерживает сложные случаи,
+        /// такие как вложенные форматные выражения или экранирование фигурных скобок.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// ExtractFormat("{0:yyyy-MM-dd}") → "yyyy-MM-dd"
+        /// ExtractFormat("HH:mm:ss") → "HH:mm:ss"
+        /// ExtractFormat(null) → null
+        /// </code>
+        /// </example>
+        public static string ExtractFormat(string format)
+        {
+            if (string.IsNullOrEmpty(format))
+            {
+                return null;
             }
+
+            // "{0:yyyy-MM-dd}" → "yyyy-MM-dd"
+            if (format.Length > 4 && format[0] == '{')
+            {
+                var colonIndex = format.IndexOf(':');
+                var endIndex = format.LastIndexOf('}');
+
+                if (colonIndex >= 0 && endIndex > colonIndex)
+                {
+                    return format.Substring(colonIndex + 1, endIndex - colonIndex - 1);
+                }
+            }
+
+            return format;
         }
 
         /// <summary>
@@ -962,7 +911,7 @@ namespace System.Helpers
         }
 
         /// <summary>
-        /// Gets the tokens.
+        /// the tokens.
         /// </summary>
         /// <param name="input">The input.</param>
         /// <param name="notMatchedAsTokens">if set to <c>true</c> [not matched as tokens].</param>
@@ -1460,6 +1409,63 @@ namespace System.Helpers
         }
 
         /// <summary>
+        /// Приводит строку формата к составному формату вида <c>"{index:format}"</c>.
+        /// </summary>
+        /// <param name="format">
+        /// Строка формата (например, <c>"yyyy-MM-dd"</c> или <c>"{0:yyyy-MM-dd}"</c>).
+        /// </param>
+        /// <param name="index">
+        /// Индекс аргумента в составной строке форматирования.
+        /// По умолчанию — <c>0</c>.
+        /// </param>
+        /// <returns>
+        /// Строка в виде составного форматного выражения.
+        /// <para/>
+        /// Если <paramref name="format"/> пустая или состоит только из пробелов,
+        /// возвращается <c>"{index}"</c>.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// Если входная строка уже содержит формат, но не начинается с <c>"{index:"</c>,
+        /// префикс будет добавлен.
+        /// </para>
+        /// <para>
+        /// Если строка не заканчивается символом <c>'}'</c>, он будет добавлен.
+        /// </para>
+        /// <para>
+        /// Метод не выполняет строгую валидацию формата и может некорректно обработать
+        /// сложные или вложенные форматные выражения.
+        /// </para>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// NormalizeFormat("yyyy-MM-dd") → "{0:yyyy-MM-dd}"
+        /// NormalizeFormat("{0:HH:mm}") → "{0:HH:mm}"
+        /// NormalizeFormat(null) → "{0}"
+        /// NormalizeFormat("HH:mm", 1) → "{1:HH:mm}"
+        /// </code>
+        /// </example>
+        public static string NormalizeFormat(string format, int index = 0)
+        {
+            if (string.IsNullOrWhiteSpace(format))
+            {
+                return $"{{{index}}}";
+            }
+
+            if (!format.StartsWith($"{{{index}:"))
+            {
+                format = $"{{{index}:" + format;
+            }
+
+            if (!format.EndsWith("}"))
+            {
+                format += "}";
+            }
+
+            return format;
+        }
+
+        /// <summary>
         /// Нормализует пробельные символы в строке:
         /// заменяет все последовательности пробелов, табуляций и переносов строк на один пробел,
         /// а также удаляет пробелы с начала и конца строки.
@@ -1652,7 +1658,7 @@ namespace System.Helpers
 
             if (splitBy == null || splitBy.Length == 0)
             {
-                return new[] { s };
+                return [s];
             }
 
             var result = new List<string>(8);
@@ -1782,7 +1788,7 @@ namespace System.Helpers
                 propertyMap = Array.Empty<string>();
             }
 
-            var typeCache = MemberCache.Create(typeof(T));
+            var typeCache = MemberCache.Get(typeof(T));
             var lines = SplitBy(s, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
             var props = propertyMap.Length > 0 ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicBasicProperties.ToArray();
             if (props.Length == 0)
@@ -1821,137 +1827,41 @@ namespace System.Helpers
         }
 
         /// <summary>
-        /// Определяет стиль преобразования регистра строк.
+        /// Проверяет, содержит ли строка хотя бы одну из указанных подстрок.
         /// </summary>
-        /// <remarks>
-        /// Примеры:
-        /// <code>
-        /// "hello world" → Lower        => "hello world"
-        /// "hello world" → Upper        => "HELLO WORLD"
-        /// "hello world" → Pascal       => "HelloWorld"
-        /// "hello world" → Camel        => "helloWorld"
-        /// "hello world" → Snake        => "hello_world"
-        /// "hello world" → UpperSnake   => "HELLO_WORLD"
-        /// "hello world" → Kebab        => "hello-world"
-        /// "hello world" → UpperKebab   => "HELLO-WORLD"
-        /// </code>
-        /// </remarks>
-        public enum StringCase
+        /// <param name="s">Исходная строка, в которой выполняется поиск.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк, используемый при поиске подстрок
+        /// (например, <see cref="StringComparison.OrdinalIgnoreCase"/>).
+        /// </param>
+        /// <param name="values">Массив подстрок, наличие которых необходимо проверить.</param>
+        /// <returns>
+        /// <c>true</c>, если строка содержит хотя бы одну из указанных подстрок;
+        /// иначе <c>false</c>.
+        /// Если исходная строка пуста, массив подстрок равен <c>null</c> или пуст,
+        /// метод возвращает <c>false</c>.
+        /// </returns>
+        public static bool StartsWithAny(string s, StringComparison comparison, params string[] values)
         {
-            /// <summary>
-            /// Строка без изменений.
-            /// </summary>
-            None,
-
-            /// <summary>
-            /// lower case — вся строка в нижнем регистре без изменения разделителей.
-            /// Пример: "hello world"
-            /// </summary>
-            Lower,
-
-            /// <summary>
-            /// UPPER CASE — вся строка в верхнем регистре без изменения разделителей.
-            /// Пример: "HELLO WORLD"
-            /// </summary>
-            Upper,
-
-            /// <summary>
-            /// PascalCase — каждое слово начинается с заглавной буквы, разделители удаляются.
-            /// Пример: "HelloWorld"
-            /// </summary>
-            Pascal,
-
-            /// <summary>
-            /// camelCase — первая буква строчная, каждое следующее слово с заглавной, разделители удаляются.
-            /// Пример: "helloWorld"
-            /// </summary>
-            Camel,
-
-            /// <summary>
-            /// snake_case — слова разделяются символом подчеркивания, все буквы строчные.
-            /// Пример: "hello_world"
-            /// </summary>
-            Snake,
-
-            /// <summary>
-            /// UPPER_SNAKE_CASE — слова разделяются символом подчеркивания, все буквы заглавные.
-            /// Пример: "HELLO_WORLD"
-            /// </summary>
-            UpperSnake,
-
-            /// <summary>
-            /// kebab-case — слова разделяются дефисом, все буквы строчные.
-            /// Пример: "hello-world"
-            /// </summary>
-            Kebab,
-
-            /// <summary>
-            /// UPPER-KEBAB-CASE — слова разделяются дефисом, все буквы заглавные.
-            /// Пример: "HELLO-WORLD"
-            /// </summary>
-            UpperKebab,
-        }
-
-        /// <summary>
-        /// Преобразует входную строку в указанный регистр.
-        /// </summary>
-        /// <param name="s">Исходная строка (например: "hello world").</param>
-        /// <param name="stringCase">Тип регистра, в который необходимо преобразовать строку.</param>
-        /// <returns>Строка, преобразованная в указанный регистр.</returns>
-        /// <remarks>
-        /// Примеры:
-        /// <code>
-        /// ConvertCase("hello world", StringCase.Lower)       => "hello world"
-        /// ConvertCase("hello world", StringCase.Upper)       => "HELLO WORLD"
-        /// ConvertCase("hello world", StringCase.Pascal)      => "HelloWorld"
-        /// ConvertCase("hello world", StringCase.Camel)       => "helloWorld"
-        /// ConvertCase("hello world", StringCase.Kebab)       => "hello-world"
-        /// ConvertCase("hello world", StringCase.UpperKebab)  => "HELLO-WORLD"
-        /// ConvertCase("hello world", StringCase.Snake)       => "hello_world"
-        /// ConvertCase("hello world", StringCase.UpperSnake)  => "HELLO_WORLD"
-        /// </code>
-        /// </remarks>
-        /// <exception cref="System.ArgumentNullException">
-        /// Может быть выброшено, если <paramref name="s"/> равно <c>null</c>.
-        /// </exception>
-        public static string ConvertCase(string s, StringCase stringCase)
-        {
-            return stringCase switch
+            if (string.IsNullOrEmpty(s) || values == null || values.Length == 0)
             {
-                StringCase.None => s,
-                StringCase.Lower => s.ToLowerInvariant(),
-                StringCase.Upper => s.ToUpperInvariant(),
-                StringCase.Pascal => ToPascalCase(s),
-                StringCase.Camel => ToCamelCase(s),
-                StringCase.Kebab => ToKebabCase(s),
-                StringCase.UpperKebab => ToKebabCase(s).ToUpperInvariant(),
-                StringCase.Snake => ToSnakeCase(s),
-                StringCase.UpperSnake => ToUpperSnakeCase(s),
-                _ => throw new NotImplementedException(),
-            };
-        }
+                return false;
+            }
 
-        /// <summary>
-        /// Преобразует строку в формат <c>PascalCase</c> (UpperCamelCase).
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <returns>Строка в формате <c>PascalCase</c>.</returns>
-        public static string ToPascalCase(string s)
-        {
-            var words = SplitWords(s);
-            return string.Concat(words.Select(w =>
-                char.ToUpperInvariant(w[0]) + w.Substring(1)));
-        }
+            foreach (var value in values)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    continue;
+                }
 
-        /// <summary>
-        /// Преобразует строку в формат <c>kebab-case</c>.
-        /// </summary>
-        /// <param name="s">Исходная строка.</param>
-        /// <returns>Строка в формате <c>kebab-case</c>.</returns>
-        public static string ToKebabCase(string s)
-        {
-            var words = SplitWords(s);
-            return string.Join("-", words);
+                if (s.StartsWith(value, comparison))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1976,6 +1886,29 @@ namespace System.Helpers
         }
 
         /// <summary>
+        /// Преобразует строку в формат <c>kebab-case</c>.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>kebab-case</c>.</returns>
+        public static string ToKebabCase(string s)
+        {
+            var words = SplitWords(s);
+            return string.Join("-", words);
+        }
+
+        /// <summary>
+        /// Преобразует строку в формат <c>PascalCase</c> (UpperCamelCase).
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <returns>Строка в формате <c>PascalCase</c>.</returns>
+        public static string ToPascalCase(string s)
+        {
+            var words = SplitWords(s);
+            return string.Concat(words.Select(w =>
+                char.ToUpperInvariant(w[0]) + w.Substring(1)));
+        }
+
+        /// <summary>
         /// Преобразует строку в формат <c>snake_case</c>.
         /// </summary>
         /// <param name="s">Исходная строка.</param>
@@ -1995,6 +1928,85 @@ namespace System.Helpers
         {
             var words = SplitWords(s);
             return string.Join("_", words).ToUpperInvariant();
+        }
+
+        /// <summary>
+        /// Удаляет указанную подстроку из начала и конца строки.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="trimString">Подстрока, которую необходимо удалить.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк при поиске подстроки.
+        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Строка без указанной подстроки в начале и конце.
+        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
+        /// </returns>
+        public static string Trim(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        {
+            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
+            {
+                return s;
+            }
+
+            return TrimEnd(TrimStart(s, trimString, comparison), trimString, comparison);
+        }
+
+        /// <summary>
+        /// Удаляет указанную подстроку из конца строки.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="trimString">Подстрока, которую необходимо удалить из конца строки.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк при проверке конца строки.
+        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Строка без указанной подстроки в конце.
+        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
+        /// </returns>
+        public static string TrimEnd(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        {
+            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
+            {
+                return s;
+            }
+
+            while (s.EndsWith(trimString, comparison))
+            {
+                s = s.Substring(0, s.Length - trimString.Length);
+            }
+
+            return s;
+        }
+
+        /// <summary>
+        /// Удаляет указанную подстроку из начала строки.
+        /// </summary>
+        /// <param name="s">Исходная строка.</param>
+        /// <param name="trimString">Подстрока, которую необходимо удалить из начала строки.</param>
+        /// <param name="comparison">
+        /// Тип сравнения строк при проверке начала строки.
+        /// По умолчанию используется <see cref="StringComparison.OrdinalIgnoreCase"/>.
+        /// </param>
+        /// <returns>
+        /// Строка без указанной подстроки в начале.
+        /// Если исходная строка или подстрока пустые, возвращается исходная строка.
+        /// </returns>
+        public static string TrimStart(string s, string trimString, StringComparison comparison = StringComparison.Ordinal)
+        {
+            if (string.IsNullOrEmpty(s) || string.IsNullOrEmpty(trimString))
+            {
+                return s;
+            }
+
+            while (s.StartsWith(trimString, comparison))
+            {
+                s = s.Substring(trimString.Length);
+            }
+
+            return s;
         }
 
         /// <summary>
@@ -2075,6 +2087,34 @@ namespace System.Helpers
 
                 return Convert.ToBase64String(output.ToArray());
             }
+        }
+
+        private static int Count<T>(IEnumerable<T> source, Func<T, int, bool> predicate)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (predicate == null)
+            {
+                throw new ArgumentNullException(nameof(predicate));
+            }
+
+            var count = 0;
+            var index = 0;
+
+            foreach (var item in source)
+            {
+                if (predicate(item, index))
+                {
+                    count++;
+                }
+
+                index++;
+            }
+
+            return count;
         }
 
         private static string EscapeCSharp(string value)
@@ -2246,34 +2286,6 @@ namespace System.Helpers
             }
 
             return false;
-        }
-
-        private static int Count<T>(IEnumerable<T> source, Func<T, int, bool> predicate)
-        {
-            if (source == null)
-            {
-                throw new ArgumentNullException(nameof(source));
-            }
-
-            if (predicate == null)
-            {
-                throw new ArgumentNullException(nameof(predicate));
-            }
-
-            var count = 0;
-            var index = 0;
-
-            foreach (var item in source)
-            {
-                if (predicate(item, index))
-                {
-                    count++;
-                }
-
-                index++;
-            }
-
-            return count;
         }
 
         private static double JaroDistance(string s1, string s2)
@@ -2562,19 +2574,19 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets исходный текст токена, включая префикс и суффикс.
+            /// исходный текст токена, включая префикс и суффикс.
             /// </summary>
             /// <value>The body.</value>
             public string Body { get; internal set; }
 
             /// <summary>
-            /// Gets дочерние токены.
+            /// дочерние токены.
             /// </summary>
             /// <value>The children.</value>
             public IEnumerable<Token> Children => this.ChildrenInternal;
 
             /// <summary>
-            /// Gets итоговое содержимое токена, формируется из Text с учетом вложенных токенов и применённых
+            /// итоговое содержимое токена, формируется из Text с учетом вложенных токенов и применённых
             /// ContentTransformers.
             /// </summary>
             /// <value>The content.</value>
@@ -2625,7 +2637,7 @@ namespace System.Helpers
             public List<Func<Token, string>> ContentTransformers { get; set; } = new List<Func<Token, string>>();
 
             /// <summary>
-            /// Gets первый токен в цепочке предыдущих токенов на том же уровне вложенности.
+            /// первый токен в цепочке предыдущих токенов на том же уровне вложенности.
             /// </summary>
             /// <value>The first.</value>
             public Token First
@@ -2643,13 +2655,13 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets порядковый идентификатор токена.
+            /// порядковый идентификатор токена.
             /// </summary>
             /// <value>The identifier.</value>
             public int Id { get; internal set; }
 
             /// <summary>
-            /// Gets позиция токена среди соседей (0 = первый).
+            /// позиция токена среди соседей (0 = первый).
             /// </summary>
             /// <value>The index.</value>
             public int Index
@@ -2669,13 +2681,13 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets a value indicating whether токен без маски (не соответствует ни одной из заданных масок).
+            /// a value indicating whether токен без маски (не соответствует ни одной из заданных масок).
             /// </summary>
             /// <value><c>true</c> if this instance is not matched; otherwise, <c>false</c>.</value>
             public bool IsNotMatched => this.Mask == null;
 
             /// <summary>
-            /// Gets последний токен в цепочке следующих токенов на том же уровне вложенности.
+            /// последний токен в цепочке следующих токенов на том же уровне вложенности.
             /// </summary>
             /// <value>The last.</value>
             public Token Last
@@ -2693,7 +2705,7 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets уровень вложенности токена (0 = корень).
+            /// уровень вложенности токена (0 = корень).
             /// </summary>
             /// <value>The level.</value>
             public int Level
@@ -2714,51 +2726,51 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets маска токена.
+            /// маска токена.
             /// </summary>
             /// <value>The mask.</value>
             public TokenMask Mask { get; internal set; }
 
             /// <summary>
-            /// Gets следующий токен на том же уровне вложенности.
+            /// следующий токен на том же уровне вложенности.
             /// </summary>
             /// <value>The next.</value>
             public Token Next { get; internal set; }
 
             /// <summary>
-            /// Gets родительский токен (null, если токен верхнего уровня).
+            /// родительский токен (null, если токен верхнего уровня).
             /// </summary>
             /// <value>The parent.</value>
             public Token Parent { get; internal set; }
 
             /// <summary>
-            /// Gets индекс конца токена (последний символ суффикса <see cref="Suffix"/>) относительно начала
+            /// индекс конца токена (последний символ суффикса <see cref="Suffix"/>) относительно начала
             /// родительского <see cref="Body"/> родительского токена <see cref="Parent"/>.
             /// </summary>
             /// <value>The parent end.</value>
             public int ParentEnd { get; internal set; }
 
             /// <summary>
-            /// Gets индекс начала токена (первый символ префикса <see cref="Prefix"/>) относительно начала
+            /// индекс начала токена (первый символ префикса <see cref="Prefix"/>) относительно начала
             /// родительского <see cref="Body"/> родительского токена <see cref="Parent"/>.
             /// </summary>
             /// <value>The parent start.</value>
             public int ParentStart { get; internal set; }
 
             /// <summary>
-            /// Gets префикс токена (например "(").
+            /// префикс токена (например "(").
             /// </summary>
             /// <value>The prefix.</value>
             public string Prefix { get; internal set; }
 
             /// <summary>
-            /// Gets предыдущий токен на том же уровне вложенности.
+            /// предыдущий токен на том же уровне вложенности.
             /// </summary>
             /// <value>The previous.</value>
             public Token Previous { get; internal set; }
 
             /// <summary>
-            /// Gets корневой токен.
+            /// корневой токен.
             /// </summary>
             /// <value>The root.</value>
             public Token Root
@@ -2776,27 +2788,27 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Gets исходная строка.
+            /// исходная строка.
             /// </summary>
             /// <value>The source.</value>
             public string Source { get; internal set; }
 
             /// <summary>
-            /// Gets индекс конца токена (последний символ суффикса <see cref="Suffix"/>) в исходной строке <see
+            /// индекс конца токена (последний символ суффикса <see cref="Suffix"/>) в исходной строке <see
             /// cref="Source"/>.
             /// </summary>
             /// <value>The source end.</value>
             public int SourceEnd { get; internal set; }
 
             /// <summary>
-            /// Gets индекс начала токена (первый символ префикса <see cref="Prefix"/>) в исходной строке <see
+            /// индекс начала токена (первый символ префикса <see cref="Prefix"/>) в исходной строке <see
             /// cref="Source"/>.
             /// </summary>
             /// <value>The source start.</value>
             public int SourceStart { get; internal set; }
 
             /// <summary>
-            /// Gets суффикс токена (например ")").
+            /// суффикс токена (например ")").
             /// </summary>
             /// <value>The suffix.</value>
             public string Suffix { get; internal set; }
@@ -2808,7 +2820,7 @@ namespace System.Helpers
             public object Tag { get; set; }
 
             /// <summary>
-            /// Gets внутренний текст токена без префикса и суффикса.
+            /// внутренний текст токена без префикса и суффикса.
             /// </summary>
             /// <value>The text.</value>
             public string Text { get; internal set; }
@@ -2819,7 +2831,7 @@ namespace System.Helpers
             internal static int IdInternal { get; set; } = 1;
 
             /// <summary>
-            /// Gets the children internal.
+            /// the children internal.
             /// </summary>
             internal List<Token> ChildrenInternal { get; } = new List<Token>();
 
@@ -2919,10 +2931,7 @@ namespace System.Helpers
                 newToken.Previous = this;
                 newToken.Next = this.Next;
 
-                if (this.Next != null)
-                {
-                    this.Next.Previous = newToken;
-                }
+                this.Next?.Previous = newToken;
 
                 this.Next = newToken;
 
@@ -2944,10 +2953,7 @@ namespace System.Helpers
                 newToken.Next = this;
                 newToken.Previous = this.Previous;
 
-                if (this.Previous != null)
-                {
-                    this.Previous.Next = newToken;
-                }
+                this.Previous?.Next = newToken;
 
                 this.Previous = newToken;
 
@@ -2976,15 +2982,9 @@ namespace System.Helpers
             public void Remove()
             {
                 // корректируем Previous/Next
-                if (this.Previous != null)
-                {
-                    this.Previous.Next = this.Next;
-                }
+                this.Previous?.Next = this.Next;
 
-                if (this.Next != null)
-                {
-                    this.Next.Previous = this.Previous;
-                }
+                this.Next?.Previous = this.Previous;
 
                 // удаляем из родительского списка детей
                 this.Parent?.ChildrenInternal.Remove(this);

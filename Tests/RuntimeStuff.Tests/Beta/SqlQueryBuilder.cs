@@ -15,7 +15,7 @@
     {
         private readonly Dictionary<string, MemberCache> aliases = new DefaultDictionary<string, MemberCache>(StringComparer.OrdinalIgnoreCase);
         private readonly SqlDialect sqlDialect = SqlDialect.SqlServerDialect;
-        private readonly List<QueryPart> query = new List<QueryPart>();
+        private readonly List<QueryPart> query = [];
         private readonly StringBuilder sb = new StringBuilder();
 
         public SqlQueryBuilder()
@@ -77,15 +77,23 @@
             Between,
         }
 
-        public bool IndentFormat { get; set; }
+        public enum DuplicateNameHandling
+        {
+            ThrowException,
+            GenerateAlias,
+            Ignore,
+        }
 
+        public bool IndentFormat { get; set; }
+        public DuplicateNameHandling DuplicateColumnNameHandling { get; set; } = DuplicateNameHandling.ThrowException;
+        public DuplicateNameHandling EmptyColumnNameHandling { get; set; } = DuplicateNameHandling.ThrowException;
         public bool UseAliases { get; set; }
         public bool UseAsKeywordInAliases { get; set; } = true;
         public bool UseFullNames { get; set; }
 
-        public StringHelper.StringCase AliasStringCase { get; set; } = StringHelper.StringCase.Pascal;
-        public StringHelper.StringCase ColumnStringCase { get; set; } = StringHelper.StringCase.Pascal;
-        public StringHelper.StringCase TableStringCase { get; set; } = StringHelper.StringCase.Pascal;
+        public StringHelper.StringCase AliasNameCase { get; set; } = StringHelper.StringCase.Pascal;
+        public StringHelper.StringCase ColumnNameCase { get; set; } = StringHelper.StringCase.Pascal;
+        public StringHelper.StringCase TableNameCase { get; set; } = StringHelper.StringCase.Pascal;
 
 
         public SqlQueryBuilder Add<T>(QueryPartType queryPartType, params Expression<Func<T, object>>[] propertySelectors)
@@ -147,12 +155,9 @@
 
         public string GetQuery()
         {
-            var sb = new StringBuilder();
-
-            this.BuildSelect(sb);
-
-            this.BuildWhere(sb);
-
+            sb.Clear();
+            this.BuildSelect();
+            this.BuildWhere();
             return sb.ToString();
         }
 
@@ -235,7 +240,7 @@
             throw new NotImplementedException();
         }
 
-        private void BuildSelect(StringBuilder sb)
+        private void BuildSelect()
         {
             var selectParts = this.query.Where(x => x.QueryPartType == QueryPartType.Select).ToArray();
 
@@ -246,7 +251,7 @@
                 sb.Append(this.Format(1));
                 for (int i = 0; i < selectParts.Length; i++)
                 {
-                    Format(sb, selectParts[i].Member);
+                    Format(selectParts[i].Member, selectParts[i].Alias);
                     if (i < selectParts.Length - 1)
                     {
                         sb.Append(", ");
@@ -256,11 +261,11 @@
                 sb.Append(" FROM");
                 sb.Append(this.Format());
                 sb.Append(this.Format(1));
-                sb.Append(selectParts[0].Member.GetTableName(this.sqlDialect.NamePrefix, this.sqlDialect.NameSuffix));
+                sb.Append(selectParts[0].Member?.GetTableName(this.sqlDialect.NamePrefix, this.sqlDialect.NameSuffix));
             }
         }
 
-        private void BuildWhere(StringBuilder sb)
+        private void BuildWhere()
         {
             var whereParts = this.query.Where(x => x.QueryPartType == QueryPartType.Where).ToArray();
 
@@ -288,17 +293,16 @@
             return f;
         }
 
-        private void Format(StringBuilder sb, MemberCache member, bool? useAliases = null, bool? fullName = null)
+        private void Format(MemberCache? member, string? alias, bool? useAliases = null, bool? fullName = null)
         {
-            if (useAliases == null)
+            if (member == null)
             {
-                useAliases = this.UseAliases;
+                return;
             }
 
-            if (fullName == null)
-            {
-                fullName = this.UseFullNames;
-            }
+            useAliases ??= this.UseAliases;
+
+            fullName ??= this.UseFullNames;
 
             if (member.IsProperty)
             {
@@ -327,7 +331,7 @@
                     sb.Append(' ');
                 }
                 sb.Append(this.sqlDialect.NamePrefix);
-                sb.Append(GetAlias(member));
+                sb.Append(alias ?? GetAlias(member));
                 sb.Append(this.sqlDialect.NameSuffix);
             }
         }
@@ -336,23 +340,43 @@
         {
             var alias = member.ColumnName;
             var i = 0;
-            while (aliases.ContainsKey(alias))
+            var aliasUnique = !aliases.ContainsKey(alias);
+
+            if (!aliasUnique)
             {
-                switch (i)
+                switch (DuplicateColumnNameHandling)
                 {
-                    case 0:
-                        alias = StringHelper.ConvertCase(member.TableName + member.ColumnName, AliasStringCase);
-                        break;
+                    case DuplicateNameHandling.ThrowException:
+                        throw new Exception($"Колонка с именем {alias} уже добавлена в запрос!");
+
+                    case DuplicateNameHandling.Ignore:
+                        return alias;
+
+                    case DuplicateNameHandling.GenerateAlias:
+                        while (aliases.ContainsKey(alias))
+                        {
+                            switch (i)
+                            {
+                                case 0:
+                                    alias = StringHelper.ConvertCase(member.TableName + member.ColumnName, AliasNameCase);
+                                    break;
+
+                                default:
+                                    alias = StringHelper.ConvertCase($"{member.ColumnName}{i + 1}", AliasNameCase);
+                                    break;
+                            }
+
+                            i++;
+                        }
+
+                        aliases[alias] = member;
+                        return alias;
 
                     default:
-                        alias = StringHelper.ConvertCase($"{member.ColumnName}{i + 1}", AliasStringCase);
-                        break;
+                        throw new ArgumentOutOfRangeException();
                 }
-
-                i++;
             }
 
-            aliases[alias] = member;
             return alias;
         }
 
@@ -389,7 +413,6 @@
                 this.sqlQueryBuilder = sqlQueryBuilder;
                 this.QueryPartType = queryPartType;
                 this.Member = member;
-                
             }
 
             public QueryPart(SqlQueryBuilder sqlQueryBuilder, QueryPartType queryPartType, string token)
@@ -399,11 +422,10 @@
                 this.Token = token;
             }
 
-            public MemberCache Member { get; }
-
-            public string Token { get; }
-
+            public MemberCache? Member { get; }
+            public string? Token { get; }
             public QueryPartType QueryPartType { get; }
+            public string Alias { get; set; }
         }
     }
 }

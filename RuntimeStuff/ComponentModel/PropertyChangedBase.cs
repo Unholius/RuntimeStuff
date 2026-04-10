@@ -16,7 +16,6 @@ namespace System.ComponentModel
     {
         private static Dictionary<string, int> propertyIndex;
         private bool suspendNotifications;
-        //private Dictionary<string, IValueHolder> values;
         private object[] values;
 
         /// <summary>
@@ -146,13 +145,6 @@ namespace System.ComponentModel
         /// <returns>Возвращает текущее значение свойства или значение по умолчанию для типа.</returns>
         protected T Get<T>([CallerMemberName] string propertyName = null)
         {
-            var dict = this.values;
-
-            //if (dict != null && dict.TryGetValue(propertyName ?? throw new ArgumentNullException(nameof(propertyName)), out var holder) && holder is ValueHolder<T> typed)
-            //{
-            //    return typed.Value;
-            //}
-
             var index = GetIndex(propertyName);
 
             if (this.values != null && index < this.values.Length)

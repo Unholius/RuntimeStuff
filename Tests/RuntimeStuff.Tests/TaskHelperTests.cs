@@ -34,7 +34,7 @@ namespace RuntimeStuff.MSTests
         /// </summary>
         private static int _eventIdCounter;
 
-        private object _sync;
+        private object? _sync;
 
         /// <summary>
         /// Очистка состояния после каждого теста.

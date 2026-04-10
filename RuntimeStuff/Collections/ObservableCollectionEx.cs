@@ -20,7 +20,7 @@ namespace System.Collections
     /// <typeparam name="T">Тип элементов коллекции.</typeparam>
     public class ObservableCollectionEx<T> : ObservableCollection<T>
     {
-        private readonly WeakEventManager weakEventManager = new WeakEventManager();
+        private readonly WeakEventManager weakEventManager = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableCollectionEx{T}"/> class.

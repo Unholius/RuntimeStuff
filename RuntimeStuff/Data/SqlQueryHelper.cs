@@ -24,16 +24,16 @@ namespace System.Data
         /// </summary>
         public enum JoinType
         {
-            /// <summary>INNER JOIN</summary>
+            /// <summary>INNER JOIN.</summary>
             Inner,
 
-            /// <summary>LEFT JOIN</summary>
+            /// <summary>LEFT JOIN.</summary>
             Left,
 
-            /// <summary>RIGHT JOIN</summary>
+            /// <summary>RIGHT JOIN.</summary>
             Right,
 
-            /// <summary>FULL JOIN</summary>
+            /// <summary>FULL JOIN.</summary>
             Full,
         }
 
@@ -60,7 +60,7 @@ namespace System.Data
 
             if (query?.Contains("ORDER BY", StringComparison.OrdinalIgnoreCase) != true)
             {
-                var mi = MemberCache.Create(entityType);
+                var mi = MemberCache.Get(entityType);
 
                 clause.Append(" ORDER BY ");
                 _ = clause.Append(string.Join(
@@ -84,7 +84,7 @@ namespace System.Data
         /// <param name="options">Параметры SQL-провайдера.</param>
         /// <param name="columnSelectors">Список колонок и агрегатных функций.</param>
         /// <returns>SQL-запрос SELECT с агрегатными функциями.</returns>
-        public static string GetAggSelectClause<TFrom>(SqlDialect options, params (Expression<Func<TFrom, object>> column, string aggFunction)[] columnSelectors)
+        public static string GetAggSelectClause<TFrom>(SqlDialect options, params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
         {
             var query = "SELECT " + (columnSelectors.Length == 0
@@ -93,9 +93,9 @@ namespace System.Data
                                 ", ",
                                 columnSelectors.Select(c =>
                               {
-                                  var col = c.column?.GetMemberCache()?.ColumnName;
-                                  var colName = $"{options.GetColumnName(c.column?.GetPropertyInfo()) ?? col ?? "*"}";
-                                  return $"{c.aggFunction}({colName}) {(string.IsNullOrWhiteSpace(col) ? string.Empty : col + c.aggFunction)}";
+                                  var col = c.Column?.GetMemberCache()?.ColumnName;
+                                  var colName = $"{options.GetColumnName(c.Column?.GetPropertyInfo()) ?? col ?? "*"}";
+                                  return $"{c.AggFunction}({colName}) {(string.IsNullOrWhiteSpace(col) ? string.Empty : col + c.AggFunction)}";
                               }))
                       + $" FROM {options.GetTableName(typeof(TFrom))}");
 
@@ -111,7 +111,7 @@ namespace System.Data
         public static string GetDeleteQuery<T>(SqlDialect options)
             where T : class
         {
-            var mi = MemberCache.Create(typeof(T));
+            var mi = MemberCache.Get(typeof(T));
             var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.ParamPrefix, options.NameSuffix));
             return query.ToString();
         }
@@ -127,7 +127,7 @@ namespace System.Data
             where T : class
         {
             var query = new StringBuilder("INSERT INTO ");
-            var mi = MemberCache.Create(typeof(T));
+            var mi = MemberCache.Get(typeof(T));
             query
                 .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.NamePrefix, options.NameSuffix))
                 .Append(" (");
@@ -292,12 +292,11 @@ namespace System.Data
         /// <returns>Строка SQL-запроса SELECT.</returns>
         public static string GetSelectQuery<T>(SqlDialect options, bool useFullNames, params Expression<Func<T, object>>[] selectColumns)
         {
-            var mi = MemberCache.Create(typeof(T));
-            var members = selectColumns?.Select(ExpressionHelper.GetMemberInfo).Select(x => x.GetMemberCache()).ToArray() ?? Array.Empty<MemberCache>();
-            if (members.Length == 0)
-            {
-                members = mi.GetColumns();
-            }
+            var mi = MemberCache.Get(typeof(T));
+            var propertyNames = selectColumns?.Select(x => x.Name).ToArray() ?? Array.Empty<string>();
+            var members = propertyNames.Length > 0
+                ? mi.PublicBasicProperties.Where(mc => propertyNames.Contains(mc.Name)).ToArray()
+                : mi.GetColumns();
 
             if (members.Length == 0)
             {
@@ -319,7 +318,7 @@ namespace System.Data
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
         public static string GetSelectQuery<T, TProp>(SqlDialect options, bool useFullNames, params Expression<Func<T, TProp>>[] selectColumns)
-            => GetSelectQuery(options, useFullNames, MemberCache.Create(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
+            => GetSelectQuery(options, useFullNames, MemberCache.Get(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
 
         /// <summary>
         /// Генерирует SQL-запрос SELECT для указанного типа сущности с выборкой конкретных колонок.
@@ -391,7 +390,7 @@ namespace System.Data
         public static string GetUpdateQuery<T>(SqlDialect options, params Expression<Func<T, object>>[] updateColumns)
             where T : class
         {
-            var mi = MemberCache.Create(typeof(T));
+            var mi = MemberCache.Get(typeof(T));
             var query = new StringBuilder("UPDATE ")
                 .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.NamePrefix, options.NameSuffix))
                 .Append(" SET ");
@@ -466,7 +465,7 @@ namespace System.Data
         /// <returns>Строка SQL-клаузы WHERE для первичных ключей или публичных свойств, если первичные ключи отсутствуют.</returns>
         public static string GetWhereClause<T>(SqlDialect options, out Dictionary<string, object> cmdParams)
         {
-            var mi = MemberCache.Create(typeof(T));
+            var mi = MemberCache.Get(typeof(T));
             var keys = mi.PrimaryKeys.ToArray();
             if (keys.Length == 0)
             {
@@ -515,35 +514,18 @@ namespace System.Data
 
         private static string GetSqlOperator(ExpressionType type)
         {
-            switch (type)
+            return type switch
             {
-                case ExpressionType.Equal:
-                    return "=";
-
-                case ExpressionType.NotEqual:
-                    return "<>";
-
-                case ExpressionType.GreaterThan:
-                    return ">";
-
-                case ExpressionType.GreaterThanOrEqual:
-                    return ">=";
-
-                case ExpressionType.LessThan:
-                    return "<";
-
-                case ExpressionType.LessThanOrEqual:
-                    return "<=";
-
-                case ExpressionType.AndAlso:
-                    return "AND";
-
-                case ExpressionType.OrElse:
-                    return "OR";
-
-                default:
-                    throw new NotSupportedException($"Operator '{type}' not supported.");
-            }
+                ExpressionType.Equal => "=",
+                ExpressionType.NotEqual => "<>",
+                ExpressionType.GreaterThan => ">",
+                ExpressionType.GreaterThanOrEqual => ">=",
+                ExpressionType.LessThan => "<",
+                ExpressionType.LessThanOrEqual => "<=",
+                ExpressionType.AndAlso => "AND",
+                ExpressionType.OrElse => "OR",
+                _ => throw new NotSupportedException($"Operator '{type}' not supported."),
+            };
         }
 
         private static string Visit(Expression exp, SqlDialect options, bool useParams, Dictionary<string, object> cmdParams)
@@ -664,7 +646,7 @@ namespace System.Data
 
         private static string VisitMember(MemberExpression me, SqlDialect options, bool useParams, Dictionary<string, object> cmdParams)
         {
-            var mi = MemberCache.Create(me.Member);
+            var mi = MemberCache.Get(me.Member);
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
             {
                 return options.GetColumnName(mi);
@@ -677,17 +659,12 @@ namespace System.Data
 
         private static string VisitUnary(UnaryExpression ue, SqlDialect options, bool useParams, Dictionary<string, object> cmdParams)
         {
-            switch (ue.NodeType)
+            return ue.NodeType switch
             {
-                case ExpressionType.Not:
-                    return $"(NOT {Visit(ue.Operand, options, useParams, cmdParams)})";
-
-                case ExpressionType.Convert:
-                    return Visit(ue.Operand, options, useParams, cmdParams);
-
-                default:
-                    throw new NotSupportedException($"Unary '{ue.NodeType}' not supported.");
-            }
+                ExpressionType.Not => $"(NOT {Visit(ue.Operand, options, useParams, cmdParams)})",
+                ExpressionType.Convert => Visit(ue.Operand, options, useParams, cmdParams),
+                _ => throw new NotSupportedException($"Unary '{ue.NodeType}' not supported."),
+            };
         }
     }
 }

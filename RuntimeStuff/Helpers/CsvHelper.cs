@@ -76,7 +76,7 @@ namespace System.Helpers
         public static T[] FromCsv<T>(string csv, string[] objectProperties, bool? hasColumnsHeader = null, string[] columnSeparators = null, string[] lineSeparators = null, Func<string, object> valueParser = null)
             where T : class, new()
         {
-            var typeCache = MemberCache.Create(typeof(T));
+            var typeCache = MemberCache.Get(typeof(T));
             var properties = objectProperties != null ? objectProperties.Select(x => typeCache[x].AsPropertyInfo()).ToArray() : Array.Empty<PropertyInfo>();
             return FromCsv<T>(csv, properties, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
         }
@@ -109,7 +109,7 @@ namespace System.Helpers
         public static T[] FromCsv<T>(string csv, string[] objectProperties, bool hasColumnsHeader, string columnSeparator, string lineSeparator = null, Func<string, object> valueParser = null)
             where T : class, new()
         {
-            return FromCsv<T>(csv, objectProperties, hasColumnsHeader, columnSeparator == null ? null : new[] { columnSeparator }, lineSeparator == null ? null : new[] { lineSeparator }, valueParser);
+            return FromCsv<T>(csv, objectProperties, hasColumnsHeader, columnSeparator == null ? null : [columnSeparator], lineSeparator == null ? null : [lineSeparator], valueParser);
         }
 
         /// <summary>
@@ -147,12 +147,12 @@ namespace System.Helpers
 
             if (columnSeparators == null)
             {
-                columnSeparators = new string[] { ";" };
+                columnSeparators = [";"];
             }
 
             if (lineSeparators == null)
             {
-                lineSeparators = new string[] { "\r", "\n", Environment.NewLine };
+                lineSeparators = ["\r", "\n", Environment.NewLine];
             }
 
             if (valueParser == null)
@@ -166,7 +166,7 @@ namespace System.Helpers
                 return Array.Empty<T>();
             }
 
-            var typeCache = MemberCache.Create(typeof(T));
+            var typeCache = MemberCache.Get(typeof(T));
 
             if (hasColumnsHeader == null)
             {
@@ -440,7 +440,7 @@ namespace System.Helpers
         /// </exception>
         public static string ToCsv<T>(IEnumerable<T> data, string[] columns, bool writeColumnHeaders = true, string columnSeparator = ",", string lineSeparator = ";\r\n", Func<PropertyInfo, object, string> valueSerializer = null)
         {
-            var typeCache = MemberCache.Create(typeof(T));
+            var typeCache = MemberCache.Get(typeof(T));
             MemberCache[] props = null;
             props = columns.Length > 0 ? typeCache.PublicBasicProperties.ToArray() : columns.Select(c => typeCache[c]).Where(m => m != null).ToArray();
 
@@ -497,7 +497,7 @@ namespace System.Helpers
             }
 
             var sb = new StringBuilder();
-            var typeCache = MemberCache.Create(typeof(T));
+            var typeCache = MemberCache.Get(typeof(T));
 
             if (columns == null || columns.Length == 0)
             {
@@ -569,20 +569,13 @@ namespace System.Helpers
 
         private static string DefaultSerialize(object value)
         {
-            switch (value)
+            return value switch
             {
-                case null:
-                    return string.Empty;
-
-                case DateTime dt:
-                    return dt.TimeOfDay != TimeSpan.Zero ? dt.ToString("yyyy-MM-dd HH:mm:ss") : dt.ToString("yyyy-MM-dd");
-
-                case IFormattable formattable:
-                    return formattable.ToString(null, CultureInfo.InvariantCulture);
-
-                default:
-                    return value.ToString();
-            }
+                null => string.Empty,
+                DateTime dt => dt.TimeOfDay != TimeSpan.Zero ? dt.ToString("yyyy-MM-dd HH:mm:ss") : dt.ToString("yyyy-MM-dd"),
+                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
+                _ => value.ToString(),
+            };
         }
     }
 }

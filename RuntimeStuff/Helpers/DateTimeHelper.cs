@@ -21,7 +21,7 @@ namespace System.Helpers
     /// использовать их без создания экземпляра класса.</remarks>
     public static class DateTimeHelper
     {
-        private static readonly Random Rnd = new Random();
+        private static readonly Random Rnd = new();
 
         /// <summary>
         /// The last time stamp.
@@ -39,53 +39,53 @@ namespace System.Helpers
         public enum DateTimeInterval
         {
             /// <summary>
-            /// The tick
+            /// The tick.
             /// </summary>
             Tick,
 
             /// <summary>
-            /// The millisecond
+            /// The millisecond.
             /// </summary>
             Millisecond,
 
             /// <summary>
-            /// The second
+            /// The second.
             /// </summary>
             Second,
 
             /// <summary>
-            /// The minute
+            /// The minute.
             /// </summary>
             Minute,
 
             /// <summary>
-            /// The hour
+            /// The hour.
             /// </summary>
             Hour,
 
             /// <summary>
-            /// The day
+            /// The day.
             /// </summary>
             Day,
 
             /// <summary>
-            /// The week
+            /// The week.
             /// </summary>
             Week,
 
             /// <summary>
-            /// The month
+            /// The month.
             /// </summary>
             Month,
 
             /// <summary>
-            /// The year
+            /// The year.
             /// </summary>
             Year,
         }
 
         /// <summary>
-        /// Gets возвращает уникальные тики для текущего момента времени (гарантирует уникальность даже при быстрых последовательных
+        /// возвращает уникальные тики для текущего момента времени (гарантирует уникальность даже при быстрых последовательных
         /// вызовах).
         /// </summary>
         /// <value>The now ticks.</value>
@@ -113,7 +113,7 @@ namespace System.Helpers
         private static TimeSpan LocalUtcOffset { get; set; }
 
         /// <summary>
-        /// Gets универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
+        /// универсальный конвертер строки в DateTime?, не зависящий от региональных настроек.
         /// Пытается распарсить дату из строки, используя набор фиксированных форматов. Если не получается, то пытается угадать
         /// формат.
         /// </summary>
@@ -135,9 +135,9 @@ namespace System.Helpers
             }
 
             // Пробуем угадать формат:
-            var dateTimeParts = s.Split(new[] { ' ', 'T' }, StringSplitOptions.RemoveEmptyEntries);
+            var dateTimeParts = s.Split([' ', 'T'], StringSplitOptions.RemoveEmptyEntries);
             var dateParts = dateTimeParts[0]
-                .Split(new[] { '.', '\\', '/', '-' }, StringSplitOptions.RemoveEmptyEntries);
+                .Split(['.', '\\', '/', '-'], StringSplitOptions.RemoveEmptyEntries);
             var yearIndex = IndexOf(dateParts, (x, _) => x.Length == 4);
             var dayForSureIndex = IndexOf(dateParts, (x, _) =>
                 x.Length <= 2 && (int)Convert.ChangeType(x, typeof(int)) > 12 &&
@@ -299,7 +299,7 @@ namespace System.Helpers
         /// // 2024-05-10 00:00:00.000 — 2024-05-10 23:59:59.999
         /// </code>
         /// </example>
-        public static DateRange DayRange(int year, int month, int day) => new DateRange(BeginDay(new DateTime(year, month, day)), EndDay(new DateTime(year, month, day)));
+        public static DateRange DayRange(int year, int month, int day) => new(BeginDay(new DateTime(year, month, day)), EndDay(new DateTime(year, month, day)));
 
         /// <summary>
         /// Возвращает последовательность дат с шагом в один день в заданном диапазоне (включительно).
@@ -410,7 +410,7 @@ namespace System.Helpers
         /// Возвращает текущую дату и время с гарантией уникальности тиков.
         /// </summary>
         /// <returns>Текущая дата и время с уникальными тиками.</returns>
-        public static DateTime ExactNow() => new DateTime(NowTicks, DateTimeKind.Local);
+        public static DateTime ExactNow() => new(NowTicks, DateTimeKind.Local);
 
         /// <summary>
         /// Возвращает уникальные тики для текущего момента времени.
@@ -529,45 +529,18 @@ namespace System.Helpers
         public static TimeSpan GetElapsedTime(double elapsed, DateTimeInterval timeInterval)
         {
             // конвертируем elapsed в TimeSpan
-            TimeSpan ts;
-            switch (timeInterval)
+            var ts = timeInterval switch
             {
-                case DateTimeInterval.Millisecond:
-                    ts = TimeSpan.FromMilliseconds(elapsed);
-                    break;
-
-                case DateTimeInterval.Second:
-                    ts = TimeSpan.FromSeconds(elapsed);
-                    break;
-
-                case DateTimeInterval.Minute:
-                    ts = TimeSpan.FromMinutes(elapsed);
-                    break;
-
-                case DateTimeInterval.Hour:
-                    ts = TimeSpan.FromHours(elapsed);
-                    break;
-
-                case DateTimeInterval.Day:
-                    ts = TimeSpan.FromDays(elapsed);
-                    break;
-
-                case DateTimeInterval.Week:
-                    ts = TimeSpan.FromDays(elapsed * 7);
-                    break;
-
-                case DateTimeInterval.Month:
-                    ts = TimeSpan.FromDays(elapsed * 30); // приближенно
-                    break;
-
-                case DateTimeInterval.Year:
-                    ts = TimeSpan.FromDays(elapsed * 365); // приближенно
-                    break;
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(timeInterval));
-            }
-
+                DateTimeInterval.Millisecond => TimeSpan.FromMilliseconds(elapsed),
+                DateTimeInterval.Second => TimeSpan.FromSeconds(elapsed),
+                DateTimeInterval.Minute => TimeSpan.FromMinutes(elapsed),
+                DateTimeInterval.Hour => TimeSpan.FromHours(elapsed),
+                DateTimeInterval.Day => TimeSpan.FromDays(elapsed),
+                DateTimeInterval.Week => TimeSpan.FromDays(elapsed * 7),
+                DateTimeInterval.Month => TimeSpan.FromDays(elapsed * 30), // приближенно
+                DateTimeInterval.Year => TimeSpan.FromDays(elapsed * 365), // приближенно
+                _ => throw new ArgumentOutOfRangeException(nameof(timeInterval)),
+            };
             return ts;
         }
 
@@ -645,7 +618,7 @@ namespace System.Helpers
         /// <remarks>Метод использует функции <see cref="Min(DateTime[])" /> и <see cref="Max(DateTime[])" />,
         /// а также вспомогательные методы <c>BeginDay</c> и <c>EndDay</c>,
         /// которые приводят дату ко времени 00:00:00 и 23:59:59.999… соответственно.</remarks>
-        public static (DateTime From, DateTime to) GetFullPeriod(params DateTime[] dates) => (BeginDay(Min(dates)), EndDay(Max(dates)));
+        public static (DateTime From, DateTime To) GetFullPeriod(params DateTime[] dates) => (BeginDay(Min(dates)), EndDay(Max(dates)));
 
         /// <summary>
         /// Возвращает временной период, охватывающий все переданные даты,
@@ -658,7 +631,7 @@ namespace System.Helpers
         /// <exception cref="ArgumentException">Выбрасывается, если <paramref name="dates" /> не содержит ни одного элемента.</exception>
         /// <remarks>В отличие от <see cref="GetFullPeriod(DateTime[])" />, метод не выполняет
         /// нормализацию времени и возвращает фактические минимальное и максимальное значения.</remarks>
-        public static (DateTime From, DateTime to) GetPeriod(params DateTime[] dates) => (Min(dates), Max(dates));
+        public static (DateTime From, DateTime To) GetPeriod(params DateTime[] dates) => (Min(dates), Max(dates));
 
         /// <summary>
         /// Проверяет, содержит ли DateTime компонент времени (не равно 00:00:00).
@@ -767,7 +740,7 @@ namespace System.Helpers
         /// // 2024-05-01 00:00:00.000 — 2024-05-31 23:59:59.999
         /// </code>
         /// </example>
-        public static DateRange MonthRange(int month) => new DateRange(BeginMonth(new DateTime(DateTime.Now.Year, month, 1)), EndMonth(new DateTime(DateTime.Now.Year, month, 1)));
+        public static DateRange MonthRange(int month) => new(BeginMonth(new DateTime(DateTime.Now.Year, month, 1)), EndMonth(new DateTime(DateTime.Now.Year, month, 1)));
 
         /// <summary>
         /// Возвращает диапазон дат для текущего месяца.
@@ -790,7 +763,7 @@ namespace System.Helpers
         /// // 2024-05-01 00:00:00.000 — 2024-05-31 23:59:59.999
         /// </code>
         /// </example>
-        public static DateRange MonthRange() => new DateRange(BeginMonth(DateTime.Now), EndMonth(DateTime.Now));
+        public static DateRange MonthRange() => new(BeginMonth(DateTime.Now), EndMonth(DateTime.Now));
 
         /// <summary>
         /// Возвращает диапазон дат для указанного месяца указанного года.
@@ -818,7 +791,7 @@ namespace System.Helpers
         /// // 2024-05-01 00:00:00.000 — 2024-05-31 23:59:59.999
         /// </code>
         /// </example>
-        public static DateRange MonthRange(int year, int month) => new DateRange(new DateTime(year, month, 1), new DateTime(year, month, DateTime.DaysInMonth(year, month), 23, 59, 59, 999));
+        public static DateRange MonthRange(int year, int month) => new(new DateTime(year, month, 1), new DateTime(year, month, DateTime.DaysInMonth(year, month), 23, 59, 59, 999));
 
         /// <summary>
         /// Преобразует строковое представление даты и времени в значение <see cref="DateTime" />.
@@ -940,15 +913,14 @@ namespace System.Helpers
         /// </example>
         public static DateRange QuarterRange(int year, int number)
         {
-            switch (number)
+            return number switch
             {
-                case 1: return new DateRange(new DateTime(year, 1, 1), new DateTime(year, 3, 31, 23, 59, 59, 999));
-                case 2: return new DateRange(new DateTime(year, 4, 1), new DateTime(year, 6, 30, 23, 59, 59, 999));
-                case 3: return new DateRange(new DateTime(year, 7, 1), new DateTime(year, 9, 30, 23, 59, 59, 999));
-                case 4: return new DateRange(new DateTime(year, 10, 1), new DateTime(year, 12, 31, 23, 59, 59, 999));
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(number), "Quarter number must be between 1 and 4.");
-            }
+                1 => new DateRange(new DateTime(year, 1, 1), new DateTime(year, 3, 31, 23, 59, 59, 999)),
+                2 => new DateRange(new DateTime(year, 4, 1), new DateTime(year, 6, 30, 23, 59, 59, 999)),
+                3 => new DateRange(new DateTime(year, 7, 1), new DateTime(year, 9, 30, 23, 59, 59, 999)),
+                4 => new DateRange(new DateTime(year, 10, 1), new DateTime(year, 12, 31, 23, 59, 59, 999)),
+                _ => throw new ArgumentOutOfRangeException(nameof(number), "Quarter number must be between 1 and 4."),
+            };
         }
 
         /// <summary>
@@ -1054,7 +1026,7 @@ namespace System.Helpers
         /// // [сегодня] 00:00:00.000 — [сегодня] 23:59:59.999
         /// </code>
         /// </example>
-        public static DateRange TodayRange() => new DateRange(BeginDay(DateTime.Now), EndDay(DateTime.Now));
+        public static DateRange TodayRange() => new(BeginDay(DateTime.Now), EndDay(DateTime.Now));
 
         /// <summary>
         /// Возвращает завтрашнюю дату (начало дня).
@@ -1095,7 +1067,7 @@ namespace System.Helpers
         /// // 2024-05-04 00:00:00.000 — 2024-05-10 23:59:59.999
         /// </code>
         /// </example>
-        public static DateRange WeekRange() => new DateRange(BeginDay(DateTime.Now, -6), EndDay(DateTime.Now));
+        public static DateRange WeekRange() => new(BeginDay(DateTime.Now, -6), EndDay(DateTime.Now));
 
         /// <summary>
         /// Возвращает диапазон дат для указанной недели года (отсчёт ведётся от 1 января).
@@ -1129,7 +1101,7 @@ namespace System.Helpers
         /// // 2024-01-08 — 2024-01-14
         /// </code>
         /// </example>
-        public static DateRange WeekRange(int year, int weekNumber) => new DateRange(BeginDay(new DateTime(year, 1, 1).AddDays((weekNumber - 1) * 7)), EndDay(new DateTime(year, 1, 1).AddDays(((weekNumber - 1) * 7) + 6)));
+        public static DateRange WeekRange(int year, int weekNumber) => new(BeginDay(new DateTime(year, 1, 1).AddDays((weekNumber - 1) * 7)), EndDay(new DateTime(year, 1, 1).AddDays(((weekNumber - 1) * 7) + 6)));
 
         /// <summary>
         /// Возвращает диапазон дат для текущего года.
@@ -1178,7 +1150,7 @@ namespace System.Helpers
         /// // 2024-01-01 00:00:00.000 — 2024-12-31 23:59:59.999
         /// </code>
         /// </example>
-        public static DateRange YearRange(int year) => new DateRange(new DateTime(year, 1, 1), new DateTime(year, 12, 31, 23, 59, 59, 999));
+        public static DateRange YearRange(int year) => new(new DateTime(year, 1, 1), new DateTime(year, 12, 31, 23, 59, 59, 999));
 
         /// <summary>
         /// Возвращает вчерашнюю дату (начало дня).
@@ -1210,32 +1182,17 @@ namespace System.Helpers
         /// Метод учитывает особенности календаря .NET (например, разную длину месяцев и високосные годы).</remarks>
         private static DateTime AddInterval(DateTime value, int step, DateTimeInterval interval)
         {
-            switch (interval)
+            return interval switch
             {
-                case DateTimeInterval.Millisecond:
-                    return value.AddMilliseconds(step);
-
-                case DateTimeInterval.Second:
-                    return value.AddSeconds(step);
-
-                case DateTimeInterval.Minute:
-                    return value.AddMinutes(step);
-
-                case DateTimeInterval.Hour:
-                    return value.AddHours(step);
-
-                case DateTimeInterval.Day:
-                    return value.AddDays(step);
-
-                case DateTimeInterval.Month:
-                    return value.AddMonths(step);
-
-                case DateTimeInterval.Year:
-                    return value.AddYears(step);
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(interval), interval, null);
-            }
+                DateTimeInterval.Millisecond => value.AddMilliseconds(step),
+                DateTimeInterval.Second => value.AddSeconds(step),
+                DateTimeInterval.Minute => value.AddMinutes(step),
+                DateTimeInterval.Hour => value.AddHours(step),
+                DateTimeInterval.Day => value.AddDays(step),
+                DateTimeInterval.Month => value.AddMonths(step),
+                DateTimeInterval.Year => value.AddYears(step),
+                _ => throw new ArgumentOutOfRangeException(nameof(interval), interval, null),
+            };
         }
 
         private static IEnumerable<DateTime> GetDatesIterator(

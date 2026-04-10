@@ -37,13 +37,14 @@ namespace System.IO
     {
         private static readonly char[] InvalidPathChars = Path.GetInvalidPathChars();
 
-        private static readonly Regex Regex = new Regex(
+        private static readonly Regex Regex = new(
                     @"(?=\S)(?<text>(?<comment>(?<open>[#;]+)(?:[^\S\r\n]*)(?<value>.+))|" +
             @"(?<section>(?<open>\[)(?:\s*)(?<value>[^\]]*\S+)(?:[^\S\r\n]*)(?<close>\]))|" +
             @"(?<entry>(?<key>[^=\r\n\[\]]*\S)(?:[^\S\r\n]*)(?<delimiter>:|=)(?:[^\S\r\n]*)(?<value>[^#;\r\n]*))|" +
             @"(?<undefined>.+))(?<=\S)|" +
             @"(?<linebreaker>\r\n|\n)|" +
-            @"(?<whitespace>[^\S\r\n]+)", RegexOptions.Compiled);
+            @"(?<whitespace>[^\S\r\n]+)",
+                    RegexOptions.Compiled);
 
         private readonly bool allowEscapeChars;
         private readonly StringComparison comparison;
@@ -53,7 +54,7 @@ namespace System.IO
         private Dictionary<string, HashSet<string>> keyCache;
         private HashSet<string> sectionCache;
         private Dictionary<string, Dictionary<string, List<string>>> valueCache;
-        private Dictionary<string, Dictionary<string, List<(int index, int length)>>> writeIndex;
+        private Dictionary<string, Dictionary<string, List<(int Index, int Length)>>> writeIndex;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="IniFile"/> class.
@@ -497,29 +498,16 @@ namespace System.IO
         /// <returns>Соответствующий StringComparer.</returns>
         private static StringComparer GetComparer(StringComparison comparison)
         {
-            switch (comparison)
+            return comparison switch
             {
-                case StringComparison.CurrentCulture:
-                    return StringComparer.CurrentCulture;
-
-                case StringComparison.CurrentCultureIgnoreCase:
-                    return StringComparer.CurrentCultureIgnoreCase;
-
-                case StringComparison.InvariantCulture:
-                    return StringComparer.InvariantCulture;
-
-                case StringComparison.InvariantCultureIgnoreCase:
-                    return StringComparer.InvariantCultureIgnoreCase;
-
-                case StringComparison.Ordinal:
-                    return StringComparer.Ordinal;
-
-                case StringComparison.OrdinalIgnoreCase:
-                    return StringComparer.OrdinalIgnoreCase;
-
-                default:
-                    return StringComparer.InvariantCultureIgnoreCase;
-            }
+                StringComparison.CurrentCulture => StringComparer.CurrentCulture,
+                StringComparison.CurrentCultureIgnoreCase => StringComparer.CurrentCultureIgnoreCase,
+                StringComparison.InvariantCulture => StringComparer.InvariantCulture,
+                StringComparison.InvariantCultureIgnoreCase => StringComparer.InvariantCultureIgnoreCase,
+                StringComparison.Ordinal => StringComparer.Ordinal,
+                StringComparison.OrdinalIgnoreCase => StringComparer.OrdinalIgnoreCase,
+                _ => StringComparer.InvariantCultureIgnoreCase,
+            };
         }
 
         /// <summary>

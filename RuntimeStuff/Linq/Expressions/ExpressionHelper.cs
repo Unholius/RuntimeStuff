@@ -20,6 +20,8 @@ namespace System.Linq.Expressions
     /// являются статическими и потокобезопасны.</remarks>
     public static class ExpressionHelper
     {
+        private static object sync = new object();
+
         /// <summary>
         /// Преобразует выражение <see cref="Expression{TDelegate}"/> из типа
         /// <typeparamref name="T2"/> → <typeparamref name="TR2"/>
@@ -121,7 +123,7 @@ namespace System.Linq.Expressions
         /// <param name="expr">Выражение, содержащее ссылку на член, для которого требуется получить кэш сведений. Не должно быть равно
         /// null.</param>
         /// <returns>Объект MemberCache, содержащий сведения о члене, извлечённом из выражения.</returns>
-        public static MemberCache GetMemberCache(Expression expr) => MemberCache.Create(GetMemberInfo(expr));
+        public static MemberCache GetMemberCache(Expression expr) => MemberCache.Get(GetMemberInfo(expr));
 
         /// <summary>
         /// Извлекает <see cref="MemberInfo" /> из различных типов узлов выражения.
@@ -133,20 +135,23 @@ namespace System.Linq.Expressions
         /// <returns>Разрешённый <see cref="MemberInfo" />, либо <c>null</c>, если член не удалось определить.</returns>
         public static MemberInfo GetMemberInfo(Expression expr)
         {
-            if (expr == null)
+            lock (sync)
             {
-                return null;
-            }
+                if (expr == null)
+                {
+                    return null;
+                }
 
-            switch (expr)
-            {
-                case LambdaExpression le: return GetMemberInfoFromLambda(le);
-                case BinaryExpression be: return GetMemberInfo(be.Left);
-                case MemberExpression me: return me.Member;
-                case UnaryExpression ue: return GetMemberInfo(ue.Operand);
-                case MethodCallExpression mc: return GetMemberInfoFromMethodCall(mc);
-                case ConditionalExpression ce: return GetMemberInfo(ce.IfTrue) ?? GetMemberInfo(ce.IfFalse);
-                default: return null;
+                return expr switch
+                {
+                    LambdaExpression le => GetMemberInfoFromLambda(le),
+                    BinaryExpression be => GetMemberInfo(be.Left),
+                    MemberExpression me => me.Member,
+                    UnaryExpression ue => GetMemberInfo(ue.Operand),
+                    MethodCallExpression mc => GetMemberInfoFromMethodCall(mc),
+                    ConditionalExpression ce => GetMemberInfo(ce.IfTrue) ?? GetMemberInfo(ce.IfFalse),
+                    _ => null,
+                };
             }
         }
 

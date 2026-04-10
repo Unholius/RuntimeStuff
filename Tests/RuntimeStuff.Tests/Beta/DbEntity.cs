@@ -24,7 +24,7 @@
 //        /// </remarks>
 //        public DbEntity()
 //        {
-//            MemberCache.Create<T>();
+//            MemberCache.Get<T>();
 //        }
 
 //        /// <summary>
@@ -38,7 +38,7 @@
 //        }
 
 //        /// <summary>
-//        /// Gets the type of the entity associated with this instance.
+//        /// the type of the entity associated with this instance.
 //        /// </summary>
 //        public Type EntityType => typeof(T);
 

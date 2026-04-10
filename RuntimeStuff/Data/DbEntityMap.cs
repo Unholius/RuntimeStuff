@@ -286,7 +286,7 @@ namespace System.Data
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <returns>Экземпляр <see cref="EntityMapBuilder{T}"/>.</returns>
         public EntityMapBuilder<T> Table<T>()
-            where T : class => new EntityMapBuilder<T>(this, this.GetOrAdd(typeof(T)));
+            where T : class => new(this, this.GetOrAdd(typeof(T)));
 
         /// <summary>
         /// Возвращает построитель сопоставления для типа <typeparamref name="T"/>

@@ -42,7 +42,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             PropertyInfo propertyInfo = memberCache;
@@ -59,7 +59,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var field = typeof(TestClassForOperators).GetField("PrivateField", BindingFlags.NonPublic | BindingFlags.Instance);
-            var memberCache = MemberCache.Create(field);
+            var memberCache = MemberCache.Get(field);
 
             // Act
             PropertyInfo propertyInfo = memberCache;
@@ -72,7 +72,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             var viaMethod = memberCache.AsPropertyInfo();
@@ -91,7 +91,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var field = typeof(TestClassForOperators).GetField("PrivateField", BindingFlags.NonPublic | BindingFlags.Instance);
-            var memberCache = MemberCache.Create(field);
+            var memberCache = MemberCache.Get(field);
 
             // Act
             FieldInfo fieldInfo = memberCache;
@@ -109,7 +109,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             FieldInfo fieldInfo = memberCache;
@@ -121,7 +121,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var field = typeof(TestClassForOperators).GetField("PrivateField", BindingFlags.NonPublic | BindingFlags.Instance);
-            var memberCache = MemberCache.Create(field);
+            var memberCache = MemberCache.Get(field);
 
             // Act
             var viaMethod = memberCache.AsFieldInfo();
@@ -140,7 +140,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var method = typeof(TestClassForOperators).GetMethod("PublicMethod");
-            var memberCache = MemberCache.Create(method);
+            var memberCache = MemberCache.Get(method);
 
             // Act
             MethodInfo methodInfo = memberCache;
@@ -158,7 +158,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             MethodInfo methodInfo = memberCache;
@@ -170,7 +170,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var method = typeof(TestClassForOperators).GetMethod("PublicMethod");
-            var memberCache = MemberCache.Create(method);
+            var memberCache = MemberCache.Get(method);
 
             // Act
             var viaMethod = memberCache.AsMethodInfo();
@@ -189,7 +189,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var eventInfo = typeof(TestClassForOperators).GetEvent("TestEvent");
-            var memberCache = MemberCache.Create(eventInfo);
+            var memberCache = MemberCache.Get(eventInfo);
 
             // Act
             EventInfo eventInfoResult = memberCache;
@@ -206,7 +206,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             EventInfo eventInfo = memberCache;
@@ -219,7 +219,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var eventInfo = typeof(TestClassForOperators).GetEvent("TestEvent");
-            var memberCache = MemberCache.Create(eventInfo);
+            var memberCache = MemberCache.Get(eventInfo);
 
             // Act
             var viaMethod = memberCache.AsEventInfo();
@@ -238,7 +238,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var constructor = typeof(TestClassForOperators).GetConstructor(Type.EmptyTypes);
-            var memberCache = MemberCache.Create(constructor);
+            var memberCache = MemberCache.Get(constructor);
 
             // Act
             ConstructorInfo constructorInfo = memberCache;
@@ -254,7 +254,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var constructor = typeof(TestClassForOperators).GetConstructor([typeof(int)]);
-            var memberCache = MemberCache.Create(constructor);
+            var memberCache = MemberCache.Get(constructor);
 
             // Act
             ConstructorInfo constructorInfo = memberCache;
@@ -272,7 +272,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             ConstructorInfo constructorInfo = memberCache;
@@ -285,7 +285,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var constructor = typeof(TestClassForOperators).GetConstructor(Type.EmptyTypes);
-            var memberCache = MemberCache.Create(constructor);
+            var memberCache = MemberCache.Get(constructor);
 
             // Act
             var viaMethod = memberCache.AsConstructorInfo();
@@ -304,7 +304,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var type = typeof(TestClassForOperators);
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
 
             // Act
             var typeResult = memberCache.AsType();
@@ -319,7 +319,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
 
             // Act
             var typeResult = memberCache.AsType();
@@ -337,7 +337,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var property = typeof(TestClassForOperators).GetProperty("PublicProperty");
-            var memberCache = MemberCache.Create(property);
+            var memberCache = MemberCache.Get(property);
             string? result = null;
 
             // Act
@@ -368,7 +368,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var type = typeof(TestClassForOperators);
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var properties = memberCache.Properties.Where(m => m.IsProperty);
 
             // Act
@@ -385,7 +385,7 @@ namespace RuntimeStuff.MSTests
         {
             // Arrange
             var type = typeof(TestClassForOperators);
-            var memberCache = MemberCache.Create(type);
+            var memberCache = MemberCache.Get(type);
             var propertyMembers = memberCache.Properties.Where(m => m.IsProperty).ToList();
 
             // Act & Assert

@@ -19,7 +19,7 @@ namespace RuntimeStuff.MSTests
         {
             public string? Name { get; set; }
             public int Value { get; set; }
-            public List<string> Items { get; set; } = new List<string>();
+            public List<string> Items { get; set; } = [];
         }
 
         [XmlRoot("TestModel")]
@@ -27,7 +27,7 @@ namespace RuntimeStuff.MSTests
         {
             public string? Name { get; set; }
             public int Value { get; set; }
-            public List<string> Items { get; set; } = new List<string>();
+            public List<string> Items { get; set; } = [];
             public TestModelRecursive? Child { get; set; }
         }
 

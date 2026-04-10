@@ -43,7 +43,7 @@
 //        //{
 //        //    var i = new DbEntity<TestTable>() { TextValue = "123" };
 //        //    DbEntity<TestTable>.Map = map;
-//        //    var db = DbClient.Create<SqliteConnection>(_connectionString, map);
+//        //    var db = DbClient.Get<SqliteConnection>(_connectionString, map);
 //        //    var id = db.Insert(i, x => x.TextValue);
 //        //    i = new TestTable();
 //        //    i.Load(id);
@@ -59,7 +59,7 @@
 //        // Вспомогательные методы
 //        private static void CreateTestTables(string cs)
 //        {
-//            using var db = DbClient.Create<SqliteConnection>(cs);
+//            using var db = DbClient.Get<SqliteConnection>(cs);
 
 //            var sqlTestTable = $@"
 //CREATE TABLE test_table (
@@ -154,7 +154,7 @@
 //        [TestMethod]
 //        public void DbClient_Test_01()
 //        {
-//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            using var db = DbClient.Get<SqliteConnection>(_connectionString);
 //            db.Options.Map = map;
 //            db.EnableLogging = true;
 //            var row = new DTO.SQLite.TestTable() { IntValue = 1, TextValue = "1" };
@@ -171,7 +171,7 @@
 //        [TestMethod]
 //        public void DbClient_InsertRange_Test_01()
 //        {
-//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            using var db = DbClient.Get<SqliteConnection>(_connectionString);
 //            var rows = new List<(int IntValue, string TextValue)>
 //            {
 //                new () { IntValue = 111, TextValue = "1" },
@@ -188,7 +188,7 @@
 //        [TestMethod]
 //        public void DbClient_Test_02()
 //        {
-//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            using var db = DbClient.Get<SqliteConnection>(_connectionString);
 //            db.EnableLogging = true;
 //            var user = db.Insert<DTO.SQLite.User>(x => x.Name = "user_1", x => x.Guid = Guid.NewGuid());
 //            var profile = db.Insert<DTO.SQLite.UserProfile>(x => x.UserId = user.Id, x => x.AvatarUrl = new Uri("https://ya.ru"));
@@ -201,7 +201,7 @@
 //        [TestMethod]
 //        public void DbClient_Test_03()
 //        {
-//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            using var db = DbClient.Get<SqliteConnection>(_connectionString);
 //            for (var i = 0; i < 10; i++)
 //            {
 //                var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");
@@ -214,14 +214,14 @@
 //        [TestMethod]
 //        public void DbClient_Test_06()
 //        {
-//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            using var db = DbClient.Get<SqliteConnection>(_connectionString);
 //            var r = db.Query(typeof(List<long>), "select [id] from [users] where id in (@ids)", new { ids = new[] { 1, 2, 3, 4 } });
 //        }
 
 //        [TestMethod]
 //        public void DbClient_Test_04()
 //        {
-//            using var db = DbClient.Create<SqliteConnection>(_connectionString);
+//            using var db = DbClient.Get<SqliteConnection>(_connectionString);
 //            for (var i = 0; i < 10; i++)
 //            {
 //                var user = db.Insert<DTO.SQLite.User>(x => x.Name = $"user_{i}");

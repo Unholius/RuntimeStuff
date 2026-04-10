@@ -17,7 +17,7 @@ namespace System.Linq.Expressions
     /// </summary>
     public class StringFilterBuilder
     {
-        private static readonly ReadOnlyDictionary<Token, string> DefaultSyntax = new ReadOnlyDictionary<Token, string>(new Dictionary<Token, string>()
+        private static readonly ReadOnlyDictionary<Token, string> DefaultSyntax = new(new Dictionary<Token, string>()
         {
             { Token.Equal, "=" },
             { Token.NotEqual, "<>" },
@@ -38,7 +38,7 @@ namespace System.Linq.Expressions
             { Token.NameSuffix, string.Empty },
         });
 
-        private readonly ValueFormatter formatter = new ValueFormatter()
+        private readonly ValueFormatter formatter = new()
         {
             TrueValue = "1",
             FalseValue = "0",
@@ -50,9 +50,9 @@ namespace System.Linq.Expressions
             DateFormat = "yyyy-MM-dd",
         };
 
-        private readonly StringBuilder sb = new StringBuilder();
+        private readonly StringBuilder sb = new();
         private bool needsOp;
-        private List<int> tokenIndexes = new List<int>(new[] { 0 });
+        private List<int> tokenIndexes = new(new[] { 0 });
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StringFilterBuilder"/> class.
@@ -164,7 +164,7 @@ namespace System.Linq.Expressions
         /// <summary>
         /// Построитель текстовых фильтров с синтаксисом, адаптированным для использования в DataView.
         /// </summary>
-        public static StringFilterBuilder DataTableFilterBuilder => new StringFilterBuilder(new ValueFormatter()
+        public static StringFilterBuilder DataTableFilterBuilder => new(new ValueFormatter()
         {
             TrueValue = "True",
             FalseValue = "False",

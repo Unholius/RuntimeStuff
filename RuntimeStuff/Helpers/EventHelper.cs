@@ -168,7 +168,7 @@ namespace System.Helpers
             where TSourceEventArgs : EventArgs
             where TTargetEventArgs : EventArgs
         {
-            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, new[] { (MemberCache)sourceProperty }, sourceEvent, canAcceptSourceEvent, target, new[] { (MemberCache)targetProperty }, targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter, onPropertyChanged);
+            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, [(MemberCache)sourceProperty], sourceEvent, canAcceptSourceEvent, target, [(MemberCache)targetProperty], targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter, onPropertyChanged);
             if (sourceEvent != null)
             {
                 var eventHandlerType = sourceEvent.EventHandlerType;
@@ -288,7 +288,7 @@ namespace System.Helpers
             string eventName,
             Delegate actionHandler)
         {
-            var sourceTypeCache = MemberCache.Create(source.GetType());
+            var sourceTypeCache = MemberCache.Get(source.GetType());
             var sourceEvent = sourceTypeCache.GetEvent(x => x.Name == eventName);
             UnBindActionFromEvent(source, sourceEvent, actionHandler);
         }
@@ -432,7 +432,7 @@ namespace System.Helpers
                 throw new ArgumentNullException(nameof(action));
             }
 
-            var sourceTypeCache = MemberCache.Create(source.GetType());
+            var sourceTypeCache = MemberCache.Get(source.GetType());
             var sourceEvent = sourceTypeCache.GetEvent(x => x.Name == eventName);
             var binding = new EventBinding<object, EventArgs>(source, sourceEvent, action, (_, __) => true);
             var handler = CreateEventHandlerDelegate<object, EventArgs>(sourceEvent.EventHandlerType, binding.OnEvent);
@@ -513,8 +513,8 @@ namespace System.Helpers
                 throw new ArgumentException("Value cannot be null or empty.", nameof(onSourceEvent));
             }
 
-            var sourceTypeCache = MemberCache.Create(source.GetType());
-            var targetTypeCache = MemberCache.Create(target.GetType());
+            var sourceTypeCache = MemberCache.Get(source.GetType());
+            var targetTypeCache = MemberCache.Get(target.GetType());
             var sourceEvent = sourceTypeCache.GetEvent(x => x.Name == onSourceEvent);
             var targetEvent = targetTypeCache.GetEvent(x => x.Name == onTargetEvent);
             var sourceProperty = sourceTypeCache.GetPath(sourcePropertyName, '.', false);

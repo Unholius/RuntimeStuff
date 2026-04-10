@@ -19,7 +19,7 @@ namespace System.Data
         /// The client cache.
         /// </summary>
         private static readonly ConcurrentDictionary<IDbConnection, DbClient<T>> ClientCache =
-            new ConcurrentDictionary<IDbConnection, DbClient<T>>();
+            new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
