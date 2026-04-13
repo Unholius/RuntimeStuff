@@ -3084,9 +3084,8 @@ namespace System
         /// <returns>FieldInfo.</returns>
         private static FieldInfo FindFieldByNamingPatterns(Type declaringType, string propertyName)
         {
-            var property = declaringType.GetProperty(
-                propertyName,
-                BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            var property = declaringType.GetProperties(DefaultBindingFlags).FirstOrDefault(x => x.Name == propertyName);
+
             if (property == null)
             {
                 return null;

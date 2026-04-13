@@ -695,6 +695,11 @@ namespace System.Data
                     var parameterNames = GetParameterNames(query, this.Options.ParamPrefix);
                     var parameters = this.GetParams(cmdParams, parameterNames);
 
+                    if (parameterNames.Length == 1 && parameters.Count == 0)
+                    {
+                        parameters = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>() { { parameterNames[0], cmdParams } });
+                    }
+
                     if (parameterNames.Length == 0 && parameters.Count > 0)
                     {
                         cmd.CommandText += " " + string.Join(", ", parameters.Select(x => this.Options.ParamPrefix + x.Key + " = " + this.Options.ParamPrefix + x.Key));

@@ -29,13 +29,6 @@ namespace System.ComponentModel
         public event PropertyChangingEventHandler PropertyChanging;
 
         /// <summary>
-        /// Внутренний интерфейс для хранения значения свойства.
-        /// </summary>
-        private interface IValueHolder
-        {
-        }
-
-        /// <summary>
         /// При установке в <c>true</c> временно приостанавливает уведомления об изменении свойств.
         /// </summary>
         public bool SuppressNotifyPropertyChange
@@ -179,30 +172,6 @@ namespace System.ComponentModel
             {
                 Array.Resize(ref this.values, Math.Max(this.values.Length * 2, index + 1));
             }
-        }
-
-        /// <summary>
-        /// Внутренний класс для хранения значения свойства.
-        /// </summary>
-        /// <typeparam name="T">Тип свойства.</typeparam>
-        private sealed class ValueHolder<T> : IValueHolder
-        {
-            /// <summary>
-            /// Компаратор для сравнения значений свойства.
-            /// </summary>
-            private static readonly EqualityComparer<T> Comparer = EqualityComparer<T>.Default;
-
-            /// <summary>
-            /// Значение свойства.
-            /// </summary>
-            public T Value { get; set; }
-
-            /// <summary>
-            /// Сравнивает текущее значение с другим значением.
-            /// </summary>
-            /// <param name="other">Значение для сравнения.</param>
-            /// <returns>Возвращает <c>true</c>, если значения равны, иначе <c>false</c>.</returns>
-            public bool ValueEquals(T other) => Comparer.Equals(this.Value, other);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
+using System.Helpers;
 
 namespace RuntimeStuff.MSTests
 {
@@ -64,6 +65,14 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(x1.Id, x2.Id);
 
             b.Dispose();
+        }
+
+        [TestMethod]
+        public void BindProperties_Test_02()
+        {
+            var x0 = new TestClass0();
+            var x1 = new TestClass1();
+            EventHelper.BindProperties(x1, "Id", nameof(INotifyPropertyChanged.PropertyChanged), x0, "Id");
         }
     }
 
