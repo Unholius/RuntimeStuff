@@ -451,6 +451,106 @@ namespace System.Helpers
         /// Обновление происходит при возникновении указанных событий у исходного или целевого объекта.
         /// При необходимости можно указать функции преобразования значений.
         /// </remarks>
+        /// <typeparam name="TSource">Тип объекта-источника.</typeparam>
+        /// <typeparam name="TTarget">Тип объекта-приёмника.</typeparam>
+        /// <param name="source">Исходный объект, содержащий свойство-источник.</param>
+        /// <param name="sourcePropertySelector">Свойство исходного объекта.</param>
+        /// <param name="target">Целевой объект, содержащий свойство-приемник.</param>
+        /// <param name="targetPropertySelector">Свойство целевого объекта.</param>
+        /// <param name="onTargetEvent">
+        /// Имя события целевого объекта, при возникновении которого значение
+        /// будет копироваться из целевого объекта обратно в источник.
+        /// Если <see langword="null"/>, двусторонняя синхронизация не выполняется.
+        /// </param>
+        /// <param name="sourceToTargetValueConverter">
+        /// Функция преобразования значения из свойства источника в значение
+        /// свойства целевого объекта. Если <see langword="null"/>, используется
+        /// прямое присваивание.
+        /// </param>
+        /// <param name="targetToSourceValueConverter">
+        /// Функция преобразования значения из свойства целевого объекта
+        /// в значение свойства источника. Используется при двусторонней привязке.
+        /// </param>
+        /// <param name="onPropertyChanged">
+        /// Делегат, вызываемый после изменения значения любого из связанных свойств.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отменить привязку
+        /// и отписаться от всех подписанных событий.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> или <paramref name="target"/> равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если имена свойств или событий заданы пустой строкой или равны <see langword="null"/>.
+        /// </exception>
+        public static IDisposable BindProperties<TSource, TTarget>(TSource source, Expression<Func<TSource, object>> sourcePropertySelector, TTarget target, Expression<Func<TSource, object>> targetPropertySelector, string onTargetEvent = null, Func<object, object> sourceToTargetValueConverter = null, Func<object, object> targetToSourceValueConverter = null, Action onPropertyChanged = null)
+            where TSource : INotifyPropertyChanged
+        {
+            return BindProperties(source, sourcePropertySelector.GetPropertyName(), nameof(INotifyPropertyChanged.PropertyChanged), target, targetPropertySelector.GetPropertyName(), onTargetEvent, sourceToTargetValueConverter, targetToSourceValueConverter, onPropertyChanged);
+        }
+
+        /// <summary>
+        /// Создает привязку между свойствами двух объектов с возможностью синхронизации их значений
+        /// через указанные события.
+        /// </summary>
+        /// <remarks>
+        /// Метод позволяет организовать одностороннюю или двустороннюю синхронизацию свойств.
+        /// Обновление происходит при возникновении указанных событий у исходного или целевого объекта.
+        /// При необходимости можно указать функции преобразования значений.
+        /// </remarks>
+        /// <typeparam name="TSource">Тип объекта-источника.</typeparam>
+        /// <typeparam name="TTarget">Тип объекта-приёмника.</typeparam>
+        /// <param name="source">Исходный объект, содержащий свойство-источник.</param>
+        /// <param name="sourcePropertySelector">Свойство исходного объекта.</param>
+        /// <param name="onSourceEvent">
+        /// Имя события исходного объекта, при возникновении которого значение
+        /// будет копироваться из исходного объекта в целевой.
+        /// </param>
+        /// <param name="target">Целевой объект, содержащий свойство-приемник.</param>
+        /// <param name="targetPropertySelector">Свойство целевого объекта.</param>
+        /// <param name="onTargetEvent">
+        /// Имя события целевого объекта, при возникновении которого значение
+        /// будет копироваться из целевого объекта обратно в источник.
+        /// Если <see langword="null"/>, двусторонняя синхронизация не выполняется.
+        /// </param>
+        /// <param name="sourceToTargetValueConverter">
+        /// Функция преобразования значения из свойства источника в значение
+        /// свойства целевого объекта. Если <see langword="null"/>, используется
+        /// прямое присваивание.
+        /// </param>
+        /// <param name="targetToSourceValueConverter">
+        /// Функция преобразования значения из свойства целевого объекта
+        /// в значение свойства источника. Используется при двусторонней привязке.
+        /// </param>
+        /// <param name="onPropertyChanged">
+        /// Делегат, вызываемый после изменения значения любого из связанных свойств.
+        /// </param>
+        /// <returns>
+        /// Объект <see cref="IDisposable"/>, позволяющий отменить привязку
+        /// и отписаться от всех подписанных событий.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/> или <paramref name="target"/> равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается, если имена свойств или событий заданы пустой строкой или равны <see langword="null"/>.
+        /// </exception>
+        public static IDisposable BindProperties<TSource, TTarget>(TSource source, Expression<Func<TSource, object>> sourcePropertySelector, string onSourceEvent, TTarget target, Expression<Func<TSource, object>> targetPropertySelector, string onTargetEvent = null, Func<object, object> sourceToTargetValueConverter = null, Func<object, object> targetToSourceValueConverter = null, Action onPropertyChanged = null)
+            where TSource : class
+        {
+            return BindProperties(source, sourcePropertySelector.GetPropertyName(), onSourceEvent, target, targetPropertySelector.GetPropertyName(), onTargetEvent, sourceToTargetValueConverter, targetToSourceValueConverter, onPropertyChanged);
+        }
+
+        /// <summary>
+        /// Создает привязку между свойствами двух объектов с возможностью синхронизации их значений
+        /// через указанные события.
+        /// </summary>
+        /// <remarks>
+        /// Метод позволяет организовать одностороннюю или двустороннюю синхронизацию свойств.
+        /// Обновление происходит при возникновении указанных событий у исходного или целевого объекта.
+        /// При необходимости можно указать функции преобразования значений.
+        /// </remarks>
         /// <param name="source">Исходный объект, содержащий свойство-источник.</param>
         /// <param name="sourcePropertyName">Имя свойства исходного объекта.</param>
         /// <param name="onSourceEvent">
