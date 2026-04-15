@@ -13,7 +13,7 @@ namespace System.ComponentModel
     /// </summary>
     public class WeakEventManager
     {
-        private readonly Dictionary<IWeakEventListener, Delegate> listeners = new();
+        private readonly Dictionary<IWeakEventListener, Delegate> listeners = [];
 
         /// <summary>
         /// Добавляет слабую подписку на событие по имени события.

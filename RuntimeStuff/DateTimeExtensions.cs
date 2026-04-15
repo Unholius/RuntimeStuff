@@ -183,7 +183,7 @@ namespace System
                 allDates.AddRange(dates);
             }
 
-            return DateTimeHelper.Max(allDates.ToArray());
+            return DateTimeHelper.Max([.. allDates]);
         }
 
         /// <summary>
@@ -200,7 +200,7 @@ namespace System
                 allDates.AddRange(dates);
             }
 
-            return DateTimeHelper.Min(allDates.ToArray());
+            return DateTimeHelper.Min([.. allDates]);
         }
     }
 }

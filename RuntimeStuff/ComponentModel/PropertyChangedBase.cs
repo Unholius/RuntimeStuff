@@ -31,10 +31,10 @@ namespace System.ComponentModel
         /// <summary>
         /// При установке в <c>true</c> временно приостанавливает уведомления об изменении свойств.
         /// </summary>
-        public bool SuppressNotifyPropertyChange
+        /// <param name="notify">Значение.</param>
+        public void SuppressNotifyPropertyChange(bool notify)
         {
-            get => this.suspendNotifications;
-            set => this.suspendNotifications = value;
+            this.suspendNotifications = notify;
         }
 
         /// <summary>
@@ -150,7 +150,7 @@ namespace System.ComponentModel
 
         private static int GetIndex(string propertyName)
         {
-            propertyIndex ??= new Dictionary<string, int>();
+            propertyIndex ??= [];
             if (!propertyIndex.TryGetValue(propertyName, out var index))
             {
                 index = propertyIndex.Count;

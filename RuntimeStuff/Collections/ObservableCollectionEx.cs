@@ -22,6 +22,8 @@ namespace System.Collections
     {
         private readonly WeakEventManager weakEventManager = new();
 
+        private bool suppressNotifyCollectionChange;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableCollectionEx{T}"/> class.
         /// Создаёт пустую коллекцию.
@@ -43,11 +45,6 @@ namespace System.Collections
         }
 
         /// <summary>
-        /// Определяет, подавлять ли уведомления CollectionChanged.
-        /// </summary>
-        public bool SuppressNotifyCollectionChange { get; set; }
-
-        /// <summary>
         /// Добавляет несколько элементов в коллекцию с единым уведомлением.
         /// Автоматически подписывается на события <see cref="INotifyPropertyChanged"/> новых элементов.
         /// </summary>
@@ -60,14 +57,14 @@ namespace System.Collections
                 throw new ArgumentNullException(nameof(items));
             }
 
-            var list = items as IList<T> ?? items.ToList();
+            var list = items as IList<T> ?? [.. items];
             if (list.Count == 0)
             {
                 return;
             }
 
-            var oldSuppress = this.SuppressNotifyCollectionChange;
-            this.SuppressNotifyCollectionChange = true;
+            var oldSuppress = this.suppressNotifyCollectionChange;
+            this.SuppressNotifyCollectionChange(true);
 
             try
             {
@@ -79,10 +76,18 @@ namespace System.Collections
             }
             finally
             {
-                this.SuppressNotifyCollectionChange = oldSuppress;
+                this.SuppressNotifyCollectionChange(oldSuppress);
             }
 
             this.RaiseReset();
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="ClearItems" />
+        /// </summary>
+        public new void Clear()
+        {
+            this.ClearItems();
         }
 
         /// <summary>
@@ -128,14 +133,14 @@ namespace System.Collections
                 throw new ArgumentNullException(nameof(items));
             }
 
-            var list = items as IList<T> ?? items.ToList();
+            var list = items as IList<T> ?? [.. items];
             if (list.Count == 0)
             {
                 return;
             }
 
-            var oldSuppress = this.SuppressNotifyCollectionChange;
-            this.SuppressNotifyCollectionChange = true;
+            var oldSuppress = this.suppressNotifyCollectionChange;
+            this.SuppressNotifyCollectionChange(true);
             var removed = false;
             try
             {
@@ -154,7 +159,7 @@ namespace System.Collections
             }
             finally
             {
-                this.SuppressNotifyCollectionChange = oldSuppress;
+                this.SuppressNotifyCollectionChange(oldSuppress);
                 if (removed)
                 {
                     this.RaiseReset();
@@ -189,8 +194,8 @@ namespace System.Collections
 
             var removedList = new List<T>();
 
-            var oldSuppress = this.SuppressNotifyCollectionChange;
-            this.SuppressNotifyCollectionChange = true;
+            var oldSuppress = this.suppressNotifyCollectionChange;
+            this.suppressNotifyCollectionChange = true;
 
             var removed = false;
 
@@ -212,7 +217,7 @@ namespace System.Collections
             }
             finally
             {
-                this.SuppressNotifyCollectionChange = oldSuppress;
+                this.SuppressNotifyCollectionChange(oldSuppress);
                 if (removed)
                 {
                     this.RaiseReset();
@@ -223,11 +228,12 @@ namespace System.Collections
         }
 
         /// <summary>
-        /// <inheritdoc cref="ClearItems" />
+        /// Определяет, подавлять ли уведомления CollectionChanged.
         /// </summary>
-        public new void Clear()
+        /// <param name="notify">Значение.</param>
+        public void SuppressNotifyCollectionChange(bool notify)
         {
-            this.ClearItems();
+            this.suppressNotifyCollectionChange = notify;
         }
 
         /// <summary>
@@ -242,8 +248,8 @@ namespace System.Collections
         /// </remarks>
         protected override void ClearItems()
         {
-            var oldSuppress = this.SuppressNotifyCollectionChange;
-            this.SuppressNotifyCollectionChange = true;
+            var oldSuppress = this.suppressNotifyCollectionChange;
+            this.suppressNotifyCollectionChange = true;
 
             try
             {
@@ -257,7 +263,7 @@ namespace System.Collections
             }
             finally
             {
-                this.SuppressNotifyCollectionChange = oldSuppress;
+                this.SuppressNotifyCollectionChange(oldSuppress);
                 this.RaiseReset();
             }
         }
@@ -310,7 +316,7 @@ namespace System.Collections
         /// </remarks>
         protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
-            if (!this.SuppressNotifyCollectionChange)
+            if (!this.suppressNotifyCollectionChange)
             {
                 base.OnCollectionChanged(e);
             }
@@ -332,7 +338,7 @@ namespace System.Collections
         /// </remarks>
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
-            if (!this.SuppressNotifyCollectionChange)
+            if (!this.suppressNotifyCollectionChange)
             {
                 base.OnPropertyChanged(e);
             }
@@ -386,7 +392,7 @@ namespace System.Collections
 
         private static void OnItemPropertyChanged(ObservableCollectionEx<T> collection)
         {
-            if (collection.SuppressNotifyCollectionChange)
+            if (collection.suppressNotifyCollectionChange)
             {
                 return;
             }

@@ -79,7 +79,7 @@ namespace System.Helpers
 
             var keys = table.PrimaryKey.ToList();
             keys.Add(column);
-            table.PrimaryKey = keys.ToArray();
+            table.PrimaryKey = [.. keys];
 
             return column;
         }
@@ -289,7 +289,7 @@ namespace System.Helpers
             }
 
             var table = new DataTable(tableName ?? typeof(T).Name);
-            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.PropertySelector), x.ColumnName)).ToArray() : MemberCache.Get(typeof(T)).Properties.Select(x => (x, x.ColumnName)).ToArray();
+            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.PropertySelector), x.ColumnName)).ToArray() : [.. MemberCache.Get(typeof(T)).Properties.Select(x => (x, x.ColumnName))];
             var pks = new List<DataColumn>();
             foreach (var prop in props)
             {
@@ -301,7 +301,7 @@ namespace System.Helpers
                 }
             }
 
-            table.PrimaryKey = pks.ToArray();
+            table.PrimaryKey = [.. pks];
             foreach (var item in list)
             {
                 var row = table.NewRow();

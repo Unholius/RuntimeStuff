@@ -135,12 +135,12 @@ namespace System.Data
             var insertCols = insertColumns?.Select(ExpressionHelper.GetPropertyName).ToArray() ?? Array.Empty<string>();
             if (insertCols.Length == 0)
             {
-                insertCols = mi.GetColumns(false, true).Where(x => x.IsSetterPublic).Select(x => x.Name).ToArray();
+                insertCols = [.. mi.GetColumns(false, true).Where(x => x.IsSetterPublic).Select(x => x.Name)];
             }
 
             if (insertCols.Length == 0)
             {
-                insertCols = mi.PublicBasicProperties.Select(x => x.Name).ToArray();
+                insertCols = [.. mi.PublicBasicProperties.Select(x => x.Name)];
             }
 
             if (insertCols.Length == 0)
@@ -295,7 +295,7 @@ namespace System.Data
             var mi = MemberCache.Get(typeof(T));
             var propertyNames = selectColumns?.Select(x => x.Name).ToArray() ?? Array.Empty<string>();
             var members = propertyNames.Length > 0
-                ? mi.PublicBasicProperties.Where(mc => propertyNames.Contains(mc.Name)).ToArray()
+                ? [.. mi.PublicBasicProperties.Where(mc => propertyNames.Contains(mc.Name))]
                 : mi.GetColumns();
 
             if (members.Length == 0)
@@ -318,7 +318,7 @@ namespace System.Data
         /// </param>
         /// <returns>Строка SQL-запроса SELECT.</returns>
         public static string GetSelectQuery<T, TProp>(SqlDialect options, bool useFullNames, params Expression<Func<T, TProp>>[] selectColumns)
-            => GetSelectQuery(options, useFullNames, MemberCache.Get(typeof(T)), selectColumns.Select(x => x.GetMemberCache()).ToArray());
+            => GetSelectQuery(options, useFullNames, MemberCache.Get(typeof(T)), [.. selectColumns.Select(x => x.GetMemberCache())]);
 
         /// <summary>
         /// Генерирует SQL-запрос SELECT для указанного типа сущности с выборкой конкретных колонок.
@@ -396,7 +396,7 @@ namespace System.Data
                 .Append(" SET ");
 
             var props = updateColumns?.Select(ExpressionHelper.GetPropertyName).ToList()
-                        ?? new List<string>();
+                        ?? [];
 
             if (props.Count == 0)
             {
@@ -469,7 +469,7 @@ namespace System.Data
             var keys = mi.PrimaryKeys.ToArray();
             if (keys.Length == 0)
             {
-                keys = mi.PublicBasicProperties.ToArray();
+                keys = [.. mi.PublicBasicProperties];
             }
 
             return GetWhereClause(options, true, keys, out cmdParams);
@@ -488,7 +488,7 @@ namespace System.Data
         /// <returns>Строка SQL-клаузы WHERE для указанных колонок.</returns>
         public static string GetWhereClause(SqlDialect options, bool and, MemberCache[] whereProperties, out Dictionary<string, object> cmdParams)
         {
-            cmdParams = new Dictionary<string, object>();
+            cmdParams = [];
             var whereClause = new StringBuilder("WHERE ");
 
             for (var i = 0; i < whereProperties.Length; i++)

@@ -85,10 +85,9 @@ namespace System.Helpers
                     ];
 
             AllQuotes =
-                OpeningQuotes
+                [.. OpeningQuotes
                 .Concat(ClosingQuotes)
-                .Distinct()
-                .ToArray();
+                .Distinct()];
 
             DefaultColumnSeparators = ["\t", ";", "|"];
             DefaultColumnSeparatorsAndSpace = [" ", "\t", ";", "|"];
@@ -355,10 +354,7 @@ namespace System.Helpers
                 return s;
             }
 
-            if (culture == null)
-            {
-                culture = CultureInfo.CurrentCulture;
-            }
+            culture ??= CultureInfo.CurrentCulture;
 
             var enumerator = StringInfo.GetTextElementEnumerator(s);
             if (!enumerator.MoveNext())
@@ -917,7 +913,7 @@ namespace System.Helpers
         /// <param name="notMatchedAsTokens">if set to <c>true</c> [not matched as tokens].</param>
         /// <param name="tokenMasks">The token masks.</param>
         /// <returns>List&lt;Token&gt;.</returns>
-        public static List<Token> GetTokens(string input, bool notMatchedAsTokens, params (string Prefix, string Suffix, Func<Token, string> ContentTransformer)[] tokenMasks) => GetTokens(input, tokenMasks.Select(x => new TokenMask(x.Prefix, x.Suffix, null, x.ContentTransformer)).ToArray(), notMatchedAsTokens);
+        public static List<Token> GetTokens(string input, bool notMatchedAsTokens, params (string Prefix, string Suffix, Func<Token, string> ContentTransformer)[] tokenMasks) => GetTokens(input, [.. tokenMasks.Select(x => new TokenMask(x.Prefix, x.Suffix, null, x.ContentTransformer))], notMatchedAsTokens);
 
         /// <summary>
         /// Получает список токенов по нескольким маскам.
@@ -1583,7 +1579,7 @@ namespace System.Helpers
                 return s;
             }
 
-            replacement = replacement ?? string.Empty;
+            replacement ??= string.Empty;
 
             var result = s;
 
@@ -1653,7 +1649,7 @@ namespace System.Helpers
         {
             if (string.IsNullOrEmpty(s))
             {
-                return Array.Empty<string>();
+                return [];
             }
 
             if (splitBy == null || splitBy.Length == 0)
@@ -1717,7 +1713,7 @@ namespace System.Helpers
                 pos = nextPos + sepLen;
             }
 
-            return result.ToArray();
+            return [.. result];
         }
 
         /// <summary>
@@ -1773,27 +1769,18 @@ namespace System.Helpers
         {
             var result = new List<T>();
 
-            if (columnSeparators == null)
-            {
-                columnSeparators = StringHelper.DefaultColumnSeparators;
-            }
+            columnSeparators ??= StringHelper.DefaultColumnSeparators;
 
-            if (lineSeparators == null)
-            {
-                lineSeparators = StringHelper.DefaultLineSeparators;
-            }
+            lineSeparators ??= StringHelper.DefaultLineSeparators;
 
-            if (propertyMap == null)
-            {
-                propertyMap = Array.Empty<string>();
-            }
+            propertyMap ??= [];
 
             var typeCache = MemberCache.Get(typeof(T));
             var lines = SplitBy(s, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
-            var props = propertyMap.Length > 0 ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicBasicProperties.ToArray();
+            var props = propertyMap.Length > 0 ? typeCache.Properties.Where(x => propertyMap.Contains(x.Name)).ToArray() : [.. typeCache.PublicBasicProperties];
             if (props.Length == 0)
             {
-                props = propertyMap.Length > 0 ? typeCache.Fields.Where(x => propertyMap.Contains(x.Name)).ToArray() : typeCache.PublicFields.ToArray();
+                props = propertyMap.Length > 0 ? [.. typeCache.Fields.Where(x => propertyMap.Contains(x.Name))] : [.. typeCache.PublicFields];
             }
 
             if (props.Length == 0)
@@ -2045,18 +2032,12 @@ namespace System.Helpers
 
             var bytes = Convert.FromBase64String(s);
 
-            using (var input = new MemoryStream(bytes))
-            {
-                using (var gzip = new GZipStream(input, CompressionMode.Decompress))
-                {
-                    using (var output = new MemoryStream())
-                    {
-                        gzip.CopyTo(output);
+            using var input = new MemoryStream(bytes);
+            using var gzip = new GZipStream(input, CompressionMode.Decompress);
+            using var output = new MemoryStream();
+            gzip.CopyTo(output);
 
-                        return Encoding.UTF8.GetString(output.ToArray());
-                    }
-                }
-            }
+            return Encoding.UTF8.GetString(output.ToArray());
         }
 
         /// <summary>
@@ -2078,15 +2059,13 @@ namespace System.Helpers
 
             var bytes = Encoding.UTF8.GetBytes(s);
 
-            using (var output = new MemoryStream())
+            using var output = new MemoryStream();
+            using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
             {
-                using (var gzip = new GZipStream(output, CompressionLevel.Optimal, leaveOpen: true))
-                {
-                    gzip.Write(bytes, 0, bytes.Length);
-                }
-
-                return Convert.ToBase64String(output.ToArray());
+                gzip.Write(bytes, 0, bytes.Length);
             }
+
+            return Convert.ToBase64String(output.ToArray());
         }
 
         private static int Count<T>(IEnumerable<T> source, Func<T, int, bool> predicate)
@@ -2492,7 +2471,7 @@ namespace System.Helpers
         {
             if (string.IsNullOrWhiteSpace(input))
             {
-                return Array.Empty<string>();
+                return [];
             }
 
             // Заменяем дефисы и пробелы на _
@@ -2501,10 +2480,9 @@ namespace System.Helpers
             // Если уже есть разделители — просто делим
             if (input.Contains("_"))
             {
-                return input
+                return [.. input
                     .Split(Separator, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(w => w.ToLowerInvariant())
-                    .ToArray();
+                    .Select(w => w.ToLowerInvariant())];
             }
 
             // Разбиваем PascalCase / camelCase / аббревиатуры
@@ -2512,9 +2490,7 @@ namespace System.Helpers
                 input,
                 @"([A-Z]+(?![a-z]))|([A-Z]?[a-z]+)|(\d+)");
 
-            return matches.Cast<Match>()
-                .Select(m => m.Value.ToLowerInvariant())
-                .ToArray();
+            return [.. matches.Cast<Match>().Select(m => m.Value.ToLowerInvariant())];
         }
 
         /// <summary>
@@ -2634,7 +2610,7 @@ namespace System.Helpers
             /// указана. По умолчанию равно значению <see cref="Text"/>.
             /// </summary>
             /// <value>The content transformers.</value>
-            public List<Func<Token, string>> ContentTransformers { get; set; } = new List<Func<Token, string>>();
+            public List<Func<Token, string>> ContentTransformers { get; set; } = [];
 
             /// <summary>
             /// первый токен в цепочке предыдущих токенов на том же уровне вложенности.
@@ -2770,24 +2746,6 @@ namespace System.Helpers
             public Token Previous { get; internal set; }
 
             /// <summary>
-            /// корневой токен.
-            /// </summary>
-            /// <value>The root.</value>
-            public Token Root
-            {
-                get
-                {
-                    var node = this;
-                    while (node.Parent != null)
-                    {
-                        node = node.Parent;
-                    }
-
-                    return node;
-                }
-            }
-
-            /// <summary>
             /// исходная строка.
             /// </summary>
             /// <value>The source.</value>
@@ -2833,7 +2791,7 @@ namespace System.Helpers
             /// <summary>
             /// the children internal.
             /// </summary>
-            internal List<Token> ChildrenInternal { get; } = new List<Token>();
+            internal List<Token> ChildrenInternal { get; } = [];
 
             /// <summary>
             /// Returns an enumerable collection containing this token and all of its descendant tokens in depth-first
@@ -2857,69 +2815,6 @@ namespace System.Helpers
                 list.Add(this);
 
                 return list;
-            }
-
-            /// <summary>
-            /// Все токены после текущего (по цепочке Next).
-            /// </summary>
-            /// <returns>IEnumerable&lt;Token&gt;.</returns>
-            public IEnumerable<Token> AllAfter()
-            {
-                for (var t = this.Next; t != null; t = t.Next)
-                {
-                    yield return t;
-                }
-            }
-
-            /// <summary>
-            /// Все токены перед текущим (по цепочке Previous).
-            /// </summary>
-            /// <returns>IEnumerable&lt;Token&gt;.</returns>
-            public IEnumerable<Token> AllBefore()
-            {
-                for (var t = this.Previous; t != null; t = t.Previous)
-                {
-                    yield return t;
-                }
-            }
-
-            /// <summary>
-            /// Возвращает последовательность токенов, следующих за текущим, которые удовлетворяют указанному условию.
-            /// </summary>
-            /// <param name="predicate">Функция, определяющая условие фильтрации токенов. Должна возвращать <see langword="true"/>, если токен
-            /// соответствует критериям; иначе <see langword="false"/>.</param>
-            /// <returns>Последовательность токенов, следующих за текущим, для которых функция <paramref name="predicate"/>
-            /// возвращает <see langword="true"/>. Если ни один токен не соответствует условию, возвращается пустая
-            /// последовательность.</returns>
-            public IEnumerable<Token> FirstAfter(Func<Token, bool> predicate)
-            {
-                for (var t = this.Next; t != null; t = t.Next)
-                {
-                    if (predicate(t))
-                    {
-                        yield return t;
-                    }
-                }
-            }
-
-            /// <summary>
-            /// Возвращает последовательность токенов, предшествующих текущему, которые удовлетворяют заданному условию.
-            /// </summary>
-            /// <param name="predicate">Функция-предикат для фильтрации токенов. Токен включается в результат, если предикат возвращает <c>true</c>.</param>
-            /// <returns>Последовательность токенов до текущего, соответствующих условию <paramref name="predicate"/>.</returns>
-            /// <remarks>
-            /// Перебор начинается с токена <see cref="Previous"/> текущего токена и продолжается в обратном направлении,
-            /// пока не достигнут конец цепочки (<c>Previous == null</c>).
-            /// </remarks>
-            public IEnumerable<Token> FirstBefore(Func<Token, bool> predicate)
-            {
-                for (var t = this.Previous; t != null; t = t.Previous)
-                {
-                    if (predicate(t))
-                    {
-                        yield return t;
-                    }
-                }
             }
 
             /// <summary>
@@ -2968,45 +2863,6 @@ namespace System.Helpers
             }
 
             /// <summary>
-            /// Удаляет текущий элемент из двусвязного списка и из родительского списка дочерних элементов.
-            /// </summary>
-            /// <remarks>
-            /// <para>Метод выполняет следующие действия:</para>
-            /// <list type="bullet">
-            /// <item>Корректирует ссылки <c>Previous</c> и <c>Next</c> соседних элементов, чтобы сохранить целостность списка.</item>
-            /// <item>Удаляет элемент из внутреннего списка дочерних элементов родителя (<c>Parent.ChildrenInternal</c>).</item>
-            /// <item>Обнуляет ссылки <c>Parent</c>, <c>Previous</c> и <c>Next</c>, чтобы полностью отсоединить элемент.</item>
-            /// </list>
-            /// <para>После вызова <c>Remove</c> элемент считается полностью удалённым и не связан с другими элементами списка.</para>
-            /// </remarks>
-            public void Remove()
-            {
-                // корректируем Previous/Next
-                this.Previous?.Next = this.Next;
-
-                this.Next?.Previous = this.Previous;
-
-                // удаляем из родительского списка детей
-                this.Parent?.ChildrenInternal.Remove(this);
-
-                this.Parent = null;
-                this.Previous = null;
-                this.Next = null;
-            }
-
-            /// <summary>
-            /// Все соседи (включая самого токена).
-            /// </summary>
-            /// <returns>IEnumerable&lt;Token&gt;.</returns>
-            public IEnumerable<Token> Siblings()
-            {
-                for (var t = this.First; t != null; t = t.Next)
-                {
-                    yield return t;
-                }
-            }
-
-            /// <summary>
             /// Returns a <see cref="string" /> that represents this instance.
             /// </summary>
             /// <returns>A <see cref="string" /> that represents this instance.</returns>
@@ -3051,13 +2907,13 @@ namespace System.Helpers
             /// разрешённые маски для вложенных токенов.
             /// </summary>
             /// <value>The allowed children masks.</value>
-            public List<TokenMask> AllowedChildrenMasks { get; set; } = new List<TokenMask>();
+            public List<TokenMask> AllowedChildrenMasks { get; set; } = [];
 
             /// <summary>
             /// разрешённые маски для следующих соседних токенов.
             /// </summary>
             /// <value>The allowed next masks.</value>
-            public List<TokenMask> AllowedNextMasks { get; set; } = new List<TokenMask>();
+            public List<TokenMask> AllowedNextMasks { get; set; } = [];
 
             /// <summary>
             /// функция для трансформации содержимого токена.

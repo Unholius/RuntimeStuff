@@ -51,7 +51,7 @@ namespace System
         /// словарь соответствий типов свойства и типов редакторов.
         /// </summary>
         /// <value>The editors.</value>
-        public Dictionary<Type, Type> Editors { get; private set; } = new Dictionary<Type, Type>();
+        public Dictionary<Type, Type> Editors { get; private set; } = [];
 
         /// <summary>
         /// Индексатор для доступа к свойствам по имени.
@@ -152,8 +152,7 @@ namespace System
         /// </summary>
         /// <returns>A <see cref="T:System.ComponentModel.PropertyDescriptorCollection"></see> that represents the properties for this component instance.</returns>
         public PropertyDescriptorCollection GetProperties() => new(
-                this.properties.Keys.Select(name => new DynamicPropertyDescriptor(name, this))
-                    .ToArray<PropertyDescriptor>());
+                [.. this.properties.Keys.Select(name => new DynamicPropertyDescriptor(name, this))]);
 
         /// <summary>
         /// Возвращает коллекцию динамических свойств компонента с фильтром атрибутов.
@@ -263,7 +262,7 @@ namespace System
             /// словарь редакторов для всех свойств.
             /// </summary>
             /// <value>The editors.</value>
-            public static Dictionary<Type, Type> Editors { get; } = new Dictionary<Type, Type>();
+            public static Dictionary<Type, Type> Editors { get; } = [];
 
             /// <summary>
             /// тип компонента.

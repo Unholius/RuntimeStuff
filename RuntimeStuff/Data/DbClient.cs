@@ -303,11 +303,10 @@ namespace System.Data
                 prefix = string.Empty;
             }
 
-            return matches
+            return [.. matches
                 .Cast<Match>()
                 .Select(m => prefix + m.Groups[1].Value)
-                .Distinct()
-                .ToArray();
+                .Distinct()];
         }
 
         /// <summary>
@@ -667,7 +666,7 @@ namespace System.Data
             cmd.CommandText = query;
             cmd.CommandTimeout = commandTimeOut ?? DbClient.DefaultCommandTimeout;
             cmd.CommandType = CommandType.Text;
-            cmd.Transaction = dbTransaction;
+            cmd.Transaction = dbTransaction ?? this.tr.Value;
 
             switch (cmdParams)
             {
@@ -703,6 +702,17 @@ namespace System.Data
                     if (parameterNames.Length == 0 && parameters.Count > 0)
                     {
                         cmd.CommandText += " " + string.Join(", ", parameters.Select(x => this.Options.ParamPrefix + x.Key + " = " + this.Options.ParamPrefix + x.Key));
+                    }
+
+                    if (parameterNames.Length > 1 && parameters.Count == 0 && cmdParams is object[] vals)
+                    {
+                        var dic = new Dictionary<string, object>();
+                        for (int i = 0; i < vals.Length; i++)
+                        {
+                            dic[parameterNames[i]] = vals[i];
+                        }
+
+                        parameters = new ReadOnlyDictionary<string, object>(dic);
                     }
 
                     if (cmdParams != null)
@@ -865,7 +875,7 @@ namespace System.Data
                         count += await this.DeleteAsync(item, dbTransaction, token).ConfigureAwait(this.ConfigureAwait);
                     }
 
-                    this.EndTransaction();
+                    this.CommitTransaction();
                 }
 
                 return count;
@@ -894,20 +904,52 @@ namespace System.Data
         /// <summary>
         /// Завершается текущая транзакция и закрывает соединение с базой данных.
         /// </summary>
-        /// <exception cref="System.InvalidOperationException">Транзакция не была начата.</exception>
         /// <remarks>Этот метод коммитит текущую транзакцию и очищает ресурсы, связанные с ней.
         /// После завершения транзакции соединение с базой данных закрывается.</remarks>
-        public void EndTransaction()
+        public void CommitTransaction()
         {
             if (this.tr.Value == null)
             {
-                throw new InvalidOperationException("Транзакция не была начата.");
+                return;
             }
 
             this.tr.Value.Commit();
             this.tr.Value.Dispose();
             this.tr.Value = null;
             this.CloseConnection();
+        }
+
+        /// <summary>
+        /// Завершается текущая транзакция и закрывает соединение с базой данных.
+        /// </summary>
+        /// <param name="dbTransaction">Транзакция.</param>
+        /// <remarks>Этот метод коммитит текущую транзакцию и очищает ресурсы, связанные с ней.
+        /// После завершения транзакции соединение с базой данных закрывается.</remarks>
+        public void CommitTransaction(IDbTransaction dbTransaction)
+        {
+            if (dbTransaction == null)
+            {
+                return;
+            }
+
+            dbTransaction.Commit();
+            dbTransaction.Dispose();
+            dbTransaction = null;
+        }
+
+        /// <summary>
+        /// Отменяется текущая транзакция.
+        /// </summary>
+        public void RollbackTransaction()
+        {
+            if (this.tr.Value == null)
+            {
+                return;
+            }
+
+            this.tr.Value.Rollback();
+            this.tr.Value.Dispose();
+            this.tr.Value = null;
         }
 
         /// <summary>
@@ -941,7 +983,7 @@ namespace System.Data
 
                         return i;
                     }
-                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                     {
                         attempt++;
                         this.HandleDbException(ex, cmd);
@@ -953,7 +995,7 @@ namespace System.Data
                     }
                     finally
                     {
-                        if (dbTransaction != null)
+                        if (dbTransaction == null)
                         {
                             this.CloseConnection();
                         }
@@ -993,7 +1035,7 @@ namespace System.Data
                         this.Log(cmd);
                         return i;
                     }
-                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                     {
                         attempt++;
                         this.HandleDbException(ex, cmd);
@@ -1012,7 +1054,7 @@ namespace System.Data
                     }
                     finally
                     {
-                        if (cmd.Transaction != null)
+                        if (dbTransaction == null)
                         {
                             this.CloseConnection();
                         }
@@ -1436,7 +1478,7 @@ namespace System.Data
                 queryExpression.Add((cs, "AVG"));
             }
 
-            var result = this.Agg(whereExpression, queryExpression.ToArray());
+            var result = this.Agg(whereExpression, [.. queryExpression]);
 
             var dic = colNames.Select((x, i) => (x,
                 (
@@ -1479,7 +1521,7 @@ namespace System.Data
                 queryExpression.Add((cs, "AVG"));
             }
 
-            var result = await this.AggAsync(whereExpression, token, queryExpression.ToArray())
+            var result = await this.AggAsync(whereExpression, token, [.. queryExpression])
                 .ConfigureAwait(this.ConfigureAwait);
 
             var dic = colNames.Select((x, i) => (x,
@@ -1740,6 +1782,28 @@ namespace System.Data
         }
 
         /// <summary>
+        /// Выполняет вставку строки в указанную таблицу без явной транзакции. Транзакцию можно начать через <see cref="BeginTransaction(IsolationLevel)"/>.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы, в которую выполняется вставка.</param>
+        /// <param name="values">Значения, которые будут вставлены в строку таблицы.</param>
+        public void Insert(string tableName, params object[] values)
+        {
+            this.Insert(tableName, (IDbTransaction)null, values);
+        }
+
+        /// <summary>
+        /// Выполняет вставку строки в указанную таблицу с возможностью использования транзакции.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы, в которую выполняется вставка.</param>
+        /// <param name="dbTransaction">Транзакция базы данных. Если <c>null</c>, вставка выполняется без транзакции.</param>
+        /// <param name="values">Значения, которые будут вставлены в строку таблицы. Порядок значений должен соответствовать порядку столбцов таблицы.</param>
+        public void Insert(string tableName, IDbTransaction dbTransaction, params object[] values)
+        {
+            var sql = $"INSERT INTO {tableName} VALUES ({string.Join(", ", values.Select((x, i) => this.Options.ParamPrefix + "v" + i))})";
+            this.ExecuteNonQuery(sql, values, dbTransaction);
+        }
+
+        /// <summary>
         /// Создаёт новый экземпляр сущности, инициализирует его и вставляет в базу данных.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
@@ -1956,12 +2020,12 @@ namespace System.Data
                             }
                         }
 
-                        this.EndTransaction();
+                        this.CommitTransaction();
                     }
 
-                    return ids.ToArray();
+                    return [.. ids];
                 }
-                catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                 {
                     attempt++;
                     this.HandleDbException(ex, cmd);
@@ -1974,7 +2038,7 @@ namespace System.Data
                 }
                 finally
                 {
-                    if (cmd.Transaction != null)
+                    if (dbTransaction == null)
                     {
                         this.CloseConnection();
                     }
@@ -2065,12 +2129,12 @@ namespace System.Data
                             }
                         }
 
-                        this.EndTransaction();
+                        this.CommitTransaction();
                     }
 
-                    return ids.ToArray();
+                    return [.. ids];
                 }
-                catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                 {
                     attempt++;
                     this.HandleDbException(ex, cmd);
@@ -2083,7 +2147,7 @@ namespace System.Data
                 }
                 finally
                 {
-                    if (cmd.Transaction != null)
+                    if (dbTransaction == null)
                     {
                         this.CloseConnection();
                     }
@@ -2208,7 +2272,7 @@ namespace System.Data
 
                             if (list is ObservableCollectionEx<T> oce1)
                             {
-                                oce1.SuppressNotifyCollectionChange = true;
+                                oce1.SuppressNotifyCollectionChange(true);
                             }
 
                             this.ReadToListInternalAsync(
@@ -2223,7 +2287,7 @@ namespace System.Data
 
                             if (list is ObservableCollectionEx<T> oce2)
                             {
-                                oce2.SuppressNotifyCollectionChange = false;
+                                oce2.SuppressNotifyCollectionChange(false);
                             }
 
                             return list;
@@ -2233,7 +2297,7 @@ namespace System.Data
                             reader.Dispose();
                         }
                     }
-                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                     {
                         attempt++;
                         this.HandleDbException(ex, cmd);
@@ -2398,7 +2462,7 @@ namespace System.Data
                             reader.Dispose();
                         }
                     }
-                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                     {
                         attempt++;
                         this.HandleDbException(ex, cmd);
@@ -2568,7 +2632,7 @@ namespace System.Data
                             reader.Dispose();
                         }
                     }
-                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                     {
                         attempt++;
                         this.HandleDbException(ex, cmd);
@@ -2656,7 +2720,7 @@ namespace System.Data
 
                             if (list is ObservableCollectionEx<T> oce1)
                             {
-                                oce1.SuppressNotifyCollectionChange = true;
+                                oce1.SuppressNotifyCollectionChange(true);
                             }
 
                             await this.ReadToListInternalAsync(
@@ -2671,13 +2735,13 @@ namespace System.Data
 
                             if (list is ObservableCollectionEx<T> oce2)
                             {
-                                oce2.SuppressNotifyCollectionChange = true;
+                                oce2.SuppressNotifyCollectionChange(false);
                             }
 
                             return list;
                         }
                     }
-                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount)
+                    catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                     {
                         attempt++;
                         this.HandleDbException(ex, cmd);
@@ -2696,7 +2760,7 @@ namespace System.Data
                     }
                     finally
                     {
-                        if (cmd.Transaction != null)
+                        if (dbTransaction == null)
                         {
                             this.CloseConnection();
                         }
@@ -3238,7 +3302,7 @@ namespace System.Data
                         }
                         while (r.NextResult());
 
-                        return result.ToArray();
+                        return [.. result];
                     }
                 }
                 catch (Exception ex)
@@ -3327,7 +3391,7 @@ namespace System.Data
                         }
                         while (await r.NextResultAsync(token).ConfigureAwait(this.ConfigureAwait));
 
-                        return result.ToArray();
+                        return [.. result];
                     }
                 }
                 catch (Exception ex)
@@ -3924,7 +3988,7 @@ namespace System.Data
                         }
                     }
 
-                    this.EndTransaction();
+                    this.CommitTransaction();
                 }
 
                 return count;
@@ -4013,7 +4077,7 @@ namespace System.Data
                         }
                     }
 
-                    this.EndTransaction();
+                    this.CommitTransaction();
                 }
 
                 return count;
@@ -4159,7 +4223,7 @@ namespace System.Data
             bool onlyFromCustomMap = true)
         {
             var customMapDic =
-                customMap?.ToDictionary(k => k.FieldName, v => v.PropertyName) ?? new Dictionary<string, string>();
+                customMap?.ToDictionary(k => k.FieldName, v => v.PropertyName) ?? [];
             var map = new Dictionary<int, string>();
 
             var columnsCount = reader.FieldCount;
@@ -4316,13 +4380,10 @@ namespace System.Data
             IEnumerable<(string FieldName, string PropertyName)> customMap = null,
             IEnumerable<string> columns = null)
         {
-            if (customMap == null)
-            {
-                customMap = this.Options.Map?.GetColumnToPropertyMap(itemType);
-            }
+            customMap ??= this.Options.Map?.GetColumnToPropertyMap(itemType);
 
             var customMapDic =
-                customMap?.ToDictionary(k => k.FieldName, v => v.PropertyName) ?? new Dictionary<string, string>();
+                customMap?.ToDictionary(k => k.FieldName, v => v.PropertyName) ?? [];
             var map = new Dictionary<int, MemberCache>();
             var typeInfoEx = MemberCache.Get(itemType);
             var columnsCount = reader.FieldCount;
@@ -4529,20 +4590,6 @@ namespace System.Data
                 list.Add(item);
                 rowCount++;
             }
-        }
-
-        /// <summary>
-        /// Rollbacks the transaction.
-        /// </summary>
-        /// <exception cref="System.InvalidOperationException">Транзакция не была начата.</exception>
-        private void RollbackTransaction()
-        {
-            if (this.tr.Value == null)
-            {
-                throw new InvalidOperationException("Транзакция не была начата.");
-            }
-
-            this.tr.Value?.Rollback();
         }
     }
 }

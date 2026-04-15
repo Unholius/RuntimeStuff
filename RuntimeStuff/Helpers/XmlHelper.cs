@@ -58,10 +58,9 @@ namespace System.Helpers
             try
             {
                 var doc = XDocument.Parse(xml);
-                return doc.Descendants()
+                return [.. doc.Descendants()
                     .Where(x => nodeNameSelector(x.Name.LocalName))
-                    .Select(x => x.Attributes().ToDictionary(k => k.Name.LocalName, v => v.Value))
-                    .ToArray();
+                    .Select(x => x.Attributes().ToDictionary(k => k.Name.LocalName, v => v.Value))];
             }
             catch (Exception)
             {
@@ -120,7 +119,7 @@ namespace System.Helpers
         public static Dictionary<string, string>[] GetAttributes(string xml, Func<string, bool> attributesNodeNameSelector, Func<string, bool> contentNodeNameSelector, Func<string, bool> contentFilter)
         {
             var contents = GetContents(xml, contentNodeNameSelector, contentFilter);
-            return contents.SelectMany(x => GetAttributes(x, attributesNodeNameSelector)).ToArray();
+            return [.. contents.SelectMany(x => GetAttributes(x, attributesNodeNameSelector))];
         }
 
         /// <summary>
@@ -152,10 +151,9 @@ namespace System.Helpers
             try
             {
                 var doc = XDocument.Parse(xml);
-                return doc.Descendants()
+                return [.. doc.Descendants()
                     .Where(x => nodeNameSelector(x.Name.LocalName) && (contentFilter == null || contentFilter(x.ToString())))
-                    .Select(x => x.ToString())
-                    .ToArray();
+                    .Select(x => x.ToString())];
             }
             catch (Exception)
             {
@@ -208,10 +206,9 @@ namespace System.Helpers
             try
             {
                 var doc = XDocument.Parse(xml);
-                return doc.Descendants()
+                return [.. doc.Descendants()
                     .Where(x => nodeNameSelector(x.Name.LocalName))
-                    .Select(x => x.Value)
-                    .ToArray();
+                    .Select(x => x.Value)];
             }
             catch (Exception)
             {
@@ -262,7 +259,7 @@ namespace System.Helpers
         public static string[] GetValues(string xml, Func<string, bool> valueNodeNameSelector, Func<string, bool> contentNodeNameSelector, Func<string, bool> contentFilter)
         {
             var contents = GetContents(xml, contentNodeNameSelector, contentFilter);
-            return contents.SelectMany(x => GetValues(x, valueNodeNameSelector)).ToArray();
+            return [.. contents.SelectMany(x => GetValues(x, valueNodeNameSelector))];
         }
 
         /// <summary>

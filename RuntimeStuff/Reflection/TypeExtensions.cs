@@ -308,7 +308,7 @@ namespace System.Reflection
 
             if (propertyNames == null || propertyNames.Length == 0)
             {
-                propertyNames = type.PublicProperties.Select(x => x.Name).ToArray();
+                propertyNames = [.. type.PublicProperties.Select(x => x.Name)];
             }
 
             if (type.PropertyChanged?.GetValue(observable) is PropertyChangedEventHandler handler)

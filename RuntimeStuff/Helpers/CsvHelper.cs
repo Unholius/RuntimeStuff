@@ -77,7 +77,7 @@ namespace System.Helpers
             where T : class, new()
         {
             var typeCache = MemberCache.Get(typeof(T));
-            var properties = objectProperties != null ? objectProperties.Select(x => typeCache[x].AsPropertyInfo()).ToArray() : Array.Empty<PropertyInfo>();
+            var properties = objectProperties != null ? [.. objectProperties.Select(x => typeCache[x].AsPropertyInfo())] : Array.Empty<PropertyInfo>();
             return FromCsv<T>(csv, properties, hasColumnsHeader, columnSeparators, lineSeparators, valueParser);
         }
 
@@ -145,20 +145,11 @@ namespace System.Helpers
                 return Array.Empty<T>();
             }
 
-            if (columnSeparators == null)
-            {
-                columnSeparators = [";"];
-            }
+            columnSeparators ??= [";"];
 
-            if (lineSeparators == null)
-            {
-                lineSeparators = ["\r", "\n", Environment.NewLine];
-            }
+            lineSeparators ??= ["\r", "\n", Environment.NewLine];
 
-            if (valueParser == null)
-            {
-                valueParser = s => s;
-            }
+            valueParser ??= s => s;
 
             var lines = StringHelper.SplitBy(csv, StringSplitOptions.RemoveEmptyEntries, lineSeparators);
             if (lines.Length == 0)
@@ -168,19 +159,16 @@ namespace System.Helpers
 
             var typeCache = MemberCache.Get(typeof(T));
 
-            if (hasColumnsHeader == null)
-            {
-                hasColumnsHeader = StringHelper.SplitBy(lines[0], StringSplitOptions.None, columnSeparators).Any(x => typeCache[x.Replace(" ", string.Empty)] != null);
-            }
+            hasColumnsHeader ??= StringHelper.SplitBy(lines[0], StringSplitOptions.None, columnSeparators).Any(x => typeCache[x.Replace(" ", string.Empty)] != null);
 
             MemberCache[] columnNames;
             if (hasColumnsHeader.Value)
             {
-                columnNames = StringHelper.SplitBy(lines[0], StringSplitOptions.None, columnSeparators).Select(x => typeCache[x.Replace(" ", string.Empty)]).ToArray();
+                columnNames = [.. StringHelper.SplitBy(lines[0], StringSplitOptions.None, columnSeparators).Select(x => typeCache[x.Replace(" ", string.Empty)])];
             }
             else
             {
-                columnNames = objectProperties.Length > 0 ? objectProperties.Select(x => (MemberCache)x).ToArray() : typeCache.PublicBasicProperties.ToArray();
+                columnNames = objectProperties.Length > 0 ? [.. objectProperties.Select(x => (MemberCache)x)] : [.. typeCache.PublicBasicProperties];
             }
 
             var result = new List<T>();
@@ -213,7 +201,7 @@ namespace System.Helpers
                 result.Add(obj);
             }
 
-            return result.ToArray();
+            return [.. result];
         }
 
         /// <summary>
@@ -270,7 +258,7 @@ namespace System.Helpers
             // Определяем набор колонок
             var columns = (columnNames != null && columnNames.Length > 0)
                 ? columnNames
-                : data.Columns.Cast<DataColumn>().Select(c => c.ColumnName).ToArray();
+                : [.. data.Columns.Cast<DataColumn>().Select(c => c.ColumnName)];
 
             // Проверка существования колонок
             foreach (var columnName in columns)
@@ -442,7 +430,7 @@ namespace System.Helpers
         {
             var typeCache = MemberCache.Get(typeof(T));
             MemberCache[] props = null;
-            props = columns.Length > 0 ? typeCache.PublicBasicProperties.ToArray() : columns.Select(c => typeCache[c]).Where(m => m != null).ToArray();
+            props = columns.Length > 0 ? [.. typeCache.PublicBasicProperties] : [.. columns.Select(c => typeCache[c]).Where(m => m != null)];
 
             return ToCsv(
                 data,
@@ -501,15 +489,11 @@ namespace System.Helpers
 
             if (columns == null || columns.Length == 0)
             {
-                columns = typeCache.PublicBasicProperties.Select(x => (PropertyInfo)x)
-                    .ToArray();
+                columns = [.. typeCache.PublicBasicProperties.Select(x => (PropertyInfo)x)];
             }
 
-            if (valueSerializer == null)
-            {
-                valueSerializer = (member, value) =>
+            valueSerializer ??= (member, value) =>
                     DefaultSerialize(value);
-            }
 
             if (writeColumnHeaders)
             {

@@ -63,7 +63,7 @@ namespace System.Data
         {
             var map = columnNames?.Select(x => new KeyValuePair<string, string>(x, x))
                                   .ToDictionary(x => x.Key, x => x.Value)
-                      ?? new Dictionary<string, string>();
+                      ?? [];
 
             return ToObject<T>(row, map);
         }

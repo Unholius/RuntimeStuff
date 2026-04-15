@@ -911,7 +911,7 @@ namespace System.IO
 
                 if (!keyDict.TryGetValue(key, out var values))
                 {
-                    values = new List<string>();
+                    values = [];
                     keyDict[key] = values;
                 }
 
@@ -935,7 +935,7 @@ namespace System.IO
 
                 if (!writeKeys.TryGetValue(key, out var positions))
                 {
-                    positions = new List<(int, int)>();
+                    positions = [];
                     writeKeys[key] = positions;
                 }
 

@@ -128,15 +128,6 @@ namespace System.Data
             => connection.AsDbClient().AvgAsync(columnSelector, whereExpression, token);
 
         /// <summary>
-        /// Начинает новую транзакцию.
-        /// </summary>
-        /// <param name="connection">Подключение к базе данных.</param>
-        /// <param name="level">Уровень изоляции транзакции.</param>
-        /// <returns>Созданная транзакция.</returns>
-        public static IDbTransaction BeginTransaction(this IDbConnection connection, IsolationLevel level = IsolationLevel.ReadCommitted)
-            => connection.AsDbClient().BeginTransaction(level);
-
-        /// <summary>
         /// Настраивает подключение к базе данных с использованием интегрированной аутентификации (Windows Authentication).
         /// </summary>
         /// <param name="con">Экземпляр соединения с базой данных.</param>
@@ -320,8 +311,8 @@ namespace System.Data
         /// </example>
         public static DbCommand CreateCommand(this IDbConnection connection, string commandText, CommandType commandType, IDictionary<string, object> parameters)
 
-            => CreateCommand(connection, commandText, commandType, parameters.Select(x
-            => (x.Key, x.Value)).ToArray());
+            => CreateCommand(connection, commandText, commandType, [.. parameters.Select(x
+            => (x.Key, x.Value))]);
 
         /// <summary>
         /// Создаёт и настраивает объект <see cref="DbCommand"/> для выполнения SQL-запроса или хранимой процедуры.
@@ -474,13 +465,6 @@ namespace System.Data
         public static Task<int> DeleteRangeAsync<T>(this IDbConnection connection, IEnumerable<T> list, IDbTransaction dbTransaction, CancellationToken token = default)
             where T : class
             => connection.AsDbClient().DeleteRangeAsync(list, dbTransaction, token);
-
-        /// <summary>
-        /// Завершает текущую транзакцию.
-        /// </summary>
-        /// <param name="connection">Подключение к базе данных.</param>
-        public static void EndTransaction(this IDbConnection connection)
-            => connection.AsDbClient().EndTransaction();
 
         /// <summary>
         /// Выполняет SQL-команду без возврата результата.
@@ -803,6 +787,25 @@ namespace System.Data
         public static T Insert<T>(this IDbConnection connection, IDbTransaction dbTransaction = null, params Action<T>[] insertColumns)
             where T : class
             => connection.AsDbClient().Insert(dbTransaction, insertColumns);
+
+        /// <summary>
+        /// Выполняет вставку строки в указанную таблицу без явной транзакции.
+        /// </summary>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="tableName">Имя таблицы, в которую выполняется вставка.</param>
+        /// <param name="values">Значения, которые будут вставлены в строку таблицы.</param>
+        public static void Insert(this IDbConnection connection, string tableName, params object[] values)
+            => Insert(connection, tableName, (IDbTransaction)null, values);
+
+        /// <summary>
+        /// Выполняет вставку строки в указанную таблицу с возможностью использования транзакции.
+        /// </summary>
+        /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="tableName">Имя таблицы, в которую выполняется вставка.</param>
+        /// <param name="dbTransaction">Транзакция базы данных. Если <c>null</c>, вставка выполняется без транзакции.</param>
+        /// <param name="values">Значения, которые будут вставлены в строку таблицы. Порядок значений должен соответствовать порядку столбцов таблицы.</param>
+        public static void Insert(this IDbConnection connection, string tableName, IDbTransaction dbTransaction, params object[] values)
+            => connection.AsDbClient().Insert(tableName, dbTransaction, values);
 
         /// <summary>
         /// Вставляет новую запись в таблицу.

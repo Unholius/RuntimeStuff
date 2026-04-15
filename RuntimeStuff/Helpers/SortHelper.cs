@@ -30,7 +30,7 @@ namespace System.Helpers
         /// <param name="propertyNames">Имена свойств для сортировки.</param>
         /// <returns>Отсортированная коллекция.</returns>
         public static IOrderedEnumerable<T> Sort<T>(IEnumerable<T> source, ListSortDirection order, params string[] propertyNames)
-            where T : class => ApplySort(source, propertyNames.Select(x => (x, order)).ToArray());
+            where T : class => ApplySort(source, [.. propertyNames.Select(x => (x, order))]);
 
         /// <summary>
         /// Sorts the specified source.
@@ -40,7 +40,7 @@ namespace System.Helpers
         /// <param name="sorts">The sorts.</param>
         /// <returns>IOrderedEnumerable&lt;T&gt;.</returns>
         public static IOrderedEnumerable<T> Sort<T>(IEnumerable<T> source, ListSortDescriptionCollection sorts)
-           where T : class => ApplySort(source, sorts.Cast<ListSortDescription>().Select(x => (x.PropertyDescriptor.Name, x.SortDirection)).ToArray());
+           where T : class => ApplySort(source, [.. sorts.Cast<ListSortDescription>().Select(x => (x.PropertyDescriptor.Name, x.SortDirection))]);
 
         /// <summary>
         /// Выполняет дополнительную сортировку (ThenBy/ThenByDescending) для уже отсортированной последовательности.
@@ -51,7 +51,7 @@ namespace System.Helpers
         /// <param name="propertyNames">Имена свойств для сортировки.</param>
         /// <returns>Повторно отсортированная коллекция.</returns>
         public static IOrderedEnumerable<T> Sort<T>(IOrderedEnumerable<T> source, ListSortDirection order, params string[] propertyNames)
-            where T : class => ApplySort(source, propertyNames.Select(x => (x, order)).ToArray());
+            where T : class => ApplySort(source, [.. propertyNames.Select(x => (x, order))]);
 
         /// <summary>
         /// Сортирует последовательность по указанным свойствам по возрастанию.

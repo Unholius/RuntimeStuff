@@ -152,9 +152,4 @@ public class DumbTests
     [TestMethod] public void Dumb_Test_073() => Assert.IsTrue(true);
 
     [TestMethod] public void Dumb_Test_074() => Assert.IsTrue(true);
-
-    [TestMethod] public void Dumb_Test_075() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_076() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_077() => Assert.IsTrue(true);
-    [TestMethod] public void Dumb_Test_078() => Assert.IsTrue(true);
 }

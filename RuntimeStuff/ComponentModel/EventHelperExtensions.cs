@@ -81,10 +81,7 @@ namespace System.ComponentModel
             where TSource : class
         {
             var srcEvent = source.GetType().GetEvent(onSourceEventName) ?? throw new ArgumentException($@"Событие '{onSourceEventName}' не найдено в типе '{source.GetType().Name}'", nameof(onSourceEventName));
-            if (canExecuteAction == null)
-            {
-                canExecuteAction = () => true;
-            }
+            canExecuteAction ??= () => true;
 
             return EventHelper.BindEventToAction(source, srcEvent, action, (s, e) => canExecuteAction());
         }
@@ -705,15 +702,9 @@ namespace System.ComponentModel
             var targetProp = targetPropertySelector.GetPropertyInfo();
             var targetEvent = target.GetType().GetEvent(onTargetEventName);
 
-            if (canAcceptSourceEvent == null)
-            {
-                canAcceptSourceEvent = (s, e) => true;
-            }
+            canAcceptSourceEvent ??= (s, e) => true;
 
-            if (canAcceptTargetEvent == null)
-            {
-                canAcceptTargetEvent = (s, e) => true;
-            }
+            canAcceptTargetEvent ??= (s, e) => true;
 
             if (sourcePropertyValueToTargetPropertyValueConverter == null && !typeof(TTargetProp).IsAssignableFrom(typeof(TSourceProp)))
             {

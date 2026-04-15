@@ -138,7 +138,7 @@ namespace System.Data
         /// </summary>
         public DbEntityMap Map
         {
-            get => this.map ?? (this.map = new DbEntityMap());
+            get => this.map ??= new DbEntityMap();
 
             set => this.map = value;
         }

@@ -32,7 +32,7 @@ namespace RuntimeStuff.MSTests
             var s1 = sw.ElapsedMilliseconds;
 
             sw.Restart();
-            x1.SuppressNotifyPropertyChange = true;
+            x1.SuppressNotifyPropertyChange(true);
             for (int i = 0; i < n; i++)
             {
                 x1.Id = i;
@@ -53,9 +53,9 @@ namespace RuntimeStuff.MSTests
             x1.Id = 2;
             Assert.AreEqual(x1.Id, x2.Id);
 
-            x1.SuppressNotifyPropertyChange = true;
+            x1.SuppressNotifyPropertyChange(true);
             x1.Id = 3;
-            x1.SuppressNotifyPropertyChange = false;
+            x1.SuppressNotifyPropertyChange(false);
             Assert.AreNotEqual(x1.Id, x2.Id);
 
             x2.Id = 4;

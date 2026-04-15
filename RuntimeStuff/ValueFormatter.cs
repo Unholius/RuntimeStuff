@@ -116,7 +116,7 @@ namespace System
         /// <summary>
         /// Словарь пользовательских форматов для конкретных типов.
         /// </summary>
-        public Dictionary<Type, string> CustomTypeFormat { get; set; } = new Dictionary<Type, string>();
+        public Dictionary<Type, string> CustomTypeFormat { get; set; } = [];
 
         /// <summary>
         /// Формат даты (без времени).
@@ -232,12 +232,12 @@ namespace System
         /// <summary>
         /// Список функций постобработки результата.
         /// </summary>
-        public List<Func<string, string>> PostFormatters { get; set; } = new List<Func<string, string>>();
+        public List<Func<string, string>> PostFormatters { get; set; } = [];
 
         /// <summary>
         /// Список пользовательских сериализаторов.
         /// </summary>
-        public List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)> Serializers { get; set; } = new List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)>();
+        public List<(Func<Type, bool> Condition, Func<object, ValueFormatter, string> Serializer)> Serializers { get; set; } = [];
 
         /// <summary>
         /// Префикс, добавляемый перед строковым значением при сериализации.

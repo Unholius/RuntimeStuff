@@ -193,7 +193,7 @@ namespace System
                 }
             };
 
-            var list = this.handlers.GetOrAdd(typeof(T), _ => new List<Delegate>());
+            var list = this.handlers.GetOrAdd(typeof(T), _ => []);
             lock (list)
             {
                 list.Add(wrapped);
@@ -238,7 +238,7 @@ namespace System
                     Tuple.Create(handler, message));
             };
 
-            var list = this.handlers.GetOrAdd(typeof(T), _ => new List<Delegate>());
+            var list = this.handlers.GetOrAdd(typeof(T), _ => []);
             lock (list)
             {
                 list.Add(wrapped);
@@ -328,7 +328,7 @@ namespace System
                 tcs.TrySetResult(message);
             };
 
-            var list = this.waitingHandlers.GetOrAdd(type, _ => new List<Action<object>>());
+            var list = this.waitingHandlers.GetOrAdd(type, _ => []);
             lock (list)
             {
                 list.Add(waitingHandler);
@@ -439,7 +439,7 @@ namespace System
                 Delegate[] snapshot;
                 lock (list)
                 {
-                    snapshot = list.ToArray();
+                    snapshot = [.. list];
                 }
 
                 foreach (var handler in snapshot)
@@ -461,7 +461,7 @@ namespace System
                 Action<object>[] snapshot;
                 lock (waitList)
                 {
-                    snapshot = waitList.ToArray();
+                    snapshot = [.. waitList];
                 }
 
                 foreach (var handler in snapshot)

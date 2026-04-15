@@ -103,7 +103,7 @@ namespace System.Helpers
             // если свойства не заданы — берем все публичные
             if (propertyNames?.Any() == true)
             {
-                filteredProps = sourceItemTypeCache.Properties.Where(x => propertyNames.Contains(x.Name) && x.Getter != null).ToArray();
+                filteredProps = [.. sourceItemTypeCache.Properties.Where(x => propertyNames.Contains(x.Name) && x.Getter != null)];
             }
 
             text = text.ToLower();

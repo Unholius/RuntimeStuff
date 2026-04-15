@@ -6,6 +6,9 @@ namespace System.Collections
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Specialized;
+    using System.ComponentModel;
+    using System.Linq;
     using System.Text;
 
     /// <summary>
@@ -15,13 +18,22 @@ namespace System.Collections
     /// <typeparam name="T">Тип значения узла.</typeparam>
     public class TreeList<T> : IEnumerable<T>
     {
-        private readonly List<TreeList<T>> children = new();
+        private readonly List<TreeList<T>> children = [];
+
+        /// <summary>
+        /// Инициализирует новый экземпляр узла дерева с указанным значением.
+        /// </summary>
+        public TreeList()
+        {
+            this.Root = this;
+        }
 
         /// <summary>
         /// Инициализирует новый экземпляр узла дерева с указанным значением.
         /// </summary>
         /// <param name="item">Значение узла.</param>
         public TreeList(T item)
+            : this()
         {
             this.Value = item;
         }
@@ -43,9 +55,10 @@ namespace System.Collections
         public IReadOnlyList<TreeList<T>> Children => this.children;
 
         /// <summary>
-        /// Количество дочерних элементов.
+        /// Индекс текущего узла в коллекции дочерних элементов родителя.
+        /// Для корневого узла возвращает -1.
         /// </summary>
-        public int Count => this.children.Count;
+        public int Index { get; private set; }
 
         /// <summary>
         /// Определяет, раскрыт ли узел (используется при обходе видимых элементов).
@@ -53,9 +66,37 @@ namespace System.Collections
         public bool IsExpanded { get; set; } = true;
 
         /// <summary>
+        /// Уровень вложенности узла.
+        /// </summary>
+        public int Level { get; private set; }
+
+        /// <summary>
+        /// Следующий узел в плоском обходе дерева.
+        /// Возвращает null, если текущий узел является последним видимым узлом.
+        /// </summary>
+        public TreeList<T> Next { get; private set; }
+
+        /// <summary>
         /// Родительский узел.
         /// </summary>
         public TreeList<T> Parent { get; private set; }
+
+        /// <summary>
+        /// Значение родительского узла.
+        /// Для корневого элемента возвращает default(T).
+        /// </summary>
+        public T ParentValue => this.Parent != null ? this.Parent.Value : default;
+
+        /// <summary>
+        /// Предыдущий узел в плоском обходе дерева.
+        /// Возвращает null, если текущий узел является первым видимым узлом.
+        /// </summary>
+        public TreeList<T> Prev { get; private set; }
+
+        /// <summary>
+        /// Корневой узел дерева.
+        /// </summary>
+        public TreeList<T> Root { get; private set; }
 
         /// <summary>
         /// Значение, хранимое в узле.
@@ -106,9 +147,14 @@ namespace System.Collections
         /// <returns>Путь.</returns>
         public static List<TreeList<T>> GetPath(TreeList<T> fromNode, TreeList<T> toNode)
         {
-            if (fromNode == null || toNode == null)
+            if (fromNode == null)
             {
-                throw new ArgumentNullException();
+                throw new ArgumentNullException(nameof(fromNode));
+            }
+
+            if (toNode == null)
+            {
+                throw new ArgumentNullException(nameof(toNode));
             }
 
             var a = new List<TreeList<T>>();
@@ -156,8 +202,7 @@ namespace System.Collections
         public TreeList<T> Add(T item)
         {
             var child = new TreeList<T>(item);
-            this.Add(child);
-            return child;
+            return this.Add(child);
         }
 
         /// <summary>
@@ -179,9 +224,26 @@ namespace System.Collections
             }
 
             child.Parent = this;
+            child.Root = this.Root;
+            child.Level = this.Level + 1;
+            child.Index = this.children.Count;
             this.children.Add(child);
-
             return child;
+        }
+
+        /// <summary>
+        /// Добавляет последовательность значений как дочерние узлы.
+        /// </summary>
+        /// <param name="items">Последовательность добавляемых значений.</param>
+        /// <returns>
+        /// Последний добавленный узел или <see langword="null"/>, если последовательность пуста.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="items"/> равен <see langword="null"/>.
+        /// </exception>
+        public TreeList<T> AddRange(params T[] items)
+        {
+            return this.AddRange((IEnumerable<T>)items);
         }
 
         /// <summary>
@@ -196,19 +258,19 @@ namespace System.Collections
         /// </exception>
         public TreeList<T> AddRange(IEnumerable<T> items)
         {
-            if (items is null)
+            if (items == null)
             {
                 throw new ArgumentNullException(nameof(items));
             }
 
-            TreeList<T> lastItem = null;
+            TreeList<T> last = null;
 
             foreach (var item in items)
             {
-                lastItem = this.Add(item);
+                last = this.Add(item);
             }
 
-            return lastItem;
+            return last;
         }
 
         /// <summary>
@@ -244,6 +306,26 @@ namespace System.Collections
         }
 
         /// <summary>
+        /// Перечисление узлов от <see cref="Root"/> до текущего узла.
+        /// </summary>
+        /// <param name="includeSelf">Включать ли в перечисление корневой узел.</param>
+        /// <param name="includeRoot">Включать ли в перечисление текущий узел.</param>
+        /// <returns>Узлы от корневого до текущего узла.</returns>
+        public IEnumerable<TreeList<T>> Branch(bool includeSelf = true, bool includeRoot = true)
+        {
+            var path = GetPath(this.Root, this);
+            for (int i = 0; i < path.Count; i++)
+            {
+                if ((i == 0 && !includeRoot) || (i == path.Count - 1 && !includeSelf))
+                {
+                    continue;
+                }
+
+                yield return path[i];
+            }
+        }
+
+        /// <summary>
         /// Удаляет все дочерние узлы текущего элемента и разрывает связи с ними.
         /// </summary>
         /// <remarks>
@@ -257,6 +339,28 @@ namespace System.Collections
             }
 
             this.children.Clear();
+        }
+
+        /// <summary>
+        /// Выполняет полный обход поддерева, начиная с текущего узла.
+        /// </summary>
+        /// <returns>
+        /// Последовательность всех узлов поддерева в порядке обхода.
+        /// </returns>
+        /// <remarks>
+        /// Обход включает все узлы независимо от состояния <see cref="IsExpanded"/>.
+        /// </remarks>
+        public IEnumerable<TreeList<T>> DescendantsAndSelf()
+        {
+            yield return this;
+
+            foreach (var child in this.children)
+            {
+                foreach (var node in child.DescendantsAndSelf())
+                {
+                    yield return node;
+                }
+            }
         }
 
         /// <summary>
@@ -277,11 +381,11 @@ namespace System.Collections
         /// Перечислитель значений узлов (<typeparamref name="T"/>), начиная с текущего узла.
         /// </returns>
         /// <remarks>
-        /// Обход выполняется только по видимым узлам (<see cref="TraverseVisible"/>).
+        /// Обход выполняется только по видимым узлам (<see cref="VisibleDescendantsAndSelf"/>).
         /// </remarks>
         public IEnumerator<T> GetEnumerator()
         {
-            foreach (var node in this.TraverseVisible())
+            foreach (var node in this.VisibleDescendantsAndSelf())
             {
                 yield return node.Value;
             }
@@ -306,7 +410,7 @@ namespace System.Collections
         {
             int index = 0;
 
-            foreach (var node in this.GetRoot().TraverseVisible())
+            foreach (var node in this.Root.VisibleDescendantsAndSelf())
             {
                 if (node == this)
                 {
@@ -320,33 +424,10 @@ namespace System.Collections
         }
 
         /// <summary>
-        /// Возвращает уровень текущего узла в иерархии дерева.
-        /// </summary>
-        /// <returns>
-        /// Уровень узла, начиная с 0 для корневого элемента.
-        /// </returns>
-        /// <remarks>
-        /// Значение вычисляется относительно количества переходов к родительскому узлу.
-        /// </remarks>
-        public int GetLevel()
-        {
-            int level = 0;
-            var current = this.Parent;
-
-            while (current != null)
-            {
-                level++;
-                current = current.Parent;
-            }
-
-            return level;
-        }
-
-        /// <summary>
         /// Возвращает узел по индексу в плоском обходе видимого дерева.
         /// </summary>
         /// <remarks>
-        /// Обход выполняется в порядке <see cref="TraverseVisible"/> начиная с текущего узла.
+        /// Обход выполняется в порядке <see cref="VisibleDescendantsAndSelf"/> начиная с текущего узла.
         /// Учитываются только видимые элементы.
         /// </remarks>
         /// <param name="targetIndex">Индекс узла в последовательности обхода.</param>
@@ -357,7 +438,7 @@ namespace System.Collections
         {
             int index = 0;
 
-            foreach (var node in this.TraverseVisible())
+            foreach (var node in this.VisibleDescendantsAndSelf())
             {
                 if (index == targetIndex)
                 {
@@ -368,23 +449,6 @@ namespace System.Collections
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Возвращает корневой узел дерева, к которому принадлежит текущий узел.
-        /// </summary>
-        /// <returns>
-        /// Корневой узел дерева.
-        /// </returns>
-        public TreeList<T> GetRoot()
-        {
-            var node = this;
-            while (node.Parent != null)
-            {
-                node = node.Parent;
-            }
-
-            return node;
         }
 
         /// <summary>
@@ -404,7 +468,6 @@ namespace System.Collections
             }
 
             var child = new TreeList<T>(item);
-
             return this.Insert(index, child);
         }
 
@@ -428,8 +491,9 @@ namespace System.Collections
             }
 
             child.Parent = this;
+            child.Index = index;
             this.children.Insert(index, child);
-
+            this.UpdateIndexes(index + 1, 1);
             return child;
         }
 
@@ -456,6 +520,28 @@ namespace System.Collections
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Возвращает все листовые узлы дерева (узлы без дочерних элементов),
+        /// включая текущий узел, если у него нет потомков.
+        /// </summary>
+        /// <returns>Последовательность листовых узлов.</returns>
+        public IEnumerable<TreeList<T>> Leaves()
+        {
+            if (this.children.Count == 0)
+            {
+                yield return this;
+                yield break;
+            }
+
+            foreach (var child in this.children)
+            {
+                foreach (var leaf in child.Leaves())
+                {
+                    yield return leaf;
+                }
+            }
         }
 
         /// <summary>
@@ -514,8 +600,15 @@ namespace System.Collections
             }
 
             node.Parent = null;
-            this.children.Remove(node);
-            return true;
+            if (this.children.Remove(node))
+            {
+                this.UpdateIndexes(node.Index, -1);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -559,7 +652,8 @@ namespace System.Collections
         /// <remarks>
         /// После удаления происходит переиндексация оставшихся дочерних элементов.
         /// </remarks>
-        public void RemoveAt(int index)
+        /// <returns>Возвращает удаленный узел дерева.</returns>
+        public TreeList<T> RemoveAt(int index)
         {
             if (index < 0 || index >= this.children.Count)
             {
@@ -567,10 +661,10 @@ namespace System.Collections
             }
 
             var removed = this.children[index];
-
             this.children.RemoveAt(index);
-
             removed.Parent = null;
+            this.UpdateIndexes(index, -1);
+            return removed;
         }
 
         /// <summary>
@@ -605,38 +699,44 @@ namespace System.Collections
         /// </returns>
         /// <remarks>
         /// Отступ формируется символами табуляции в зависимости от уровня узла.
-        /// Обход выполняется по всем узлам через <see cref="TraverseAll()"/>.
+        /// Обход выполняется по всем узлам через <see cref="DescendantsAndSelf()"/>.
         /// </remarks>
         public override string ToString()
         {
             var sb = new StringBuilder();
 
-            foreach (var node in this.TraverseAll())
+            foreach (var node in this.DescendantsAndSelf())
             {
-                sb.Append(new string('\t', node.GetLevel()));
+                sb.Append(new string('\t', node.Level));
                 sb.Append(node.Value);
                 sb.Append("\r\n");
             }
 
+            sb.Remove(sb.Length - 2, 2);
             return sb.ToString();
         }
 
         /// <summary>
-        /// Выполняет полный обход поддерева, начиная с текущего узла.
+        /// Выполняет обход только видимых узлов поддерева.
         /// </summary>
         /// <returns>
-        /// Последовательность всех узлов поддерева в порядке обхода.
+        /// Последовательность узлов, доступных в текущем состоянии раскрытия.
         /// </returns>
         /// <remarks>
-        /// Обход включает все узлы независимо от состояния <see cref="IsExpanded"/>.
+        /// Если <see cref="IsExpanded"/> равно <see langword="false"/>, дочерние узлы не обходятся.
         /// </remarks>
-        public IEnumerable<TreeList<T>> TraverseAll()
+        public IEnumerable<TreeList<T>> VisibleDescendantsAndSelf()
         {
             yield return this;
 
+            if (!this.IsExpanded)
+            {
+                yield break;
+            }
+
             foreach (var child in this.children)
             {
-                foreach (var node in child.TraverseAll())
+                foreach (var node in child.VisibleDescendantsAndSelf())
                 {
                     yield return node;
                 }
@@ -657,9 +757,6 @@ namespace System.Collections
         /// <param name="onLeaveBranch">
         /// Делегат, вызываемый после завершения обхода дочернего узла (после выхода из ветки).
         /// </param>
-        /// <returns>
-        /// Последовательность всех узлов дерева в порядке обхода (pre-order).
-        /// </returns>
         /// <remarks>
         /// <para>
         /// Обход выполняется в глубину (DFS) с предварительной обработкой узла (pre-order).
@@ -673,55 +770,34 @@ namespace System.Collections
         /// </list>
         /// </para>
         /// <para>
-        /// Делегат <c>onEachNode</c> вызывается для каждого узла дважды:
-        /// один раз при входе в текущий узел и один раз при возврате из рекурсивного вызова.
-        /// </para>
-        /// <para>
         /// Все делегаты являются необязательными и могут быть равны <c>null</c>.
         /// </para>
         /// </remarks>
-        public IEnumerable<TreeList<T>> TraverseAll(Action<TreeList<T>> onEachNode, Action<TreeList<T>> onEnterBranch, Action<TreeList<T>> onLeaveBranch)
+        public void VisitAll(
+            Action<TreeList<T>> onEachNode,
+            Action<TreeList<T>> onEnterBranch,
+            Action<TreeList<T>> onLeaveBranch)
         {
             onEachNode?.Invoke(this);
-            yield return this;
 
             foreach (var child in this.children)
             {
                 onEnterBranch?.Invoke(child);
-                foreach (var node in child.TraverseAll(onEachNode, onEnterBranch, onLeaveBranch))
-                {
-                    onEachNode?.Invoke(node);
-                    yield return node;
-                }
-
+                child.VisitAll(onEachNode, onEnterBranch, onLeaveBranch);
                 onLeaveBranch?.Invoke(child);
             }
         }
 
-        /// <summary>
-        /// Выполняет обход только видимых узлов поддерева.
-        /// </summary>
-        /// <returns>
-        /// Последовательность узлов, доступных в текущем состоянии раскрытия.
-        /// </returns>
-        /// <remarks>
-        /// Если <see cref="IsExpanded"/> равно <see langword="false"/>, дочерние узлы не обходятся.
-        /// </remarks>
-        public IEnumerable<TreeList<T>> TraverseVisible()
+        private void UpdateIndexes(int fromIndex, int step)
         {
-            yield return this;
-
-            if (!this.IsExpanded)
+            if (fromIndex < 0 || fromIndex >= this.children.Count)
             {
-                yield break;
+                return;
             }
 
-            foreach (var child in this.children)
+            for (int i = fromIndex; i < this.children.Count; i++)
             {
-                foreach (var node in child.TraverseVisible())
-                {
-                    yield return node;
-                }
+                this.children[i].Index += step;
             }
         }
     }

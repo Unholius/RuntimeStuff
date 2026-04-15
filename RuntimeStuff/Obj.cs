@@ -204,28 +204,28 @@ namespace System
 
         static Obj()
         {
-            IntNumberTypes = new HashSet<Type>
-            {
+            IntNumberTypes =
+            [
                 typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(short), typeof(ushort), typeof(byte),
                 typeof(sbyte),
                 typeof(int?), typeof(uint?), typeof(long?), typeof(ulong?), typeof(short?), typeof(ushort?),
                 typeof(byte?),
                 typeof(sbyte?),
-            };
+            ];
 
-            FloatNumberTypes = new HashSet<Type>
-            {
+            FloatNumberTypes =
+            [
                 typeof(float), typeof(double), typeof(decimal),
                 typeof(float?), typeof(double?), typeof(decimal?),
-            };
+            ];
 
             NumberTypes = new HashSet<Type>(IntNumberTypes.Concat(FloatNumberTypes));
 
-            BoolTypes = new HashSet<Type>
-            {
+            BoolTypes =
+            [
                 typeof(bool),
                 typeof(bool?),
-            };
+            ];
 
             BasicTypes = new HashSet<Type>(new[]
                 {
@@ -257,16 +257,16 @@ namespace System
         /// целевой тип, значение — функция преобразования.
         /// </summary>
         public static Dictionary<Type, Dictionary<Type, Func<object, object>>> CustomTypeConverters { get; } =
-            new Dictionary<Type, Dictionary<Type, Func<object, object>>>();
+            [];
 
         /// <summary>
         /// Типы, представляющие дату и время.
         /// </summary>
         /// <value>The date types.</value>
-        public static HashSet<Type> DateTypes { get; } = new HashSet<Type>
-        {
+        public static HashSet<Type> DateTypes { get; } =
+        [
             typeof(DateTime), typeof(DateTime?),
-        };
+        ];
 
         /// <summary>
         /// Флаги для поиска членов класса по умолчанию.
@@ -350,7 +350,7 @@ namespace System
         {
             if (!CustomTypeConverters.TryGetValue(typeof(TFrom), out var typeConverters) || typeConverters == null)
             {
-                typeConverters = new Dictionary<Type, Func<object, object>>();
+                typeConverters = [];
                 CustomTypeConverters[typeof(TFrom)] = typeConverters;
             }
 
@@ -1156,7 +1156,7 @@ namespace System
                     }
                     catch (ReflectionTypeLoadException ex)
                     {
-                        return ex.Types.Where(t => t != null).ToArray();
+                        return [.. ex.Types.Where(t => t != null)];
                     }
                 });
 
@@ -1169,7 +1169,7 @@ namespace System
                 }
             }
 
-            return result.ToArray();
+            return [.. result];
         }
 
         /// <summary>
@@ -1232,7 +1232,7 @@ namespace System
                 return null;
             }
 
-            var path = pathToMemberName as string[] ?? pathToMemberName.ToArray();
+            var path = pathToMemberName as string[] ?? [.. pathToMemberName];
 
             if (path.Length == 1)
             {
@@ -1244,7 +1244,7 @@ namespace System
 
             return memberValue == null
                 ? null
-                : Get(memberValue, path.Skip(1).ToArray(), convertToType);
+                : Get(memberValue, [.. path.Skip(1)], convertToType);
         }
 
         /// <summary>
@@ -1301,7 +1301,7 @@ namespace System
                 baseTypes.AddRange(type.GetInterfaces());
             }
 
-            return baseTypes.ToArray();
+            return [.. baseTypes];
         }
 
         /// <summary>
@@ -1670,10 +1670,9 @@ namespace System
         public static Type[] GetImplementationsOf(Type baseType, Assembly fromAssembly)
         {
             var assembly = fromAssembly ?? Assembly.GetCallingAssembly();
-            return assembly
+            return [.. assembly
                 .GetTypes()
-                .Where(x => IsImplements(x, baseType) && x != baseType)
-                .ToArray();
+                .Where(x => IsImplements(x, baseType) && x != baseType)];
         }
 
         /// <summary>
@@ -1682,7 +1681,7 @@ namespace System
         /// </summary>
         /// <param name="baseType">Базовый тип или интерфейс для поиска реализаций.</param>
         /// <returns>Массив типов, удовлетворяющих условию.</returns>
-        public static Type[] GetImplementationsOf(Type baseType) => AppDomain.CurrentDomain
+        public static Type[] GetImplementationsOf(Type baseType) => [.. AppDomain.CurrentDomain
             .GetAssemblies()
             .SelectMany(a =>
             {
@@ -1696,8 +1695,7 @@ namespace System
                     return ex.Types.Where(t => t != null);
                 }
             })
-            .Where(x => IsImplements(x, baseType) && x != baseType)
-            .ToArray();
+            .Where(x => IsImplements(x, baseType) && x != baseType)];
 
         /// <summary>
         /// Получает событие с наименьшего уровня иерархии.
@@ -2037,7 +2035,7 @@ namespace System
         /// </summary>
         /// <param name="type">Тип, для которого нужно получить свойства.</param>
         /// <returns>Массив <see cref="PropertyInfo" /> всех публичных свойств.</returns>
-        public static PropertyInfo[] GetProperties(Type type) => PropertiesCache.GetOrAdd(type, CacheTypeProperties).Values.Select(x => x.PropertyInfo).ToArray();
+        public static PropertyInfo[] GetProperties(Type type) => [.. PropertiesCache.GetOrAdd(type, CacheTypeProperties).Values.Select(x => x.PropertyInfo)];
 
         /// <summary>
         /// Возвращает отображение имён свойств указанного типа на объекты <see cref="PropertyInfo" />.
@@ -2098,7 +2096,7 @@ namespace System
         /// </summary>
         /// <param name="type">Тип, для которого нужно получить имена свойств.</param>
         /// <returns>Массив имен свойств.</returns>
-        public static string[] GetPropertyNames(Type type) => GetPropertiesMap(type).Keys.ToArray();
+        public static string[] GetPropertyNames(Type type) => [.. GetPropertiesMap(type).Keys];
 
         /// <summary>
         /// Определяет фактический тип переданного объекта с учетом <see cref="Nullable{T}"/>.
@@ -2239,7 +2237,7 @@ namespace System
                 values.Add(GetMemberGetter(sourceType, propName)?.Invoke(source));
             }
 
-            return values.ToArray();
+            return [.. values];
         }
 
         /// <summary>
@@ -2261,7 +2259,7 @@ namespace System
         /// </remarks>
         public static TValue[] GetValues<TObject, TValue>(TObject source, params string[] memberNames)
             where TObject : class
-            => GetValues(source, memberNames).Select(x => ChangeType<TValue>(x)).ToArray();
+            => [.. GetValues(source, memberNames).Select(x => ChangeType<TValue>(x))];
 
         /// <summary>
         /// Проверяет, является ли тип простым (базовым).
@@ -2718,7 +2716,7 @@ namespace System
                 return false;
             }
 
-            var path = pathToMemberName as string[] ?? pathToMemberName.ToArray();
+            var path = pathToMemberName as string[] ?? [.. pathToMemberName];
             if (path.Length == 1)
             {
                 // Конечный элемент пути
@@ -2745,7 +2743,7 @@ namespace System
                 Set(instance, path[0], subMemberInstance);
             }
 
-            return Set(subMemberInstance, path.Skip(1).ToArray(), value);
+            return Set(subMemberInstance, [.. path.Skip(1)], value);
         }
 
         /// <summary>

@@ -31,7 +31,7 @@ namespace System.Data
         /// Используется для быстрого разрешения соответствий при построении запросов
         /// и выполнении операций маппинга.
         /// </remarks>
-        internal Dictionary<Type, TypeMappingInfo> TypeMap { get; } = new Dictionary<Type, TypeMappingInfo>();
+        internal Dictionary<Type, TypeMappingInfo> TypeMap { get; } = [];
 
         /// <summary>
         /// Выполняет автоматическое сопоставление типа <typeparamref name="T"/>
@@ -130,7 +130,7 @@ namespace System.Data
                 return Array.Empty<(string, string)>();
             }
 
-            return typeMapping.PropertyColumns.Select(x => (x.Value.ColumnName, x.Value.Property.Name)).ToArray();
+            return [.. typeMapping.PropertyColumns.Select(x => (x.Value.ColumnName, x.Value.Property.Name))];
         }
 
         /// <summary>
@@ -154,7 +154,7 @@ namespace System.Data
                 return Array.Empty<(string, string)>();
             }
 
-            return typeMapping.PropertyColumns.Select(x => (x.Value.Property.Name, x.Value.ColumnName)).ToArray();
+            return [.. typeMapping.PropertyColumns.Select(x => (x.Value.Property.Name, x.Value.ColumnName))];
         }
 
         /// <summary>

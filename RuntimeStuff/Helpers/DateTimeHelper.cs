@@ -863,7 +863,7 @@ namespace System.Helpers
                 }
             }
 
-            return result.ToArray();
+            return [.. result];
         }
 
         /// <summary>

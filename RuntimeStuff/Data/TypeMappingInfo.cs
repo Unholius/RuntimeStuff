@@ -26,7 +26,7 @@ namespace System.Data
         internal TypeMappingInfo(Type entityType)
         {
             this.EntityType = entityType ?? throw new ArgumentNullException(nameof(entityType));
-            this.PropertyMap = new Dictionary<PropertyInfo, PropertyMappingInfo>();
+            this.PropertyMap = [];
         }
 
         /// <summary>

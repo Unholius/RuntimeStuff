@@ -535,7 +535,7 @@ namespace System.Linq.Expressions
         {
             public Token Token { get; set; }
 
-            public List<object> Values { get; set; } = new List<object>();
+            public List<object> Values { get; set; } = [];
         }
     }
 }

@@ -131,10 +131,9 @@ namespace System.Helpers
 
             try
             {
-                return FindNodes(json, nodeNameSelector)
+                return [.. FindNodes(json, nodeNameSelector)
                     .Where(x => searchInArrays ? IsObjectOrArray(x) : IsObject(x))
-                    .Select(ParseObject)
-                    .ToArray();
+                    .Select(ParseObject)];
             }
             catch
             {
@@ -186,7 +185,7 @@ namespace System.Helpers
         public static Dictionary<string, string>[] GetAttributes(string json, Func<string, bool> attributesNodeNameSelector, Func<string, bool> contentNodeNameSelector, Func<string, bool> contentFilter, bool searchInArrays)
         {
             var contents = GetContents(json, contentNodeNameSelector, contentFilter);
-            return contents.SelectMany(x => GetAttributes(x, attributesNodeNameSelector, searchInArrays)).ToArray();
+            return [.. contents.SelectMany(x => GetAttributes(x, attributesNodeNameSelector, searchInArrays))];
         }
 
         /// <summary>
@@ -241,9 +240,7 @@ namespace System.Helpers
 
             try
             {
-                return FindNodes(json, nodeNameSelector)
-                    .Where(x => contentFilter == null || contentFilter(x))
-                    .ToArray();
+                return [.. FindNodes(json, nodeNameSelector).Where(x => contentFilter == null || contentFilter(x))];
             }
             catch
             {
@@ -296,10 +293,9 @@ namespace System.Helpers
 
             try
             {
-                return FindNodes(json, nodeNameSelector)
+                return [.. FindNodes(json, nodeNameSelector)
                     .Where(v => searchInArrays || !IsArray(v))
-                    .Select(Unwrap)
-                    .ToArray();
+                    .Select(Unwrap)];
             }
             catch
             {
@@ -347,7 +343,7 @@ namespace System.Helpers
         public static string[] GetValues(string json, Func<string, bool> valueNodeNameSelctor, Func<string, bool> contentNodeNameSelector, Func<string, bool> contentFilter)
         {
             var contents = GetContents(json, contentNodeNameSelector, contentFilter);
-            return contents.SelectMany(x => GetValues(x, valueNodeNameSelctor)).ToArray();
+            return [.. contents.SelectMany(x => GetValues(x, valueNodeNameSelctor))];
         }
 
         /// <summary>
@@ -411,7 +407,7 @@ namespace System.Helpers
                 true,
                 StringHelper.EscapeMode.Json)
             {
-                CustomTypeFormat = customTypeFormats ?? new Dictionary<Type, string>(),
+                CustomTypeFormat = customTypeFormats ?? [],
             };
 
             return SerializeInternal(obj, vf);

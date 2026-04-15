@@ -434,17 +434,15 @@ namespace System.Reflection
                     return this.columns;
                 }
 
-                this.columns = this.typeCache?.ColumnProperties ?? this.PublicBasicProperties.Where(x =>
+                this.columns = this.typeCache?.ColumnProperties ?? [.. this.PublicBasicProperties.Where(x =>
                         !x.IsPrimaryKey
                         && !x.IsForeignKey
                         && x.IsColumn
-                        && x.GetAttribute("NotMappedAttribute") == null)
-                    .ToArray();
+                        && x.GetAttribute("NotMappedAttribute") == null)];
 
                 if (this.columns.Length == 0)
                 {
-                    this.columns = this.PublicBasicProperties.Where(x => !x.IsPrimaryKey)
-                        .ToArray();
+                    this.columns = [.. this.PublicBasicProperties.Where(x => !x.IsPrimaryKey)];
                 }
 
                 return this.columns;
@@ -518,7 +516,7 @@ namespace System.Reflection
                     return this.fields;
                 }
 
-                this.fields = this.GetFields().Select(x => new MemberCache(x, this)).ToArray();
+                this.fields = [.. this.GetFields().Select(x => new MemberCache(x, this))];
                 this.memberFieldsMap.Init(this.memberFields, x => x.Name);
                 return this.fields;
             }
@@ -546,9 +544,7 @@ namespace System.Reflection
                     return this.fks;
                 }
 
-                this.fks = this.typeCache?.ForeignKeys ?? this.PublicBasicProperties
-                    .Where(x => x.GetAttribute("ForeignKeyAttribute") != null)
-                    .ToArray();
+                this.fks = this.typeCache?.ForeignKeys ?? [.. this.PublicBasicProperties.Where(x => x.GetAttribute("ForeignKeyAttribute") != null)];
 
                 return this.fks;
             }
@@ -847,7 +843,7 @@ namespace System.Reflection
                 }
 
                 this.pks = this.typeCache?.PrimaryKeys ??
-                      this.PublicBasicProperties.Where(x => x.GetAttribute("KeyAttribute") != null).ToArray();
+                      [.. this.PublicBasicProperties.Where(x => x.GetAttribute("KeyAttribute") != null)];
 
                 if (this.pks.Length == 0)
                 {
@@ -878,7 +874,7 @@ namespace System.Reflection
                     return this.properties;
                 }
 
-                this.properties = this.GetProperties().Select(x => new MemberCache(x, this)).ToArray();
+                this.properties = [.. this.GetProperties().Select(x => new MemberCache(x, this))];
                 this.memberPropertiesMap.Init(this.memberProperties, x => x.Name);
                 return this.properties;
             }
@@ -928,7 +924,7 @@ namespace System.Reflection
                     return this.publicBasicEnumerableProperties;
                 }
 
-                this.publicBasicEnumerableProperties = this.PublicProperties.Where(x => x.IsBasicCollection).ToArray();
+                this.publicBasicEnumerableProperties = [.. this.PublicProperties.Where(x => x.IsBasicCollection)];
                 return this.publicBasicEnumerableProperties;
             }
         }
@@ -945,7 +941,7 @@ namespace System.Reflection
                     return this.publicBasicProperties;
                 }
 
-                this.publicBasicProperties = this.PublicProperties.Where(x => x.IsBasic).ToArray();
+                this.publicBasicProperties = [.. this.PublicProperties.Where(x => x.IsBasic)];
                 return this.publicBasicProperties;
             }
         }
@@ -962,7 +958,7 @@ namespace System.Reflection
                     return this.publicEnumerableProperties;
                 }
 
-                this.publicEnumerableProperties = this.PublicProperties.Where(x => x.IsCollection).ToArray();
+                this.publicEnumerableProperties = [.. this.PublicProperties.Where(x => x.IsCollection)];
                 return this.publicEnumerableProperties;
             }
         }
@@ -1041,7 +1037,7 @@ namespace System.Reflection
                     return this.publicFields;
                 }
 
-                this.publicFields = this.Fields.Where(x => x.IsPublic).ToArray();
+                this.publicFields = [.. this.Fields.Where(x => x.IsPublic)];
                 return this.publicFields;
             }
         }
@@ -1058,7 +1054,7 @@ namespace System.Reflection
                     return this.indexers;
                 }
 
-                this.indexers = this.Properties.Where(x => x.IsIndexer).ToArray();
+                this.indexers = [.. this.Properties.Where(x => x.IsIndexer)];
                 return this.indexers;
             }
         }
@@ -1075,7 +1071,7 @@ namespace System.Reflection
                     return this.publicProperties;
                 }
 
-                this.publicProperties = this.Properties.Where(x => x.IsPublic && !x.IsIndexer).ToArray();
+                this.publicProperties = [.. this.Properties.Where(x => x.IsPublic && !x.IsIndexer)];
                 return this.publicProperties;
             }
         }
@@ -1716,7 +1712,7 @@ namespace System.Reflection
                 methods.Add(method);
             }
 
-            return methods.ToArray();
+            return [.. methods];
         }
 
         /// <summary>
@@ -1730,11 +1726,10 @@ namespace System.Reflection
                 return this.memberAttributes;
             }
 
-            this.memberAttributes = this.MemberInfo
+            this.memberAttributes = [.. this.MemberInfo
                 .GetCustomAttributes()
                 .Concat(this.BaseTypes.SelectMany(x => x.GetCustomAttributes()))
-                .Distinct()
-                .ToArray();
+                .Distinct()];
 
             this.memberAttributesMap.Init(this.memberAttributes, x => x.GetType().Name);
 
@@ -1789,7 +1784,7 @@ namespace System.Reflection
 
             AddRange(this.ColumnProperties);
 
-            return result.ToArray();
+            return [.. result];
         }
 
         /// <summary>
@@ -1827,7 +1822,7 @@ namespace System.Reflection
             if (ctor != null)
             {
                 var ctorParameters = ctor.GetParameters();
-                ctorArgs = ctorParameters.Select((x, i) => Obj.ChangeType(args[i], x.ParameterType)).ToArray();
+                ctorArgs = [.. ctorParameters.Select((x, i) => Obj.ChangeType(args[i], x.ParameterType))];
                 return ctor;
             }
 
@@ -1845,12 +1840,11 @@ namespace System.Reflection
                 return this.memberConstructors;
             }
 
-            this.memberConstructors = this.type.GetConstructors(DefaultBindingFlags)
+            this.memberConstructors = [.. this.type.GetConstructors(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                     .SelectMany(x => x.GetConstructors(DefaultBindingFlags)))
                 .OrderBy(c => c.GetParameters().Length)
-                .Distinct()
-                .ToArray();
+                .Distinct()];
             return this.memberConstructors;
         }
 
@@ -1896,11 +1890,10 @@ namespace System.Reflection
                 return this.memberEvents;
             }
 
-            this.memberEvents = this.type.GetEvents(DefaultBindingFlags)
+            this.memberEvents = [.. this.type.GetEvents(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                     .SelectMany(x => x.GetEvents(DefaultBindingFlags)))
-                .Distinct()
-                .ToArray();
+                .Distinct()];
             return this.memberEvents;
         }
 
@@ -1922,11 +1915,10 @@ namespace System.Reflection
                 return this.memberFields;
             }
 
-            this.memberFields = this.type.GetFields(DefaultBindingFlags)
+            this.memberFields = [.. this.type.GetFields(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                     .SelectMany(x => x.GetFields(DefaultBindingFlags)))
-                .Distinct()
-                .ToArray();
+                .Distinct()];
 
             this.memberFieldsMap.Init(this.memberFields, x => x.Name);
 
@@ -1959,9 +1951,7 @@ namespace System.Reflection
                 return this.fks;
             }
 
-            this.fks = this.GetColumns()
-                .Where(x => x.IsForeignKey)
-                .ToArray();
+            this.fks = [.. this.GetColumns().Where(x => x.IsForeignKey)];
 
             return this.fks;
         }
@@ -2134,11 +2124,10 @@ namespace System.Reflection
                 return this.memberMethods;
             }
 
-            this.memberMethods = this.type.GetMethods(DefaultBindingFlags)
+            this.memberMethods = [.. this.type.GetMethods(DefaultBindingFlags)
                 .Concat(this.BaseTypes.Where(x => !x.IsInterface)
                     .SelectMany(x => x.GetMethods(DefaultBindingFlags)))
-                .Distinct()
-                .ToArray();
+                .Distinct()];
 
             return this.memberMethods;
         }
@@ -2154,9 +2143,7 @@ namespace System.Reflection
                 return this.pks;
             }
 
-            this.pks = this.GetColumns()
-                .Where(x => x.IsPrimaryKey)
-                .ToArray();
+            this.pks = [.. this.GetColumns().Where(x => x.IsPrimaryKey)];
 
             return this.pks;
         }
@@ -2182,9 +2169,7 @@ namespace System.Reflection
 
             var seen = new HashSet<string>();
 
-            this.memberProperties = props
-                .Where(p => seen.Add(p.Name))
-                .ToArray();
+            this.memberProperties = [.. props.Where(p => seen.Add(p.Name))];
 
             return this.memberProperties;
         }
@@ -2203,8 +2188,7 @@ namespace System.Reflection
                 return this.GetProperties();
             }
 
-            return this.GetProperties().Where(x => propertyNames.Contains(x.Name, nameComparison.ToStringComparer()))
-                .ToArray();
+            return [.. this.GetProperties().Where(x => propertyNames.Contains(x.Name, nameComparison.ToStringComparer()))];
         }
 
         /// <summary>
@@ -2264,13 +2248,13 @@ namespace System.Reflection
 
                 if (p == null)
                 {
-                    return returnIncompletePath ? path.ToArray() : Array.Empty<MemberCache>();
+                    return returnIncompletePath ? [.. path] : Array.Empty<MemberCache>();
                 }
 
                 path.Add(p);
             }
 
-            return path.ToArray();
+            return [.. path];
         }
 
         /// <summary>
@@ -2284,13 +2268,12 @@ namespace System.Reflection
                 return this.tables;
             }
 
-            this.tables = this.Properties.Where(x =>
+            this.tables = [.. this.Properties.Where(x =>
                 x.IsProperty &&
                 x.IsPublic &&
                 ((x.IsCollection &&
                 !x.IsBasicCollection) || !x.IsBasic) &&
-                !x.HasAnyAttributeOfType("ColumnAttribute", "NotMappedAttribute", "Key"))
-                .ToArray();
+                !x.HasAnyAttributeOfType("ColumnAttribute", "NotMappedAttribute", "Key"))];
 
             return this.tables;
         }
@@ -2573,11 +2556,10 @@ namespace System.Reflection
             var parameters = ctor.GetParameters();
 
             // кеш аргументов по умолчанию
-            this.defaultArgs = parameters
+            this.defaultArgs = [.. parameters
                 .Select(p => p.ParameterType.IsValueType
                     ? Activator.CreateInstance(p.ParameterType)
-                    : null)
-                .ToArray();
+                    : null)];
 
             // компилируем делегат
             var argsParam = Expression.Parameter(typeof(object[]), "args");

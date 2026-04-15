@@ -73,10 +73,7 @@ namespace System.Linq
                 return dict.TryGetValue(key, out var val) ? val : defaultValue;
             }
 
-            if (comparer == null)
-            {
-                comparer = EqualityComparer<TKey>.Default;
-            }
+            comparer ??= EqualityComparer<TKey>.Default;
 
             foreach (var kv in source)
             {
@@ -529,10 +526,7 @@ namespace System.Linq
                 throw new ArgumentOutOfRangeException(nameof(fromIndex), @"fromIndex не может быть меньше нуля.");
             }
 
-            if (comparer == null)
-            {
-                comparer = EqualityComparer<T>.Default;
-            }
+            comparer ??= EqualityComparer<T>.Default;
 
             var index = 0;
             foreach (var element in e)
@@ -832,10 +826,9 @@ namespace System.Linq
             where T : class
             where TCollectionItem : class
         {
-            var collection = new ObservableCollectionEx<TCollectionItem>
-            {
-                SuppressNotifyCollectionChange = true,
-            };
+            var collection = new ObservableCollectionEx<TCollectionItem>();
+            collection.SuppressNotifyCollectionChange(true);
+
             foreach (var item in source)
             {
                 var collectionItem = Obj.New<TCollectionItem>();
@@ -851,7 +844,7 @@ namespace System.Linq
                 collection.Add(collectionItem);
             }
 
-            collection.SuppressNotifyCollectionChange = false;
+            collection.SuppressNotifyCollectionChange(false);
             return collection;
         }
 

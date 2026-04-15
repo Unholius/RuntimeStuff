@@ -3,6 +3,7 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -11,13 +12,28 @@
     {
 
         [TestMethod]
+        public void Speed_Test_01()
+        {
+            var sw = new Stopwatch();
+            var n = 1_000_000;
+            var t = new TreeList<int>(0);
+            sw.Start();
+            for (int i = 1; i <= n; i++)
+            {
+                t = t.Add(i);
+            }
+            sw.Stop();
+        }
+
+        [TestMethod]
         public void TraverseAll_With_Actions_Test_01()
         {
             var root = new TreeList<string>("root");
             root.Add("br-1").Add("br-1.1").Add("br-1.1.1");
-            root.Add("br-2").Add("br-2.1").Add("br-2.1.1");
-            root.TraverseAll(null, (x) => x.Value = "(" + x.Value, (x) => x.Value += ")").ToArray();
+            root.Add("br-2").Add("br-2.1").Add("br-2.1.1").AddRange();
+            root.VisitAll(null, (x) => x.Value = "(" + x.Value, (x) => x.Value += ")");
             var s = root.ToString();
+            Assert.AreEqual("root\r\n\t(br-1)\r\n\t\t(br-1.1)\r\n\t\t\t(br-1.1.1)\r\n\t(br-2)\r\n\t\t(br-2.1)\r\n\t\t\t(br-2.1.1)", s);
         }
 
         [TestMethod]
@@ -28,7 +44,7 @@
 
             // Assert
             Assert.AreEqual("test", node.Value);
-            Assert.AreEqual(0, node.Count);
+            Assert.AreEqual(0, node.Children.Count);
             Assert.IsTrue(node.IsExpanded);
             Assert.IsNull(node.Parent);
         }
@@ -44,7 +60,7 @@
 
             // Assert
             Assert.AreEqual("root", node.Value);
-            Assert.AreEqual(3, node.Count);
+            Assert.AreEqual(3, node.Children.Count);
             Assert.AreEqual("child1", node[0].Value);
             Assert.AreEqual("child2", node[1].Value);
             Assert.AreEqual("child3", node[2].Value);
@@ -63,7 +79,7 @@
             var child = parent.Add("child");
 
             // Assert
-            Assert.AreEqual(1, parent.Count);
+            Assert.AreEqual(1, parent.Children.Count);
             Assert.AreEqual("child", child.Value);
             Assert.AreEqual(parent, child.Parent);
             Assert.AreSame(child, parent[0]);
@@ -80,7 +96,7 @@
             var result = parent.Add(child);
 
             // Assert
-            Assert.AreEqual(1, parent.Count);
+            Assert.AreEqual(1, parent.Children.Count);
             Assert.AreEqual(parent, child.Parent);
             Assert.AreSame(child, result);
             Assert.AreSame(child, parent[0]);
@@ -94,7 +110,7 @@
             var parent = new TreeList<string>("parent");
 
             // Act
-            parent.Add((TreeList<string>)null);
+            parent.Add((TreeList<string>?)null);
         }
 
         [TestMethod]
@@ -108,7 +124,7 @@
             var lastItem = parent.AddRange(values);
 
             // Assert
-            Assert.AreEqual(3, parent.Count);
+            Assert.AreEqual(3, parent.Children.Count);
             Assert.AreEqual("child1", parent[0].Value);
             Assert.AreEqual("child2", parent[1].Value);
             Assert.AreEqual("child3", parent[2].Value);
@@ -124,7 +140,7 @@
             var parent = new TreeList<string>("parent");
 
             // Act
-            parent.AddRange((IEnumerable<string>)null);
+            parent.AddRange((IEnumerable<string>?)null);
         }
 
         [TestMethod]
@@ -143,7 +159,7 @@
             var lastItem = parent.AddRange(nodes);
 
             // Assert
-            Assert.AreEqual(3, parent.Count);
+            Assert.AreEqual(3, parent.Children.Count);
             Assert.AreEqual("child1", parent[0].Value);
             Assert.AreEqual("child2", parent[1].Value);
             Assert.AreEqual("child3", parent[2].Value);
@@ -159,7 +175,7 @@
             var parent = new TreeList<string>("parent");
 
             // Act
-            parent.AddRange((IEnumerable<TreeList<string>>)null);
+            parent.AddRange((IEnumerable<TreeList<string>>?)null);
         }
 
         [TestMethod]
@@ -175,7 +191,7 @@
             parent.Clear();
 
             // Assert
-            Assert.AreEqual(0, parent.Count);
+            Assert.AreEqual(0, parent.Children.Count);
             Assert.IsNull(child.Parent);
         }
 
@@ -190,7 +206,7 @@
             child.Detach();
 
             // Assert
-            Assert.AreEqual(0, parent.Count);
+            Assert.AreEqual(0, parent.Children.Count);
             Assert.IsNull(child.Parent);
         }
 
@@ -243,7 +259,7 @@
             var inserted = parent.Insert(1, "child2");
 
             // Assert
-            Assert.AreEqual(3, parent.Count);
+            Assert.AreEqual(3, parent.Children.Count);
             Assert.AreEqual("child1", parent[0].Value);
             Assert.AreEqual("child2", parent[1].Value);
             Assert.AreEqual("child3", parent[2].Value);
@@ -274,7 +290,7 @@
 
             // Assert
             Assert.IsTrue(result);
-            Assert.AreEqual(1, parent.Count);
+            Assert.AreEqual(1, parent.Children.Count);
             Assert.AreSame(child2, parent[0]);
             Assert.IsNull(child1.Parent);
         }
@@ -292,7 +308,7 @@
 
             // Assert
             Assert.IsFalse(result);
-            Assert.AreEqual(1, parent.Count);
+            Assert.AreEqual(1, parent.Children.Count);
         }
 
         [TestMethod]
@@ -307,7 +323,7 @@
             parent.RemoveAt(0);
 
             // Assert
-            Assert.AreEqual(1, parent.Count);
+            Assert.AreEqual(1, parent.Children.Count);
             Assert.AreEqual("child2", parent[0].Value);
             Assert.IsNull(child1.Parent);
         }
@@ -338,7 +354,7 @@
 
             // Assert
             Assert.AreEqual(2, removedCount);
-            Assert.AreEqual(2, parent.Count);
+            Assert.AreEqual(2, parent.Children.Count);
             Assert.AreEqual(1, parent[0].Value);
             Assert.AreEqual(3, parent[1].Value);
         }
@@ -357,7 +373,7 @@
 
             // Assert
             Assert.IsTrue(result);
-            Assert.AreEqual(2, parent.Count);
+            Assert.AreEqual(2, parent.Children.Count);
             Assert.AreEqual("other", parent[0].Value);
             Assert.AreEqual("test", parent[1].Value);
         }
@@ -374,7 +390,7 @@
 
             // Assert
             Assert.IsFalse(result);
-            Assert.AreEqual(1, parent.Count);
+            Assert.AreEqual(1, parent.Children.Count);
         }
 
         [TestMethod]
@@ -440,7 +456,7 @@
             var grandchild = child.Add("grandchild");
 
             // Act
-            var result = grandchild.GetRoot();
+            var result = grandchild.Root;
 
             // Assert
             Assert.AreSame(root, result);
@@ -453,7 +469,7 @@
             var root = new TreeList<string>("root");
 
             // Act
-            var result = root.GetRoot();
+            var result = root.Root;
 
             // Assert
             Assert.AreSame(root, result);
@@ -500,8 +516,8 @@
             nodeToMove.MoveTo(targetParent);
 
             // Assert
-            Assert.AreEqual(0, sourceParent.Count);
-            Assert.AreEqual(1, targetParent.Count);
+            Assert.AreEqual(0, sourceParent.Children.Count);
+            Assert.AreEqual(1, targetParent.Children.Count);
             Assert.AreSame(nodeToMove, targetParent[0]);
             Assert.AreEqual(targetParent, nodeToMove.Parent);
         }
@@ -521,7 +537,7 @@
             nodeToMove.MoveTo(targetParent, 1);
 
             // Assert
-            Assert.AreEqual(3, targetParent.Count);
+            Assert.AreEqual(3, targetParent.Children.Count);
             Assert.AreEqual("existing1", targetParent[0].Value);
             Assert.AreSame(nodeToMove, targetParent[1]);
             Assert.AreEqual("existing2", targetParent[2].Value);
@@ -562,7 +578,7 @@
             root.IsExpanded = false;
 
             // Act
-            var allNodes = root.TraverseAll().ToList();
+            var allNodes = root.DescendantsAndSelf().ToList();
 
             // Assert
             Assert.AreEqual(4, allNodes.Count);
@@ -584,7 +600,7 @@
             child1.IsExpanded = false;
 
             // Act
-            var visibleNodes = root.TraverseVisible().ToList();
+            var visibleNodes = root.VisibleDescendantsAndSelf().ToList();
 
             // Assert
             Assert.AreEqual(3, visibleNodes.Count);
@@ -823,7 +839,7 @@
             // Collapse some nodes
             documents.IsExpanded = false;
 
-            var visibleNodesAfterCollapse = root.TraverseVisible().Count();
+            var visibleNodesAfterCollapse = root.VisibleDescendantsAndSelf().Count();
             var s = root.ToString();
             // Assert
             Assert.AreSame(report, nodeAtFlatIndex);
