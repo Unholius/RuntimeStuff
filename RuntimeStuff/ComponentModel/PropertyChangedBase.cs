@@ -2,6 +2,7 @@
 // Copyright (c) Rudnev Sergey. All rights reserved.
 // </copyright>
 
+// НЕ ДОБАВЛЯТЬ ПУБЛИЧНЫЕ СВОЙСТВА, Т.К. ЭТО МОЖЕТ СЛОМАТЬ ДИНАМИЧЕСКИЙ МАППИНГ В ENTITY FRAMEWORK И ДР.
 namespace System.ComponentModel
 {
     using System;
