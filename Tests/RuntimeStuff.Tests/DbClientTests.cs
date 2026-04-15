@@ -7,26 +7,36 @@ namespace RuntimeStuff.MSTests
     public class DbClientTests
     {
         private static string dbName() => $".\\Databases\\DB{DateTime.Now.Ticks}.db";
+        private DbClient getdb(out string tableName)
+        {
+            tableName = $"T" + DateTime.Now.Ticks;
+            var sql = $"CREATE TEMP TABLE {tableName} (column1 int, column2 text);";
+            var con = new SqliteConnection().Database(dbName());
+            var db = new DbClient(con);
+            db.ExecuteNonQuery(sql);
+            return db;
+        }
+
         [TestMethod]
         public void ToDataTables_Test_01()
         {
             var query = "SELECT 1, 'Name1', '01.01.1999'; SELECT 2, 'Name2', '02.02.1999'; ";
             var con = new SqliteConnection();
             var dts = con.ToDataTables(query);
-            Assert.AreEqual(dts.Length, 2);
-            Assert.AreEqual(dts[0].Columns.Count, 3);
-            Assert.AreEqual(dts[1].Columns.Count, 3);
+            Assert.AreEqual(2, dts.Length);
+            Assert.AreEqual(3, dts[0].Columns.Count);
+            Assert.AreEqual(3, dts[1].Columns.Count);
 
-            Assert.AreEqual(dts[0].Rows.Count, 1);
-            Assert.AreEqual(dts[1].Rows.Count, 1);
+            Assert.AreEqual(1, dts[0].Rows.Count);
+            Assert.AreEqual(1, dts[1].Rows.Count);
 
-            Assert.AreEqual(dts[0].Rows[0][0], 1L);
-            Assert.AreEqual(dts[0].Rows[0][1], "Name1");
-            Assert.AreEqual(dts[0].Rows[0][2], "01.01.1999");
+            Assert.AreEqual(1L, dts[0].Rows[0][0]);
+            Assert.AreEqual("Name1", dts[0].Rows[0][1]);
+            Assert.AreEqual("01.01.1999", dts[0].Rows[0][2]);
 
-            Assert.AreEqual(dts[1].Rows[0][0], 2L);
-            Assert.AreEqual(dts[1].Rows[0][1], "Name2");
-            Assert.AreEqual(dts[1].Rows[0][2], "02.02.1999");
+            Assert.AreEqual(2L, dts[1].Rows[0][0]);
+            Assert.AreEqual("Name2", dts[1].Rows[0][1]);
+            Assert.AreEqual("02.02.1999", dts[1].Rows[0][2]);
         }
 
         [TestMethod]
@@ -39,27 +49,34 @@ namespace RuntimeStuff.MSTests
             con.Insert(tmpTableName, 1, "one");
             con.Insert(tmpTableName, 2, "two");
             var dt = con.ToDataTable($"select * from {tmpTableName}");
-            Assert.AreEqual(dt.Rows.Count, 2);
-            Assert.AreEqual(dt.Rows[0]["column1"], 1L);
-            Assert.AreEqual(dt.Rows[0]["column2"], "one");
-            Assert.AreEqual(dt.Rows[1]["column1"], 2L);
-            Assert.AreEqual(dt.Rows[1]["column2"], "two");
+            Assert.AreEqual(2, dt.Rows.Count);
+            Assert.AreEqual(1L, dt.Rows[0]["column1"]);
+            Assert.AreEqual("one", dt.Rows[0]["column2"]);
+            Assert.AreEqual(2L, dt.Rows[1]["column1"]);
+            Assert.AreEqual("two", dt.Rows[1]["column2"]);
         }
 
         [TestMethod]
         public void Insert_Test_02()
         {
-            var tmpTableName = $"T" + DateTime.Now.Ticks;
-            var sql = $"CREATE TEMP TABLE {tmpTableName} (column1 int, column2 text);";
-            var con = new SqliteConnection().Database(dbName());
-            var db = new DbClient(con);
-            db.ExecuteNonQuery(sql);
+            var db = getdb(out var tmpTableName);
             var tr = db.BeginTransaction();
             db.Insert(tmpTableName, 1, "one");
             db.Insert(tmpTableName, 2, "two");
             db.RollbackTransaction();
             var dt = db.ToDataTable($"select * from {tmpTableName}");
-            Assert.AreEqual(dt.Rows.Count, 0);
+            Assert.AreEqual(0, dt.Rows.Count);
+        }
+
+        [TestMethod]
+        public void Insert_Test_03()
+        {
+            var db = getdb(out var tmpTableName);
+            var sql = "SELECT @id, @userId";
+            var dt  = db.ToDataTable(sql, new { id = 1, UserId = 2 });
+            Assert.AreEqual(1L, dt.Rows.Count);
+            Assert.AreEqual(1L, dt.Rows[0][0]);
+            Assert.AreEqual(2L, dt.Rows[0]["userId"]);
         }
     }
 }

@@ -259,8 +259,8 @@ namespace System.Data
         /// Если значение <c>null</c>, пустое или состоит только из пробельных символов,
         /// возвращается пустой список.
         /// </param>
-        /// <param name="prefix">
-        /// Префикс параметра (по умолчанию <c>@</c>).
+        /// <param name="prefixes">
+        /// Префиксы параметра (по умолчанию <c>["@", ":", "?", "$"]</c>).
         /// Не может быть пустой строкой.
         /// </param>
         /// <param name="returnWithPrefix">Возвращать имена с префиксом или без.</param>
@@ -268,9 +268,6 @@ namespace System.Data
         /// Список уникальных имен параметров без префикса
         /// в порядке их первого появления в строке.
         /// </returns>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если <paramref name="prefix"/> является пустой строкой.
-        /// </exception>
         /// <remarks>
         /// Метод использует регулярное выражение для поиска параметров вида
         /// <c>@ParameterName</c> (или с другим указанным префиксом).
@@ -278,35 +275,46 @@ namespace System.Data
         /// Допустимые имена параметров должны начинаться с буквы или символа подчеркивания,
         /// а далее могут содержать буквы, цифры или символы подчеркивания.
         /// </remarks>
-        public static string[] GetParameterNames(string sql, string prefix = "@", bool returnWithPrefix = false)
+        public static string[] GetParameterNames(
+            string sql,
+            string[] prefixes = null,
+            bool returnWithPrefix = false)
         {
             if (string.IsNullOrWhiteSpace(sql))
             {
                 return Array.Empty<string>();
             }
 
-            if (string.IsNullOrEmpty(prefix))
+            prefixes ??= ["@", ":", "?", "$"];
+
+            if (prefixes.Length == 0 || prefixes.Any(string.IsNullOrEmpty))
             {
-                throw new ArgumentException("Prefix cannot be empty.", nameof(prefix));
+                throw new ArgumentException("Prefixes cannot be null or empty.", nameof(prefixes));
             }
 
-            // Экранируем префикс для Regex
-            var escapedPrefix = Regex.Escape(prefix);
+            var result = new HashSet<string>();
 
-            // Ищем параметры вида @ParamName
-            // Исключаем @@Something
-            var pattern = $@"(?<!{escapedPrefix}){escapedPrefix}([A-Za-z0-9_]*)";
-
-            var matches = Regex.Matches(sql, pattern);
-            if (!returnWithPrefix)
+            foreach (var prefix in prefixes.Distinct())
             {
-                prefix = string.Empty;
+                var escapedPrefix = Regex.Escape(prefix);
+
+                // Ищем параметры вида @ParamName, :ParamName, $ParamName и т.д.
+                // Исключаем двойной префикс: @@IDENTITY, ::type и т.п.
+                var pattern = $@"(?<!{escapedPrefix}){escapedPrefix}([A-Za-z0-9_]*)";
+
+                var matches = Regex.Matches(sql, pattern);
+
+                foreach (Match match in matches)
+                {
+                    var name = match.Groups[1].Value;
+
+                    result.Add(returnWithPrefix
+                        ? prefix + name
+                        : name);
+                }
             }
 
-            return [.. matches
-                .Cast<Match>()
-                .Select(m => prefix + m.Groups[1].Value)
-                .Distinct()];
+            return [.. result];
         }
 
         /// <summary>
@@ -691,9 +699,8 @@ namespace System.Data
                     break;
 
                 default:
-                    var parameterNames = GetParameterNames(query, this.Options.ParamPrefix);
+                    var parameterNames = GetParameterNames(query);
                     var parameters = this.GetParams(cmdParams, parameterNames);
-
                     if (parameterNames.Length == 1 && parameters.Count == 0)
                     {
                         parameters = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>() { { parameterNames[0], cmdParams } });
@@ -1738,10 +1745,10 @@ namespace System.Data
                                     }
                                 }
 
-                                var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name);
+                                var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name, IgnoreCaseComparer);
                                 foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyFilter))
                                 {
-                                    parameters[kvp.Key] = kvp.Value;
+                                    parameters[propertyNames.First(x => IgnoreCaseComparer.Equals(x, kvp.Key))] = kvp.Value;
                                 }
                             }
                         }
@@ -4246,7 +4253,7 @@ namespace System.Data
                     }
                 }
 
-                map[colIndex] = colName;
+                map[colIndex] = colName.TrimStart(StringHelper.SpecialChars);
             }
 
             return map;

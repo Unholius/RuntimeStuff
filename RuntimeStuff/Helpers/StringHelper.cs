@@ -92,6 +92,13 @@ namespace System.Helpers
             DefaultColumnSeparators = ["\t", ";", "|"];
             DefaultColumnSeparatorsAndSpace = [" ", "\t", ";", "|"];
             DefaultLineSeparators = [Environment.NewLine, "\r", "\n"];
+            SpecialChars =
+                [
+                    '`', '~', '!', '@', '#', '$', '%', '^', '&', '*',
+                    '(', ')', '-', '+', '=', '{', '}', '[', ']',
+                    '|', '\\', ':', ';', '"', '\'', '<', '>', ',',
+                    '.', '?', '/', '_'
+                ];
         }
 
         /// <summary>
@@ -257,6 +264,11 @@ namespace System.Helpers
         /// Коллекция кавычек. Комбинация уникальных значений <see cref="OpeningQuotes"/> и <see cref="ClosingQuotes"/>.
         /// </summary>
         public static char[] AllQuotes { get; }
+
+        /// <summary>
+        /// Коллекция символов.
+        /// </summary>
+        public static char[] SpecialChars { get; }
 
         /// <summary>
         /// Коллекция закрывающих кавычек.
