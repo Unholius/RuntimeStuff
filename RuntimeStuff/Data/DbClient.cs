@@ -26,6 +26,7 @@ namespace System.Data
     /// <remarks>Предназначен для использования как легковесная альтернатива ORM.</remarks>
     public class DbClient : IDisposable
     {
+        private static readonly ConditionalWeakTable<IDbConnection, DbClient> ClientCache = new();
         private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
         private readonly IReadOnlyDictionary<string, object> emptyParams = new Dictionary<string, object>();
         private readonly AsyncLocal<IDbTransaction> tr = new();
@@ -35,8 +36,19 @@ namespace System.Data
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
         /// </summary>
+        public DbClient()
+        {
+#if DEBUG
+            this.EnableLogging = true;
+#endif
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DbClient" /> class.
+        /// </summary>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
         public DbClient(DbEntityMap map = null)
+            : this()
         {
             this.ValueConverter = (fieldName, fieldValue, propInfo, item) =>
                 ChangeType(fieldValue is string s ? s.Trim() : fieldValue, propInfo.PropertyType);
@@ -155,9 +167,9 @@ namespace System.Data
         public bool EnableLogging { get; set; }
 
         /// <summary>
-        /// Использовать полные имена в запросах: к колонкам добавляется имя таблицы.
+        /// Использовать пул строк для оптимизации памяти при работе с большим количеством строковых данных. Если включено, строки будут интернированы через <see cref="StringPool" />, что может снизить использование памяти за счет повторного использования одинаковых строк.
         /// </summary>
-        public bool UseFullNamesInQueries { get; set; }
+        public bool EnableStringPool { get; set; }
 
         /// <summary>
         /// Признак того, что экземпляр <see cref="DbClient" /> был освобождён.
@@ -174,6 +186,11 @@ namespace System.Data
         /// только для чтения. Для изменения опций рекомендуется использовать
         /// методы самого объекта опций или создавать новый экземпляр.</remarks>
         public SqlDialect Options { get; set; } = new SqlDialect();
+
+        /// <summary>
+        /// Имена колонок, для которых будет использоваться пул строк. Если <see cref="EnableStringPool" /> включён, строки из этих колонок будут интернированы через <see cref="StringPool" />.
+        /// </summary>
+        public HashSet<string> PooledStringColumns { get; } = new();
 
         /// <summary>
         /// Максимальное количество записей в логах запросов. При достижении этого количества, самые старые записи будут удаляться.
@@ -194,25 +211,15 @@ namespace System.Data
         public IEnumerable<string> QueryLogs => this.queryLogs;
 
         /// <summary>
+        /// Использовать полные имена в запросах: к колонкам добавляется имя таблицы.
+        /// </summary>
+        public bool UseFullNamesInQueries { get; set; }
+
+        /// <summary>
         /// Функция преобразования значений, полученных из БД, в значения свойств объектов.
         /// </summary>
         /// <value>The value converter.</value>
         public DbValueConverter<object> ValueConverter { get; set; }
-
-        /// <summary>
-        /// Создаёт новый экземпляр <see cref="DbClient{T}" /> по строке подключения.
-        /// </summary>
-        /// <typeparam name="T">Тип соединения с базой данных, реализующий <see cref="IDbConnection" />
-        /// и имеющий публичный конструктор без параметров.</typeparam>
-        /// <param name="connectionString">Строка подключения к базе данных.</param>
-        /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
-        /// <returns>Экземпляр <see cref="DbClient{T}" />.</returns>
-        public static DbClient<T> Create<T>(string connectionString, DbEntityMap map = null)
-            where T : IDbConnection, new()
-        {
-            var dbClient = new DbClient<T>(connectionString, map);
-            return dbClient;
-        }
 
         /// <summary>
         /// Создаёт или возвращает кэшированный экземпляр <see cref="DbClient" />
@@ -222,15 +229,30 @@ namespace System.Data
         /// <returns>Экземпляр <see cref="DbClient" />.</returns>
         public static DbClient Create(IDbConnection con)
         {
-            var dbClient = new DbClient(con);
-            return dbClient;
+            if (con == null)
+            {
+                throw new ArgumentNullException(nameof(con));
+            }
+
+            return ClientCache.GetValue(
+                con,
+                key => new DbClient(key));
         }
 
         /// <summary>
-        /// Создаёт новый экземпляр <see cref="DbClient" /> без привязанного соединения.
+        /// Создаёт или возвращает кэшированный экземпляр <see cref="DbClient" />
+        /// для указанного соединения.
         /// </summary>
-        /// <returns>Новый экземпляр <see cref="DbClient" />.</returns>
-        public static DbClient Create() => new();
+        /// <typeparam name="T">Тип соединения, наследующий от <see cref="IDbConnection" /> и имеющий конструктор без параметров.</typeparam>
+        /// <returns>Экземпляр <see cref="DbClient" />.</returns>
+        public static DbClient<T> Create<T>()
+            where T : IDbConnection, new()
+        {
+            var con = new T();
+            return (DbClient<T>)ClientCache.GetValue(
+                con,
+                key => new DbClient<T>(con));
+        }
 
         /// <summary>
         /// Получить словарь ключевых параметров для типа {T}.
@@ -538,6 +560,42 @@ namespace System.Data
             this.BeginConnection();
             this.tr.Value = this.Connection.BeginTransaction(level);
             return this.tr.Value;
+        }
+
+        /// <summary>
+        /// Завершается текущая транзакция и закрывает соединение с базой данных.
+        /// </summary>
+        /// <remarks>Этот метод коммитит текущую транзакцию и очищает ресурсы, связанные с ней.
+        /// После завершения транзакции соединение с базой данных закрывается.</remarks>
+        public void CommitTransaction()
+        {
+            if (this.tr.Value == null)
+            {
+                return;
+            }
+
+            this.tr.Value.Commit();
+            this.tr.Value.Dispose();
+            this.tr.Value = null;
+            this.CloseConnection();
+        }
+
+        /// <summary>
+        /// Завершается текущая транзакция и закрывает соединение с базой данных.
+        /// </summary>
+        /// <param name="dbTransaction">Транзакция.</param>
+        /// <remarks>Этот метод коммитит текущую транзакцию и очищает ресурсы, связанные с ней.
+        /// После завершения транзакции соединение с базой данных закрывается.</remarks>
+        public void CommitTransaction(IDbTransaction dbTransaction)
+        {
+            if (dbTransaction == null)
+            {
+                return;
+            }
+
+            dbTransaction.Commit();
+            dbTransaction.Dispose();
+            dbTransaction = null;
         }
 
         /// <summary>
@@ -906,57 +964,6 @@ namespace System.Data
         {
             this.Dispose(true);
             GC.SuppressFinalize(this);
-        }
-
-        /// <summary>
-        /// Завершается текущая транзакция и закрывает соединение с базой данных.
-        /// </summary>
-        /// <remarks>Этот метод коммитит текущую транзакцию и очищает ресурсы, связанные с ней.
-        /// После завершения транзакции соединение с базой данных закрывается.</remarks>
-        public void CommitTransaction()
-        {
-            if (this.tr.Value == null)
-            {
-                return;
-            }
-
-            this.tr.Value.Commit();
-            this.tr.Value.Dispose();
-            this.tr.Value = null;
-            this.CloseConnection();
-        }
-
-        /// <summary>
-        /// Завершается текущая транзакция и закрывает соединение с базой данных.
-        /// </summary>
-        /// <param name="dbTransaction">Транзакция.</param>
-        /// <remarks>Этот метод коммитит текущую транзакцию и очищает ресурсы, связанные с ней.
-        /// После завершения транзакции соединение с базой данных закрывается.</remarks>
-        public void CommitTransaction(IDbTransaction dbTransaction)
-        {
-            if (dbTransaction == null)
-            {
-                return;
-            }
-
-            dbTransaction.Commit();
-            dbTransaction.Dispose();
-            dbTransaction = null;
-        }
-
-        /// <summary>
-        /// Отменяется текущая транзакция.
-        /// </summary>
-        public void RollbackTransaction()
-        {
-            if (this.tr.Value == null)
-            {
-                return;
-            }
-
-            this.tr.Value.Rollback();
-            this.tr.Value.Dispose();
-            this.tr.Value = null;
         }
 
         /// <summary>
@@ -1748,7 +1755,7 @@ namespace System.Data
                                 var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name, IgnoreCaseComparer);
                                 foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyFilter))
                                 {
-                                    parameters[propertyNames.First(x => IgnoreCaseComparer.Equals(x, kvp.Key))] = kvp.Value;
+                                    parameters[propertyNames.Length > 0 ? propertyNames.First(x => IgnoreCaseComparer.Equals(x, kvp.Key)) : kvp.Key] = kvp.Value;
                                 }
                             }
                         }
@@ -2279,10 +2286,10 @@ namespace System.Data
 
                             if (list is ObservableCollectionEx<T> oce1)
                             {
-                                oce1.SuppressNotifyCollectionChange(true);
+                                oce1.SuspendNotifications(true);
                             }
 
-                            this.ReadToListInternalAsync(
+                            this.ReadToListInternalAsync2(
                                 list,
                                 reader,
                                 columns,
@@ -2294,7 +2301,7 @@ namespace System.Data
 
                             if (list is ObservableCollectionEx<T> oce2)
                             {
-                                oce2.SuppressNotifyCollectionChange(false);
+                                oce2.SuspendNotifications(false);
                             }
 
                             return list;
@@ -2727,7 +2734,7 @@ namespace System.Data
 
                             if (list is ObservableCollectionEx<T> oce1)
                             {
-                                oce1.SuppressNotifyCollectionChange(true);
+                                oce1.SuspendNotifications(true);
                             }
 
                             await this.ReadToListInternalAsync(
@@ -2742,7 +2749,7 @@ namespace System.Data
 
                             if (list is ObservableCollectionEx<T> oce2)
                             {
-                                oce2.SuppressNotifyCollectionChange(false);
+                                oce2.SuspendNotifications(false);
                             }
 
                             return list;
@@ -2774,6 +2781,21 @@ namespace System.Data
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Отменяется текущая транзакция.
+        /// </summary>
+        public void RollbackTransaction()
+        {
+            if (this.tr.Value == null)
+            {
+                return;
+            }
+
+            this.tr.Value.Rollback();
+            this.tr.Value.Dispose();
+            this.tr.Value = null;
         }
 
         /// <summary>
@@ -3254,6 +3276,7 @@ namespace System.Data
         /// </remarks>
         public DataTable[] ToDataTables(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap)
         {
+            StringPool stringPool = new();
             if (string.IsNullOrWhiteSpace(query))
             {
                 throw new ArgumentNullException(nameof(query));
@@ -3297,6 +3320,11 @@ namespace System.Data
                                         continue;
                                     }
 
+                                    if (this.EnableStringPool && raw is string s && this.PooledStringColumns.Contains(kv.Value))
+                                    {
+                                        raw = stringPool.Intern(s);
+                                    }
+
                                     item[kv.Value] = valueConverter(kv.Value, raw, dataTable.Columns[kv.Value]);
                                 }
 
@@ -3320,6 +3348,108 @@ namespace System.Data
                 {
                     this.CloseConnection();
                 }
+            }
+        }
+
+        private DataTable[] ToDataTablesInternal(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            valueConverter ??= (f, v, c) => v;
+
+            var result = new List<DataTable>();
+
+            StringPool stringPool = this.EnableStringPool ? new StringPool() : null;
+            var usePool = stringPool != null;
+
+            using var cmd = this.CreateCommand(query, cmdParams);
+
+            try
+            {
+                this.BeginConnection();
+
+                using var r = cmd.ExecuteReader();
+
+                do
+                {
+                    this.CommandExecuted?.Invoke(cmd);
+                    this.Log(cmd);
+
+                    var map = GetReaderFieldToPropertyMap(r, columnMap);
+                    var fieldCount = map.Count;
+
+                    var table = new DataTable(query);
+                    table.BeginLoadData();
+
+                    // ----------------------------
+                    // cache column metadata arrays
+                    // ----------------------------
+                    var colNames = new string[fieldCount];
+                    var colTypes = new Type[fieldCount];
+                    var dataColumns = new DataColumn[fieldCount];
+
+                    int i = 0;
+                    foreach (var kv in map)
+                    {
+                        var col = new DataColumn(
+                            kv.Value,
+                            r.GetFieldType(kv.Key) ?? typeof(object));
+
+                        table.Columns.Add(col);
+
+                        colNames[i] = kv.Value;
+                        colTypes[i] = col.DataType;
+                        dataColumns[i] = col;
+                        i++;
+                    }
+
+                    // ----------------------------
+                    // materialization loop
+                    // ----------------------------
+                    while (r.Read())
+                    {
+                        var row = table.NewRow();
+
+                        for (int j = 0; j < fieldCount; j++)
+                        {
+                            var raw = r.GetValue(j);
+
+                            if (raw == DBNull.Value)
+                            {
+                                continue;
+                            }
+
+                            if (usePool && raw is string s && this.PooledStringColumns.Contains(colNames[j]))
+                            {
+                                raw = stringPool.Intern(s);
+                            }
+
+                            row[colNames[j]] =
+                                valueConverter(colNames[j], raw, dataColumns[j]);
+                        }
+
+                        table.Rows.Add(row);
+                    }
+
+                    table.AcceptChanges();
+                    table.EndLoadData();
+
+                    result.Add(table);
+                }
+                while (r.NextResult());
+
+                return result.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw this.HandleDbException(ex, cmd);
+            }
+            finally
+            {
+                this.CloseConnection();
             }
         }
 
@@ -3771,6 +3901,22 @@ namespace System.Data
         /// <returns>Количество строк, затронутых операцией обновления.</returns>
         public int Update<T>(T item, params Expression<Func<T, object>>[] updateColumns)
             where T : class => this.Update(item, null, null, null, updateColumns);
+
+        public int Update(string tableName, object whereParams, params (string ColumnName, object Value)[] updateValues)
+        {
+            var sql = $"UPDATE {this.Options.NamePrefix}{tableName}{this.Options.NameSuffix} SET {string.Join(", ", updateValues.Select((x, i) => $"{this.Options.NamePrefix}{x.ColumnName}{this.Options.NameSuffix} = {this.Options.ParamPrefix}set_{x.ColumnName}"))}";
+            if (whereParams != null)
+            {
+                sql += " " + SqlQueryHelper.GetWhereClause(this.Options, whereParams, true, out var whereCmdParams);
+                var cmdParams = updateValues.Select((x, i) => new KeyValuePair<string, object>($"p{i}", x.Value)).Concat(whereCmdParams).ToArray();
+                return this.ExecuteNonQuery(sql, cmdParams);
+            }
+            else
+            {
+                var cmdParams = updateValues.Select((x, i) => new KeyValuePair<string, object>($"p{i}", x.Value)).ToArray();
+                return this.ExecuteNonQuery(sql, cmdParams);
+            }
+        }
 
         /// <summary>
         /// Обновляет запись в базе данных на основе значений свойств объекта.
@@ -4513,6 +4659,7 @@ namespace System.Data
                 .Select(reader.GetName)
                 .ToArray();
 
+            StringPool stringPool = new();
             var rowCount = 0;
 
             if (itemTypeCache.IsBasic)
@@ -4530,6 +4677,11 @@ namespace System.Data
                     if (value == DBNull.Value)
                     {
                         value = null;
+                    }
+
+                    if (this.EnableStringPool && value is string s)
+                    {
+                        value = stringPool.Intern(s);
                     }
 
                     list.Add(converter == null ? value : converter(readerColumns[0], value, null, (T)value));
@@ -4589,8 +4741,147 @@ namespace System.Data
                             continue;
                         }
 
-                        var value = valueConverter(reader.GetName(kv.Key), raw, kv.Value, item);
+                        var value = valueConverter(readerColumns[kv.Key], raw, kv.Value, item);
+                        if (this.EnableStringPool && value is string s)
+                        {
+                            value = stringPool.Intern(s);
+                        }
+
                         kv.Value.Setter(item, value);
+                    }
+                }
+
+                list.Add(item);
+                rowCount++;
+            }
+        }
+
+        private async Task ReadToListInternalAsync2<T>(
+    IList list,
+    DbDataReader reader,
+    IEnumerable<string> columns,
+    IEnumerable<(string ColumnName, string PropertyName)> columnToPropertyMap,
+    DbValueConverter<T> converter,
+    int fetchRows,
+    Func<object[], string[], T> itemFactory,
+    CancellationToken ct)
+        {
+            var type = typeof(T);
+            var itemTypeCache = MemberCache.Get(type);
+
+            var fieldCount = reader.FieldCount;
+            var readerValues = new object[fieldCount];
+
+            // ❗ кеш имён колонок (без IEnumerable LINQ)
+            var readerColumns = new string[fieldCount];
+            for (int i = 0; i < fieldCount; i++)
+            {
+                readerColumns[i] = reader.GetName(i);
+            }
+
+            var rowCount = 0;
+
+            // ❗ string pool создаём только если реально нужен
+            StringPool stringPool = this.EnableStringPool ? new StringPool() : null;
+
+            if (itemTypeCache.IsBasic)
+            {
+                var colIndex = columns?.Select(reader.GetOrdinal).FirstOrDefault() ?? 0;
+
+                var conv = converter;
+
+                while (await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait))
+                {
+                    if ((uint)fetchRows > 0 && rowCount >= fetchRows)
+                    {
+                        break;
+                    }
+
+                    object value = reader.GetValue(colIndex);
+
+                    if (value == DBNull.Value)
+                    {
+                        value = null;
+                    }
+
+                    if (stringPool != null && value is string s)
+                    {
+                        value = stringPool.Intern(s);
+                    }
+
+                    list.Add(conv == null
+                        ? value
+                        : conv(readerColumns[0], value, null, (T)value));
+
+                    rowCount++;
+                }
+
+                return;
+            }
+
+            var map = this.GetReaderFieldToPropertyMap(
+                type,
+                reader,
+                columnToPropertyMap,
+                columns);
+
+            var valueConverter = converter ?? this.ValueConverter.ToTypedConverter<T>();
+
+            var localPool = stringPool;
+            var usePool = localPool != null;
+
+            while (await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait))
+            {
+                try
+                {
+                    reader.GetValues(readerValues);
+                }
+                catch
+                {
+                    for (int i = 0; i < fieldCount; i++)
+                    {
+                        try
+                        {
+                            readerValues[i] = reader.GetValue(i);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new InvalidOperationException(
+                                $"Не удалось получить поле '{readerColumns[i]}' типа '{reader.GetFieldType(i)?.FullName}'.",
+                                ex);
+                        }
+                    }
+                }
+
+                var item = itemFactory(readerValues, readerColumns);
+
+                if (!itemTypeCache.IsValueType)
+                {
+                    foreach (var kv in map)
+                    {
+                        var index = kv.Key;
+                        var meta = kv.Value;
+
+                        var raw = readerValues[index];
+
+                        if (raw == null || raw == DBNull.Value)
+                        {
+                            if (meta.IsNullable)
+                            {
+                                meta.Setter(item, null);
+                            }
+
+                            continue;
+                        }
+
+                        var value = valueConverter(readerColumns[index], raw, meta, item);
+
+                        if (usePool && value is string s)
+                        {
+                            value = localPool.Intern(s);
+                        }
+
+                        meta.Setter(item, value);
                     }
                 }
 

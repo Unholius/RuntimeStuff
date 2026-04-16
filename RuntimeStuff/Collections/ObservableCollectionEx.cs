@@ -9,7 +9,6 @@ namespace System.Collections
     using System.Collections.ObjectModel;
     using System.Collections.Specialized;
     using System.ComponentModel;
-    using System.Linq;
 
     /// <summary>
     /// Расширенная коллекция <see cref="ObservableCollection{T}"/>,
@@ -22,7 +21,7 @@ namespace System.Collections
     {
         private readonly WeakEventManager weakEventManager = new();
 
-        private bool suppressNotifyCollectionChange;
+        private bool suspendNotifications;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableCollectionEx{T}"/> class.
@@ -63,8 +62,8 @@ namespace System.Collections
                 return;
             }
 
-            var oldSuppress = this.suppressNotifyCollectionChange;
-            this.SuppressNotifyCollectionChange(true);
+            var oldSuppress = this.suspendNotifications;
+            this.SuspendNotifications(true);
 
             try
             {
@@ -76,7 +75,7 @@ namespace System.Collections
             }
             finally
             {
-                this.SuppressNotifyCollectionChange(oldSuppress);
+                this.SuspendNotifications(oldSuppress);
             }
 
             this.RaiseReset();
@@ -139,8 +138,8 @@ namespace System.Collections
                 return;
             }
 
-            var oldSuppress = this.suppressNotifyCollectionChange;
-            this.SuppressNotifyCollectionChange(true);
+            var oldSuppress = this.suspendNotifications;
+            this.SuspendNotifications(true);
             var removed = false;
             try
             {
@@ -159,7 +158,7 @@ namespace System.Collections
             }
             finally
             {
-                this.SuppressNotifyCollectionChange(oldSuppress);
+                this.SuspendNotifications(oldSuppress);
                 if (removed)
                 {
                     this.RaiseReset();
@@ -194,8 +193,8 @@ namespace System.Collections
 
             var removedList = new List<T>();
 
-            var oldSuppress = this.suppressNotifyCollectionChange;
-            this.suppressNotifyCollectionChange = true;
+            var oldSuppress = this.suspendNotifications;
+            this.suspendNotifications = true;
 
             var removed = false;
 
@@ -217,7 +216,7 @@ namespace System.Collections
             }
             finally
             {
-                this.SuppressNotifyCollectionChange(oldSuppress);
+                this.SuspendNotifications(oldSuppress);
                 if (removed)
                 {
                     this.RaiseReset();
@@ -230,10 +229,10 @@ namespace System.Collections
         /// <summary>
         /// Определяет, подавлять ли уведомления CollectionChanged.
         /// </summary>
-        /// <param name="notify">Значение.</param>
-        public void SuppressNotifyCollectionChange(bool notify)
+        /// <param name="suspend">Значение.</param>
+        public void SuspendNotifications(bool suspend)
         {
-            this.suppressNotifyCollectionChange = notify;
+            this.suspendNotifications = suspend;
         }
 
         /// <summary>
@@ -248,8 +247,8 @@ namespace System.Collections
         /// </remarks>
         protected override void ClearItems()
         {
-            var oldSuppress = this.suppressNotifyCollectionChange;
-            this.suppressNotifyCollectionChange = true;
+            var oldSuppress = this.suspendNotifications;
+            this.suspendNotifications = true;
 
             try
             {
@@ -263,7 +262,7 @@ namespace System.Collections
             }
             finally
             {
-                this.SuppressNotifyCollectionChange(oldSuppress);
+                this.SuspendNotifications(oldSuppress);
                 this.RaiseReset();
             }
         }
@@ -310,13 +309,13 @@ namespace System.Collections
         /// (добавление, удаление, сброс и т.п.).
         /// </param>
         /// <remarks>
-        /// Если свойство <see cref="SuppressNotifyCollectionChange"/> установлено в <c>true</c>,
+        /// Если свойство <see cref="SuspendNotifications"/> установлено в <c>true</c>,
         /// событие изменения коллекции не генерируется.
         /// Используется для оптимизации массовых операций над коллекцией.
         /// </remarks>
         protected override void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
-            if (!this.suppressNotifyCollectionChange)
+            if (!this.suspendNotifications)
             {
                 base.OnCollectionChanged(e);
             }
@@ -331,14 +330,14 @@ namespace System.Collections
         /// (например, <c>Count</c> или индексатор элементов).
         /// </param>
         /// <remarks>
-        /// Если свойство <see cref="SuppressNotifyCollectionChange"/> установлено в <c>true</c>,
+        /// Если свойство <see cref="SuspendNotifications"/> установлено в <c>true</c>,
         /// уведомления об изменении свойств коллекции не генерируются.
         /// Это используется для предотвращения лишних уведомлений
         /// при массовых операциях над коллекцией.
         /// </remarks>
         protected override void OnPropertyChanged(PropertyChangedEventArgs e)
         {
-            if (!this.suppressNotifyCollectionChange)
+            if (!this.suspendNotifications)
             {
                 base.OnPropertyChanged(e);
             }
@@ -392,7 +391,7 @@ namespace System.Collections
 
         private static void OnItemPropertyChanged(ObservableCollectionEx<T> collection)
         {
-            if (collection.suppressNotifyCollectionChange)
+            if (collection.suspendNotifications)
             {
                 return;
             }

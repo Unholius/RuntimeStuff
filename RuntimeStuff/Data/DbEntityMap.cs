@@ -8,6 +8,7 @@ namespace System.Data
     using System.Collections.Generic;
     using System.Helpers;
     using System.Linq;
+    using System.Linq.Expressions;
     using System.Reflection;
 
     /// <summary>
@@ -181,8 +182,9 @@ namespace System.Data
                 if (fullName)
                 {
                     mappedColumnName = this.ResolveTableName(property.DeclaringType, namePrefix, nameSuffix) + "." + mappedColumnName;
-                    return mappedColumnName;
                 }
+
+                return mappedColumnName;
             }
 
             return null;
@@ -300,8 +302,28 @@ namespace System.Data
         {
             var entityMapping = this.GetOrAdd(typeof(T));
             var builder = new EntityMapBuilder<T>(this, entityMapping);
-            builder.MapTableName(tableName);
+            if (!string.IsNullOrWhiteSpace(tableName))
+            {
+                builder.MapTableName(tableName);
+            }
+
             return builder;
+        }
+
+        /// <summary>
+        /// Возвращает построитель сопоставления для типа <typeparamref name="T"/>
+        /// с явной установкой имени таблицы.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="propertySelector">Выбор свойства для сопоставления.</param>
+        /// <param name="columnName">Имя колонки.</param>
+        /// <returns>Экземпляр <see cref="EntityMapBuilder{T}"/>.</returns>
+        public EntityMapBuilder<T> Property<T>(Expression<Func<T, object>> propertySelector, string columnName)
+            where T : class
+        {
+            var emb = this.Table<T>(typeof(T).GetMemberCache().TableName);
+            emb.Property(propertySelector, columnName);
+            return emb;
         }
 
         private TypeMappingInfo GetOrAdd(Type type)

@@ -851,7 +851,12 @@ namespace System.Reflection
                         this.PublicBasicProperties.FirstOrDefault(x =>
                             x.Name.Equals("id", StringComparison.OrdinalIgnoreCase)) ??
                         this.PublicBasicProperties.FirstOrDefault(x =>
-                            x.Name.Equals(this.TableName + "id", StringComparison.OrdinalIgnoreCase));
+                            x.Name.Equals(this.TableName + "id", StringComparison.OrdinalIgnoreCase)) ??
+                        this.PublicBasicProperties.FirstOrDefault(x =>
+                            x.Name.Equals("uid", StringComparison.OrdinalIgnoreCase)) ??
+                        this.PublicBasicProperties.FirstOrDefault(x =>
+                            x.Name.Equals(this.TableName + "uid", StringComparison.OrdinalIgnoreCase))
+                    ;
                     if (p != null)
                     {
                         this.pks = [p];
@@ -2279,7 +2284,7 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Получает значение члена для указанного экземпляра.
+        /// Получает значение члена для указанного экземпляра через скомпилированный делегат <see cref="Getter"/>.
         /// </summary>
         /// <param name="instance">Экземпляр объекта.</param>
         /// <returns>Значение члена.</returns>

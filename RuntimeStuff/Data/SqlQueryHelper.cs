@@ -453,6 +453,31 @@ namespace System.Data
             return whereClause;
         }
 
+        public static string GetWhereClause(SqlDialect options, object whereClause, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
+        {
+            var dic = new Dictionary<string, object>();
+            cmdParams = dic;
+            if (whereClause == null)
+            {
+                return string.Empty;
+            }
+
+            var mc = whereClause.GetType().GetMemberCache();
+
+            var i = 0;
+            foreach (var p in mc.PublicBasicProperties)
+            {
+                dic[p.GetColumnName()] = p.GetValue(whereClause);
+                i++;
+            }
+
+            var where = string.Empty;
+            where += "WHERE ";
+            where += string.Join(" AND ", mc.PublicBasicProperties.Select((x, i) => $"{x.GetColumnName(options.NamePrefix, options.NameSuffix, false)} = {(useParams ? $"{options.ParamPrefix}{x.GetColumnName()}" : options.ValueFormatter.Format(x.GetValue(whereClause)))}"));
+
+            return where;
+        }
+
         /// <summary>
         /// Генерирует SQL-клауза WHERE для указанной сущности на основе её первичных ключей.
         /// </summary>

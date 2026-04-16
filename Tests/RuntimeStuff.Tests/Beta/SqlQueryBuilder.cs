@@ -90,10 +90,12 @@
         public bool UseAliases { get; set; }
         public bool UseAsKeywordInAliases { get; set; } = true;
         public bool UseFullNames { get; set; }
-
         public StringHelper.StringCase AliasNameCase { get; set; } = StringHelper.StringCase.Pascal;
         public StringHelper.StringCase ColumnNameCase { get; set; } = StringHelper.StringCase.Pascal;
         public StringHelper.StringCase TableNameCase { get; set; } = StringHelper.StringCase.Pascal;
+        public string SetParamNameTemplate = "set_{0}";
+        public string WhereParamNameTemplate = "{0}";
+        public bool UseParams;
 
 
         public SqlQueryBuilder Add<T>(QueryPartType queryPartType, params Expression<Func<T, object>>[] propertySelectors)

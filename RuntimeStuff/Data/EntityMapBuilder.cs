@@ -61,6 +61,8 @@ namespace System.Data
         /// </exception>
         public static PropertyInfo GetProperty<TProperty>(Expression<Func<T, TProperty>> selector)
         {
+            return ExpressionHelper.GetPropertyInfo(selector);
+
             if (selector.Body is not MemberExpression member)
             {
                 throw new ArgumentException("Expression must be a property.");
@@ -72,18 +74,6 @@ namespace System.Data
             }
 
             return property;
-        }
-
-        /// <summary>
-        /// Начинает конфигурацию сопоставления указанного свойства сущности.
-        /// </summary>
-        /// <typeparam name="TProperty">Тип свойства.</typeparam>
-        /// <param name="selector">Выражение вида <c>x => x.Property</c>.</param>
-        /// <returns>Билдер конфигурации свойства.</returns>
-        public PropertyMapBuilder<T, TProperty> Property<TProperty>(Expression<Func<T, TProperty>> selector)
-        {
-            var property = GetProperty(selector);
-            return new PropertyMapBuilder<T, TProperty>(this, property);
         }
 
         /// <summary>

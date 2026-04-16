@@ -32,7 +32,7 @@ namespace RuntimeStuff.MSTests
             var s1 = sw.ElapsedMilliseconds;
 
             sw.Restart();
-            x1.SuppressNotifyPropertyChange(true);
+            x1.SuspendNotifications(true);
             for (int i = 0; i < n; i++)
             {
                 x1.Id = i;
@@ -53,9 +53,9 @@ namespace RuntimeStuff.MSTests
             x1.Id = 2;
             Assert.AreEqual(x1.Id, x2.Id);
 
-            x1.SuppressNotifyPropertyChange(true);
+            x1.SuspendNotifications(true);
             x1.Id = 3;
-            x1.SuppressNotifyPropertyChange(false);
+            x1.SuspendNotifications(false);
             Assert.AreNotEqual(x1.Id, x2.Id);
 
             x2.Id = 4;
@@ -74,6 +74,17 @@ namespace RuntimeStuff.MSTests
             var x1 = new TestClass1();
             EventHelper.BindProperties(x1, "Id", nameof(INotifyPropertyChanged.PropertyChanged), x0, "Id");
         }
+
+        [TestMethod]
+        public void BindProperties_Test_03()
+        {
+            var x1 = new TestClass1();
+            var x2 = new TestClass2();
+            x1.Id = 1;
+            Assert.AreEqual(1, x1.Id);
+            Assert.AreEqual(0, x2.Id);
+        }
+
     }
 
     public class TestClass0 : INotifyPropertyChanged
@@ -99,6 +110,21 @@ namespace RuntimeStuff.MSTests
     {
         public int Id
         { 
+            get => Get<int>();
+            set => Set(value);
+        }
+    }
+
+    public class TestClass2 : PropertyChangedBase
+    {
+        public int Zero
+        {
+            get => Get<int>();
+            set => Set(value);
+        }
+
+        public int Id
+        {
             get => Get<int>();
             set => Set(value);
         }

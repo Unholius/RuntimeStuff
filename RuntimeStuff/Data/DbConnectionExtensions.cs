@@ -142,17 +142,6 @@ namespace System.Data
             => Server(con, server).Database(database).TrustCertificate(true).IntegratedSecurity(true);
 
         /// <summary>
-        /// Добавляет параметр имени базы данных в строку подключения.
-        /// </summary>
-        /// <param name="con">Соединение базы данных.</param>
-        /// <param name="database">Имя базы данных.</param>
-        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
-        public static IDbConnection Database(this IDbConnection con, string database)
-        {
-            return Param(con, SqlDialect.GetInstance(con).DatabaseParameterName, database);
-        }
-
-        /// <summary>
         /// Настраивает подключение к базе данных с использованием явных учетных данных (логин и пароль).
         /// </summary>
         /// <param name="con">Экземпляр соединения с базой данных.</param>
@@ -403,6 +392,17 @@ namespace System.Data
             }
 
             return command;
+        }
+
+        /// <summary>
+        /// Добавляет параметр имени базы данных в строку подключения.
+        /// </summary>
+        /// <param name="con">Соединение базы данных.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
+        public static IDbConnection Database(this IDbConnection con, string database)
+        {
+            return Param(con, SqlDialect.GetInstance(con).DatabaseParameterName, database);
         }
 
         /// <summary>

@@ -5,6 +5,7 @@
 namespace System.Data
 {
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
 
     /// <summary>
     /// Универсальный клиент доступа к базе данных, типизированный по конкретному
@@ -16,30 +17,22 @@ namespace System.Data
         where T : IDbConnection, new()
     {
         /// <summary>
-        /// The client cache.
+        /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
         /// </summary>
-        private static readonly ConcurrentDictionary<IDbConnection, DbClient<T>> ClientCache =
-            new();
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
-        /// Создаёт новый экземпляр клиента с автоматически созданным соединением.
-        /// </summary>
-        /// <param name="map">Глобальная карта сопоставлений.</param>
-        public DbClient(DbEntityMap map = null)
-            : base(new T(), map)
+        public DbClient()
+            : base()
         {
+            this.Connection = new T();
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
         /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
         /// </summary>
-        /// <param name="connectionString">Строка подключения к базе данных.</param>
-        /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
-        public DbClient(string connectionString, DbEntityMap map = null)
-            : base(new T { ConnectionString = connectionString }, map)
+        /// <param name="con">Соединение с базой данных.</param>
+        public DbClient(T con)
+            : base(con)
         {
+            this.Connection = con;
         }
 
         /// <summary>
@@ -58,13 +51,32 @@ namespace System.Data
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="DbClient{T}"/> class.
+        /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
+        /// </summary>
+        /// <param name="server">Имя сервера.</param>
+        /// <param name="database">Имя базы данных.</param>
+        /// <param name="userName">Логин.</param>
+        /// <param name="password">Пароль.</param>
+        /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
+        public DbClient(string server, string database, string userName, string password, DbEntityMap map = null)
+            : base(new T(), map)
+        {
+            DbConnectionExtensions.Server(this.Connection, server);
+            DbConnectionExtensions.Database(this.Connection, database);
+            DbConnectionExtensions.IntegratedSecurity(this.Connection, false);
+            DbConnectionExtensions.User(this.Connection, userName);
+            DbConnectionExtensions.Password(this.Connection, password);
+        }
+
+        /// <summary>
         /// типизированное соединение с базой данных.
         /// </summary>
         /// <value>The connection.</value>
         public new T Connection
         {
             get => (T)base.Connection;
-            set => base.Connection = value;
+            private set => base.Connection = value;
         }
     }
 }

@@ -107,7 +107,7 @@ namespace System
         /// <returns>
         /// Массив значений свойств в порядке их выбора.
         /// </returns>
-        public static object[] GetValues<TObject>(this TObject source, params string[] memberNames)
+        public static object[] GetPropertiesValues<TObject>(this TObject source, params string[] memberNames)
             where TObject : class
                 => Obj.GetValues(source, memberNames);
 
@@ -128,7 +128,7 @@ namespace System
         /// Для преобразования используется вспомогательный метод <c>Obj.ChangeType&lt;T&gt;</c>.
         /// Если преобразование невозможно, может возникнуть исключение.
         /// </remarks>
-        public static TValue[] GetValues<TObject, TValue>(this TObject source, params string[] memberNames)
+        public static TValue[] GetPropertiesValues<TObject, TValue>(this TObject source, params string[] memberNames)
             where TObject : class
                 => Obj.GetValues<TObject, TValue>(source, memberNames);
     }

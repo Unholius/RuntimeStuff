@@ -312,7 +312,7 @@ namespace System
         /// Значения, трактуемые как null (null, DBNull, NaN).
         /// </summary>
         /// <value>Значения, которые считать как null.</value>
-        public static object[] NullValues { get; } = [null, DBNull.Value, double.NaN, float.NaN];
+        public static HashSet<object> NullValues { get; } = [null, DBNull.Value, double.NaN, float.NaN];
 
         /// <summary>
         /// Объединение массивов <see cref="IntNumberTypes"/> и <see cref="FloatNumberTypes"/>.
@@ -2693,6 +2693,41 @@ namespace System
 
             setter(instance, value?.GetType() == memberType ? value : ChangeType(value, memberType));
             return true;
+        }
+
+        /// <summary>
+        /// Применяет конфигурацию к объекту, устанавливая значения его полей и свойств на основе предоставленной коллекции пар «имя члена ? значение».<br/>
+        /// </summary>
+        /// <param name="instance">Экземпляр объекта.</param>
+        /// <param name="config">Коллекция имя-значение. Если значение словарь, вызов продолжается рекурсивно. Если ключ содержит точки, то пытаемся установить значение для дочерних объектов.</param>
+        /// <param name="ignoreNullValues">Игнорировать Null значения из конфигурации.</param>
+        public static void Configure(object instance, IEnumerable<KeyValuePair<string, object>> config, bool ignoreNullValues = true)
+        {
+            foreach (var kvp in config)
+            {
+                if (kvp.Value is IEnumerable<KeyValuePair<string, object>> section)
+                {
+                    Configure(instance, section.ToDictionary(k => kvp.Key + "." + k.Key, v => v.Value));
+                    continue;
+                }
+
+                if (Obj.IsNull(kvp.Value) && ignoreNullValues)
+                {
+                    continue;
+                }
+
+                Set(instance, kvp.Key, kvp.Value);
+            }
+        }
+
+        /// <summary>
+        /// Проверяет, является ли переданное значение "null-эквивалентом", то есть одним из следующих: <see cref="NullValues"/>.
+        /// </summary>
+        /// <param name="value">Проверяемое значение.</param>
+        /// <returns>Содержится ли значение в массиве <see cref="NullValues"/>.</returns>
+        public static bool IsNull(object value)
+        {
+            return NullValues.Contains(value);
         }
 
         /// <summary>

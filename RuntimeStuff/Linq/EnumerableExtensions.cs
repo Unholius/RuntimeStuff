@@ -827,7 +827,7 @@ namespace System.Linq
             where TCollectionItem : class
         {
             var collection = new ObservableCollectionEx<TCollectionItem>();
-            collection.SuppressNotifyCollectionChange(true);
+            collection.SuspendNotifications(true);
 
             foreach (var item in source)
             {
@@ -844,7 +844,7 @@ namespace System.Linq
                 collection.Add(collectionItem);
             }
 
-            collection.SuppressNotifyCollectionChange(false);
+            collection.SuspendNotifications(false);
             return collection;
         }
 
