@@ -4,12 +4,7 @@
 
 namespace System
 {
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
     using System.Helpers;
-    using System.Linq;
-    using System.Reflection;
 
     /// <summary>
     /// Дополнительные методы для объектов.
@@ -128,7 +123,7 @@ namespace System
         /// Для преобразования используется вспомогательный метод <c>Obj.ChangeType&lt;T&gt;</c>.
         /// Если преобразование невозможно, может возникнуть исключение.
         /// </remarks>
-        public static TValue[] GetPropertiesValues<TObject, TValue>(this TObject source, params string[] memberNames)
+        public static TValue[] GetPropertyValues<TObject, TValue>(this TObject source, params string[] memberNames)
             where TObject : class
                 => Obj.GetValues<TObject, TValue>(source, memberNames);
     }

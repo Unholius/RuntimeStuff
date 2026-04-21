@@ -4,9 +4,6 @@
 
 namespace System.Data
 {
-    using System.Collections.Concurrent;
-    using System.Collections.Generic;
-
     /// <summary>
     /// Универсальный клиент доступа к базе данных, типизированный по конкретному
     /// типу соединения (<typeparamref name="T" />).

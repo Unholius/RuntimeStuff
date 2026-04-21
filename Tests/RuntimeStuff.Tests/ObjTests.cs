@@ -589,7 +589,7 @@
             var person = new TestPerson { Name = "John", Age = 30 };
 
             // Act
-            var values = person.GetValues<TestPerson, string>("Name", "Age");
+            var values = person.GetPropertyValues<TestPerson, string>("Name", "Age");
 
             // Assert
             Assert.AreEqual(2, values.Length);

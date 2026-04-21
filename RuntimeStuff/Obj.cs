@@ -2701,22 +2701,32 @@ namespace System
         /// <param name="instance">Экземпляр объекта.</param>
         /// <param name="config">Коллекция имя-значение. Если значение словарь, вызов продолжается рекурсивно. Если ключ содержит точки, то пытаемся установить значение для дочерних объектов.</param>
         /// <param name="ignoreNullValues">Игнорировать Null значения из конфигурации.</param>
-        public static void Configure(object instance, IEnumerable<KeyValuePair<string, object>> config, bool ignoreNullValues = true)
+        public static void Configure(object instance, IDictionary config, bool ignoreNullValues = true)
         {
-            foreach (var kvp in config)
+
+            foreach (DictionaryEntry item in config)
             {
-                if (kvp.Value is IEnumerable<KeyValuePair<string, object>> section)
+                var key = item.Key;
+                var value = item.Value;
+
+                switch (value)
                 {
-                    Configure(instance, section.ToDictionary(k => kvp.Key + "." + k.Key, v => v.Value));
+                    case IDictionary dicSection:
+                        Configure(instance, dicSection);
+                        continue;
+                    case IEnumerable<KeyValuePair<string, object>> section:
+                        {
+                            Configure(instance, section.ToDictionary(k => key + "." + k.Key, v => v.Value));
+                            continue;
+                        }
+                }
+
+                if (Obj.IsNull(value) && ignoreNullValues)
+                {
                     continue;
                 }
 
-                if (Obj.IsNull(kvp.Value) && ignoreNullValues)
-                {
-                    continue;
-                }
-
-                Set(instance, kvp.Key, kvp.Value);
+                Set(instance, $"{key}", value);
             }
         }
 

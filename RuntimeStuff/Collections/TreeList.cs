@@ -4,9 +4,6 @@
 
 namespace System.Collections
 {
-    using System;
-    using System.Collections.Generic;
-
     /// <summary>
     /// Представляет нетипизированную версию узла древовидной структуры.
     /// </summary>
