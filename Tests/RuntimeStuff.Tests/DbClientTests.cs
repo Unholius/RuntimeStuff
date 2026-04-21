@@ -69,7 +69,7 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
-        public void Insert_Test_03()
+        public void Select_Test_01()
         {
             var db = getdb(out var tmpTableName);
             var sql = "SELECT @id, @userId";
@@ -77,6 +77,28 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(1L, dt.Rows.Count);
             Assert.AreEqual(1L, dt.Rows[0][0]);
             Assert.AreEqual(2L, dt.Rows[0]["userId"]);
+        }
+
+        [TestMethod]
+        public void Update_Test_01()
+        {
+            var db = getdb(out var tmpTableName);
+            db.Insert(tmpTableName, 1, "one");
+            db.Update(tmpTableName, new { column2 = "one-updated" }, new { column1 = 1 });
+            var dt = db.ToDataTable($"select * from {tmpTableName}");
+            Assert.AreEqual(1, dt.Rows.Count);
+            Assert.AreEqual("one-updated", dt.Rows[0]["column2"]);
+        }
+
+        [TestMethod]
+        public void Update_Test_02()
+        {
+            var db = getdb(out var tmpTableName);
+            db.Insert(tmpTableName, 1, "one");
+            db.ExecuteNonQuery($"update {tmpTableName} set column2=:p1 where column1 in (:ids)", new { p1 = "one-updated", ids = new[] { 1 } });
+            var dt = db.ToDataTable($"select * from {tmpTableName}");
+            Assert.AreEqual(1, dt.Rows.Count);
+            Assert.AreEqual("one-updated", dt.Rows[0]["column2"]);
         }
     }
 }

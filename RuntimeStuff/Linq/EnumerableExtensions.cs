@@ -31,6 +31,250 @@ namespace System.Linq
     public static class EnumerableExtensions
     {
         /// <summary>
+        /// Направление обхода списка.
+        /// </summary>
+        public enum ListDirection
+        {
+            /// <summary>
+            /// Обход списка в обратном направлении (к началу).
+            /// </summary>
+            Backward = -1,
+
+            /// <summary>
+            /// Обход списка в прямом направлении (к концу).
+            /// </summary>
+            Forward = 1,
+        }
+
+        /// <summary>
+        /// Извлекает элементы списка, начиная с указанного элемента, пока не будет выполнено условие.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов списка.</typeparam>
+        /// <param name="list">Исходный список.</param>
+        /// <param name="startItem">Элемент, с которого начинается обход.</param>
+        /// <param name="direction">Направление обхода списка.</param>
+        /// <param name="condition">
+        /// Условие остановки. При возвращении <see langword="true"/> обход прекращается.
+        /// Параметры: элемент и его индекс.
+        /// </param>
+        /// <param name="includeStartItem">
+        /// Включать ли стартовый элемент в результат.
+        /// </param>
+        /// <param name="includeEndItem">
+        /// Включать ли элемент, на котором условие остановки стало истинным.
+        /// </param>
+        /// <param name="throwIfConditionNotMet">
+        /// Генерировать исключение, если условие не было выполнено до достижения границы списка.
+        /// </param>
+        /// <returns>
+        /// Список элементов, собранных до выполнения условия.
+        /// </returns>
+        public static IList<T> TakeUntil<T>(
+            this IList<T> list,
+            T startItem,
+            ListDirection direction,
+            Func<T, int, bool> condition,
+            bool includeStartItem = false,
+            bool includeEndItem = false,
+            bool throwIfConditionNotMet = true)
+        {
+            return TakeUntil(list, list?.IndexOf(startItem) ?? -1, direction, condition, includeStartItem, includeEndItem, throwIfConditionNotMet);
+        }
+
+        /// <summary>
+        /// Извлекает элементы списка, начиная с указанного индекса, пока не будет выполнено условие.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов списка.</typeparam>
+        /// <param name="list">Исходный список.</param>
+        /// <param name="startIndex">Индекс элемента, с которого начинается обход.</param>
+        /// <param name="direction">Направление обхода списка.</param>
+        /// <param name="condition">
+        /// Условие остановки. При возвращении <see langword="true"/> обход прекращается.
+        /// Параметры: элемент и его индекс.
+        /// </param>
+        /// <param name="includeStartItem">
+        /// Включать ли стартовый элемент в результат.
+        /// </param>
+        /// <param name="includeEndItem">
+        /// Включать ли элемент, на котором условие остановки стало истинным.
+        /// </param>
+        /// <param name="throwIfConditionNotMet">
+        /// Генерировать исключение, если условие не было выполнено до достижения границы списка.
+        /// </param>
+        /// <returns>
+        /// Список элементов, собранных до выполнения условия.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="list"/> или <paramref name="condition"/> равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если <paramref name="startIndex"/> выходит за границы списка.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Выбрасывается, если <paramref name="throwIfConditionNotMet"/> равно <see langword="true"/>
+        /// и условие не было выполнено до выхода за пределы списка.
+        /// </exception>
+        public static IList<T> TakeUntil<T>(
+            this IList<T> list,
+            int startIndex,
+            ListDirection direction,
+            Func<T, int, bool> condition,
+            bool includeStartItem = false,
+            bool includeEndItem = false,
+            bool throwIfConditionNotMet = true)
+        {
+            if (list == null)
+            {
+                throw new ArgumentNullException(nameof(list));
+            }
+
+            if (condition == null)
+            {
+                throw new ArgumentNullException(nameof(condition));
+            }
+
+            if (startIndex < 0 || startIndex >= list.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startIndex));
+            }
+
+            var result = new List<T>(list.Count - startIndex);
+
+            int step = (int)direction;
+
+            if (includeStartItem)
+            {
+                result.Add(list[startIndex]);
+            }
+
+            for (int i = startIndex + step; i >= 0 && i < list.Count; i += step)
+            {
+                var item = list[i];
+
+                if (condition(item, i))
+                {
+                    if (includeEndItem)
+                    {
+                        result.Add(item);
+                    }
+
+                    return result;
+                }
+
+                result.Add(item);
+            }
+
+            if (throwIfConditionNotMet)
+            {
+                throw new InvalidOperationException("Condition was not met before reaching collection boundary.");
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Извлекает элементы списка, начиная с указанного элемента, пока выполняется условие.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов списка.</typeparam>
+        /// <param name="list">Исходный список.</param>
+        /// <param name="startItem">Элемент, с которого начинается обход.</param>
+        /// <param name="direction">Направление обхода списка.</param>
+        /// <param name="condition">
+        /// Условие продолжения выборки.
+        /// Пока возвращает <see langword="true"/>, элементы добавляются в результат.
+        /// </param>
+        /// <returns>
+        /// Список элементов, удовлетворяющих условию до момента его нарушения.
+        /// </returns>
+        public static IList<T> TakeWhile<T>(
+            this IList<T> list,
+            T startItem,
+            ListDirection direction,
+            Func<T, int, bool> condition)
+        {
+            return TakeWhile(list, list?.IndexOf(startItem) ?? -1, direction, condition);
+        }
+
+        /// <summary>
+        /// Извлекает элементы списка, начиная с указанного индекса, пока выполняется условие.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов списка.</typeparam>
+        /// <param name="list">Исходный список.</param>
+        /// <param name="startIndex">Индекс элемента, с которого начинается обход.</param>
+        /// <param name="direction">Направление обхода списка.</param>
+        /// <param name="condition">
+        /// Условие продолжения выборки.
+        /// Пока возвращает <see langword="true"/>, элементы добавляются в результат.
+        /// </param>
+        /// <returns>
+        /// Список элементов, удовлетворяющих условию до момента его нарушения.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="list"/> или <paramref name="condition"/> равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Выбрасывается, если <paramref name="startIndex"/> выходит за границы списка.
+        /// </exception>
+        public static IList<T> TakeWhile<T>(
+            this IList<T> list,
+            int startIndex,
+            ListDirection direction,
+            Func<T, int, bool> condition)
+        {
+            if (list == null)
+            {
+                throw new ArgumentNullException(nameof(list));
+            }
+
+            if (condition == null)
+            {
+                throw new ArgumentNullException(nameof(condition));
+            }
+
+            if (startIndex < 0 || startIndex >= list.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startIndex));
+            }
+
+            var result = new List<T>(list.Count - startIndex);
+
+            int step = (int)direction;
+
+            for (int i = startIndex + step; i >= 0 && i < list.Count; i += step)
+            {
+                var item = list[i];
+
+                if (!condition(item, i))
+                {
+                    break;
+                }
+
+                result.Add(item);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Добавляет элементы из второго словаря в первый.
+        /// Если ключ уже существует, значение будет перезаписано.
+        /// </summary>
+        /// <typeparam name="TKey">Тип ключа словаря.</typeparam>
+        /// <typeparam name="TValue">Тип значения словаря.</typeparam>
+        /// <param name="dictionary1">Целевой словарь, в который выполняется объединение.</param>
+        /// <param name="dictionary2">Исходный словарь, элементы которого будут добавлены.</param>
+        /// <exception cref="ArgumentNullException">
+        /// Возникает, если <paramref name="dictionary1"/> или <paramref name="dictionary2"/> равен <c>null</c>.
+        /// </exception>
+        public static void Merge<TKey, TValue>(this IDictionary<TKey, TValue> dictionary1, IEnumerable<KeyValuePair<TKey, TValue>> dictionary2)
+        {
+            foreach (var kvp in dictionary2)
+            {
+                dictionary1[kvp.Key] = kvp.Value;
+            }
+        }
+
+        /// <summary>
         /// Возвращает значение, связанное с указанным ключом, либо значение по умолчанию, если ключ не найден.
         /// </summary>
         /// <typeparam name="TKey">Тип ключа.</typeparam>

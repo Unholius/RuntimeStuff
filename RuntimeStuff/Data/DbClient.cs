@@ -38,9 +38,6 @@ namespace System.Data
         /// </summary>
         public DbClient()
         {
-#if DEBUG
-            this.EnableLogging = true;
-#endif
         }
 
         /// <summary>
@@ -66,7 +63,7 @@ namespace System.Data
             : this(map)
         {
             this.Connection = con ?? throw new ArgumentNullException(nameof(con));
-            this.Options = SqlDialect.GetInstance(con.GetType().Name);
+            this.Options = SqlOptions.GetInstance(con.GetType().Name);
             this.Options.Map = map;
         }
 
@@ -185,7 +182,7 @@ namespace System.Data
         /// <remarks>Свойство является ковариантным (<c>out T</c>) и предназначено
         /// только для чтения. Для изменения опций рекомендуется использовать
         /// методы самого объекта опций или создавать новый экземпляр.</remarks>
-        public SqlDialect Options { get; set; } = new SqlDialect();
+        public SqlOptions Options { get; set; } = new SqlOptions();
 
         /// <summary>
         /// Имена колонок, для которых будет использоваться пул строк. Если <see cref="EnableStringPool" /> включён, строки из этих колонок будут интернированы через <see cref="StringPool" />.
@@ -756,6 +753,28 @@ namespace System.Data
 
                     break;
 
+                case IDictionary<string, object> dic1:
+                    foreach (var kvp in dic1)
+                    {
+                        var p = cmd.CreateParameter();
+                        p.ParameterName = kvp.Key;
+                        p.Value = kvp.Value;
+                        cmd.Parameters.Add(p);
+                    }
+
+                    break;
+
+                case IDictionary dic2:
+                    foreach (IDictionaryEnumerator kvp in dic2)
+                    {
+                        var p = cmd.CreateParameter();
+                        p.ParameterName = $"{kvp.Key}";
+                        p.Value = kvp.Value;
+                        cmd.Parameters.Add(p);
+                    }
+
+                    break;
+
                 default:
                     var parameterNames = GetParameterNames(query);
                     var parameters = this.GetParams(cmdParams, parameterNames);
@@ -790,7 +809,8 @@ namespace System.Data
                                 var arr = (arrProp.Getter(cmdParams) as IEnumerable)?.Cast<object>();
                                 if (arr != null)
                                 {
-                                    cmd.CommandText = cmd.CommandText.Replace("@" + arrProp.Name, string.Join(", ", arr.Select((x, i) => $"@{arrProp.Name}_{i}")));
+                                    var inParams = string.Join(", ", arr.Select((x, i) => $"{this.Options.ParamPrefix}{arrProp.Name}_{i}"));
+                                    cmd.CommandText = Regex.Replace(cmd.CommandText, "[@:\\$]" + arrProp.Name, inParams);
                                 }
                             }
                         }
@@ -3351,108 +3371,6 @@ namespace System.Data
             }
         }
 
-        private DataTable[] ToDataTablesInternal(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-            {
-                throw new ArgumentNullException(nameof(query));
-            }
-
-            valueConverter ??= (f, v, c) => v;
-
-            var result = new List<DataTable>();
-
-            StringPool stringPool = this.EnableStringPool ? new StringPool() : null;
-            var usePool = stringPool != null;
-
-            using var cmd = this.CreateCommand(query, cmdParams);
-
-            try
-            {
-                this.BeginConnection();
-
-                using var r = cmd.ExecuteReader();
-
-                do
-                {
-                    this.CommandExecuted?.Invoke(cmd);
-                    this.Log(cmd);
-
-                    var map = GetReaderFieldToPropertyMap(r, columnMap);
-                    var fieldCount = map.Count;
-
-                    var table = new DataTable(query);
-                    table.BeginLoadData();
-
-                    // ----------------------------
-                    // cache column metadata arrays
-                    // ----------------------------
-                    var colNames = new string[fieldCount];
-                    var colTypes = new Type[fieldCount];
-                    var dataColumns = new DataColumn[fieldCount];
-
-                    int i = 0;
-                    foreach (var kv in map)
-                    {
-                        var col = new DataColumn(
-                            kv.Value,
-                            r.GetFieldType(kv.Key) ?? typeof(object));
-
-                        table.Columns.Add(col);
-
-                        colNames[i] = kv.Value;
-                        colTypes[i] = col.DataType;
-                        dataColumns[i] = col;
-                        i++;
-                    }
-
-                    // ----------------------------
-                    // materialization loop
-                    // ----------------------------
-                    while (r.Read())
-                    {
-                        var row = table.NewRow();
-
-                        for (int j = 0; j < fieldCount; j++)
-                        {
-                            var raw = r.GetValue(j);
-
-                            if (raw == DBNull.Value)
-                            {
-                                continue;
-                            }
-
-                            if (usePool && raw is string s && this.PooledStringColumns.Contains(colNames[j]))
-                            {
-                                raw = stringPool.Intern(s);
-                            }
-
-                            row[colNames[j]] =
-                                valueConverter(colNames[j], raw, dataColumns[j]);
-                        }
-
-                        table.Rows.Add(row);
-                    }
-
-                    table.AcceptChanges();
-                    table.EndLoadData();
-
-                    result.Add(table);
-                }
-                while (r.NextResult());
-
-                return result.ToArray();
-            }
-            catch (Exception ex)
-            {
-                throw this.HandleDbException(ex, cmd);
-            }
-            finally
-            {
-                this.CloseConnection();
-            }
-        }
-
         /// <summary>
         ///     Асинхронно выполняет SQL-запрос и возвращает результат в виде массива <see cref="DataTable" />.
         /// </summary>
@@ -3902,20 +3820,46 @@ namespace System.Data
         public int Update<T>(T item, params Expression<Func<T, object>>[] updateColumns)
             where T : class => this.Update(item, null, null, null, updateColumns);
 
-        public int Update(string tableName, object whereParams, params (string ColumnName, object Value)[] updateValues)
+        /// <summary>
+        /// Обновляет записи в указанной таблице, используя объекты со значениями
+        /// для секций <c>SET</c> и <c>WHERE</c>.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы, в которой выполняется обновление.</param>
+        /// <param name="updateValues">
+        /// Объект со свойствами, значения которых будут использованы
+        /// для формирования выражений секции <c>SET</c>.
+        /// Имена свойств соответствуют именам столбцов.
+        /// </param>
+        /// <param name="whereValues">
+        /// Объект со свойствами, значения которых будут использованы
+        /// для формирования условий секции <c>WHERE</c>.
+        /// Имена свойств соответствуют именам столбцов.
+        /// </param>
+        /// <returns>
+        /// Количество строк, затронутых командой <c>UPDATE</c>.
+        /// </returns>
+        /// <remarks>
+        /// Имена столбцов и параметры запроса формируются автоматически
+        /// на основании переданных объектов и текущих настроек подключения.
+        /// </remarks>
+        public int Update(string tableName, object updateValues, object whereValues)
         {
-            var sql = $"UPDATE {this.Options.NamePrefix}{tableName}{this.Options.NameSuffix} SET {string.Join(", ", updateValues.Select((x, i) => $"{this.Options.NamePrefix}{x.ColumnName}{this.Options.NameSuffix} = {this.Options.ParamPrefix}set_{x.ColumnName}"))}";
-            if (whereParams != null)
+            var updateMap = updateValues as IDictionary<string, object> ?? Obj.GetValues(updateValues);
+            var whereMap = whereValues as IDictionary<string, object> ?? Obj.GetValues(whereValues);
+            var mergedMap = new Dictionary<string, object>(updateMap);
+
+            foreach (var kv in whereMap)
             {
-                sql += " " + SqlQueryHelper.GetWhereClause(this.Options, whereParams, true, out var whereCmdParams);
-                var cmdParams = updateValues.Select((x, i) => new KeyValuePair<string, object>($"p{i}", x.Value)).Concat(whereCmdParams).ToArray();
-                return this.ExecuteNonQuery(sql, cmdParams);
+                mergedMap[kv.Key] = kv.Value;
             }
-            else
+
+            var sql = $"UPDATE {this.Options.NamePrefix}{tableName}{this.Options.NameSuffix} SET {string.Join(", ", updateMap.Select(x => $"{this.Options.NamePrefix}{x.Key}{this.Options.NameSuffix} = {this.Options.ParamPrefix}{x.Key}"))}";
+            if (whereMap.Count > 0)
             {
-                var cmdParams = updateValues.Select((x, i) => new KeyValuePair<string, object>($"p{i}", x.Value)).ToArray();
-                return this.ExecuteNonQuery(sql, cmdParams);
+                sql += $" WHERE {string.Join(", ", whereMap.Select(x => $"{this.Options.NamePrefix}{x.Key}{this.Options.NameSuffix} = {this.Options.ParamPrefix}{x.Key}"))}";
             }
+
+            return this.ExecuteNonQuery(sql, mergedMap);
         }
 
         /// <summary>
@@ -4887,6 +4831,108 @@ namespace System.Data
 
                 list.Add(item);
                 rowCount++;
+            }
+        }
+
+        private DataTable[] ToDataTablesInternal(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                throw new ArgumentNullException(nameof(query));
+            }
+
+            valueConverter ??= (f, v, c) => v;
+
+            var result = new List<DataTable>();
+
+            StringPool stringPool = this.EnableStringPool ? new StringPool() : null;
+            var usePool = stringPool != null;
+
+            using var cmd = this.CreateCommand(query, cmdParams);
+
+            try
+            {
+                this.BeginConnection();
+
+                using var r = cmd.ExecuteReader();
+
+                do
+                {
+                    this.CommandExecuted?.Invoke(cmd);
+                    this.Log(cmd);
+
+                    var map = GetReaderFieldToPropertyMap(r, columnMap);
+                    var fieldCount = map.Count;
+
+                    var table = new DataTable(query);
+                    table.BeginLoadData();
+
+                    // ----------------------------
+                    // cache column metadata arrays
+                    // ----------------------------
+                    var colNames = new string[fieldCount];
+                    var colTypes = new Type[fieldCount];
+                    var dataColumns = new DataColumn[fieldCount];
+
+                    int i = 0;
+                    foreach (var kv in map)
+                    {
+                        var col = new DataColumn(
+                            kv.Value,
+                            r.GetFieldType(kv.Key) ?? typeof(object));
+
+                        table.Columns.Add(col);
+
+                        colNames[i] = kv.Value;
+                        colTypes[i] = col.DataType;
+                        dataColumns[i] = col;
+                        i++;
+                    }
+
+                    // ----------------------------
+                    // materialization loop
+                    // ----------------------------
+                    while (r.Read())
+                    {
+                        var row = table.NewRow();
+
+                        for (int j = 0; j < fieldCount; j++)
+                        {
+                            var raw = r.GetValue(j);
+
+                            if (raw == DBNull.Value)
+                            {
+                                continue;
+                            }
+
+                            if (usePool && raw is string s && this.PooledStringColumns.Contains(colNames[j]))
+                            {
+                                raw = stringPool.Intern(s);
+                            }
+
+                            row[colNames[j]] =
+                                valueConverter(colNames[j], raw, dataColumns[j]);
+                        }
+
+                        table.Rows.Add(row);
+                    }
+
+                    table.AcceptChanges();
+                    table.EndLoadData();
+
+                    result.Add(table);
+                }
+                while (r.NextResult());
+
+                return result.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw this.HandleDbException(ex, cmd);
+            }
+            finally
+            {
+                this.CloseConnection();
             }
         }
     }

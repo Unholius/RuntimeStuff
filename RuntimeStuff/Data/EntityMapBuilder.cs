@@ -62,18 +62,6 @@ namespace System.Data
         public static PropertyInfo GetProperty<TProperty>(Expression<Func<T, TProperty>> selector)
         {
             return ExpressionHelper.GetPropertyInfo(selector);
-
-            if (selector.Body is not MemberExpression member)
-            {
-                throw new ArgumentException("Expression must be a property.");
-            }
-
-            if (member.Member is not PropertyInfo property)
-            {
-                throw new ArgumentException("Member is not a property.");
-            }
-
-            return property;
         }
 
         /// <summary>

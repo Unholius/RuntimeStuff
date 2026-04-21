@@ -2206,6 +2206,36 @@ namespace System
         }
 
         /// <summary>
+        /// Получает значения всех публичных свойств объекта в виде словаря.
+        /// </summary>
+        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
+        /// <param name="source">Объект, из которого извлекаются значения свойств.</param>
+        /// <returns>
+        /// Словарь, где ключом является имя свойства, а значением — его текущее значение.
+        /// Если <paramref name="source"/> равен <see langword="null"/>,
+        /// возвращается пустой словарь.
+        /// </returns>
+        public static Dictionary<string, object> GetValues<TObject>(TObject source)
+            where TObject : class
+        {
+            var dic = new Dictionary<string, object>();
+            if (source == null)
+            {
+                return dic;
+            }
+
+            var sourceType = GetType(source);
+            var memberNames = GetPropertyNames(sourceType);
+            var values = GetValues<TObject>(source, memberNames);
+            for (int i = 0; i < values.Length; i++)
+            {
+                dic[memberNames[i]] = values[i];
+            }
+
+            return dic;
+        }
+
+        /// <summary>
         /// Получает значения указанных свойств объекта.
         /// </summary>
         /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
@@ -2217,7 +2247,7 @@ namespace System
         /// <returns>
         /// Массив значений свойств в порядке их выбора.
         /// </returns>
-        public static object[] GetValues<TObject>(TObject source, params string[] memberNames)
+        public static object[] GetValues<TObject>(TObject source, string[] memberNames)
             where TObject : class
         {
             if (source == null)
@@ -2703,7 +2733,6 @@ namespace System
         /// <param name="ignoreNullValues">Игнорировать Null значения из конфигурации.</param>
         public static void Configure(object instance, IDictionary config, bool ignoreNullValues = true)
         {
-
             foreach (DictionaryEntry item in config)
             {
                 var key = item.Key;

@@ -79,7 +79,7 @@ namespace System.Data
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
         public static IDbConnection ApplicationName(this IDbConnection con, string appName)
         {
-            return Param(con, SqlDialect.GetInstance(con).ApplicationNameParameterName, appName);
+            return Param(con, SqlOptions.GetInstance(con).ApplicationNameParameterName, appName);
         }
 
         /// <summary>
@@ -402,7 +402,7 @@ namespace System.Data
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
         public static IDbConnection Database(this IDbConnection con, string database)
         {
-            return Param(con, SqlDialect.GetInstance(con).DatabaseParameterName, database);
+            return Param(con, SqlOptions.GetInstance(con).DatabaseParameterName, database);
         }
 
         /// <summary>
@@ -938,7 +938,7 @@ namespace System.Data
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
         public static IDbConnection IntegratedSecurity(this IDbConnection con, bool value)
         {
-            return Param(con, SqlDialect.GetInstance(con).IntegratedSecurityParameterName, value);
+            return Param(con, SqlOptions.GetInstance(con).IntegratedSecurityParameterName, value);
         }
 
         /// <summary>
@@ -1055,7 +1055,7 @@ namespace System.Data
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
         public static IDbConnection Password(this IDbConnection con, string password)
         {
-            return Param(con, SqlDialect.GetInstance(con).PasswordParameterName, password);
+            return Param(con, SqlOptions.GetInstance(con).PasswordParameterName, password);
         }
 
         /// <summary>
@@ -1124,7 +1124,7 @@ namespace System.Data
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
         public static IDbConnection Server(this IDbConnection con, string serverName)
         {
-            return Param(con, SqlDialect.GetInstance(con).ServerParameterName, serverName);
+            return Param(con, SqlOptions.GetInstance(con).ServerParameterName, serverName);
         }
 
         /// <summary>
@@ -1162,7 +1162,7 @@ namespace System.Data
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
         public static IDbConnection Timeout(this IDbConnection con, int timeoutSeconds)
         {
-            return Param(con, SqlDialect.GetInstance(con).ConnectTimeoutParameterName, timeoutSeconds);
+            return Param(con, SqlOptions.GetInstance(con).ConnectTimeoutParameterName, timeoutSeconds);
         }
 
         /// <summary>
@@ -1533,7 +1533,7 @@ namespace System.Data
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
         public static IDbConnection TrustCertificate(this IDbConnection con, bool value)
         {
-            return Param(con, SqlDialect.GetInstance(con).TrustServerCertificateParameterName, value);
+            return Param(con, SqlOptions.GetInstance(con).TrustServerCertificateParameterName, value);
         }
 
         /// <summary>
@@ -1784,7 +1784,7 @@ namespace System.Data
         /// <returns>Тот же экземпляр <see cref="IDbConnection"/> для цепочного вызова.</returns>
         public static IDbConnection User(this IDbConnection con, string userName)
         {
-            return Param(con, SqlDialect.GetInstance(con).UserParameterName, userName);
+            return Param(con, SqlOptions.GetInstance(con).UserParameterName, userName);
         }
 
         private static string NormalizeParameterName(string name)
