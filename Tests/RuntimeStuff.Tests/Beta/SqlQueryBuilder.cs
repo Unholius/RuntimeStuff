@@ -10,7 +10,7 @@
     using System.Reflection;
     using System.Text;
 
-    public partial class SqlQueryBuilder
+    public class SqlQueryBuilder
     {
         private readonly SqlOptions options = SqlOptions.SqlServer;
         private readonly List<QueryPart> query = [];
@@ -74,27 +74,34 @@
         public string WhereParamNameTemplate = "{0}";
         public bool UseParams;
 
-        public SqlQueryBuilder Select(string columnName, string? alias = null)
+        public SqlQueryBuilder Column(string parentAlias, string columnName, string? alias = null)
         {
-            AddColumn(QueryPartFlag.Select, columnName, alias);
+            var col = AddColumn(QueryPartFlag.Select, columnName, alias);
+            col.ParentAlias = parentAlias;
             return this;
         }
 
-        public SqlQueryBuilder SelectMany(params string[] columnNames)
+        public SqlQueryBuilder Columns(string parentAlias, string[] columnNames)
         {
             foreach (string columnName in columnNames)
             {
-                Select(columnName);
+                Column(parentAlias, columnName);
             }
             return this;
         }
 
-        public SqlQueryBuilder From(string tableName, string? alias = null)
+        public SqlQueryBuilder From()
         {
-            return From(null, tableName, alias);
+            AddQueryPart(QueryPartFlag.Operator, "FROM");
+            return this;
         }
 
-        public SqlQueryBuilder From(string? schemaName, string tableName, string? alias = null)
+        public SqlQueryBuilder Table(string tableName, string? alias = null)
+        {
+            return Table(null, tableName, alias);
+        }
+
+        public SqlQueryBuilder Table(string? schemaName, string tableName, string? alias = null)
         {
             return From(null, null, schemaName, tableName, alias);
         }
@@ -294,6 +301,12 @@
             return f;
         }
 
+        public SqlQueryBuilder Select()
+        {
+            AddQueryPart(QueryPartFlag.Operator, "SELECT");
+            return this;
+        }
+
         internal sealed class QueryPart
         {
             private readonly SqlQueryBuilder sqlQueryBuilder;
@@ -310,6 +323,7 @@
             public string? SchemaName { get; set; }
             public string? ObjectName { get; set; }
             public string? Alias { get; set; }
+            public string? ParentAlias { get; set; }
             public object? Value { get; set; }
             public QueryPartFlag Flags { get; }
 

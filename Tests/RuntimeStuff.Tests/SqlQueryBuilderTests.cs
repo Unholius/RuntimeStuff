@@ -32,20 +32,41 @@ namespace RuntimeStuff.MSTests
         {
             var sqb = new SqlQueryBuilder();
             sqb
-                .Select("product_id")
-                .Select("product_name")
-                .From("products", "p")
-                .SelectMany("date", "count")
+                .Select()
+                .Column("p", "product_id")
+                .Column("p", "product_name")
+                .From()
+                .Table("products", "p")
+                .Columns("pd", [ "date", "count" ])
                 .InnerJoin("product_details", "pd", "parent_product_id", "p", "product_id")
-                .Where("pd", "date", SqlQueryBuilder.SqlOperator.Equal, DateTime.Now.Date)
+                .Where("pd", "date", SqlOperator.Equal, DateTime.Now.Date)
                 .And()
                 .BeginGroup()
-                .Where("pd", "count", SqlQueryBuilder.SqlOperator.Less, 0)
+                .Where("pd", "count", SqlOperator.Less, 0)
                 .Or()
-                .Where("pd", "count", SqlQueryBuilder.SqlOperator.Greater, 9999)
+                .Where("pd", "count", SqlOperator.Greater, 9999)
                 .EndGroup()
                 ;
         }
+
+        [TestMethod]
+        public void Test02()
+        {
+            var sqb = new SqlQueryBuilder();
+            sqb
+                .Select()
+                    .AllColumns("t")
+                .From()
+                .BeginGroup()
+                    .Select()
+                        .Column("p", "Id")
+                    .From()
+                    .Table("products", "p")
+                .EndGroup()
+                .Alias("t")
+                ;
+        }
+
 
         //[TestMethod]
         //public void Select_Test_01()
