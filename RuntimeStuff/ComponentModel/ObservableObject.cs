@@ -68,7 +68,7 @@ namespace System.ComponentModel
     /// </item>
     /// </list>
     /// </remarks>
-    public abstract class ObservableObject :
+    public class ObservableObject :
         INotifyPropertyChanged,
         INotifyPropertyChanging,
         ICustomTypeDescriptor
@@ -296,7 +296,7 @@ namespace System.ComponentModel
         /// Вызывается после изменения значения свойства.
         /// </summary>
         /// <param name="propertyName">Имя изменённого свойства.</param>
-        protected virtual void OnPropertyChanged(string propertyName)
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             var handler = this.PropertyChanged;
             handler?.Invoke(this, new PropertyChangedEventArgs(propertyName));

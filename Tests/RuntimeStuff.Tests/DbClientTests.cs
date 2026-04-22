@@ -13,6 +13,7 @@ namespace RuntimeStuff.MSTests
             var sql = $"CREATE TEMP TABLE {tableName} (column1 int, column2 text);";
             var con = new SqliteConnection().Database(dbName());
             var db = new DbClient(con);
+            db.EnableLogging = true;
             db.ExecuteNonQuery(sql);
             return db;
         }
@@ -96,6 +97,17 @@ namespace RuntimeStuff.MSTests
             var db = getdb(out var tmpTableName);
             db.Insert(tmpTableName, 1, "one");
             db.ExecuteNonQuery($"update {tmpTableName} set column2=:p1 where column1 in (:ids)", new { p1 = "one-updated", ids = new[] { 1 } });
+            var dt = db.ToDataTable($"select * from {tmpTableName}");
+            Assert.AreEqual(1, dt.Rows.Count);
+            Assert.AreEqual("one-updated", dt.Rows[0]["column2"]);
+        }
+
+        [TestMethod]
+        public void Update_Test_03()
+        {
+            var db = getdb(out var tmpTableName);
+            db.Insert(tmpTableName, 1, "one");
+            db.ExecuteNonQuery($"update {tmpTableName} set column2='one-updated' where column1 in (:ids)", new[] { 1 });
             var dt = db.ToDataTable($"select * from {tmpTableName}");
             Assert.AreEqual(1, dt.Rows.Count);
             Assert.AreEqual("one-updated", dt.Rows[0]["column2"]);

@@ -799,6 +799,18 @@ namespace System.Data
                         parameters = new ReadOnlyDictionary<string, object>(dic);
                     }
 
+                    if (parameterNames.Length == 1 && cmdParams.GetType().IsCollection())
+                    {
+                        var arr = (cmdParams as IEnumerable)?.Cast<object>();
+                        if (arr != null)
+                        {
+                            var inParams = string.Join(", ", arr.Select((x, i) => $"{this.Options.ParamPrefix}{parameterNames[0]}_{i}"));
+                            cmd.CommandText = Regex.Replace(cmd.CommandText, "[@:\\$]" + parameterNames[0], inParams);
+
+                            parameters = new ReadOnlyDictionary<string, object>(arr.ToDictionary((x, i) => $"{parameterNames[0]}_{i}", v => v));
+                        }
+                    }
+
                     if (cmdParams != null)
                     {
                         if (cmdParams is not IEnumerable<KeyValuePair<string, object>>)

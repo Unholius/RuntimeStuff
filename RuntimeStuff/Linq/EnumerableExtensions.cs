@@ -1382,6 +1382,68 @@ namespace System.Linq
         }
 
         /// <summary>
+        /// Преобразует последовательность в словарь, используя функции выбора ключа и значения.
+        /// </summary>
+        /// <typeparam name="TSource">Тип элементов исходной последовательности.</typeparam>
+        /// <typeparam name="TKey">Тип ключей словаря.</typeparam>
+        /// <typeparam name="TValue">Тип значений словаря.</typeparam>
+        /// <param name="source">Исходная последовательность элементов.</param>
+        /// <param name="keySelector">
+        /// Функция получения ключа на основе элемента и его индекса.
+        /// </param>
+        /// <param name="valueSelector">
+        /// Функция получения значения на основе элемента.
+        /// </param>
+        /// <returns>
+        /// Словарь, содержащий элементы исходной последовательности,
+        /// преобразованные в пары ключ-значение.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/>,
+        /// <paramref name="keySelector"/> или <paramref name="valueSelector"/>
+        /// равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается при попытке добавить дублирующийся ключ.
+        /// </exception>
+        public static Dictionary<TKey, TValue> ToDictionary<TSource, TKey, TValue>(
+            this IEnumerable<TSource> source,
+            Func<TSource, int, TKey> keySelector,
+            Func<TSource, TValue> valueSelector)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (keySelector == null)
+            {
+                throw new ArgumentNullException(nameof(keySelector));
+            }
+
+            if (valueSelector == null)
+            {
+                throw new ArgumentNullException(nameof(valueSelector));
+            }
+
+            var dictionary = new Dictionary<TKey, TValue>();
+
+            int index = 0;
+
+            foreach (TSource item in source)
+            {
+                TKey key = keySelector(item, index);
+                TValue value = valueSelector(item);
+
+                dictionary.Add(key, value);
+
+                index++;
+            }
+
+            return dictionary;
+        }
+
+        /// <summary>
         /// Преобразует последовательность в <see cref="DefaultDictionary{TKey, TValue}"/>,
         /// используя указанную функцию выбора ключа.
         /// </summary>
