@@ -11,6 +11,18 @@ namespace System.Collections
     using System.ComponentModel;
 
     /// <summary>
+    /// Представляет метод обработки события изменения свойства элемента коллекции.
+    /// </summary>
+    /// <param name="sender">
+    /// Источник события, обычно коллекция, содержащая изменённый элемент.
+    /// </param>
+    /// <param name="e">
+    /// Данные события, содержащие ссылку на элемент коллекции
+    /// и имя изменённого свойства.
+    /// </param>
+    public delegate void CollectionItemPropertyChangedEventHandler(object sender, CollectionItemPropertyChangedEventArgs e);
+
+    /// <summary>
     /// Расширенная коллекция <see cref="ObservableCollection{T}"/>,
     /// поддерживающая подавление уведомлений об изменении коллекции
     /// и автоматическую подписку на события <see cref="INotifyPropertyChanged"/>
@@ -42,6 +54,15 @@ namespace System.Collections
         {
             this.SubscribeAll(this);
         }
+
+        /// <summary>
+        /// Происходит при изменении свойства одного из элементов коллекции.
+        /// </summary>
+        /// <remarks>
+        /// Событие позволяет отслеживать изменения объектов, содержащихся в коллекции,
+        /// без необходимости подписываться на каждый элемент отдельно.
+        /// </remarks>
+        public event CollectionItemPropertyChangedEventHandler CollectionItemPropertyChanged;
 
         /// <summary>
         /// Добавляет несколько элементов в коллекцию с единым уведомлением.
@@ -389,7 +410,7 @@ namespace System.Collections
             this.Subscribe(item);
         }
 
-        private static void OnItemPropertyChanged(ObservableCollectionEx<T> collection)
+        private static void OnItemPropertyChanged(ObservableCollectionEx<T> collection, object item, string propertyName)
         {
             if (collection.suspendNotifications)
             {
@@ -399,6 +420,8 @@ namespace System.Collections
             collection.OnCollectionChanged(
                 new NotifyCollectionChangedEventArgs(
                     NotifyCollectionChangedAction.Reset));
+
+            collection.CollectionItemPropertyChanged?.Invoke(collection, new CollectionItemPropertyChangedEventArgs(item, propertyName));
         }
 
         /// <summary>
@@ -422,7 +445,7 @@ namespace System.Collections
                 return;
             }
 
-            this.weakEventManager.AddWeakEventListener(inpc, (s, e) => OnItemPropertyChanged(this));
+            this.weakEventManager.AddWeakEventListener(inpc, (s, e) => OnItemPropertyChanged(this, item, e.PropertyName));
         }
 
         /// <summary>

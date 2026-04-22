@@ -49,8 +49,9 @@
             btnSendMessage = new Button();
             listBox1 = new ListBox();
             tabPage4 = new TabPage();
-            dgvPage4 = new DataGridView();
             button1 = new Button();
+            dgvPage4 = new DataGridView();
+            listBox2 = new ListBox();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
@@ -266,6 +267,7 @@
             // 
             // tabPage4
             // 
+            tabPage4.Controls.Add(listBox2);
             tabPage4.Controls.Add(button1);
             tabPage4.Controls.Add(dgvPage4);
             tabPage4.Location = new Point(4, 24);
@@ -276,14 +278,6 @@
             tabPage4.Text = "tabPage4";
             tabPage4.UseVisualStyleBackColor = true;
             // 
-            // dgvPage4
-            // 
-            dgvPage4.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvPage4.Location = new Point(274, 127);
-            dgvPage4.Name = "dgvPage4";
-            dgvPage4.Size = new Size(699, 398);
-            dgvPage4.TabIndex = 0;
-            // 
             // button1
             // 
             button1.Location = new Point(206, 32);
@@ -293,6 +287,22 @@
             button1.Text = "Add Property";
             button1.UseVisualStyleBackColor = true;
             button1.Click += button1_Click;
+            // 
+            // dgvPage4
+            // 
+            dgvPage4.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvPage4.Location = new Point(274, 127);
+            dgvPage4.Name = "dgvPage4";
+            dgvPage4.Size = new Size(699, 398);
+            dgvPage4.TabIndex = 0;
+            // 
+            // listBox2
+            // 
+            listBox2.FormattingEnabled = true;
+            listBox2.Location = new Point(989, 128);
+            listBox2.Name = "listBox2";
+            listBox2.Size = new Size(212, 394);
+            listBox2.TabIndex = 2;
             // 
             // Form1
             // 
@@ -342,5 +352,6 @@
         private DataGridView dgv;
         private DataGridView dgvPage4;
         private Button button1;
+        private ListBox listBox2;
     }
 }

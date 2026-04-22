@@ -223,11 +223,12 @@ namespace System.ComponentModel
 
             this.RaiseChanging(propertyName);
 
+            var oldValue = field;
             field = value;
 
             onChanged?.Invoke();
 
-            this.RaiseChanged(propertyName);
+            this.RaiseChanged(propertyName, oldValue, field);
 
             return true;
         }
@@ -272,13 +273,16 @@ namespace System.ComponentModel
             }
 
             this.RaiseChanging(propertyName);
-
             this.EnsureCapacity(index);
+            var oldValue = this.values[index];
             this.values[index] = value;
 
-            onChanged?.Invoke();
+            if (!this.notificationsSuspended)
+            {
+                onChanged?.Invoke();
+            }
 
-            this.RaiseChanged(propertyName);
+            this.RaiseChanged(propertyName, oldValue, value);
 
             return true;
         }
@@ -300,6 +304,19 @@ namespace System.ComponentModel
         {
             var handler = this.PropertyChanged;
             handler?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            this.InvokeChangedHandler(propertyName);
+        }
+
+        /// <summary>
+        /// Вызывается после изменения значения свойства.
+        /// </summary>
+        /// <param name="propertyName">Имя изменённого свойства.</param>
+        /// <param name="oldValue">Старое значение свойства.</param>
+        /// <param name="newValue">Новое значение свойства.</param>
+        protected virtual void OnPropertyChanged(string propertyName, object oldValue, object newValue)
+        {
+            var handler = this.PropertyChanged;
+            handler?.Invoke(this, new PropertyChangedEventArgsEx(propertyName, oldValue, newValue));
             this.InvokeChangedHandler(propertyName);
         }
 
@@ -377,11 +394,11 @@ namespace System.ComponentModel
             handler?.Invoke(this);
         }
 
-        private void RaiseChanged(string propertyName)
+        private void RaiseChanged(string propertyName, object oldValue, object newValue)
         {
             if (!this.notificationsSuspended)
             {
-                this.OnPropertyChanged(propertyName);
+                this.OnPropertyChanged(propertyName, oldValue, newValue);
             }
         }
 

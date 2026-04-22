@@ -89,6 +89,7 @@ namespace TestWinFormsApp
             //sw.Stop();
             //MessageBox.Show(sw.Elapsed.TotalSeconds.ToString());
             var ds4 = new ObservableCollectionEx<Dgv4View>();
+            ds4.CollectionItemPropertyChanged += Ds4_CollectionItemPropertyChanged; ;
             var item = new Dgv4View();
             item["Name"] = "Name";
             item["Id"] = 123;
@@ -96,6 +97,16 @@ namespace TestWinFormsApp
             ds4.Add(item);
             ds4.Add(new Dgv4View());
             dgvPage4.DataSource = ds4;
+        }
+
+        private void Ds4_CollectionItemPropertyChanged(object sender, CollectionItemPropertyChangedEventArgs e)
+        {
+            listBox2.Items.Add($"Changed! {e.PropertyName} {e.Item}");
+        }
+
+        private void Ds4_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            listBox2.Items.Add($"Changed!");
         }
 
         public class Dgv4View : ObservableObject
