@@ -7,10 +7,9 @@ namespace RuntimeStuff.MSTests
     public class DbClientTests
     {
         private static string dbName() => $".\\Databases\\DB{DateTime.Now.Ticks}.db";
-        private DbClient getdb(out string tableName)
+        private DbClient getdb()
         {
-            tableName = $"T" + DateTime.Now.Ticks;
-            var sql = $"CREATE TEMP TABLE {tableName} (column1 int, column2 text);";
+            var sql = $"CREATE TEMP TABLE Tmp (column1 int, column2 text);";
             var con = new SqliteConnection().Database(dbName());
             var db = new DbClient(con);
             db.EnableLogging = true;
@@ -60,19 +59,19 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Insert_Test_02()
         {
-            var db = getdb(out var tmpTableName);
+            var db = getdb();
             var tr = db.BeginTransaction();
-            db.Insert(tmpTableName, 1, "one");
-            db.Insert(tmpTableName, 2, "two");
+            db.Insert("Tmp", 1, "one");
+            db.Insert("Tmp", 2, "two");
             db.RollbackTransaction();
-            var dt = db.ToDataTable($"select * from {tmpTableName}");
+            var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(0, dt.Rows.Count);
         }
 
         [TestMethod]
         public void Select_Test_01()
         {
-            var db = getdb(out var tmpTableName);
+            var db = getdb();
             var sql = "SELECT @id, @userId";
             var dt  = db.ToDataTable(sql, new { id = 1, UserId = 2 });
             Assert.AreEqual(1L, dt.Rows.Count);
@@ -83,10 +82,10 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Update_Test_01()
         {
-            var db = getdb(out var tmpTableName);
-            db.Insert(tmpTableName, 1, "one");
-            db.Update(tmpTableName, new { column2 = "one-updated" }, new { column1 = 1 });
-            var dt = db.ToDataTable($"select * from {tmpTableName}");
+            var db = getdb();
+            db.Insert("Tmp", 1, "one");
+            db.Update("Tmp", new { column2 = "one-updated" }, new { column1 = 1 });
+            var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(1, dt.Rows.Count);
             Assert.AreEqual("one-updated", dt.Rows[0]["column2"]);
         }
@@ -94,10 +93,10 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Update_Test_02()
         {
-            var db = getdb(out var tmpTableName);
-            db.Insert(tmpTableName, 1, "one");
-            db.ExecuteNonQuery($"update {tmpTableName} set column2=:p1 where column1 in (:ids)", new { p1 = "one-updated", ids = new[] { 1 } });
-            var dt = db.ToDataTable($"select * from {tmpTableName}");
+            var db = getdb();
+            db.Insert("Tmp", 1, "one");
+            db.ExecuteNonQuery($"update Tmp set column2=:p1 where column1 in (:ids)", new { p1 = "one-updated", ids = new[] { 1 } });
+            var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(1, dt.Rows.Count);
             Assert.AreEqual("one-updated", dt.Rows[0]["column2"]);
         }
@@ -105,12 +104,27 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Update_Test_03()
         {
-            var db = getdb(out var tmpTableName);
-            db.Insert(tmpTableName, 1, "one");
-            db.ExecuteNonQuery($"update {tmpTableName} set column2='one-updated' where column1 in (:ids)", new[] { 1 });
-            var dt = db.ToDataTable($"select * from {tmpTableName}");
-            Assert.AreEqual(1, dt.Rows.Count);
+            var db = getdb();
+            db.Insert("Tmp", 1, "one");
+            db.Insert("Tmp", 2, "two");
+            db.ExecuteNonQuery($"update Tmp set column2='one-updated' where column1 in (:ids)", new[] { 1 });
+            var dt = db.ToDataTable($"select * from Tmp");
+            Assert.AreEqual(2, dt.Rows.Count);
             Assert.AreEqual("one-updated", dt.Rows[0]["column2"]);
+            Assert.AreEqual("two", dt.Rows[1]["column2"]);
+        }
+
+        [TestMethod]
+        public void Update_Test_04()
+        {
+            var db = getdb();
+            db.Insert("Tmp", 1, "one");
+            db.Insert("Tmp", 2, "two");
+            db.ExecuteNonQuery($"update Tmp set column2='updated' where column1 in (:ids)", new List<int>(new[] { 1, 2 }));
+            var dt = db.ToDataTable($"select * from Tmp");
+            Assert.AreEqual(2, dt.Rows.Count);
+            Assert.AreEqual("updated", dt.Rows[0]["column2"]);
+            Assert.AreEqual("updated", dt.Rows[1]["column2"]);
         }
     }
 }
