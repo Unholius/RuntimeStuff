@@ -717,7 +717,7 @@ namespace RuntimeStuff.MSTests
 
         #endregion Тесты для интерфейсов и наследования
 
-        public class ObservableObjectEx2 : PropertyChangedBase
+        public class ObservableObjectEx2 : ObservableObject
         {
             public int Id { get; set; }
         }

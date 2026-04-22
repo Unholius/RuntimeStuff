@@ -88,6 +88,19 @@ namespace TestWinFormsApp
             //dgv.DataSource = gantt;
             //sw.Stop();
             //MessageBox.Show(sw.Elapsed.TotalSeconds.ToString());
+            var ds4 = new ObservableCollectionEx<Dgv4View>();
+            var item = new Dgv4View();
+            item["Name"] = "Name";
+            item["Id"] = 123;
+            item[$"Property_{DateTime.Now.Ticks}"] = DateTime.Now.Ticks;
+            ds4.Add(item);
+            ds4.Add(new Dgv4View());
+            dgvPage4.DataSource = ds4;
+        }
+
+        public class Dgv4View : ObservableObject
+        {
+            public int Id { get => Get<int>(); set => Set(value); }
         }
 
         private class ServerMessage
@@ -178,7 +191,16 @@ namespace TestWinFormsApp
             {
                 dgv.DataSource = con.ToDataTable("select top 1000 * from products");
             }
-                
+
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            var x = dgvPage4.DataSource as IList<Dgv4View>;
+            x[0][$"Property_{DateTime.Now.Ticks}"] = DateTime.Now.Ticks;
+            dgvPage4.Columns.Clear();
+            dgvPage4.DataSource = null;
+            dgvPage4.DataSource = x;
         }
     }
 

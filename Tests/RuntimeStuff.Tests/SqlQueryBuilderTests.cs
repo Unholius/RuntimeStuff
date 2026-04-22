@@ -38,7 +38,7 @@ namespace RuntimeStuff.MSTests
                 .From()
                 .Table("products", "p")
                 .Columns("pd", [ "date", "count" ])
-                .InnerJoin("product_details", "pd", "parent_product_id", "p", "product_id")
+                .InnerJoin("product_details", "pd", "parent_product_id", SqlOperator.Equal, "p", "product_id")
                 .Where("pd", "date", SqlOperator.Equal, DateTime.Now.Date)
                 .And()
                 .BeginGroup()

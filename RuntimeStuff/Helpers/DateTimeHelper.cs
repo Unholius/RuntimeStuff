@@ -520,9 +520,9 @@ namespace System.Helpers
         /// TimeSpan ts2 = GetElapsedTime(3, DateTimeInterval.Month);
         /// </code>
         /// </example>
-        /// <remarks>Метод использует стандартные функции <see cref="TimeSpan.FromMilliseconds" />,
-        /// <see cref="TimeSpan.FromSeconds" />, <see cref="TimeSpan.FromMinutes" />,
-        /// <see cref="TimeSpan.FromHours" /> и <see cref="TimeSpan.FromDays" /> для преобразования.
+        /// <remarks>Метод использует стандартные функции "TimeSpan.FromMilliseconds",
+        /// "TimeSpan.FromSeconds", "TimeSpan.FromMinutes",
+        /// "TimeSpan.FromHours" и "TimeSpan.FromDays" для преобразования.
         /// Для интервалов <see cref="DateTimeInterval.Month" /> и <see cref="DateTimeInterval.Year" />
         /// используется приближённое преобразование через дни (30 и 365 соответственно),
         /// поэтому результат является ориентировочным и не учитывает разные длины месяцев и високосные годы.</remarks>

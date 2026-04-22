@@ -438,20 +438,20 @@ namespace System
             }
 
 #if NET6_0_OR_GREATER
-                        if (value is DateOnly d)
-                        {
-                            var format = customTypeFormat ?? this.DateFormat ?? "yyyy-MM-dd";
-                            var text = d.ToString(format, this.CultureInfo);
-                            result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
-                            return this.ApplyPost(result);
-                        }
+            if (value is DateOnly d)
+            {
+                var format = customTypeFormat ?? this.DateFormat ?? "yyyy-MM-dd";
+                var text = d.ToString(format, this.CultureInfo);
+                result = StringHelper.ApplyAffixes(text, this.DatePrefix, this.DateSuffix);
+                return this.ApplyPost(result);
+            }
 
-                        if (value is TimeOnly tOnly)
-                        {
-                            var format = customTypeFormat ?? this.TimeFormat ?? "HH:mm:ss";
-                            var text = tOnly.ToString(format, this.CultureInfo);
-                            return this.ApplyPost(text);
-                        }
+            if (value is TimeOnly tOnly)
+            {
+                var format = customTypeFormat ?? this.TimeFormat ?? "HH:mm:ss";
+                var text = tOnly.ToString(format, this.CultureInfo);
+                return this.ApplyPost(text);
+            }
 #endif
             if (value is TimeSpan ts)
             {

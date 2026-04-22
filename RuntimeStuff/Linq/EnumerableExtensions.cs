@@ -47,6 +47,48 @@ namespace System.Linq
         }
 
         /// <summary>
+        /// Возвращает первый элемент последовательности, удовлетворяющий условию,
+        /// либо значение по умолчанию, если такой элемент не найден.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов последовательности.</typeparam>
+        /// <param name="list">Исходная последовательность.</param>
+        /// <param name="predicate">
+        /// Условие поиска, принимающее элемент и его индекс.
+        /// </param>
+        /// <returns>
+        /// Первый элемент, удовлетворяющий условию, либо <see langword="default"/>.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="list"/> или <paramref name="predicate"/> равны <see langword="null"/>.
+        /// </exception>
+        public static T FirstOrDefault<T>(this IEnumerable<T> list, Func<T, int, bool> predicate)
+        {
+            if (list == null)
+            {
+                throw new ArgumentNullException(nameof(list));
+            }
+
+            if (predicate == null)
+            {
+                throw new ArgumentNullException(nameof(predicate));
+            }
+
+            int index = 0;
+
+            foreach (T item in list)
+            {
+                if (predicate(item, index))
+                {
+                    return item;
+                }
+
+                index++;
+            }
+
+            return default;
+        }
+
+        /// <summary>
         /// Извлекает элементы списка, начиная с указанного элемента, пока не будет выполнено условие.
         /// </summary>
         /// <typeparam name="T">Тип элементов списка.</typeparam>
@@ -602,6 +644,7 @@ namespace System.Linq
             return count;
         }
 
+#if !NET6_0_OR_GREATER
         /// <summary>
         /// Возвращает уникальные элементы последовательности по заданному ключу.
         /// Аналог LINQ DistinctBy из .NET 6+.
@@ -631,6 +674,7 @@ namespace System.Linq
 
             return source.Where(element => seenKeys.Add(keySelector(element)));
         }
+#endif
 
         /// <summary>
         /// Filters the specified filter expression.

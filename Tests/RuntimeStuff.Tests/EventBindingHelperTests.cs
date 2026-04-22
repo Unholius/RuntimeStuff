@@ -106,7 +106,7 @@ namespace RuntimeStuff.MSTests
         public event PropertyChangedEventHandler PropertyChanged;
     }
 
-    public class TestClass1 : PropertyChangedBase
+    public class TestClass1 : ObservableObject
     {
         public int Id
         { 
@@ -115,7 +115,7 @@ namespace RuntimeStuff.MSTests
         }
     }
 
-    public class TestClass2 : PropertyChangedBase
+    public class TestClass2 : ObservableObject
     {
         public int Zero
         {

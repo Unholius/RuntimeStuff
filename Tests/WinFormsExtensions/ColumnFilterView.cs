@@ -495,7 +495,7 @@ namespace WinFormsExtensions
             SetSelection(false);
         }
 
-        internal class FilterRow : PropertyChangedBase
+        internal class FilterRow : ObservableObject
         {
             private bool @checked;
             private object @value;

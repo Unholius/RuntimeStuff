@@ -10,11 +10,11 @@
 
 	<!-- Основные свойства проекта -->
 	<PropertyGroup>
-		<TargetFrameworks>netstandard2.0</TargetFrameworks>
+		<TargetFrameworks>netstandard2.0;net5.0;net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
 		<OutputType>Library</OutputType>
 		<LangVersion>latest</LangVersion>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<Version>2026.04.15.2</Version>
+		<Version>2026.04.22.1</Version>
 		<Authors>Rudnev Sergey</Authors>
 		<PackageProjectUrl>https://github.com/Unholius/RuntimeStuff</PackageProjectUrl>
 		<PackageDescription>Набор утилит и вспомогательных хелперов общего назначения для .NET проектов: расширения строк, работы с файлами, сериализации, Simple ORM, LINQ-утилиты и др.</PackageDescription>

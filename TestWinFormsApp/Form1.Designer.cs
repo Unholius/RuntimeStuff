@@ -49,12 +49,16 @@
             btnSendMessage = new Button();
             listBox1 = new ListBox();
             tabPage4 = new TabPage();
+            dgvPage4 = new DataGridView();
+            button1 = new Button();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             flowLayoutPanel1.SuspendLayout();
             tabPage2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgv).BeginInit();
             tabPage3.SuspendLayout();
+            tabPage4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dgvPage4).BeginInit();
             SuspendLayout();
             // 
             // btnMemberCacheAllMembers
@@ -262,6 +266,8 @@
             // 
             // tabPage4
             // 
+            tabPage4.Controls.Add(button1);
+            tabPage4.Controls.Add(dgvPage4);
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name = "tabPage4";
             tabPage4.Padding = new Padding(3);
@@ -269,6 +275,24 @@
             tabPage4.TabIndex = 3;
             tabPage4.Text = "tabPage4";
             tabPage4.UseVisualStyleBackColor = true;
+            // 
+            // dgvPage4
+            // 
+            dgvPage4.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvPage4.Location = new Point(274, 127);
+            dgvPage4.Name = "dgvPage4";
+            dgvPage4.Size = new Size(699, 398);
+            dgvPage4.TabIndex = 0;
+            // 
+            // button1
+            // 
+            button1.Location = new Point(206, 32);
+            button1.Name = "button1";
+            button1.Size = new Size(114, 23);
+            button1.TabIndex = 1;
+            button1.Text = "Add Property";
+            button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
             // 
             // Form1
             // 
@@ -289,6 +313,8 @@
             ((System.ComponentModel.ISupportInitialize)dgv).EndInit();
             tabPage3.ResumeLayout(false);
             tabPage3.PerformLayout();
+            tabPage4.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)dgvPage4).EndInit();
             ResumeLayout(false);
         }
 
@@ -314,5 +340,7 @@
         private TextBox textBox2;
         private Label label1;
         private DataGridView dgv;
+        private DataGridView dgvPage4;
+        private Button button1;
     }
 }

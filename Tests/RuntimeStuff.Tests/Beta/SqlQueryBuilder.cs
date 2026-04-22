@@ -52,6 +52,7 @@
             From = 1 << 20,
             Operator = 1 << 21,
             Parameter = 1 << 22,
+            SelectAll = 1 << 23,
         }
 
         public enum DuplicateNameHandling
@@ -76,7 +77,7 @@
 
         public SqlQueryBuilder Column(string parentAlias, string columnName, string? alias = null)
         {
-            var col = AddColumn(QueryPartFlag.Select, columnName, alias);
+            var col = AddColumn(parentAlias, QueryPartFlag.Select, columnName, alias);
             col.ParentAlias = parentAlias;
             return this;
         }
@@ -112,18 +113,18 @@
             return this;
         }
 
-        public SqlQueryBuilder InnerJoin(string childTableName, string childAlias, string childColumnName, string parentAlias, string parentColumnName)
+        public SqlQueryBuilder InnerJoin(string childTableName, string childAlias, string childColumnName, SqlOperator op, string parentAlias, string parentColumnName)
         {
-            return Join(JoinType.Inner, null, null, null, childTableName, childAlias, childColumnName, SqlOperator.Equal, parentAlias, parentColumnName);
+            return Join(JoinType.Inner, null, null, null, childTableName, childAlias, childColumnName, op, parentAlias, parentColumnName);
         }
 
         public SqlQueryBuilder Join(JoinType joinType, string? serverName, string? databaseName, string? schemaName, string childTableName, string childAlias, string childColumnName, SqlOperator op, string parentAlias, string parentColumnName)
         {
             var joinTable = AddTable(QueryPartFlag.Join, serverName, databaseName, schemaName, childTableName, childAlias);
             var parentTable = GetByAlias(childAlias);
-            var pkCol = AddColumn(QueryPartFlag.Join, parentColumnName, null, joinTable);
+            var pkCol = AddColumn(parentAlias, QueryPartFlag.Join, parentColumnName, null, joinTable);
             var con = AddCondition(op);
-            var fkCol = AddColumn(QueryPartFlag.Join, childColumnName, null, parentTable);
+            var fkCol = AddColumn(childAlias, QueryPartFlag.Join, childColumnName, null, parentTable);
             joinTable.AddLinks(pkCol, fkCol);
             con.AddLinks(pkCol, fkCol);
             return this;
@@ -160,7 +161,7 @@
                 And();
             }
             var table = GetByAlias(tableAlias);
-            AddColumn(QueryPartFlag.Where, columnName, null, table);
+            AddColumn(tableAlias, QueryPartFlag.Where, columnName, null, table);
             AddCondition(op);
             AddParam(value, string.Format(WhereParamNameTemplate, columnName));
             return this;
@@ -227,14 +228,19 @@
             return condition;
         }
 
-        private QueryPart AddColumn(QueryPartFlag columnFlags, string columnName, string? alias = null, params QueryPart[] links)
+        private QueryPart AddColumn(string? parentAlias, QueryPartFlag columnFlags, string columnName, string? alias = null, params QueryPart[] links)
         {
-            var columnPart = AddQueryPart(QueryPartFlag.Column | columnFlags, columnName, alias);
+            var columnPart = AddQueryPart(parentAlias, QueryPartFlag.Column | columnFlags, columnName, alias);
             columnPart.AddLinks(links);
             return columnPart;
         }
 
         private QueryPart AddQueryPart(QueryPartFlag flags, string? objectName = null, string? alias = null, object? value = null, string? schemaName = null, string? databaseName = null, string? serverName = null)
+        {
+            return AddQueryPart(null, flags, objectName, alias, value, schemaName, databaseName, serverName);
+        }
+
+        private QueryPart AddQueryPart(string? parentAlias, QueryPartFlag flags, string? objectName = null, string? alias = null, object? value = null, string? schemaName = null, string? databaseName = null, string? serverName = null)
         {
             CheckAlias(alias);
             var qp = new QueryPart(this, flags);
@@ -244,6 +250,7 @@
             qp.SchemaName = schemaName;
             qp.DatabaseName = databaseName;
             qp.ServerName = serverName;
+            qp.ParentAlias = parentAlias;
             query.Add(qp);
             return qp;
         }
@@ -304,6 +311,18 @@
         public SqlQueryBuilder Select()
         {
             AddQueryPart(QueryPartFlag.Operator, "SELECT");
+            return this;
+        }
+
+        public SqlQueryBuilder AllColumns(string parentAlias)
+        {
+            AddQueryPart(QueryPartFlag.SelectAll);
+            return this;
+        }
+
+        public SqlQueryBuilder Alias(string? alias)
+        {
+            Last()?.Alias = alias;
             return this;
         }
 
