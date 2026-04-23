@@ -27,7 +27,6 @@ namespace System.Data
     public class DbClient : IDisposable
     {
         private static readonly ConditionalWeakTable<IDbConnection, DbClient> ClientCache = new();
-        private static readonly StringComparer IgnoreCaseComparer = StringComparer.OrdinalIgnoreCase;
         private readonly IReadOnlyDictionary<string, object> emptyParams = new Dictionary<string, object>();
         private readonly AsyncLocal<IDbTransaction> tr = new();
         private int queryLogMaxSize = 100;
@@ -174,6 +173,11 @@ namespace System.Data
         /// <value><c>true</c> if this instance is disposed; otherwise, <c>false</c>.</value>
         /// <remarks>Устанавливается в <c>true</c> после вызова метода <see cref="Dispose()" />.</remarks>
         public bool IsDisposed { get; private set; }
+
+        /// <summary>
+        /// Последний запущенный запрос.
+        /// </summary>
+        public string LastQuery { get; private set; }
 
         /// <summary>
         /// Параметры SQL-провайдера (кавычки, префиксы параметров, синтаксис LIMIT/OFFSET и т.п.).
@@ -427,7 +431,7 @@ namespace System.Data
             params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
         {
-            var result = new Dictionary<string, object>(IgnoreCaseComparer);
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var query = SqlQueryHelper.GetAggSelectClause(this.Options, columnSelectors);
 
             if (whereExpression != null)
@@ -485,7 +489,7 @@ namespace System.Data
             params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
         {
-            var result = new Dictionary<string, object>(IgnoreCaseComparer);
+            var result = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             var query = SqlQueryHelper.GetAggSelectClause(this.Options, columnSelectors);
 
             if (whereExpression != null)
@@ -1784,10 +1788,10 @@ namespace System.Data
                                     }
                                 }
 
-                                var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name, IgnoreCaseComparer);
+                                var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name, StringComparer.OrdinalIgnoreCase);
                                 foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyFilter))
                                 {
-                                    parameters[propertyNames.Length > 0 ? propertyNames.First(x => IgnoreCaseComparer.Equals(x, kvp.Key)) : kvp.Key] = kvp.Value;
+                                    parameters[propertyNames.Length > 0 ? propertyNames.First(x => StringComparer.OrdinalIgnoreCase.Equals(x, kvp.Key)) : kvp.Key] = kvp.Value;
                                 }
                             }
                         }
@@ -3825,12 +3829,42 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущая транзакция или соединение.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public Task<int> UpdateAsync<T>(
+            T item,
+            IDbTransaction dbTransaction,
+            CancellationToken token = default,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.UpdateAsync(item, null, null, dbTransaction, token, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
         /// <param name="updateColumns">Список колонок, которые необходимо обновить.
         /// Если не указан, обновляются все сопоставленные свойства,
         /// за исключением первичных ключей.</param>
         /// <returns>Количество строк, затронутых операцией обновления.</returns>
         public int Update<T>(T item, params Expression<Func<T, object>>[] updateColumns)
             where T : class => this.Update(item, null, null, null, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public Task<int> UpdateAsync<T>(T item, CancellationToken token = default, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.UpdateAsync(item, null, null, null, token, updateColumns);
 
         /// <summary>
         /// Обновляет записи в указанной таблице, используя объекты со значениями
@@ -3875,6 +3909,48 @@ namespace System.Data
         }
 
         /// <summary>
+        /// Обновляет записи в указанной таблице, используя объекты со значениями
+        /// для секций <c>SET</c> и <c>WHERE</c>.
+        /// </summary>
+        /// <param name="tableName">Имя таблицы, в которой выполняется обновление.</param>
+        /// <param name="updateValues">
+        /// Объект со свойствами, значения которых будут использованы
+        /// для формирования выражений секции <c>SET</c>.
+        /// Имена свойств соответствуют именам столбцов.
+        /// </param>
+        /// <param name="whereValues">
+        /// Объект со свойствами, значения которых будут использованы
+        /// для формирования условий секции <c>WHERE</c>.
+        /// Имена свойств соответствуют именам столбцов.
+        /// </param>
+        /// <returns>
+        /// Количество строк, затронутых командой <c>UPDATE</c>.
+        /// </returns>
+        /// <remarks>
+        /// Имена столбцов и параметры запроса формируются автоматически
+        /// на основании переданных объектов и текущих настроек подключения.
+        /// </remarks>
+        public Task<int> UpdateAsync(string tableName, object updateValues, object whereValues, IDbTransaction dbTransaction = null, CancellationToken token = default)
+        {
+            var updateMap = updateValues as IDictionary<string, object> ?? Obj.GetValues(updateValues);
+            var whereMap = whereValues as IDictionary<string, object> ?? Obj.GetValues(whereValues);
+            var mergedMap = new Dictionary<string, object>(updateMap);
+
+            foreach (var kv in whereMap)
+            {
+                mergedMap[kv.Key] = kv.Value;
+            }
+
+            var sql = $"UPDATE {this.Options.NamePrefix}{tableName}{this.Options.NameSuffix} SET {string.Join(", ", updateMap.Select(x => $"{this.Options.NamePrefix}{x.Key}{this.Options.NameSuffix} = {this.Options.ParamPrefix}{x.Key}"))}";
+            if (whereMap.Count > 0)
+            {
+                sql += $" WHERE {string.Join(", ", whereMap.Select(x => $"{this.Options.NamePrefix}{x.Key}{this.Options.NameSuffix} = {this.Options.ParamPrefix}{x.Key}"))}";
+            }
+
+            return this.ExecuteNonQueryAsync(sql, mergedMap, dbTransaction, token);
+        }
+
+        /// <summary>
         /// Обновляет запись в базе данных на основе значений свойств объекта.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
@@ -3899,12 +3975,45 @@ namespace System.Data
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="item">Объект, содержащий обновляемые значения.</param>
         /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущая транзакция или соединение.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public Task<int> UpdateAsync<T>(
+            T item,
+            string tableName,
+            IDbTransaction dbTransaction,
+            CancellationToken token,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.UpdateAsync(item, tableName, null, dbTransaction, token, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
         /// <param name="updateColumns">Список колонок, которые необходимо обновить.
         /// Если не указан, обновляются все сопоставленные свойства,
         /// за исключением первичных ключей.</param>
         /// <returns>Количество строк, затронутых операцией обновления.</returns>
         public int Update<T>(T item, string tableName, params Expression<Func<T, object>>[] updateColumns)
             where T : class => this.Update(item, tableName, null, null, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public Task<int> UpdateAsync<T>(T item, string tableName, CancellationToken token, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.UpdateAsync(item, tableName, null, null, token, updateColumns);
 
         /// <summary>
         /// Обновляет записи в базе данных на основе указанного условия.
@@ -3927,6 +4036,30 @@ namespace System.Data
             where T : class
         {
             return this.Update(item, null, whereExpression, dbTransaction, updateColumns);
+        }
+
+        /// <summary>
+        /// Обновляет записи в базе данных на основе указанного условия.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий значения для обновления колонок.</param>
+        /// <param name="whereExpression">Лямбда-выражение, определяющее условие <c>WHERE</c>.
+        /// Если указано, первичный ключ объекта не используется.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущее соединение или транзакция.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public Task<int> UpdateAsync<T>(
+            T item,
+            Expression<Func<T, bool>> whereExpression,
+            IDbTransaction dbTransaction = null,
+            CancellationToken token = default,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class
+        {
+            return this.UpdateAsync(item, null, whereExpression, dbTransaction, token, updateColumns);
         }
 
         /// <summary>
@@ -3966,53 +4099,26 @@ namespace System.Data
         }
 
         /// <summary>
-        /// Асинхронно обновляет запись в базе данных на основе значений свойств объекта.
+        /// Обновляет записи в базе данных на основе указанного условия.
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="item">Объект, содержащий значения для обновления колонок.</param>
+        /// <param name="tableName">Имя таблицы в которую вставлять записи.</param>
+        /// <param name="whereExpression">Лямбда-выражение, определяющее условие <c>WHERE</c>.
+        /// Если указано, первичный ключ объекта не используется.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущее соединение или транзакция.</param>
         /// <param name="updateColumns">Список колонок, которые необходимо обновить.
         /// Если не указан, обновляются все сопоставленные свойства,
         /// за исключением первичных ключей.</param>
-        /// <param name="dbTransaction">Активная транзакция базы данных.
-        /// Если не указана, используется текущее соединение или транзакция.</param>
-        /// <param name="token">Токен отмены асинхронной операции.</param>
-        /// <returns>Задача, результатом которой является количество строк,
-        /// затронутых операцией обновления.</returns>
-        public Task<int> UpdateAsync<T>(
-            T item,
-            Expression<Func<T, object>>[] updateColumns = null,
-            IDbTransaction dbTransaction = null,
-            CancellationToken token = default)
-            where T : class => this.UpdateAsync(
-                item,
-                null,
-                null,
-                updateColumns ?? Array.Empty<Expression<Func<T, object>>>(),
-                dbTransaction,
-                token);
-
-        /// <summary>
-        /// Асинхронно обновляет записи в базе данных на основе переданных данных.
-        /// </summary>
-        /// <typeparam name="T">Тип объекта, который будет обновлен.</typeparam>
-        /// <param name="item">Объект, содержащий обновленные значения.</param>
-        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
-        /// <param name="whereExpression">Условие для фильтрации записей для обновления. Может быть null, если условие не
-        /// требуется.</param>
-        /// <param name="updateColumns">Массив столбцов для обновления. Если null, обновляются все столбцы объекта.</param>
-        /// <param name="dbTransaction">Транзакция, в рамках которой будет выполнено обновление. Может быть null.</param>
-        /// <param name="token">Токен для отмены операции, может быть использован для отмены выполнения операции.</param>
-        /// <returns>Задача, которая возвращает количество затронутых строк в базе данных.</returns>
-        /// <remarks>Этот метод создает SQL-запрос для обновления, используя параметры, переданные в аргументах метода.
-        /// Если условие whereExpression не задано, обновляются все записи в таблице. Метод возвращает количество строк,
-        /// которые были обновлены.</remarks>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
         public Task<int> UpdateAsync<T>(
             T item,
             string tableName,
             Expression<Func<T, bool>> whereExpression,
-            Expression<Func<T, object>>[] updateColumns = null,
             IDbTransaction dbTransaction = null,
-            CancellationToken token = default)
+            CancellationToken token = default,
+            params Expression<Func<T, object>>[] updateColumns)
             where T : class
         {
             if (!string.IsNullOrWhiteSpace(tableName))
@@ -4020,8 +4126,8 @@ namespace System.Data
                 this.Options.Map.Table<T>(tableName);
             }
 
-            var cmdParams = this.GetParams(item);
             var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
+            var cmdParams = this.GetParams(item);
             query += " " + (whereExpression != null
                 ? SqlQueryHelper.GetWhereClause(this.Options, whereExpression, true, out cmdParams)
                 : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
@@ -4514,7 +4620,7 @@ namespace System.Data
                 }
 
                 propInfoEx = typeInfoEx.ColumnProperties
-                    .FirstOrDefault(x => IgnoreCaseComparer.Equals(x.ColumnName, colName));
+                    .FirstOrDefault(x => StringComparer.OrdinalIgnoreCase.Equals(x.ColumnName, colName));
                 if (propInfoEx != null)
                 {
                     map[colIndex] = propInfoEx;
@@ -4522,7 +4628,7 @@ namespace System.Data
                 }
 
                 propInfoEx = typeInfoEx.PublicBasicProperties
-                    .FirstOrDefault(x => IgnoreCaseComparer.Equals(x.ColumnName, colName));
+                    .FirstOrDefault(x => StringComparer.OrdinalIgnoreCase.Equals(x.ColumnName, colName));
 
                 if (propInfoEx != null)
                 {
@@ -4581,7 +4687,9 @@ namespace System.Data
                 return;
             }
 
-            this.Log(this.GetRawSql(cmd));
+            var rawSql = this.GetRawSql(cmd);
+            this.LastQuery = rawSql;
+            this.Log(rawSql);
         }
 
         /// <summary>
@@ -4596,7 +4704,7 @@ namespace System.Data
             }
 
             var now = DateTimeHelper.ExactNow();
-            this.queryLogs.Add($"{now:yyyy-MM-dd HH:mm:ss.ffff}" + ": " + message);
+            this.queryLogs.Add($"{now:yyyy-MM-dd HH:mm:ss.ffff}" + ":   " + message);
         }
 
         private async Task ReadToListInternalAsync<T>(

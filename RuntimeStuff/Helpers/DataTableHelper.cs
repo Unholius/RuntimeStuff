@@ -324,6 +324,8 @@ namespace System.Helpers
         /// <typeparam name="T">Тип элементов результирующего списка.</typeparam>
         /// <param name="table">Исходная таблица данных.</param>
         /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <param name="filter">Фильтр строк.</param>
+        /// <param name="sort">Сортировка строк.</param>
         /// <param name="valueConverter">Конвертер значения ячейки из DataColumn в тип {T}. Если не указан, то используется Convert.ChangeType.</param>
         /// <returns>Список значений указанной колонки.</returns>
         /// <exception cref="ArgumentNullException">table.</exception>
@@ -331,16 +333,11 @@ namespace System.Helpers
         /// <exception cref="ArgumentException">Column '{columnName}' not found.</exception>
         /// <remarks>Строки со значением <see cref="DBNull.Value" />
         /// пропускаются.</remarks>
-        public static List<T> ToList<T>(DataTable table, string columnName, Func<object, T> valueConverter = null)
+        public static List<T> ToList<T>(DataTable table, string columnName, string filter = null, string sort = null, Func<object, T> valueConverter = null)
         {
             if (table == null)
             {
                 throw new ArgumentNullException(nameof(table));
-            }
-
-            if (string.IsNullOrWhiteSpace(columnName))
-            {
-                throw new ArgumentException(@"Column name cannot be null or whitespace.", nameof(columnName));
             }
 
             if (!table.Columns.Contains(columnName))
@@ -348,10 +345,34 @@ namespace System.Helpers
                 throw new ArgumentException($"Column '{columnName}' not found");
             }
 
-            var result = new List<T>(table.Rows.Count);
+            return ToList<T>(table.Select(filter, sort), columnName, valueConverter);
+        }
+
+        /// <summary>
+        /// Преобразует значения указанной колонки таблицы
+        /// в список заданного типа.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов результирующего списка.</typeparam>
+        /// <param name="rows">Строки из таблицы данных.</param>
+        /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <param name="valueConverter">Конвертер значения ячейки из DataColumn в тип {T}. Если не указан, то используется Convert.ChangeType.</param>
+        /// <returns>Список значений указанной колонки.</returns>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentException">columnName.</exception>
+        /// <exception cref="ArgumentException">Column '{columnName}' not found.</exception>
+        /// <remarks>Строки со значением <see cref="DBNull.Value" />
+        /// пропускаются.</remarks>
+        public static List<T> ToList<T>(IEnumerable<DataRow> rows, string columnName, Func<object, T> valueConverter = null)
+        {
+            if (string.IsNullOrWhiteSpace(columnName))
+            {
+                throw new ArgumentException(@"Column name cannot be null or whitespace.", nameof(columnName));
+            }
+
+            var result = new List<T>(rows.Count());
             var toType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
 
-            foreach (DataRow row in table.Rows)
+            foreach (DataRow row in rows)
             {
                 var value = row[columnName];
                 if (value == DBNull.Value)
@@ -371,13 +392,15 @@ namespace System.Helpers
         /// </summary>
         /// <typeparam name="T">Тип создаваемых объектов.</typeparam>
         /// <param name="table">Исходная таблица данных.</param>
+        /// <param name="filter">Фильтрация строк.</param>
+        /// <param name="sort">Сортировка строк.</param>
         /// <param name="columnToPropertyMapper">Сопоставление имен колонок с именами свойств в объекте.</param>
         /// <param name="valueToPropertyTypeConverter">Конвертер значения в тип свойства. Если не указан используется Convert.ChangeType.</param>
         /// <returns>Список объектов, заполненных значениями из таблицы.</returns>
         /// <exception cref="ArgumentNullException">table.</exception>
         /// <remarks>Свойства объекта сопоставляются с колонками таблицы
         /// по имени. Значения <see cref="DBNull.Value" /> игнорируются.</remarks>
-        public static List<T> ToList<T>(DataTable table, Dictionary<string, string> columnToPropertyMapper = null, Func<object, Type, object> valueToPropertyTypeConverter = null)
+        public static List<T> ToList<T>(DataTable table, string filter = null, string sort = null, Dictionary<string, string> columnToPropertyMapper = null, Func<object, Type, object> valueToPropertyTypeConverter = null)
             where T : class, new()
         {
             if (table == null)
@@ -385,7 +408,31 @@ namespace System.Helpers
                 throw new ArgumentNullException(nameof(table));
             }
 
-            var result = new List<T>(table.Rows.Count);
+            return ToList<T>(table.Select(filter, sort), columnToPropertyMapper, valueToPropertyTypeConverter);
+        }
+
+        /// <summary>
+        /// Преобразует строки таблицы данных в список объектов
+        /// заданного типа.
+        /// </summary>
+        /// <typeparam name="T">Тип создаваемых объектов.</typeparam>
+        /// <param name="rows">Строки из исходной таблицы данных.</param>
+        /// <param name="columnToPropertyMapper">Сопоставление имен колонок с именами свойств в объекте.</param>
+        /// <param name="valueToPropertyTypeConverter">Конвертер значения в тип свойства. Если не указан используется Convert.ChangeType.</param>
+        /// <returns>Список объектов, заполненных значениями из таблицы.</returns>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <remarks>Свойства объекта сопоставляются с колонками таблицы
+        /// по имени. Значения <see cref="DBNull.Value" /> игнорируются.</remarks>
+        public static List<T> ToList<T>(IEnumerable<DataRow> rows, Dictionary<string, string> columnToPropertyMapper = null, Func<object, Type, object> valueToPropertyTypeConverter = null)
+            where T : class, new()
+        {
+            var result = new List<T>(rows.Count());
+            var table = rows.FirstOrDefault()?.Table;
+            if (table == null)
+            {
+                return result;
+            }
+
             var typeCache = MemberCache.Get(typeof(T));
             var propsMap = new List<(DataColumn Col, MemberCache Prop)>();
             foreach (DataColumn col in table.Columns)

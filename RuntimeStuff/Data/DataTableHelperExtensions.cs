@@ -21,6 +21,38 @@ namespace System.Data
     public static class DataTableHelperExtensions
     {
         /// <summary>
+        /// Преобразует значения указанной колонки таблицы
+        /// в список заданного типа.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов результирующего списка.</typeparam>
+        /// <param name="rows">Строки из таблицы данных.</param>
+        /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <param name="valueConverter">Конвертер значения ячейки из DataColumn в тип {T}. Если не указан, то используется Convert.ChangeType.</param>
+        /// <returns>Список значений указанной колонки.</returns>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentException">columnName.</exception>
+        /// <exception cref="ArgumentException">Column '{columnName}' not found.</exception>
+        /// <remarks>Строки со значением <see cref="DBNull.Value" />
+        /// пропускаются.</remarks>
+        public static List<T> ToList<T>(this IEnumerable<DataRowView> rows, string columnName, Func<object, T> valueConverter = null) => ToList<T>(rows.Select(x => x.Row), columnName);
+
+        /// <summary>
+        /// Преобразует значения указанной колонки таблицы
+        /// в список заданного типа.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов результирующего списка.</typeparam>
+        /// <param name="rows">Строки из таблицы данных.</param>
+        /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <param name="valueConverter">Конвертер значения ячейки из DataColumn в тип {T}. Если не указан, то используется Convert.ChangeType.</param>
+        /// <returns>Список значений указанной колонки.</returns>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentException">columnName.</exception>
+        /// <exception cref="ArgumentException">Column '{columnName}' not found.</exception>
+        /// <remarks>Строки со значением <see cref="DBNull.Value" />
+        /// пропускаются.</remarks>
+        public static List<T> ToList<T>(this IEnumerable<DataRow> rows, string columnName, Func<object, T> valueConverter = null) => DataTableHelper.ToList<T>(rows, columnName);
+
+        /// <summary>
         /// Преобразует <see cref="DataRowView"/> в объект указанного типа,
         /// используя список имен колонок (1:1 соответствие).
         /// </summary>
@@ -175,14 +207,18 @@ namespace System.Data
         /// <typeparam name="T">Тип элементов результирующего списка.</typeparam>
         /// <param name="table">Исходная таблица данных.</param>
         /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <param name="filter">Фильтр строк.</param>
+        /// <param name="sort">Сортировка строк.</param>
+        /// <param name="valueConverter">Конвертер значения ячейки из DataColumn в тип {T}. Если не указан, то используется Convert.ChangeType.</param>
         /// <returns>Список значений указанной колонки.</returns>
-        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="table" /> равен <see langword="null" />.</exception>
-        /// <exception cref="ArgumentException">Выбрасывается, если колонка не найдена.</exception>
+        /// <exception cref="ArgumentNullException">table.</exception>
+        /// <exception cref="ArgumentException">columnName.</exception>
+        /// <exception cref="ArgumentException">Column '{columnName}' not found.</exception>
         /// <remarks>Строки со значением <see cref="DBNull.Value" />
         /// пропускаются.</remarks>
-        public static List<T> ToList<T>(this DataTable table, string columnName)
+        public static List<T> ToList<T>(DataTable table, string columnName, string filter = null, string sort = null, Func<object, T> valueConverter = null)
             where T : struct
-                => DataTableHelper.ToList<T>(table, columnName);
+                => DataTableHelper.ToList<T>(table, columnName, filter, sort, valueConverter);
 
         /// <summary>
         /// Преобразует значения указанной колонки таблицы
@@ -190,13 +226,15 @@ namespace System.Data
         /// </summary>
         /// <param name="table">Исходная таблица данных.</param>
         /// <param name="columnName">Имя колонки, значения которой будут извлечены.</param>
+        /// <param name="filter">Фильтр строк.</param>
+        /// <param name="sort">Сортировка строк.</param>
         /// <returns>Список значений указанной колонки.</returns>
         /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="table" /> равен <see langword="null" />.</exception>
         /// <exception cref="ArgumentException">Выбрасывается, если колонка не найдена.</exception>
         /// <remarks>Строки со значением <see cref="DBNull.Value" />
         /// пропускаются.</remarks>
-        public static List<string> ToList(this DataTable table, string columnName)
-            => DataTableHelper.ToList<string>(table, columnName, null);
+        public static List<string> ToList(this DataTable table, string columnName, string filter = null, string sort = null)
+            => DataTableHelper.ToList<string>(table, columnName, filter, sort, (v) => Obj.TryChangeType<string>(v));
 
         /// <summary>
         /// Преобразует строки таблицы данных в список объектов
@@ -204,11 +242,16 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип создаваемых объектов.</typeparam>
         /// <param name="table">Исходная таблица данных.</param>
+        /// <param name="filter">Фильтрация строк.</param>
+        /// <param name="sort">Сортировка строк.</param>
+        /// <param name="columnToPropertyMapper">Сопоставление имен колонок с именами свойств в объекте.</param>
+        /// <param name="valueToPropertyTypeConverter">Конвертер значения в тип свойства. Если не указан используется Convert.ChangeType.</param>
         /// <returns>Список объектов, заполненных значениями из таблицы.</returns>
+        /// <exception cref="ArgumentNullException">table.</exception>
         /// <remarks>Свойства объекта сопоставляются с колонками таблицы
         /// по имени. Значения <see cref="DBNull.Value" /> игнорируются.</remarks>
-        public static List<T> ToList<T>(this DataTable table)
-            where T : class, new() => DataTableHelper.ToList<T>(table);
+        public static List<T> ToList<T>(DataTable table, string filter = null, string sort = null, Dictionary<string, string> columnToPropertyMapper = null, Func<object, Type, object> valueToPropertyTypeConverter = null)
+            where T : class, new() => DataTableHelper.ToList<T>(table, filter, sort, columnToPropertyMapper, valueToPropertyTypeConverter);
 
         /// <summary>
         /// Проверяет добавлена ли строка в таблицу.

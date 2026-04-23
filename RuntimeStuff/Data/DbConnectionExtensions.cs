@@ -30,7 +30,7 @@ namespace System.Data
         /// <returns>Словарь с результатами агрегации (имя колонки → значение).</returns>
         public static Dictionary<string, object> Agg<TFrom>(this IDbConnection connection, string aggFunction, Expression<Func<TFrom, bool>> whereExpression = null, params Expression<Func<TFrom, object>>[] columnSelectors)
             where TFrom : class
-=> connection.AsDbClient().Agg(aggFunction, whereExpression, columnSelectors);
+                => connection.AsDbClient().Agg(aggFunction, whereExpression, columnSelectors);
 
         /// <summary>
         /// Выполняет различные агрегирующие функции для указанных колонок.
@@ -42,7 +42,7 @@ namespace System.Data
         /// <returns>Словарь с результатами агрегации.</returns>
         public static Dictionary<string, object> Agg<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
-        => connection.AsDbClient().Agg(whereExpression, columnSelectors);
+                => connection.AsDbClient().Agg(whereExpression, columnSelectors);
 
         /// <summary>
         /// Асинхронно выполняет указанную агрегирующую функцию для колонок.
@@ -56,7 +56,7 @@ namespace System.Data
         /// <returns>Задача, возвращающая словарь с результатами агрегации.</returns>
         public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, string aggFunction, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params Expression<Func<TFrom, object>>[] columnSelectors)
             where TFrom : class
-        => connection.AsDbClient().AggAsync(aggFunction, whereExpression, token, columnSelectors);
+                => connection.AsDbClient().AggAsync(aggFunction, whereExpression, token, columnSelectors);
 
         /// <summary>
         /// Асинхронно выполняет различные агрегирующие функции для указанных колонок.
@@ -69,7 +69,7 @@ namespace System.Data
         /// <returns>Задача, возвращающая словарь с результатами агрегации.</returns>
         public static Task<Dictionary<string, object>> AggAsync<TFrom>(this IDbConnection connection, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default, params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
-            => connection.AsDbClient().AggAsync(whereExpression, token, columnSelectors);
+                => connection.AsDbClient().AggAsync(whereExpression, token, columnSelectors);
 
         /// <summary>
         /// Добавляет параметр имени приложения в строку подключения.
@@ -1648,66 +1648,6 @@ namespace System.Data
         public static int Update<T>(this IDbConnection connection, T item, string tableName, Expression<Func<T, bool>> whereExpression, IDbTransaction dbTransaction = null, params Expression<Func<T, object>>[] updateColumns)
             where T : class
             => connection.AsDbClient().Update(item, tableName, whereExpression, dbTransaction, updateColumns);
-
-        /// <summary>
-        /// Асинхронно обновляет указанную сущность в таблице.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="connection">Подключение к базе данных.</param>
-        /// <param name="item">Сущность для обновления.</param>
-        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
-        /// <param name="dbTransaction">Транзакция (опционально).</param>
-        /// <param name="token">Токен отмены.</param>
-        /// <returns>Задача, возвращающая количество обновленных записей.</returns>
-        public static Task<int> UpdateAsync<T>(this IDbConnection connection, T item, Expression<Func<T, object>>[] updateColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
-            where T : class
-            => connection.AsDbClient().UpdateAsync(item, updateColumns, dbTransaction, token);
-
-        /// <summary>
-        /// Асинхронно обновляет указанную сущность в таблице.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="connection">Подключение к базе данных.</param>
-        /// <param name="item">Сущность для обновления.</param>
-        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
-        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
-        /// <param name="dbTransaction">Транзакция (опционально).</param>
-        /// <param name="token">Токен отмены.</param>
-        /// <returns>Задача, возвращающая количество обновленных записей.</returns>
-        public static Task<int> UpdateAsync<T>(this IDbConnection connection, T item, string tableName, Expression<Func<T, object>>[] updateColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
-            where T : class
-            => connection.AsDbClient().UpdateAsync(item, tableName, null, updateColumns, dbTransaction, token);
-
-        /// <summary>
-        /// Асинхронно обновляет сущность в таблице с указанным условием WHERE.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="connection">Подключение к базе данных.</param>
-        /// <param name="item">Сущность для обновления.</param>
-        /// <param name="whereExpression">Условие WHERE.</param>
-        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
-        /// <param name="dbTransaction">Транзакция (опционально).</param>
-        /// <param name="token">Токен отмены.</param>
-        /// <returns>Задача, возвращающая количество обновленных записей.</returns>
-        public static Task<int> UpdateAsync<T>(this IDbConnection connection, T item, Expression<Func<T, bool>> whereExpression, Expression<Func<T, object>>[] updateColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
-            where T : class
-            => connection.AsDbClient().UpdateAsync(item, null, whereExpression, updateColumns, dbTransaction, token);
-
-        /// <summary>
-        /// Асинхронно обновляет сущность в таблице с указанным условием WHERE.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="connection">Подключение к базе данных.</param>
-        /// <param name="item">Сущность для обновления.</param>
-        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
-        /// <param name="whereExpression">Условие WHERE.</param>
-        /// <param name="updateColumns">Колонки для обновления (опционально).</param>
-        /// <param name="dbTransaction">Транзакция (опционально).</param>
-        /// <param name="token">Токен отмены.</param>
-        /// <returns>Задача, возвращающая количество обновленных записей.</returns>
-        public static Task<int> UpdateAsync<T>(this IDbConnection connection, T item, string tableName, Expression<Func<T, bool>> whereExpression, Expression<Func<T, object>>[] updateColumns = null, IDbTransaction dbTransaction = null, CancellationToken token = default)
-            where T : class
-            => connection.AsDbClient().UpdateAsync(item, tableName, whereExpression, updateColumns, dbTransaction, token);
 
         /// <summary>
         /// Обновляет коллекцию сущностей в таблице.
