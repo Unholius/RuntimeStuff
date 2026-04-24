@@ -269,13 +269,6 @@ namespace System
         ];
 
         /// <summary>
-        /// Флаги для поиска членов класса по умолчанию.
-        /// </summary>
-        /// <value>The default binding flags.</value>
-        public static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
-                                                                  BindingFlags.Public | BindingFlags.Static;
-
-        /// <summary>
         /// Кеш делегатов для получения значений полей.
         /// </summary>
         /// <value>Делегат для получения значений полей.</value>
@@ -335,7 +328,14 @@ namespace System
             new ConcurrentDictionary<PropertyInfo, Action<object, object>>();
 
         private static ConcurrentDictionary<ConstructorInfo, Func<object[], object>> CtorCache { get; } =
-            new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
+                    new ConcurrentDictionary<ConstructorInfo, Func<object[], object>>();
+
+        /// <summary>
+        /// Флаги для поиска членов класса по умолчанию.
+        /// </summary>
+        /// <value>The default binding flags.</value>
+        private static BindingFlags DefaultBindingFlags { get; } = BindingFlags.Instance | BindingFlags.NonPublic |
+                                                                  BindingFlags.Public | BindingFlags.Static;
 
         /// <summary>
         /// Регистрирует пользовательский конвертер между двумя типами.
@@ -515,6 +515,40 @@ namespace System
             PropertiesCache.Clear();
             MemberInfoCache.Clear();
             TypeCache.Clear();
+        }
+
+        /// <summary>
+        /// Применяет конфигурацию к объекту, устанавливая значения его полей и свойств на основе предоставленной коллекции пар «имя члена ? значение».<br/>
+        /// </summary>
+        /// <param name="instance">Экземпляр объекта.</param>
+        /// <param name="config">Коллекция имя-значение. Если значение словарь, вызов продолжается рекурсивно. Если ключ содержит точки, то пытаемся установить значение для дочерних объектов.</param>
+        /// <param name="ignoreNullValues">Игнорировать Null значения из конфигурации.</param>
+        public static void Configure(object instance, IDictionary config, bool ignoreNullValues = true)
+        {
+            foreach (DictionaryEntry item in config)
+            {
+                var key = item.Key;
+                var value = item.Value;
+
+                switch (value)
+                {
+                    case IDictionary dicSection:
+                        Configure(instance, dicSection);
+                        continue;
+                    case IEnumerable<KeyValuePair<string, object>> section:
+                        {
+                            Configure(instance, section.ToDictionary(k => key + "." + k.Key, v => v.Value));
+                            continue;
+                        }
+                }
+
+                if (Obj.IsNull(value) && ignoreNullValues)
+                {
+                    continue;
+                }
+
+                Set(instance, $"{key}", value);
+            }
         }
 
         /// <summary>
@@ -1027,18 +1061,19 @@ namespace System
         /// </summary>
         /// <param name="type">Тип, в котором выполняется поиск члена. Не может быть равен null.</param>
         /// <param name="name">Имя члена, который требуется найти. Поиск чувствителен к регистру.</param>
+        /// <param name="getPrivate">Включить приватные члены.</param>
         /// <returns>Объект типа MemberInfo, представляющий найденный член, или null, если член с указанным именем не найден.</returns>
         /// <remarks>Метод использует внутреннее кэширование для повышения производительности повторных
         /// запросов. Если член не найден в кэше, выполняется поиск с различными параметрами привязки. Может возвращать
         /// члены, объявленные как в самом типе, так и унаследованные.</remarks>
-        public static MemberInfo FindMember(Type type, string name)
+        public static MemberInfo FindMember(Type type, string name, bool getPrivate = true)
         {
             if (MemberInfoCache.TryGetValue(type.FullName + "." + name, out var memberInfo))
             {
                 return memberInfo;
             }
 
-            memberInfo = FindMember(type, name, false, null) ?? FindMember(type, name, true, DefaultBindingFlags);
+            memberInfo = FindMember(type, name, false, null) ?? FindMember(type, name, true, getPrivate ? DefaultBindingFlags | BindingFlags.NonPublic : DefaultBindingFlags);
             MemberInfoCache.TryAdd(type.FullName + "." + name, memberInfo);
             return memberInfo;
         }
@@ -1631,6 +1666,14 @@ namespace System
         }
 
         /// <summary>
+        /// Получает имена всех публичных полей указанного типа.
+        /// Использует внутренний кеш для ускорения повторных вызовов.
+        /// </summary>
+        /// <param name="type">Тип, для которого нужно получить имена полей.</param>
+        /// <returns>Массив имен полей.</returns>
+        public static string[] GetFieldNames(Type type) => [.. GetFieldsMap(type).Keys];
+
+        /// <summary>
         /// Возвращает отображение имён полей типа на объекты <see cref="FieldInfo" />.
         /// </summary>
         /// <typeparam name="T">Тип, поля которого требуется получить.</typeparam>
@@ -1724,12 +1767,13 @@ namespace System
         /// </summary>
         /// <param name="type">Тип, с которого начинается поиск.</param>
         /// <param name="name">Имя поля.</param>
+        /// <param name="getPrivate">Включить приватные поля.</param>
         /// <returns>Найденное поле или null, если поле не найдено.</returns>
-        public static FieldInfo GetLowestField(Type type, string name)
+        public static FieldInfo GetLowestField(Type type, string name, bool getPrivate = true)
         {
             while (type != null)
             {
-                var member = type.GetField(name, DefaultBindingFlags);
+                var member = type.GetField(name, getPrivate ? DefaultBindingFlags | BindingFlags.NonPublic : DefaultBindingFlags);
                 if (member != null)
                 {
                     return member;
@@ -2224,8 +2268,31 @@ namespace System
                 return dic;
             }
 
+            if (source is IEnumerable e)
+            {
+                var i = 0;
+                foreach (var x in e)
+                {
+                    dic[$"{i}"] = x;
+                    i++;
+                }
+
+                return dic;
+            }
+
             var sourceType = GetType(source);
-            var memberNames = GetPropertyNames(sourceType);
+            var memberNames = Array.Empty<string>();
+            memberNames = GetPropertyNames(sourceType);
+            if (memberNames.Length == 0)
+            {
+                memberNames = GetFieldNames(sourceType);
+            }
+
+            if (memberNames.Length == 0)
+            {
+                return dic;
+            }
+
             var values = GetValues<TObject>(source, memberNames);
             for (int i = 0; i < values.Length; i++)
             {
@@ -2417,6 +2484,16 @@ namespace System
                    || t == typeof(uint)
                    || t == typeof(long)
                    || t == typeof(ulong);
+        }
+
+        /// <summary>
+        /// Проверяет, является ли переданное значение "null-эквивалентом", то есть одним из следующих: <see cref="NullValues"/>.
+        /// </summary>
+        /// <param name="value">Проверяемое значение.</param>
+        /// <returns>Содержится ли значение в массиве <see cref="NullValues"/>.</returns>
+        public static bool IsNull(object value)
+        {
+            return NullValues.Contains(value);
         }
 
         /// <summary>
@@ -2723,50 +2800,6 @@ namespace System
 
             setter(instance, value?.GetType() == memberType ? value : ChangeType(value, memberType));
             return true;
-        }
-
-        /// <summary>
-        /// Применяет конфигурацию к объекту, устанавливая значения его полей и свойств на основе предоставленной коллекции пар «имя члена ? значение».<br/>
-        /// </summary>
-        /// <param name="instance">Экземпляр объекта.</param>
-        /// <param name="config">Коллекция имя-значение. Если значение словарь, вызов продолжается рекурсивно. Если ключ содержит точки, то пытаемся установить значение для дочерних объектов.</param>
-        /// <param name="ignoreNullValues">Игнорировать Null значения из конфигурации.</param>
-        public static void Configure(object instance, IDictionary config, bool ignoreNullValues = true)
-        {
-            foreach (DictionaryEntry item in config)
-            {
-                var key = item.Key;
-                var value = item.Value;
-
-                switch (value)
-                {
-                    case IDictionary dicSection:
-                        Configure(instance, dicSection);
-                        continue;
-                    case IEnumerable<KeyValuePair<string, object>> section:
-                        {
-                            Configure(instance, section.ToDictionary(k => key + "." + k.Key, v => v.Value));
-                            continue;
-                        }
-                }
-
-                if (Obj.IsNull(value) && ignoreNullValues)
-                {
-                    continue;
-                }
-
-                Set(instance, $"{key}", value);
-            }
-        }
-
-        /// <summary>
-        /// Проверяет, является ли переданное значение "null-эквивалентом", то есть одним из следующих: <see cref="NullValues"/>.
-        /// </summary>
-        /// <param name="value">Проверяемое значение.</param>
-        /// <returns>Содержится ли значение в массиве <see cref="NullValues"/>.</returns>
-        public static bool IsNull(object value)
-        {
-            return NullValues.Contains(value);
         }
 
         /// <summary>

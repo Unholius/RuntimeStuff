@@ -11,6 +11,8 @@ namespace System.Data
     using System.Data.Common;
     using System.Linq;
     using System.Linq.Expressions;
+    using System.Reflection;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -19,6 +21,8 @@ namespace System.Data
     /// </summary>
     public static class DbConnectionExtensions
     {
+        private static readonly Regex ParamRegex = new Regex(@"(?<![@:?$])[@:?$]([A-Za-z0-9_]+)\b", RegexOptions.Compiled);
+
         /// <summary>
         /// Выполняет указанную агрегирующую функцию для колонок.
         /// </summary>
@@ -250,148 +254,163 @@ namespace System.Data
         /// <param name="cmdParams">Параметры команды (опционально).</param>
         /// <param name="dbTransaction">Транзакция (опционально).</param>
         /// <param name="commandTimeOut">Таймаут команды в секундах.</param>
+        /// <param name="commandType">Тип команды.</param>
+        /// <param name="paramPrefix">Префик для параметров.</param>
         /// <returns>Созданная команда.</returns>
-        public static DbCommand CreateCommand(this IDbConnection connection, string query, object cmdParams, IDbTransaction dbTransaction = null, int commandTimeOut = 30)
-            => connection.AsDbClient().CreateCommand(query, cmdParams, dbTransaction, commandTimeOut);
-
-        /// <summary>
-        /// Создаёт и настраивает объект <see cref="DbCommand"/> для выполнения SQL-запроса или хранимой процедуры.
-        /// </summary>
-        /// <param name="connection">Соединение с базой данных.</param>
-        /// <param name="commandText">Текст SQL-запроса или имя хранимой процедуры.</param>
-        /// <param name="commandType">Тип команды (<see cref="CommandType.Text"/>, <see cref="CommandType.StoredProcedure"/> и т.д.).</param>
-        /// <param name="parameters">
-        /// Набор параметров команды в виде кортежей (имя параметра, значение).
-        /// Значение <c>null</c> автоматически преобразуется в <see cref="DBNull.Value"/>.
-        /// </param>
-        /// <returns>
-        /// Настроенный экземпляр <see cref="DbCommand"/>.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="connection"/> или <paramref name="commandText"/> равны <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если имя параметра пустое или состоит только из пробелов.
-        /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Выбрасывается, если <paramref name="connection"/> не является <see cref="DbConnection"/>.
-        /// </exception>
-        /// <remarks>
-        /// <para>
-        /// Если соединение не открыто, метод автоматически вызывает <see cref="IDbConnection.Open"/>.
-        /// </para>
-        /// <para>
-        /// Имена параметров нормализуются с помощью метода <c>NormalizeParameterName</c>
-        /// (например, добавление префикса '@' при необходимости).
-        /// </para>
-        /// <para>
-        /// Метод не выполняет команду — он только создаёт и настраивает её.
-        /// </para>
-        /// </remarks>
-        /// <example>
-        /// <code>
-        /// using var cmd = connection.CreateCommand(
-        ///     "SELECT * FROM Users WHERE Id = @id",
-        ///     CommandType.Text,
-        ///     ("id", 10));
-        ///
-        /// using var reader = cmd.ExecuteReader();
-        /// </code>
-        /// </example>
-        public static DbCommand CreateCommand(this IDbConnection connection, string commandText, CommandType commandType, IDictionary<string, object> parameters)
-
-            => CreateCommand(connection, commandText, commandType, [.. parameters.Select(x
-            => (x.Key, x.Value))]);
-
-        /// <summary>
-        /// Создаёт и настраивает объект <see cref="DbCommand"/> для выполнения SQL-запроса или хранимой процедуры.
-        /// </summary>
-        /// <param name="connection">Соединение с базой данных.</param>
-        /// <param name="commandText">Текст SQL-запроса или имя хранимой процедуры.</param>
-        /// <param name="commandType">Тип команды (<see cref="CommandType.Text"/>, <see cref="CommandType.StoredProcedure"/> и т.д.).</param>
-        /// <param name="parameters">
-        /// Набор параметров команды в виде кортежей (имя параметра, значение).
-        /// Значение <c>null</c> автоматически преобразуется в <see cref="DBNull.Value"/>.
-        /// </param>
-        /// <returns>
-        /// Настроенный экземпляр <see cref="DbCommand"/>.
-        /// </returns>
-        /// <exception cref="ArgumentNullException">
-        /// Выбрасывается, если <paramref name="connection"/> или <paramref name="commandText"/> равны <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если имя параметра пустое или состоит только из пробелов.
-        /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Выбрасывается, если <paramref name="connection"/> не является <see cref="DbConnection"/>.
-        /// </exception>
-        /// <remarks>
-        /// <para>
-        /// Если соединение не открыто, метод автоматически вызывает <see cref="IDbConnection.Open"/>.
-        /// </para>
-        /// <para>
-        /// Имена параметров нормализуются с помощью метода <c>NormalizeParameterName</c>
-        /// (например, добавление префикса '@' при необходимости).
-        /// </para>
-        /// <para>
-        /// Метод не выполняет команду — он только создаёт и настраивает её.
-        /// </para>
-        /// </remarks>
-        /// <example>
-        /// <code>
-        /// using var cmd = connection.CreateCommand(
-        ///     "SELECT * FROM Users WHERE Id = @id",
-        ///     CommandType.Text,
-        ///     ("id", 10));
-        ///
-        /// using var reader = cmd.ExecuteReader();
-        /// </code>
-        /// </example>
-        public static DbCommand CreateCommand(this IDbConnection connection, string commandText, CommandType commandType, params (string Name, object Value)[] parameters)
+        public static DbCommand CreateCommand(this IDbConnection connection, string query, object cmdParams, IDbTransaction dbTransaction = null, int commandTimeOut = 30, CommandType commandType = CommandType.Text, string paramPrefix = "@")
         {
-            if (connection == null)
-            {
-                throw new ArgumentNullException(nameof(connection));
-            }
+            var paramPrefixMask = "[@:?$]";
+            var pattern = @$"(?<!{paramPrefixMask}){paramPrefixMask}([A-Za-z0-9_]+)\b";
+            Lazy<string[]> queryParamNames = new Lazy<string[]>(() => ParamRegex.Matches(query).Cast<Match>().Select(m => m.Groups[1].Value).Distinct().ToArray());
+            var cmd = connection.CreateCommand();
+            cmd.CommandText = query;
+            cmd.CommandTimeout = commandTimeOut;
+            cmd.CommandType = commandType;
+            cmd.Transaction = dbTransaction;
 
-            if (commandText == null)
+            IDbDataParameter CreateParameter(IDbCommand dbCommand, string paramName, object paramValue)
             {
-                throw new ArgumentNullException(nameof(commandText));
-            }
-
-            if (connection is not DbConnection dbConnection)
-            {
-                throw new InvalidOperationException("Connection must be DbConnection");
-            }
-
-            var command = dbConnection.CreateCommand();
-            command.CommandText = commandText;
-            command.CommandType = commandType;
-
-            if (connection.State != ConnectionState.Open)
-            {
-                connection.Open();
-            }
-
-            if (parameters != null && parameters.Length > 0)
-            {
-                foreach (var (paramName, paramValue) in parameters)
+                var p = cmd.CreateParameter();
+                p.ParameterName = paramName;
+                switch (paramValue)
                 {
-                    if (string.IsNullOrWhiteSpace(paramName))
-                    {
-                        throw new ArgumentException("Parameter name cannot be null or empty");
-                    }
+                    case DataTable dt:
+                        {
+                            p.Value = dt;
+                            Obj.Set(p, "SqlDbType", SqlDbType.Structured);
+                            Obj.Set(p, "TypeName", dt.TableName.Coalesce(p.ParameterName));
+                        }
 
-                    var parameter = command.CreateParameter();
+                        break;
 
-                    parameter.ParameterName = NormalizeParameterName(paramName);
-                    parameter.Value = paramValue ?? DBNull.Value;
+                    default:
+                        p.Value = paramValue ?? DBNull.Value;
+                        break;
+                }
 
-                    command.Parameters.Add(parameter);
+                return p;
+            }
+
+            if (cmdParams != null)
+            {
+                var cmdParamsType = cmdParams.GetType().GetMemberCache();
+                switch (cmdParams)
+                {
+                    case DbParameter dbp:
+                        cmd.Parameters.Add(dbp);
+                        break;
+
+                    case IEnumerable<DbParameter> dbParams:
+                        foreach (var dbParam in dbParams)
+                        {
+                            cmd.Parameters.Add(dbParam);
+                        }
+
+                        break;
+
+                    case DbParameterCollection dbParams:
+                        foreach (DbParameter dbParam in dbParams)
+                        {
+                            cmd.Parameters.Add(dbParam);
+                        }
+
+                        break;
+
+                    case IEnumerable<KeyValuePair<string, object>> kvpArray:
+                        foreach (var kvp in kvpArray)
+                        {
+                            cmd.Parameters.Add(CreateParameter(cmd, kvp.Key, kvp.Value));
+                        }
+
+                        break;
+
+                    case IDictionary dic2:
+                        foreach (IDictionaryEnumerator kvp in dic2)
+                        {
+                            cmd.Parameters.Add(CreateParameter(cmd, $"{kvp.Key}", kvp.Value));
+                        }
+
+                        break;
+
+                    case IEnumerable e when cmdParamsType.ElementType?.Name.Contains("Tuple`") == true:
+                        {
+                            foreach (var i in e)
+                            {
+                                cmd.Parameters.Add(CreateParameter(cmd, Obj.Get<string>(i, "Item1"), Obj.Get(i, "Item2")));
+                            }
+                        }
+
+                        break;
+
+                    case object x when cmdParamsType.Name.Contains("Tuple`"):
+                        {
+                            cmd.Parameters.Add(CreateParameter(cmd, Obj.Get<string>(x, "Item1"), Obj.Get(x, "Item2")));
+                        }
+
+                        break;
+
+                    case IEnumerable e when e is not string && e.Count() == queryParamNames.Value.Length:
+                        {
+                            int i = 0;
+                            foreach (var x in e)
+                            {
+                                cmd.Parameters.Add(CreateParameter(cmd, queryParamNames.Value[i], x));
+                                i++;
+                            }
+                        }
+
+                        break;
+
+                    case DataTable dt when queryParamNames.Value.Length == 1:
+                        cmd.Parameters.Add(CreateParameter(cmd, queryParamNames.Value[0], dt));
+                        break;
+
+                    case object o when queryParamNames.Value.Length == 1 && cmdParamsType.IsBasic:
+                        cmd.Parameters.Add(CreateParameter(cmd, queryParamNames.Value[0], cmdParams));
+                        break;
+
+                    default:
+                        var objValues = Obj.GetValues(cmdParams);
+
+                        if (queryParamNames.Value.Length == 1 && objValues.Count == 0)
+                        {
+                            objValues = new Dictionary<string, object>() { { queryParamNames.Value[0], cmdParams } };
+                        }
+
+                        if (queryParamNames.Value.Length == 0 && objValues.Count > 0)
+                        {
+                            cmd.CommandText += " " + string.Join(", ", objValues.Select(x => paramPrefix + x.Key + " = " + paramPrefix + x.Key));
+                        }
+
+                        if (queryParamNames.Value.Length == 1 && objValues.Count > 1)
+                        {
+                            objValues = objValues.ToDictionary((x, i) => $"{queryParamNames.Value[0]}_{i}", v => v.Value);
+                            cmd.CommandText = Regex.Replace(cmd.CommandText, paramPrefixMask + queryParamNames.Value[0], string.Join(", ", objValues.Keys.Select(x => paramPrefix + x)));
+                        }
+
+                        foreach (var v in objValues)
+                        {
+                            var arr = (v.Value as IEnumerable)?.Cast<object>().ToArray();
+                            if (arr != null && v.Value is not string)
+                            {
+                                var inParams = arr.Select((x, i) => $"{v.Key}_{i}").ToArray();
+                                cmd.CommandText = Regex.Replace(cmd.CommandText, paramPrefixMask + v.Key, string.Join(", ", inParams.Select(x => paramPrefix + x)));
+                                for (int i = 0; i < arr.Length; i++)
+                                {
+                                    cmd.Parameters.Add(CreateParameter(cmd, inParams[i], arr[i]));
+                                }
+                            }
+                            else
+                            {
+                                cmd.Parameters.Add(CreateParameter(cmd, v.Key, v.Value));
+                            }
+                        }
+
+                        break;
                 }
             }
 
-            return command;
+            return (DbCommand)cmd;
         }
 
         /// <summary>
@@ -756,16 +775,6 @@ namespace System.Data
         public static Task<int> GetPagesCountAsync<TFrom>(this IDbConnection connection, int pageSize, Expression<Func<TFrom, bool>> whereExpression = null, CancellationToken token = default)
             where TFrom : class
             => connection.AsDbClient().GetPagesCountAsync(pageSize, whereExpression, token);
-
-        /// <summary>
-        /// Получает параметры из объекта.
-        /// </summary>
-        /// <param name="connection">Подключение к базе данных.</param>
-        /// <param name="cmdParams">Объект с параметрами.</param>
-        /// <param name="propertyNames">Имена свойств для извлечения (опционально).</param>
-        /// <returns>Словарь параметров (имя → значение).</returns>
-        public static IReadOnlyDictionary<string, object> GetParams(this IDbConnection connection, object cmdParams, params string[] propertyNames)
-            => connection.AsDbClient().GetParams(cmdParams, propertyNames);
 
         /// <summary>
         /// Возвращает сырой SQL-код команды.

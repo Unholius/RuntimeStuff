@@ -445,7 +445,7 @@ namespace System.Data
         /// Ключ — имя параметра, значение — его значение.
         /// </param>
         /// <returns>Строка SQL-клаузы WHERE.</returns>
-        public static string GetWhereClause<T>(SqlOptions options, Expression<Func<T, bool>> whereExpression, bool useParams, out IReadOnlyDictionary<string, object> cmdParams)
+        public static string GetWhereClause<T>(SqlOptions options, Expression<Func<T, bool>> whereExpression, bool useParams, out Dictionary<string, object> cmdParams)
         {
             var dic = new Dictionary<string, object>();
             var whereClause = whereExpression == null ? string.Empty : ("WHERE " + Visit(whereExpression.Body, options, useParams, dic)).Trim();

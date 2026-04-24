@@ -47,6 +47,65 @@ namespace System.Linq
         }
 
         /// <summary>
+        /// Возвращает количество элементов в негeneric-последовательности <see cref="IEnumerable"/>.
+        /// </summary>
+        /// <param name="e">Последовательность, количество элементов которой необходимо определить.</param>
+        /// <returns>
+        /// Количество элементов в последовательности.
+        /// </returns>
+        /// <remarks>
+        /// Если объект реализует <see cref="ICollection"/>, используется свойство
+        /// <see cref="ICollection.Count"/> без перебора элементов.
+        /// В остальных случаях выполняется последовательный проход по перечислителю.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="e"/> равен <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="OverflowException">
+        /// Выбрасывается, если количество элементов превышает
+        /// <see cref="int.MaxValue"/>.
+        /// </exception>
+        public static int Count(this IEnumerable e)
+        {
+            if (e == null)
+            {
+                throw new ArgumentNullException(nameof(e));
+            }
+
+            if (e is ICollection collection)
+            {
+                return collection.Count;
+            }
+
+            if (e is IReadOnlyCollection<object> readOnlyCollection)
+            {
+                return readOnlyCollection.Count;
+            }
+
+            int count = 0;
+            var enumerator = e.GetEnumerator();
+            try
+            {
+                while (enumerator.MoveNext())
+                {
+                    checked
+                    {
+                        count++;
+                    }
+                }
+            }
+            finally
+            {
+                if (enumerator is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+
+            return count;
+        }
+
+        /// <summary>
         /// Возвращает первый элемент последовательности, удовлетворяющий условию,
         /// либо значение по умолчанию, если такой элемент не найден.
         /// </summary>

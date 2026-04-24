@@ -73,7 +73,7 @@ namespace RuntimeStuff.MSTests
         {
             var db = getdb();
             var sql = "SELECT @id, @userId";
-            var dt  = db.ToDataTable(sql, new { id = 1, UserId = 2 });
+            var dt = db.ToDataTable(sql, new { id = 1, userId = 2 });
             Assert.AreEqual(1L, dt.Rows.Count);
             Assert.AreEqual(1L, dt.Rows[0][0]);
             Assert.AreEqual(2L, dt.Rows[0]["userId"]);
@@ -125,6 +125,51 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(2, dt.Rows.Count);
             Assert.AreEqual("updated", dt.Rows[0]["column2"]);
             Assert.AreEqual("updated", dt.Rows[1]["column2"]);
+        }
+
+        [TestMethod]
+        public void CreateCommand_Test_01()
+        {
+            var db = getdb();
+            var cmd = db.CreateCommand("SELECT @id, @userId", new { id = 1, userId = 2 });
+            Assert.AreEqual(2, cmd.Parameters.Count);
+            Assert.AreEqual(1, cmd.Parameters["id"].Value);
+            Assert.AreEqual(2, cmd.Parameters["userId"].Value);
+
+            var dic1 = new Dictionary<string, object>() { { "id", 1 }, { "userId", 2 } };
+            cmd = db.CreateCommand("SELECT @id, @userId", dic1);
+            Assert.AreEqual(2, cmd.Parameters.Count);
+            Assert.AreEqual(1, cmd.Parameters["id"].Value);
+            Assert.AreEqual(2, cmd.Parameters["userId"].Value);
+
+            cmd = db.CreateCommand("SELECT @id", ("id", 1));
+            Assert.AreEqual(1, cmd.Parameters.Count);
+            Assert.AreEqual(1, cmd.Parameters["id"].Value);
+
+            cmd = db.CreateCommand("SELECT @id, @userId", new[] { ("id", 1), ("userId", 2) });
+            Assert.AreEqual(2, cmd.Parameters.Count);
+            Assert.AreEqual(1, cmd.Parameters["id"].Value);
+            Assert.AreEqual(2, cmd.Parameters["userId"].Value);
+
+            cmd = db.CreateCommand("SELECT @ids", new[] { 1, 2, 3 });
+            Assert.AreEqual(3, cmd.Parameters.Count);
+            Assert.AreEqual(1, cmd.Parameters["ids_0"].Value);
+            Assert.AreEqual(2, cmd.Parameters["ids_1"].Value);
+            Assert.AreEqual(3, cmd.Parameters["ids_2"].Value);
+
+            cmd = db.CreateCommand("SELECT @id, @ids", new { id = 123, ids = new[] { 1, 2, 3 } });
+            Assert.AreEqual(4, cmd.Parameters.Count);
+            Assert.AreEqual(123, cmd.Parameters["id"].Value);
+            Assert.AreEqual(1, cmd.Parameters["ids_0"].Value);
+            Assert.AreEqual(2, cmd.Parameters["ids_1"].Value);
+            Assert.AreEqual(3, cmd.Parameters["ids_2"].Value);
+
+            var dt = new DataTable("dbo.IntList");
+            dt.Columns.Add("Value", typeof(int));
+            dt.AddRow(1);
+            dt.AddRow(2);
+            dt.AddRow(3);
+            cmd = db.CreateCommand("EXEC MyProc @ids", dt);
         }
     }
 }

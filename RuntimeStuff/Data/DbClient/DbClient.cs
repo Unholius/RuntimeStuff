@@ -24,7 +24,7 @@ namespace System.Data
     /// транзакций, агрегаций и асинхронного выполнения команд.
     /// </summary>
     /// <remarks>Предназначен для использования как легковесная альтернатива ORM.</remarks>
-    public class DbClient : IDisposable
+    public partial class DbClient : IDisposable
     {
         private static readonly ConditionalWeakTable<IDbConnection, DbClient> ClientCache = new();
         private readonly IReadOnlyDictionary<string, object> emptyParams = new Dictionary<string, object>();
@@ -272,72 +272,6 @@ namespace System.Data
             }
 
             return parameters;
-        }
-
-        /// <summary>
-        /// Извлекает имена параметров из SQL-строки по заданному префиксу.
-        /// </summary>
-        /// <param name="sql">
-        /// SQL-запрос, из которого необходимо извлечь имена параметров.
-        /// Если значение <c>null</c>, пустое или состоит только из пробельных символов,
-        /// возвращается пустой список.
-        /// </param>
-        /// <param name="prefixes">
-        /// Префиксы параметра (по умолчанию <c>["@", ":", "?", "$"]</c>).
-        /// Не может быть пустой строкой.
-        /// </param>
-        /// <param name="returnWithPrefix">Возвращать имена с префиксом или без.</param>
-        /// <returns>
-        /// Список уникальных имен параметров без префикса
-        /// в порядке их первого появления в строке.
-        /// </returns>
-        /// <remarks>
-        /// Метод использует регулярное выражение для поиска параметров вида
-        /// <c>@ParameterName</c> (или с другим указанным префиксом).
-        /// Конструкции вида <c>@@Something</c> игнорируются.
-        /// Допустимые имена параметров должны начинаться с буквы или символа подчеркивания,
-        /// а далее могут содержать буквы, цифры или символы подчеркивания.
-        /// </remarks>
-        public static string[] GetParameterNames(
-            string sql,
-            string[] prefixes = null,
-            bool returnWithPrefix = false)
-        {
-            if (string.IsNullOrWhiteSpace(sql))
-            {
-                return Array.Empty<string>();
-            }
-
-            prefixes ??= ["@", ":", "?", "$"];
-
-            if (prefixes.Length == 0 || prefixes.Any(string.IsNullOrEmpty))
-            {
-                throw new ArgumentException("Prefixes cannot be null or empty.", nameof(prefixes));
-            }
-
-            var result = new HashSet<string>();
-
-            foreach (var prefix in prefixes.Distinct())
-            {
-                var escapedPrefix = Regex.Escape(prefix);
-
-                // Ищем параметры вида @ParamName, :ParamName, $ParamName и т.д.
-                // Исключаем двойной префикс: @@IDENTITY, ::type и т.п.
-                var pattern = $@"(?<!{escapedPrefix}){escapedPrefix}([A-Za-z0-9_]*)";
-
-                var matches = Regex.Matches(sql, pattern);
-
-                foreach (Match match in matches)
-                {
-                    var name = match.Groups[1].Value;
-
-                    result.Add(returnWithPrefix
-                        ? prefix + name
-                        : name);
-                }
-            }
-
-            return [.. result];
         }
 
         /// <summary>
@@ -720,6 +654,7 @@ namespace System.Data
         /// <param name="dbTransaction">Транзакция, в рамках которой выполняется запрос. Может быть <c>null</c>.</param>
         /// <param name="commandTimeOut">Тайм-аут выполнения команды в секундах. Если не задано, используется значение по
         /// умолчанию.</param>
+        /// <param name="commandType">Тип команды.</param>
         /// <returns>Объект <see cref="DbCommand" />, готовый к выполнению запроса.</returns>
         /// <remarks>Этот метод создаёт команду для выполнения SQL-запроса, назначает ей параметры и устанавливает тайм-аут выполнения.
         /// Если параметры не указаны, команда будет выполнена без них.</remarks>
@@ -727,155 +662,11 @@ namespace System.Data
             string query,
             object cmdParams,
             IDbTransaction dbTransaction = null,
-            int? commandTimeOut = null)
+            int commandTimeOut = 30,
+            CommandType commandType = CommandType.Text)
         {
-            var cmd = this.Connection.CreateCommand();
-            cmd.CommandText = query;
-            cmd.CommandTimeout = commandTimeOut ?? DbClient.DefaultCommandTimeout;
-            cmd.CommandType = CommandType.Text;
-            cmd.Transaction = dbTransaction ?? this.tr.Value;
-
-            switch (cmdParams)
-            {
-                case DbParameter dbp:
-                    cmd.Parameters.Add(dbp);
-                    break;
-
-                case IEnumerable<DbParameter> dbParams:
-                    foreach (var dbParam in dbParams)
-                    {
-                        cmd.Parameters.Add(dbParam);
-                    }
-
-                    break;
-
-                case DbParameterCollection dbParams:
-                    foreach (DbParameter dbParam in dbParams)
-                    {
-                        cmd.Parameters.Add(dbParam);
-                    }
-
-                    break;
-
-                case IDictionary<string, object> dic1:
-                    foreach (var kvp in dic1)
-                    {
-                        var p = cmd.CreateParameter();
-                        p.ParameterName = kvp.Key;
-                        p.Value = kvp.Value;
-                        cmd.Parameters.Add(p);
-                    }
-
-                    break;
-
-                case IDictionary dic2:
-                    foreach (IDictionaryEnumerator kvp in dic2)
-                    {
-                        var p = cmd.CreateParameter();
-                        p.ParameterName = $"{kvp.Key}";
-                        p.Value = kvp.Value;
-                        cmd.Parameters.Add(p);
-                    }
-
-                    break;
-
-                default:
-                    var parameterNames = GetParameterNames(query);
-                    var parameters = this.GetParams(cmdParams, parameterNames);
-                    if (parameterNames.Length == 1 && parameters.Count == 0)
-                    {
-                        parameters = new ReadOnlyDictionary<string, object>(new Dictionary<string, object>() { { parameterNames[0], cmdParams } });
-                    }
-
-                    if (parameterNames.Length == 0 && parameters.Count > 0)
-                    {
-                        cmd.CommandText += " " + string.Join(", ", parameters.Select(x => this.Options.ParamPrefix + x.Key + " = " + this.Options.ParamPrefix + x.Key));
-                    }
-
-                    if (parameterNames.Length > 1 && parameters.Count == 0 && cmdParams is object[] vals)
-                    {
-                        var dic = new Dictionary<string, object>();
-                        for (int i = 0; i < vals.Length; i++)
-                        {
-                            dic[parameterNames[i]] = vals[i];
-                        }
-
-                        parameters = new ReadOnlyDictionary<string, object>(dic);
-                    }
-
-                    if (parameterNames.Length == 1 && cmdParams.GetType().IsCollection())
-                    {
-                        var arr = (cmdParams as IEnumerable)?.Cast<object>();
-                        if (arr != null)
-                        {
-                            var inParams = string.Join(", ", arr.Select((x, i) => $"{this.Options.ParamPrefix}{parameterNames[0]}_{i}"));
-                            cmd.CommandText = Regex.Replace(cmd.CommandText, "[@:\\$]" + parameterNames[0], inParams);
-
-                            parameters = new ReadOnlyDictionary<string, object>(arr.ToDictionary((x, i) => $"{parameterNames[0]}_{i}", v => v));
-                        }
-                    }
-
-                    if (cmdParams != null)
-                    {
-                        if (cmdParams is not IEnumerable<KeyValuePair<string, object>>)
-                        {
-                            var cmdParamsCache = cmdParams.GetType().GetMemberCache();
-                            foreach (var arrProp in cmdParamsCache.PublicBasicEnumerableProperties)
-                            {
-                                var arr = (arrProp.Getter(cmdParams) as IEnumerable)?.Cast<object>();
-                                if (arr != null)
-                                {
-                                    var inParams = string.Join(", ", arr.Select((x, i) => $"{this.Options.ParamPrefix}{arrProp.Name}_{i}"));
-                                    cmd.CommandText = Regex.Replace(cmd.CommandText, "[@:\\$]" + arrProp.Name, inParams);
-                                }
-                            }
-                        }
-
-                        foreach (var cp in parameters)
-                        {
-                            var p = cmd.CreateParameter();
-                            var paramTypeCache = p.GetType().GetMemberCache();
-                            p.ParameterName = cp.Key;
-                            var valueType = cp.Value?.GetType().GetMemberCache();
-                            if (valueType != null && valueType.IsClass)
-                            {
-                                if (valueType == typeof(DataTable))
-                                {
-                                    try
-                                    {
-                                        p.Value = cp.Value;
-                                        paramTypeCache["SqlDbType"].SetValue(p, SqlDbType.Structured, (x) => x);
-                                        paramTypeCache["TypeName"].SetValue(p, ((DataTable)cp.Value).TableName.Coalesce(p.ParameterName), (x) => x);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        Debug.WriteLine(ex);
-                                    }
-                                }
-                                else
-                                {
-                                    p.Value = cp.Value.ToString();
-                                }
-                            }
-                            else
-                            {
-                                p.Value = cp.Value ?? DBNull.Value;
-                            }
-
-                            cmd.Parameters.Add(p);
-                        }
-                    }
-
-                    break;
-            }
-
-            if (this.tr?.Value != null && cmd.Transaction == null)
-            {
-                cmd.Transaction = this.tr.Value;
-            }
-
+            var cmd = this.Connection.CreateCommand(query, cmdParams, dbTransaction ?? this.tr?.Value, commandTimeOut, commandType, this.Options.ParamPrefix);
             LogCommand(cmd);
-
             return (DbCommand)cmd;
         }
 
@@ -908,7 +699,7 @@ namespace System.Data
         {
             var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " +
                          SqlQueryHelper.GetWhereClause<T>(this.Options, out _)).Trim();
-            return this.ExecuteNonQuery(query, this.GetParams(item));
+            return this.ExecuteNonQuery(query, Obj.GetValues(item));
         }
 
         /// <summary>
@@ -924,7 +715,7 @@ namespace System.Data
         {
             var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " +
                          SqlQueryHelper.GetWhereClause<T>(this.Options, out _)).Trim();
-            return this.ExecuteNonQueryAsync(query, this.GetParams(item), dbTransaction, token);
+            return this.ExecuteNonQueryAsync(query, Obj.GetValues(item), dbTransaction, token);
         }
 
         /// <summary>
@@ -1694,116 +1485,6 @@ namespace System.Data
         }
 
         /// <summary>
-        /// Получает параметры для запроса на основе переданного объекта.
-        /// </summary>
-        /// <param name="cmdParams">Объект, содержащий параметры запроса. Может быть коллекцией или одиночной парой ключ-значение.</param>
-        /// <param name="propertyNames">Список имён свойств для выборки из объекта. Если не указано, выбираются все свойства.</param>
-        /// <returns>Коллекция параметров в виде словаря, где ключ — имя параметра, а значение — его значение.</returns>
-        /// <remarks>Этот метод извлекает параметры из переданного объекта. Он поддерживает работу с различными типами данных,
-        /// такими как: <list type="bullet"><item><description>Словари
-        /// (Dictionary)</description></item><item><description>Коллекции
-        /// (IEnumerable)</description></item><item><description>Кортежи (Tuple)</description></item></list> Если объект
-        /// представляет собой кортеж, параметры будут извлечены из его элементов.</remarks>
-        public IReadOnlyDictionary<string, object> GetParams(object cmdParams, params string[] propertyNames)
-        {
-            var parameters = new Dictionary<string, object>();
-            if (cmdParams == null)
-            {
-                return this.emptyParams;
-            }
-
-            var memberCache = MemberCache.Get(cmdParams.GetType());
-            switch (cmdParams)
-            {
-                case KeyValuePair<string, object> kvp:
-                    var d = new Dictionary<string, object> { { kvp.Key, kvp.Value } };
-                    return d;
-
-                case Dictionary<string, object> dic:
-                    return dic;
-
-                case IDictionary<string, object> idic:
-                    return idic.ToDictionary(x => x.Key, x => x.Value);
-
-                case IEnumerable e when cmdParams is not string && memberCache.ElementType != null:
-                    {
-                        var elementCache = MemberCache.Get(memberCache.ElementType);
-
-                        var key = elementCache["Key"] ??
-                                  elementCache["Item1", MemberTypes.Field];
-                        var val = elementCache["Value"] ??
-                                  elementCache["Item2", MemberTypes.Field];
-                        if (key == null || val == null)
-                        {
-                            break;
-                        }
-
-                        foreach (var i in e)
-                        {
-                            parameters[key.ConvertValue<string>(i)] = val.GetValue(i);
-                        }
-
-                        break;
-                    }
-
-                default:
-                    {
-                        if (memberCache.IsTuple)
-                        {
-                            var key = memberCache["Key"] ??
-                                      memberCache["Item1", MemberTypes.Field];
-                            var val = memberCache["Value"] ??
-                                      memberCache["Item2", MemberTypes.Field];
-
-                            parameters[key.ConvertValue<string>(cmdParams)] = val.GetValue(cmdParams);
-                        }
-                        else
-                        {
-                            if (memberCache.IsBasic)
-                            {
-                                var paramName = propertyNames?.FirstOrDefault();
-                                if (!string.IsNullOrWhiteSpace(paramName))
-                                {
-                                    parameters[paramName] = cmdParams;
-                                }
-                            }
-                            else
-                            {
-                                if (memberCache.Properties.Length == 1 && memberCache.Properties[0].Type == typeof(DataTable))
-                                {
-                                    parameters[memberCache.Properties[0].Name] = memberCache.Properties[0].GetValue(cmdParams);
-                                    return parameters;
-                                }
-
-                                foreach (var arrProp in memberCache.PublicBasicEnumerableProperties)
-                                {
-                                    if (arrProp.Getter(cmdParams) is IEnumerable arr)
-                                    {
-                                        var idx = 0;
-                                        foreach (var i in arr)
-                                        {
-                                            parameters[$"{arrProp.Name}_{idx}"] = i;
-                                            idx++;
-                                        }
-                                    }
-                                }
-
-                                var propertyFilter = propertyNames.Length == 0 ? (Func<MemberCache, bool>)null : (x) => propertyNames.Contains(x.Name, StringComparer.OrdinalIgnoreCase);
-                                foreach (var kvp in memberCache.ToDictionary(cmdParams, propertyFilter))
-                                {
-                                    parameters[propertyNames.Length > 0 ? propertyNames.First(x => StringComparer.OrdinalIgnoreCase.Equals(x, kvp.Key)) : kvp.Key] = kvp.Value;
-                                }
-                            }
-                        }
-
-                        break;
-                    }
-            }
-
-            return parameters;
-        }
-
-        /// <summary>
         /// Получает строку SQL-запроса с заменой всех параметров на их значения.
         /// </summary>
         /// <param name="command">Команда, содержащая SQL-запрос и параметры.</param>
@@ -1849,7 +1530,7 @@ namespace System.Data
         /// <param name="values">Значения, которые будут вставлены в строку таблицы. Порядок значений должен соответствовать порядку столбцов таблицы.</param>
         public void Insert(string tableName, IDbTransaction dbTransaction, params object[] values)
         {
-            var sql = $"INSERT INTO {tableName} VALUES ({string.Join(", ", values.Select((x, i) => this.Options.ParamPrefix + "v" + i))})";
+            var sql = $"INSERT INTO {tableName} VALUES ({string.Join(", ", values.Select((x, i) => this.Options.ParamPrefix + i))})";
             this.ExecuteNonQuery(sql, values, dbTransaction);
         }
 
@@ -1915,12 +1596,12 @@ namespace System.Data
             var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
             if (string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
             {
-                this.ExecuteNonQuery(query, this.GetParams(item), dbTransaction);
+                this.ExecuteNonQuery(query, Obj.GetValues(item), dbTransaction);
             }
             else
             {
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
-                id = this.ExecuteScalar<object>(query, this.GetParams(item));
+                id = this.ExecuteScalar<object>(query, Obj.GetValues(item));
                 var mi = MemberCache.Get(item?.GetType() ?? typeof(T));
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Length == 1)
                 {
@@ -1981,13 +1662,13 @@ namespace System.Data
             var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
             if (string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
             {
-                await this.ExecuteNonQueryAsync(query, this.GetParams(item), dbTransaction, token)
+                await this.ExecuteNonQueryAsync(query, Obj.GetValues(item), dbTransaction, token)
                     .ConfigureAwait(this.ConfigureAwait);
             }
             else
             {
                 query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
-                id = await this.ExecuteScalarAsync<object>(query, this.GetParams(item), dbTransaction, token)
+                id = await this.ExecuteScalarAsync<object>(query, Obj.GetValues(item), dbTransaction, token)
                     .ConfigureAwait(this.ConfigureAwait);
                 var mi = MemberCache.Get(item?.GetType() ?? typeof(T));
                 if (id != null && id != DBNull.Value && mi.PrimaryKeys.Length == 1)
@@ -4097,7 +3778,7 @@ namespace System.Data
             }
 
             var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
-            var cmdParams = this.GetParams(item);
+            var cmdParams = Obj.GetValues(item);
             query += " " + (whereExpression != null
                 ? SqlQueryHelper.GetWhereClause(this.Options, whereExpression, true, out cmdParams)
                 : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
@@ -4135,7 +3816,7 @@ namespace System.Data
             }
 
             var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
-            var cmdParams = this.GetParams(item);
+            var cmdParams = Obj.GetValues(item);
             query += " " + (whereExpression != null
                 ? SqlQueryHelper.GetWhereClause(this.Options, whereExpression, true, out cmdParams)
                 : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
