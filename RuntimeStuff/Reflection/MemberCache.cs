@@ -15,11 +15,13 @@ namespace System.Reflection
 #if DEBUG
 
     using System.Diagnostics;
+    using System.Helpers;
 
 #endif
 
     using System.Linq;
     using System.Linq.Expressions;
+    using System.Reflection.Emit;
     using System.Runtime.CompilerServices;
 
     /// <summary>
@@ -173,28 +175,28 @@ namespace System.Reflection
                 this.type = e.EventHandlerType;
             }
 
-            this.IsDictionary = this.typeCache?.IsDictionary ?? Obj.IsDictionary(this.type);
-            this.IsDelegate = this.typeCache?.IsDelegate ?? Obj.IsDelegate(this.type);
-            this.IsFloat = this.typeCache?.IsFloat ?? Obj.IsFloat(this.type);
-            this.IsNullable = this.typeCache?.IsNullable ?? Obj.IsNullable(this.type);
-            this.IsNumeric = this.typeCache?.IsNumeric ?? Obj.IsNumeric(this.type);
-            this.IsBoolean = this.typeCache?.IsBoolean ?? Obj.IsBoolean(this.type);
-            this.IsBasic = this.typeCache?.IsBasic ?? Obj.IsBasic(this.type);
+            this.IsDictionary = this.typeCache?.IsDictionary ?? TypeHelper.IsDictionary(this.type);
+            this.IsDelegate = this.typeCache?.IsDelegate ?? TypeHelper.IsDelegate(this.type);
+            this.IsFloat = this.typeCache?.IsFloat ?? TypeHelper.IsFloat(this.type);
+            this.IsNullable = this.typeCache?.IsNullable ?? TypeHelper.IsNullable(this.type);
+            this.IsNumeric = this.typeCache?.IsNumeric ?? TypeHelper.IsNumeric(this.type);
+            this.IsBoolean = this.typeCache?.IsBoolean ?? TypeHelper.IsBoolean(this.type);
+            this.IsBasic = this.typeCache?.IsBasic ?? TypeHelper.IsBasic(this.type);
             this.IsEnum = this.typeCache?.IsEnum ?? this.type?.IsEnum ?? false;
             this.IsConst = this.typeCache?.IsConst ?? (fi != null && fi.IsLiteral && !fi.IsInitOnly);
             this.IsObject = this.typeCache?.IsObject ?? this.type == typeof(object);
-            this.IsTuple = this.typeCache?.IsTuple ?? Obj.IsTuple(this.type);
+            this.IsTuple = this.typeCache?.IsTuple ?? TypeHelper.IsTuple(this.type);
             this.IsProperty = pi != null;
             this.IsEvent = e != null;
             this.IsField = fi != null;
             this.IsType = t != null;
             this.IsMethod = mi != null;
             this.IsConstructor = ci != null;
-            this.IsPublic = this.typeCache?.IsPublic ?? Obj.IsPublic(this.MemberInfo);
-            this.IsPrivate = this.typeCache?.IsPrivate ?? Obj.IsPrivate(this.MemberInfo);
-            this.IsCollection = this.typeCache?.IsCollection ?? Obj.IsCollection(this.type);
-            this.ElementType = this.typeCache?.ElementType ?? Obj.GetCollectionItemType(this.Type);
-            this.IsBasicCollection = this.typeCache?.IsBasicCollection ?? (this.IsCollection && Obj.IsBasic(this.ElementType));
+            this.IsPublic = this.typeCache?.IsPublic ?? IsMemberPublic(this.MemberInfo);
+            this.IsPrivate = this.typeCache?.IsPrivate ?? IsMemberPrivate(this.MemberInfo);
+            this.IsCollection = this.typeCache?.IsCollection ?? TypeHelper.IsCollection(this.type);
+            this.ElementType = this.typeCache?.ElementType ?? TypeHelper.GetCollectionItemType(this.Type);
+            this.IsBasicCollection = this.typeCache?.IsBasicCollection ?? (this.IsCollection && TypeHelper.IsBasic(this.ElementType));
             this.CanWrite = pi != null ? pi.CanWrite : fi != null;
             this.CanRead = pi != null ? pi.CanRead : fi != null;
             this.Name = this.typeCache?.Name ?? this.MemberInfo.Name.Split(NamesSeparator, StringSplitOptions.RemoveEmptyEntries)
@@ -293,7 +295,7 @@ namespace System.Reflection
 
                         try
                         {
-                            this.Getter = Obj.GetMemberGetter(pi);
+                            this.Getter = ReflectionHelper.CreatePropertyGetter(pi);
                         }
                         catch (Exception)
                         {
@@ -401,7 +403,7 @@ namespace System.Reflection
                     return this.baseTypes;
                 }
 
-                this.baseTypes = Obj.GetBaseTypes(this.type, getInterfaces: true);
+                this.baseTypes = TypeHelper.GetBaseTypes(this.type, getInterfaces: true);
                 return this.baseTypes;
             }
         }
@@ -702,7 +704,7 @@ namespace System.Reflection
         /// <summary>
         /// Получает значение, указывающее, является ли первичный ключ идентификатором (автоинкрементным числом или GUID).
         /// </summary>
-        public bool IsIdentity => this.IsPrimaryKey && (Obj.IsNumeric(this.Type, false) || this.Type == typeof(Guid));
+        public bool IsIdentity => this.IsPrimaryKey && (TypeHelper.IsNumeric(this.Type, false) || this.Type == typeof(Guid));
 
         /// <summary>
         /// Получает значение, указывающее, является ли тип интерфейсом.
@@ -899,7 +901,7 @@ namespace System.Reflection
 
                 try
                 {
-                    this.propertyBackingField = Obj.GetFieldInfoFromGetAccessor(this.AsPropertyInfo().GetGetMethod(true));
+                    this.propertyBackingField = ReflectionHelper.GetFieldInfoFromGetAccessor(this.AsPropertyInfo().GetGetMethod(true));
                 }
                 catch
                 {
@@ -910,6 +912,28 @@ namespace System.Reflection
                 this.propertyBackingFieldExists = true;
                 return this.propertyBackingField;
             }
+        }
+
+        /// <summary>
+        /// Получает событие с наименьшего уровня иерархии.
+        /// </summary>
+        /// <param name="type">Тип, с которого начинается поиск.</param>
+        /// <param name="name">Имя события.</param>
+        /// <returns>Найденное событие или null, если событие не найдено.</returns>
+        public static EventInfo GetLowestEvent(Type type, string name)
+        {
+            while (type != null)
+            {
+                var member = type.GetEvent(name, DefaultBindingFlags);
+                if (member != null)
+                {
+                    return member;
+                }
+
+                type = type.BaseType;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -1240,6 +1264,151 @@ namespace System.Reflection
             {
                 return this.memberCacheMap.GetOrAdd(memberInfo, x => new MemberCache(x, this));
             }
+        }
+
+        /// <summary>
+        /// Определяет, является ли указанный член типа приватным (<c>private</c>).
+        /// </summary>
+        /// <param name="memberInfo">
+        /// Метаданные члена типа, для которого требуется проверить уровень доступа.
+        /// Поддерживаются следующие типы:
+        /// <see cref="PropertyInfo"/>, <see cref="FieldInfo"/>, <see cref="MethodInfo"/>,
+        /// <see cref="EventInfo"/>, <see cref="Type"/>, <see cref="ConstructorInfo"/>.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если член типа имеет модификатор доступа <c>private</c>;
+        /// <c>false</c> — в противном случае.
+        /// </returns>
+        /// <exception cref="NotSupportedException">
+        /// Выбрасывается, если тип <paramref name="memberInfo"/> не поддерживается
+        /// для проверки модификатора доступа.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// Логика определения приватности:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// <see cref="PropertyInfo"/> — проверяется наличие хотя бы одного приватного аксессора
+        /// (getter или setter).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="FieldInfo"/> — используется свойство FieldInfo.IsPrivate.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="MethodInfo"/> — используется свойство MethodInfo.IsPrivate.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="EventInfo"/> — проверяется приватность методов добавления или удаления обработчика
+        /// (<c>add</c>/<c>remove</c>).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="Type"/> — считается приватным, если тип не является публичным
+        /// (<see cref="Type.IsPublic"/> равен <c>false</c>).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="ConstructorInfo"/> — используется свойство ConstructorInfo.IsPrivate.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// <para>
+        /// Обратите внимание, что для вложенных типов приватность также может определяться
+        /// через <see cref="Type.IsNestedPrivate"/>.
+        /// </para>
+        /// </remarks>
+        public static bool IsMemberPrivate(MemberInfo memberInfo)
+        {
+            return memberInfo switch
+            {
+                PropertyInfo pi => pi.GetAccessors().Any(m => m.IsPrivate),
+                FieldInfo fi => fi.IsPrivate,
+                MethodInfo mi => mi.IsPrivate,
+                EventInfo ei => ei.AddMethod?.IsPrivate == true || ei.RemoveMethod?.IsPrivate == true,
+                Type t => !t.IsPublic,
+                ConstructorInfo ci => ci.IsPrivate,
+                _ => throw new NotSupportedException($"Member type {memberInfo.GetType()} is not supported for IsPublic check."),
+            };
+        }
+
+        /// <summary>
+        /// Определяет, является ли указанный член типа публичным (<c>public</c>).
+        /// </summary>
+        /// <param name="memberInfo">
+        /// Метаданные члена типа, для которого требуется проверить уровень доступа.
+        /// Поддерживаются следующие типы:
+        /// <see cref="PropertyInfo"/>, <see cref="FieldInfo"/>, <see cref="MethodInfo"/>,
+        /// <see cref="EventInfo"/>, <see cref="Type"/>, <see cref="ConstructorInfo"/>.
+        /// </param>
+        /// <returns>
+        /// <c>true</c>, если член типа является публичным;
+        /// <c>false</c> — если член не является публичным.
+        /// </returns>
+        /// <exception cref="NotSupportedException">
+        /// Выбрасывается, если тип <paramref name="memberInfo"/> не поддерживается
+        /// для проверки модификатора доступа.
+        /// </exception>
+        /// <remarks>
+        /// <para>
+        /// Логика определения публичности:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// <see cref="PropertyInfo"/> — проверяется наличие хотя бы одного публичного аксессора
+        /// (getter или setter).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="FieldInfo"/> — используется свойство <see cref="FieldInfo.IsPublic"/>.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="MethodInfo"/> — используется свойство MethodInfo.IsPublic.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="EventInfo"/> — проверяется публичность методов добавления или удаления обработчика
+        /// (<c>add</c>/<c>remove</c>).
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="Type"/> — используется свойство <see cref="Type.IsPublic"/>.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// <see cref="ConstructorInfo"/> — используется свойство ConstructorInfo.IsPublic.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </remarks>
+        public static bool IsMemberPublic(MemberInfo memberInfo)
+        {
+            return memberInfo switch
+            {
+                PropertyInfo pi => pi.GetAccessors().Any(m => m.IsPublic),
+                FieldInfo fi => fi.IsPublic,
+                MethodInfo mi => mi.IsPublic,
+                EventInfo ei => ei.AddMethod?.IsPublic == true || ei.RemoveMethod?.IsPublic == true,
+                Type t => t.IsPublic,
+                ConstructorInfo ci => ci.IsPublic,
+                _ => throw new NotSupportedException($"Member type {memberInfo.GetType()} is not supported for IsPublic check."),
+            };
         }
 
         /// <summary>
@@ -1804,14 +1973,14 @@ namespace System.Reflection
             {
                 var pAll = c.GetParameters();
                 if (pAll.Length == ctorArgs.Length && All(ctorArgs, (_, i) =>
-                        Obj.IsImplements(args[i]?.GetType(), pAll[i].ParameterType)))
+                        TypeHelper.IsImplements(args[i]?.GetType(), pAll[i].ParameterType)))
                 {
                     return c;
                 }
 
                 var pNoDef = c.GetParameters().Where(p => !p.HasDefaultValue).ToArray();
 
-                if (pNoDef.Length == ctorArgs.Length && All(ctorArgs, (_, i) => Obj.IsImplements(args[i]?.GetType(), pNoDef[i].ParameterType)))
+                if (pNoDef.Length == ctorArgs.Length && All(ctorArgs, (_, i) => TypeHelper.IsImplements(args[i]?.GetType(), pNoDef[i].ParameterType)))
                 {
                     Array.Resize(ref ctorArgs, pAll.Length);
                     for (var i = pNoDef.Length; i < pAll.Length; i++)

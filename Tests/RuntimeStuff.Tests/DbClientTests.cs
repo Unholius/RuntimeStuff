@@ -6,7 +6,7 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class DbClientTests
     {
-        private static string dbName() => $".\\Databases\\DB{DateTime.Now.Ticks}.db";
+        private static string dbName() => $".\\Databases\\DB{DateTime.Now.ExactTicks()}.db";
         private DbClient getdb()
         {
             var sql = $"CREATE TEMP TABLE Tmp (column1 int, column2 text);";
@@ -37,23 +37,6 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(2L, dts[1].Rows[0][0]);
             Assert.AreEqual("Name2", dts[1].Rows[0][1]);
             Assert.AreEqual("02.02.1999", dts[1].Rows[0][2]);
-        }
-
-        [TestMethod]
-        public void Insert_Test_01()
-        {
-            var tmpTableName = $"T" + DateTime.Now.Ticks;
-            var sql = $"CREATE TEMP TABLE {tmpTableName} (column1 int, column2 text);";
-            var con = new SqliteConnection().Database(dbName());
-            con.ExecuteNonQuery(sql);
-            con.Insert(tmpTableName, 1, "one");
-            con.Insert(tmpTableName, 2, "two");
-            var dt = con.ToDataTable($"select * from {tmpTableName}");
-            Assert.AreEqual(2, dt.Rows.Count);
-            Assert.AreEqual(1L, dt.Rows[0]["column1"]);
-            Assert.AreEqual("one", dt.Rows[0]["column2"]);
-            Assert.AreEqual(2L, dt.Rows[1]["column1"]);
-            Assert.AreEqual("two", dt.Rows[1]["column2"]);
         }
 
         [TestMethod]

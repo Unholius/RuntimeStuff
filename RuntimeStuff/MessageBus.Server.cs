@@ -371,7 +371,7 @@ namespace System
                         return;
                     }
 
-                    var messageType = Obj.GetTypeByName(typeElement);
+                    var messageType = TypeHelper.GetType(typeElement);
                     if (messageType == null)
                     {
                         response.StatusCode = 400;

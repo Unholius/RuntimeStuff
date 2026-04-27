@@ -502,7 +502,7 @@ namespace System.Helpers
 
             if (expr is PropertyExpr pe)
             {
-                var p = Obj.GetProperty(param.Type, pe.Name);
+                TypeHelper.GetPublicPropertiesMap(param.Type).TryGetValue(pe.Name, out var p);
                 if (p == null)
                 {
                     throw new FormatException($"Свойство '{pe.Name}' не существует в типе '{param.Type}'");

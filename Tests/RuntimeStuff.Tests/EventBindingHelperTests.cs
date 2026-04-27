@@ -12,7 +12,7 @@ namespace RuntimeStuff.MSTests
         {
             var sw = new Stopwatch();
             var x0 = new TestClass0();
-            var x1 = new TestClass1();
+            var x1 = new ObservableTestClass1();
             var n = 1_000_000;
 
             sw.Start();
@@ -39,13 +39,30 @@ namespace RuntimeStuff.MSTests
             }
             sw.Stop();
             var s2 = sw.ElapsedMilliseconds;
+
+            sw.Restart();
+            for (int i = 0; i < n; i++)
+            {
+                Obj.Set(x0, "Id", i);
+            }
+            sw.Stop();
+            var s3 = sw.ElapsedMilliseconds;
+
+            sw.Restart();
+            var setter1 = Obj.GetMemberSetter<TestClass0>("Id");
+            for (int i = 0; i < n; i++)
+            {
+               setter1(x0, i);
+            }
+            sw.Stop();
+            var s4 = sw.ElapsedMilliseconds;
         }
 
         [TestMethod]
         public void BindProperties_Test_01()
         {
-            var x1 = new TestClass1() { Id = 1 };
-            var x2 = new TestClass1();
+            var x1 = new ObservableTestClass1() { Id = 1 };
+            var x2 = new ObservableTestClass1();
 
             var b = x1.BindToProperty(x => x.Id, x2, x => x.Id);
             Assert.AreEqual(x1.Id, x2.Id);
@@ -71,15 +88,15 @@ namespace RuntimeStuff.MSTests
         public void BindProperties_Test_02()
         {
             var x0 = new TestClass0();
-            var x1 = new TestClass1();
+            var x1 = new ObservableTestClass1();
             EventHelper.BindProperties(x1, "Id", nameof(INotifyPropertyChanged.PropertyChanged), x0, "Id");
         }
 
         [TestMethod]
         public void BindProperties_Test_03()
         {
-            var x1 = new TestClass1();
-            var x2 = new TestClass2();
+            var x1 = new ObservableTestClass1();
+            var x2 = new ObservableTestClass2();
             x1.Id = 1;
             Assert.AreEqual(1, x1.Id);
             Assert.AreEqual(0, x2.Id);
@@ -106,7 +123,7 @@ namespace RuntimeStuff.MSTests
         public event PropertyChangedEventHandler PropertyChanged;
     }
 
-    public class TestClass1 : ObservableObject
+    public class ObservableTestClass1 : ObservableObject
     {
         public int Id
         { 
@@ -115,7 +132,7 @@ namespace RuntimeStuff.MSTests
         }
     }
 
-    public class TestClass2 : ObservableObject
+    public class ObservableTestClass2 : ObservableObject
     {
         public int Zero
         {

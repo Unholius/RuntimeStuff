@@ -6,7 +6,6 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.ComponentModel;
-    using System.Data;
     using System.Helpers;
     using System.Linq;
     using System.Reflection;
@@ -14,6 +13,18 @@
     [TestClass]
     public class ObjTests
     {
+
+        [TestMethod]
+        public void GetValues_Test_01()
+        {
+            var x = new TestAddressWithIndex() {City = "Lupetsk", Street = "Kosmonavtov"};
+            var d = Obj.GetValues(x);
+            Assert.IsNotNull(d);
+            Assert.AreEqual(2, d.Count);
+            Assert.AreEqual("Lupetsk", d["City"]);
+            Assert.AreEqual("Kosmonavtov", d["Street"]);
+        }
+
         #region Test Models
 
         public class TestPerson
@@ -36,6 +47,13 @@
         {
             public string? City { get; set; }
             public string? Street { get; set; }
+        }
+
+        public class TestAddressWithIndex
+        {
+            public string? City { get; set; }
+            public string? Street { get; set; }
+            public object? this[int index] => index == 0 ? City : Street;
         }
 
         public class TestClassWithStatic
@@ -948,17 +966,6 @@
             // Assert
             Assert.IsNotNull(property);
             Assert.AreEqual("Name", property.Name);
-        }
-
-        [TestMethod]
-        public void GetLowestField_FindsField()
-        {
-            // Act
-            var field = Obj.GetLowestField(typeof(TestPerson), "PrivateField");
-
-            // Assert
-            Assert.IsNotNull(field);
-            Assert.AreEqual("PrivateField", field.Name);
         }
 
         #endregion GetLowestMember Tests

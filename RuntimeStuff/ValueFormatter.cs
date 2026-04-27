@@ -27,7 +27,7 @@ namespace System
     public class ValueFormatter : ICloneable
     {
         private readonly ConcurrentDictionary<Type, Func<object, ValueFormatter, string>> serializerCache = new();
-        private HashSet<object> nullValuesSet = new(Obj.NullValues);
+        private HashSet<object> nullValuesSet = new(TypeHelper.NullValues);
 
         /// <summary>
         /// Инициализирует новый экземпляр <see cref="ValueFormatter"/> с настройками по умолчанию.
@@ -478,7 +478,7 @@ namespace System
             }
 
             // 10. Numeric
-            if (Obj.NumberTypes.Contains(type))
+            if (TypeHelper.NumberTypes.Contains(type))
             {
                 var format = customTypeFormat ?? this.DecimalNumberFormat ?? "G";
                 var text = (value as IFormattable)?.ToString(format, this.CultureInfo);

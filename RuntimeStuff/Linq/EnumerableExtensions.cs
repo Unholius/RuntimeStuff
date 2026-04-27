@@ -47,6 +47,54 @@ namespace System.Linq
         }
 
         /// <summary>
+        /// Разбивает коллекцию на части (страницы) указанного размера.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов коллекции.</typeparam>
+        /// <param name="source">Исходная коллекция.</param>
+        /// <param name="pageSize">Размер страницы.</param>
+        /// <returns>Последовательность страниц.</returns>
+        /// <exception cref="ArgumentNullException">Если source равен null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Если pageSize меньше 1.</exception>
+        public static IEnumerable<T[]> ChunkBy<T>(this IEnumerable<T> source, int pageSize)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (pageSize < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(pageSize));
+            }
+
+            using var enumerator = source.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var buffer = new T[pageSize];
+                buffer[0] = enumerator.Current;
+
+                int count = 1;
+
+                while (count < pageSize && enumerator.MoveNext())
+                {
+                    buffer[count++] = enumerator.Current;
+                }
+
+                if (count == pageSize)
+                {
+                    yield return buffer;
+                }
+                else
+                {
+                    var last = new T[count];
+                    Array.Copy(buffer, last, count);
+                    yield return last;
+                }
+            }
+        }
+
+        /// <summary>
         /// Возвращает количество элементов в негeneric-последовательности <see cref="IEnumerable"/>.
         /// </summary>
         /// <param name="e">Последовательность, количество элементов которой необходимо определить.</param>
@@ -1470,6 +1518,39 @@ namespace System.Linq
             Func<TSource, int, TKey> keySelector,
             Func<TSource, TValue> valueSelector)
         {
+            return source.ToDictionary(keySelector, (item, index) => valueSelector(item));
+        }
+
+        /// <summary>
+        /// Преобразует последовательность в словарь, используя функции выбора ключа и значения.
+        /// </summary>
+        /// <typeparam name="TSource">Тип элементов исходной последовательности.</typeparam>
+        /// <typeparam name="TKey">Тип ключей словаря.</typeparam>
+        /// <typeparam name="TValue">Тип значений словаря.</typeparam>
+        /// <param name="source">Исходная последовательность элементов.</param>
+        /// <param name="keySelector">
+        /// Функция получения ключа на основе элемента и его индекса.
+        /// </param>
+        /// <param name="valueSelector">
+        /// Функция получения значения на основе элемента.
+        /// </param>
+        /// <returns>
+        /// Словарь, содержащий элементы исходной последовательности,
+        /// преобразованные в пары ключ-значение.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/>,
+        /// <paramref name="keySelector"/> или <paramref name="valueSelector"/>
+        /// равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается при попытке добавить дублирующийся ключ.
+        /// </exception>
+        public static Dictionary<TKey, TValue> ToDictionary<TSource, TKey, TValue>(
+            this IEnumerable<TSource> source,
+            Func<TSource, int, TKey> keySelector,
+            Func<TSource, int, TValue> valueSelector)
+        {
             if (source == null)
             {
                 throw new ArgumentNullException(nameof(source));
@@ -1492,7 +1573,7 @@ namespace System.Linq
             foreach (TSource item in source)
             {
                 TKey key = keySelector(item, index);
-                TValue value = valueSelector(item);
+                TValue value = valueSelector(item, index);
 
                 dictionary.Add(key, value);
 

@@ -5,6 +5,7 @@
 namespace System.Data
 {
     using System;
+    using System.Helpers;
     using System.Linq.Expressions;
     using System.Reflection;
 

@@ -666,7 +666,6 @@ namespace System.Data
             CommandType commandType = CommandType.Text)
         {
             var cmd = this.Connection.CreateCommand(query, cmdParams, dbTransaction ?? this.tr?.Value, commandTimeOut, commandType, this.Options.ParamPrefix);
-            LogCommand(cmd);
             return (DbCommand)cmd;
         }
 
@@ -2993,78 +2992,101 @@ namespace System.Data
         /// </remarks>
         public DataTable[] ToDataTables(string query, object cmdParams = null, Func<string, object, DataColumn, object> valueConverter = null, params (string, string)[] columnMap)
         {
-            StringPool stringPool = new();
             if (string.IsNullOrWhiteSpace(query))
             {
                 throw new ArgumentNullException(nameof(query));
             }
 
-            var result = new List<DataTable>();
-            valueConverter ??= (fieldName, fieldValue, column) => fieldValue;
-
-            using (var cmd = this.CreateCommand(query, cmdParams))
+            var result = new List<DataTable>(2);
+            var stringPool = this.EnableStringPool ? new StringPool() : null;
+            using var cmd = this.CreateCommand(query, cmdParams);
+            try
             {
-                try
+                this.BeginConnection();
+                using var r = cmd.ExecuteReader();
+                this.CommandExecuted?.Invoke(cmd);
+                this.Log(cmd);
+                do
                 {
-                    this.BeginConnection();
+                    var table = new DataTable(query);
+                    table.BeginLoadData();
+                    var fieldCount = r.FieldCount;
+                    var map = GetReaderFieldToPropertyMap(r, columnMap)
+                        .OrderBy(x => x.Key)
+                        .ToArray();
+                    var columns = new DataColumn[fieldCount];
+                    var names = new string[fieldCount];
 
-                    using (var r = cmd.ExecuteReader())
+                    foreach (var kv in map)
                     {
-                        do
+                        var col = new DataColumn(
+                            kv.Value,
+                            r.GetFieldType(kv.Key) ?? typeof(object));
+
+                        table.Columns.Add(col);
+
+                        columns[kv.Key] = col;
+                        names[kv.Key] = kv.Value;
+                    }
+
+                    var values = new object[fieldCount];
+                    if (valueConverter != null || this.EnableStringPool)
+                    {
+                        while (r.Read())
                         {
-                            var dataTable = new DataTable(query);
-                            dataTable.BeginLoadData();
+                            r.GetValues(values);
 
-                            this.CommandExecuted?.Invoke(cmd);
-                            this.Log(cmd);
-                            var map = GetReaderFieldToPropertyMap(r, columnMap);
-                            foreach (var kv in map)
+                            for (var i = 0; i < fieldCount; i++)
                             {
-                                var col = new DataColumn(kv.Value, r.GetFieldType(kv.Key) ?? typeof(object));
-                                dataTable.Columns.Add(col);
-                            }
+                                var raw = values[i];
 
-                            while (r.Read())
-                            {
-                                var item = dataTable.NewRow();
-
-                                foreach (var kv in map)
+                                if (raw == null || raw == DBNull.Value)
                                 {
-                                    var colIndex = kv.Key;
-                                    var raw = r.GetValue(colIndex);
-                                    if (raw == null || raw == DBNull.Value)
-                                    {
-                                        continue;
-                                    }
-
-                                    if (this.EnableStringPool && raw is string s && this.PooledStringColumns.Contains(kv.Value))
-                                    {
-                                        raw = stringPool.Intern(s);
-                                    }
-
-                                    item[kv.Value] = valueConverter(kv.Value, raw, dataTable.Columns[kv.Value]);
+                                    continue;
                                 }
 
-                                dataTable.Rows.Add(item);
+                                var col = columns[i];
+                                if (col == null)
+                                {
+                                    continue;
+                                }
+
+                                if (this.EnableStringPool &&
+                                    raw is string s &&
+                                    this.PooledStringColumns.Contains(names[i]))
+                                {
+                                    raw = stringPool?.Intern(s);
+                                }
+
+                                values[i] = valueConverter?.Invoke(names[i], raw, col) ?? raw;
                             }
 
-                            dataTable.AcceptChanges();
-                            dataTable.EndLoadData();
-                            result.Add(dataTable);
+                            table.LoadDataRow(values, true);
                         }
-                        while (r.NextResult());
-
-                        return [.. result];
                     }
+                    else
+                    {
+                        while (r.Read())
+                        {
+                            r.GetValues(values);
+                            table.LoadDataRow(values, true);
+                        }
+                    }
+
+                    table.EndLoadData();
+                    result.Add(table);
                 }
-                catch (Exception ex)
-                {
-                    throw this.HandleDbException(ex, cmd);
-                }
-                finally
-                {
-                    this.CloseConnection();
-                }
+                while (r.NextResult());
+
+                return result.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw this.HandleDbException(ex, cmd);
+            }
+            finally
+            {
+                this.CloseConnection();
             }
         }
 
@@ -3093,67 +3115,96 @@ namespace System.Data
                 throw new ArgumentNullException(nameof(query));
             }
 
-            var result = new List<DataTable>();
-            valueConverter ??= (_, fieldValue, _) => fieldValue;
-
-            using (var cmd = this.CreateCommand(query, cmdParams))
+            var result = new List<DataTable>(2);
+            var stringPool = this.EnableStringPool ? new StringPool() : null;
+            using var cmd = this.CreateCommand(query, cmdParams);
+            try
             {
-                try
+                this.BeginConnection();
+                using var r = await cmd.ExecuteReaderAsync(token);
+                this.CommandExecuted?.Invoke(cmd);
+                this.Log(cmd);
+                do
                 {
-                    await this.BeginConnectionAsync(token).ConfigureAwait(this.ConfigureAwait);
+                    var table = new DataTable(query);
+                    table.BeginLoadData();
+                    var fieldCount = r.FieldCount;
+                    var map = GetReaderFieldToPropertyMap(r, columnMap)
+                        .OrderBy(x => x.Key)
+                        .ToArray();
+                    var columns = new DataColumn[fieldCount];
+                    var names = new string[fieldCount];
 
-                    using (var r = await cmd.ExecuteReaderAsync(token).ConfigureAwait(this.ConfigureAwait))
+                    foreach (var kv in map)
                     {
-                        do
+                        var col = new DataColumn(
+                            kv.Value,
+                            r.GetFieldType(kv.Key) ?? typeof(object));
+
+                        table.Columns.Add(col);
+
+                        columns[kv.Key] = col;
+                        names[kv.Key] = kv.Value;
+                    }
+
+                    var values = new object[fieldCount];
+                    if (valueConverter != null || this.EnableStringPool)
+                    {
+                        while (await r.ReadAsync(token))
                         {
-                            var dataTable = new DataTable(query);
-                            dataTable.BeginLoadData();
+                            r.GetValues(values);
 
-                            this.CommandExecuted?.Invoke(cmd);
-                            this.Log(cmd);
-                            var map = GetReaderFieldToPropertyMap(r, columnMap);
-                            foreach (var kv in map)
+                            for (var i = 0; i < fieldCount; i++)
                             {
-                                var col = new DataColumn(kv.Value, r.GetFieldType(kv.Key) ?? typeof(object));
-                                dataTable.Columns.Add(col);
-                            }
+                                var raw = values[i];
 
-                            while (await r.ReadAsync(token).ConfigureAwait(this.ConfigureAwait))
-                            {
-                                var item = dataTable.NewRow();
-
-                                foreach (var kv in map)
+                                if (raw == null || raw == DBNull.Value)
                                 {
-                                    var colIndex = kv.Key;
-                                    var raw = r.GetValue(colIndex);
-                                    if (raw == null || raw == DBNull.Value)
-                                    {
-                                        continue;
-                                    }
-
-                                    item[kv.Value] = valueConverter(kv.Value, raw, dataTable.Columns[kv.Value]);
+                                    continue;
                                 }
 
-                                dataTable.Rows.Add(item);
+                                var col = columns[i];
+                                if (col == null)
+                                {
+                                    continue;
+                                }
+
+                                if (this.EnableStringPool &&
+                                    raw is string s &&
+                                    this.PooledStringColumns.Contains(names[i]))
+                                {
+                                    raw = stringPool?.Intern(s);
+                                }
+
+                                values[i] = valueConverter?.Invoke(names[i], raw, col) ?? raw;
                             }
 
-                            dataTable.AcceptChanges();
-                            dataTable.EndLoadData();
-                            result.Add(dataTable);
+                            table.LoadDataRow(values, true);
                         }
-                        while (await r.NextResultAsync(token).ConfigureAwait(this.ConfigureAwait));
-
-                        return [.. result];
                     }
+                    else
+                    {
+                        while (await r.ReadAsync(token))
+                        {
+                            r.GetValues(values);
+                            table.LoadDataRow(values, true);
+                        }
+                    }
+
+                    table.EndLoadData();
+                    result.Add(table);
                 }
-                catch (Exception ex)
-                {
-                    throw this.HandleDbException(ex, cmd);
-                }
-                finally
-                {
-                    this.CloseConnection();
-                }
+                while (await r.NextResultAsync());
+
+                return result.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw this.HandleDbException(ex, cmd);
+            }
+            finally
+            {
+                this.CloseConnection();
             }
         }
 
@@ -4126,34 +4177,56 @@ namespace System.Data
             IEnumerable<(string FieldName, string PropertyName)> customMap = null,
             bool onlyFromCustomMap = true)
         {
-            var customMapDic =
-                customMap?.ToDictionary(k => k.FieldName, v => v.PropertyName) ?? [];
-            var map = new Dictionary<int, string>();
+            Dictionary<string, string> customMapDic = null;
 
-            var columnsCount = reader.FieldCount;
-
-            for (var i = 0; i < columnsCount; i++)
+            if (customMap != null)
             {
-                var colIndex = i;
-                var colName = reader.GetName(i);
-                if (string.IsNullOrWhiteSpace(colName))
+                customMapDic = customMap as Dictionary<string, string>
+                               ?? customMap.ToDictionary(x => x.FieldName, x => x.PropertyName);
+            }
+
+            int fieldCount = reader.FieldCount;
+
+            var result = new Dictionary<int, string>(fieldCount);
+
+            bool hasCustomMap = customMapDic?.Count > 0;
+
+            for (int i = 0; i < fieldCount; i++)
+            {
+                string name = reader.GetName(i);
+
+                if (string.IsNullOrEmpty(name))
                 {
-                    colName = $"Column{i}";
+                    result[i] = $"Column{i}";
+                    continue;
                 }
 
-                if (customMapDic.Count > 0 && customMapDic.TryGetValue(colName, out var mappedColumn))
+                if (hasCustomMap && customMapDic.TryGetValue(name, out string mapped))
                 {
-                    map[colIndex] = mappedColumn;
+                    result[i] = mapped;
+
                     if (onlyFromCustomMap)
                     {
                         continue;
                     }
                 }
 
-                map[colIndex] = colName.TrimStart(StringHelper.SpecialChars);
+                result[i] = TrimIfNeeded(name);
             }
 
-            return map;
+            return result;
+        }
+
+        private static string TrimIfNeeded(string value)
+        {
+            if (value.Length == 0)
+            {
+                return value;
+            }
+
+            return Array.IndexOf(StringHelper.SpecialChars, value[0]) >= 0
+                ? value.TrimStart(StringHelper.SpecialChars)
+                : value;
         }
 
         /// <summary>

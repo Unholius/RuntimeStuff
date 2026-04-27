@@ -245,7 +245,13 @@
 
         public static DataGridViewExtender GetExtender(this DataGridView grid)
         {
-            return Obj.GetOrAdd(gridExtenders,grid.GetHashCode(), () => new DataGridViewExtender(grid));
+            var gridHashCode = grid.GetHashCode();
+            if (gridExtenders.TryGetValue(gridHashCode, out var dge))
+                return dge;
+
+            dge = new DataGridViewExtender(grid);
+            gridExtenders[gridHashCode] = dge;
+            return dge;
         }
 
         private static Color bg = Color.FromArgb(100, Color.DimGray);

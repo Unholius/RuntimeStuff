@@ -1,6 +1,4 @@
-﻿using FastMember;
-using RuntimeStuff.MSTests.Models;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -789,43 +787,6 @@ namespace RuntimeStuff.MSTests
             Assert.AreEqual(anonymousObject.Id, id);
         }
 
-        //[TestMethod]
-        public void Speed_Test()
-        {
-            var count = 1_000_000;
-            var x = new DtoTestClass();
-            var mc = MemberCache.Get(typeof(DtoTestClass));
-            var sw = new Stopwatch();
-            mc["ColNullableInt"].Setter(x, 1);
-            sw.Restart();
-            for (var i = 0; i < count; i++)
-            {
-                mc["ColNullableInt"].Setter(x, i);
-            }
-            sw.Stop();
-            var elapsed1 = sw.ElapsedMilliseconds;
-
-            var setter = mc["ColNullableInt"].Setter;
-            sw.Restart();
-            for (var i = 0; i < count; i++)
-            {
-                x.ColNullableInt = i;
-                setter(x, 123);
-            }
-            sw.Stop();
-            var elapsed2 = sw.ElapsedMilliseconds;
-
-            var ta = TypeAccessor.Create(typeof(DtoTestClass));
-            sw.Restart();
-            for (var i = 0; i < count; i++)
-            {
-                ta[x, nameof(DtoTestClass.ColNVarCharMax)] = i.ToString();
-            }
-            sw.Stop();
-            var elapsed3 = sw.ElapsedMilliseconds;
-            Assert.IsTrue(elapsed2 <= elapsed1);
-            Assert.IsTrue(elapsed1 <= elapsed3);
-        }
 
         [TestMethod]
         public void Test_Setters_And_Getters()
