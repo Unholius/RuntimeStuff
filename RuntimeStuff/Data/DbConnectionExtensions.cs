@@ -91,8 +91,9 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип подключения, реализующий IDbConnection.</typeparam>
         /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Типизированный клиент базы данных.</returns>
-        public static DbClient<T> AsDbClient<T>(this T connection)
+        public static DbClient<T> AsDbClient<T>(this T connection, int commandTimeout = 5)
             where T : IDbConnection, new()
             => (DbClient<T>)DbClient.Create(connection);
 
@@ -100,8 +101,9 @@ namespace System.Data
         /// Создает клиент базы данных для указанного подключения.
         /// </summary>
         /// <param name="connection">Подключение к базе данных.</param>
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Клиент базы данных.</returns>
-        public static DbClient AsDbClient(this IDbConnection connection)
+        public static DbClient AsDbClient(this IDbConnection connection, int commandTimeout = 5)
             => DbClient.Create(connection);
 
         /// <summary>

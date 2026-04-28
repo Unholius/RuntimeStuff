@@ -35,16 +35,19 @@ namespace System.Data
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
         /// </summary>
-        public DbClient()
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
+        public DbClient(int commandTimeout = 5)
         {
+            this.CommandTimeout = commandTimeout;
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DbClient" /> class.
         /// </summary>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
-        public DbClient(DbEntityMap map = null)
-            : this()
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
+        public DbClient(DbEntityMap map = null, int commandTimeout = 5)
+            : this(commandTimeout)
         {
             this.ValueConverter = (fieldName, fieldValue, propInfo, item) =>
                 ChangeType(fieldValue is string s ? s.Trim() : fieldValue, propInfo.PropertyType);
@@ -57,9 +60,10 @@ namespace System.Data
         /// </summary>
         /// <param name="con">The con.</param>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <exception cref="System.ArgumentNullException">con.</exception>
-        public DbClient(IDbConnection con, DbEntityMap map = null)
-            : this(map)
+        public DbClient(IDbConnection con, DbEntityMap map = null, int commandTimeout = 5)
+            : this(map, commandTimeout)
         {
             this.Connection = con ?? throw new ArgumentNullException(nameof(con));
             this.Options = SqlOptions.GetInstance(con.GetType().Name);
@@ -207,6 +211,12 @@ namespace System.Data
         }
 
         /// <summary>
+        /// Таймаут выполнения SQL-команд по умолчанию (в секундах) (default: null <see cref="DefaultCommandTimeout"/>).
+        /// </summary>
+        /// <value>The default command timeout.</value>
+        public int? CommandTimeout { get; set; }
+
+        /// <summary>
         /// Коллекция логов выполненных SQL-запросов. Содержит текст SQL-запросов, которые были выполнены через этот экземпляр <see cref="DbClient" />.
         /// </summary>
         public IEnumerable<string> QueryLogs => this.queryLogs;
@@ -227,8 +237,9 @@ namespace System.Data
         /// для указанного соединения.
         /// </summary>
         /// <param name="con">Соединение с базой данных.</param>
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Экземпляр <see cref="DbClient" />.</returns>
-        public static DbClient Create(IDbConnection con)
+        public static DbClient Create(IDbConnection con, int commandTimeout = 5)
         {
             if (con == null)
             {
@@ -237,7 +248,7 @@ namespace System.Data
 
             return ClientCache.GetValue(
                 con,
-                key => new DbClient(key));
+                key => new DbClient(key, null, commandTimeout));
         }
 
         /// <summary>
@@ -245,14 +256,15 @@ namespace System.Data
         /// для указанного соединения.
         /// </summary>
         /// <typeparam name="T">Тип соединения, наследующий от <see cref="IDbConnection" /> и имеющий конструктор без параметров.</typeparam>
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Экземпляр <see cref="DbClient" />.</returns>
-        public static DbClient<T> Create<T>()
+        public static DbClient<T> Create<T>(int commandTimeout = 5)
             where T : IDbConnection, new()
         {
             var con = new T();
             return (DbClient<T>)ClientCache.GetValue(
                 con,
-                key => new DbClient<T>(con));
+                key => new DbClient<T>(con, commandTimeout));
         }
 
         /// <summary>
@@ -281,28 +293,34 @@ namespace System.Data
         /// <returns>Является ли исключение command timeout exception.</returns>
         public static bool IsTimeoutException(Exception ex)
         {
-            if (ex is DbException dbEx)
+            do
             {
-                // SQL Server
-                if (dbEx.GetType().Name == "SqlException")
+                if (ex is DbException dbEx)
                 {
-                    var numberProp = dbEx.GetType().GetProperty("Number");
-                    if (numberProp != null)
+                    // SQL Server
+                    if (dbEx.GetType().Name == "SqlException")
                     {
-                        var number = (int)numberProp.GetValue(dbEx);
-                        if (number == -2)
+                        var numberProp = dbEx.GetType().GetProperty("Number");
+                        if (numberProp != null)
                         {
-                            return true;
+                            var number = (int)numberProp.GetValue(dbEx);
+                            if (number == -2)
+                            {
+                                return true;
+                            }
                         }
+                    }
+
+                    // PostgreSQL / MySQL / fallback
+                    if (dbEx.Message.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        return true;
                     }
                 }
 
-                // PostgreSQL / MySQL / fallback
-                if (dbEx.Message.IndexOf("timeout", StringComparison.OrdinalIgnoreCase) >= 0)
-                {
-                    return true;
-                }
+                ex = ex.InnerException;
             }
+            while (ex != null);
 
             return false;
         }
@@ -652,7 +670,7 @@ namespace System.Data
         /// <param name="query">SQL-запрос, который будет выполнен.</param>
         /// <param name="cmdParams">Параметры запроса. Может быть <c>null</c>, если параметры не требуются.</param>
         /// <param name="dbTransaction">Транзакция, в рамках которой выполняется запрос. Может быть <c>null</c>.</param>
-        /// <param name="commandTimeOut">Тайм-аут выполнения команды в секундах. Если не задано, используется значение по
+        /// <param name="commandTimeout">Тайм-аут выполнения команды в секундах. Если не задано, используется значение по
         /// умолчанию.</param>
         /// <param name="commandType">Тип команды.</param>
         /// <returns>Объект <see cref="DbCommand" />, готовый к выполнению запроса.</returns>
@@ -662,10 +680,10 @@ namespace System.Data
             string query,
             object cmdParams,
             IDbTransaction dbTransaction = null,
-            int commandTimeOut = 30,
+            int? commandTimeout = null,
             CommandType commandType = CommandType.Text)
         {
-            var cmd = this.Connection.CreateCommand(query, cmdParams, dbTransaction ?? this.tr?.Value, commandTimeOut, commandType, this.Options.ParamPrefix);
+            var cmd = this.Connection.CreateCommand(query, cmdParams, dbTransaction ?? this.tr?.Value, commandTimeout ?? this.CommandTimeout ?? DefaultCommandTimeout, commandType, this.Options.ParamPrefix);
             LogCommand(cmd);
             return (DbCommand)cmd;
         }

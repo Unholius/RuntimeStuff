@@ -46,6 +46,56 @@ namespace System.Linq
             Forward = 1,
         }
 
+#if !NET6_0_OR_GREATER
+        /// <summary>
+        /// Разбивает коллекцию на части (страницы) указанного размера.
+        /// </summary>
+        /// <typeparam name="T">Тип элементов коллекции.</typeparam>
+        /// <param name="source">Исходная коллекция.</param>
+        /// <param name="size">Размер страницы.</param>
+        /// <returns>Последовательность страниц.</returns>
+        /// <exception cref="ArgumentNullException">Если source равен null.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Если pageSize меньше 1.</exception>
+        public static IEnumerable<T[]> Chunk<T>(this IEnumerable<T> source, int size)
+        {
+            if (source == null)
+            {
+                throw new ArgumentNullException(nameof(source));
+            }
+
+            if (size < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(size));
+            }
+
+            using var enumerator = source.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                var buffer = new T[size];
+                buffer[0] = enumerator.Current;
+
+                int count = 1;
+
+                while (count < size && enumerator.MoveNext())
+                {
+                    buffer[count++] = enumerator.Current;
+                }
+
+                if (count == size)
+                {
+                    yield return buffer;
+                }
+                else
+                {
+                    var last = new T[count];
+                    Array.Copy(buffer, last, count);
+                    yield return last;
+                }
+            }
+        }
+#endif
+
         /// <summary>
         /// Возвращает количество элементов в негeneric-последовательности <see cref="IEnumerable"/>.
         /// </summary>

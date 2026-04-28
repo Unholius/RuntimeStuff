@@ -16,8 +16,9 @@ namespace System.Data
         /// <summary>
         /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
         /// </summary>
-        public DbClient()
-            : base()
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
+        public DbClient(int commandTimeout = 5)
+            : base(commandTimeout)
         {
             this.Connection = new T();
         }
@@ -26,8 +27,9 @@ namespace System.Data
         /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
         /// </summary>
         /// <param name="con">Соединение с базой данных.</param>
-        public DbClient(T con)
-            : base(con)
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
+        public DbClient(T con, int commandTimeout = 5)
+            : base(con, null, commandTimeout)
         {
             this.Connection = con;
         }
@@ -39,8 +41,9 @@ namespace System.Data
         /// <param name="server">Имя сервера.</param>
         /// <param name="database">Имя базы данных.</param>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
-        public DbClient(string server, string database, DbEntityMap map = null)
-            : base(new T(), map)
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
+        public DbClient(string server, string database, DbEntityMap map = null, int commandTimeout = 5)
+            : base(new T(), map, commandTimeout)
         {
             DbConnectionExtensions.Server(this.Connection, server);
             DbConnectionExtensions.Database(this.Connection, database);
@@ -56,8 +59,9 @@ namespace System.Data
         /// <param name="userName">Логин.</param>
         /// <param name="password">Пароль.</param>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
-        public DbClient(string server, string database, string userName, string password, DbEntityMap map = null)
-            : base(new T(), map)
+        /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
+        public DbClient(string server, string database, string userName, string password, DbEntityMap map = null, int commandTimeout = 5)
+            : base(new T(), map, commandTimeout)
         {
             DbConnectionExtensions.Server(this.Connection, server);
             DbConnectionExtensions.Database(this.Connection, database);
