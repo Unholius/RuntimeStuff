@@ -246,9 +246,12 @@ namespace System.Data
                 throw new ArgumentNullException(nameof(con));
             }
 
-            return ClientCache.GetValue(
+            var db = ClientCache.GetValue(
                 con,
                 key => new DbClient(key, null, commandTimeout));
+
+            db.CommandTimeout = commandTimeout;
+            return db;
         }
 
         /// <summary>
@@ -262,9 +265,12 @@ namespace System.Data
             where T : IDbConnection, new()
         {
             var con = new T();
-            return (DbClient<T>)ClientCache.GetValue(
+            var db = (DbClient<T>)ClientCache.GetValue(
                 con,
                 key => new DbClient<T>(con, commandTimeout));
+
+            db.CommandTimeout = commandTimeout;
+            return db;
         }
 
         /// <summary>

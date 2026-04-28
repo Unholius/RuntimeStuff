@@ -95,7 +95,7 @@ namespace System.Data
         /// <returns>Типизированный клиент базы данных.</returns>
         public static DbClient<T> AsDbClient<T>(this T connection, int commandTimeout = 5)
             where T : IDbConnection, new()
-            => (DbClient<T>)DbClient.Create(connection);
+            => (DbClient<T>)DbClient.Create(connection, commandTimeout);
 
         /// <summary>
         /// Создает клиент базы данных для указанного подключения.
@@ -104,7 +104,7 @@ namespace System.Data
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Клиент базы данных.</returns>
         public static DbClient AsDbClient(this IDbConnection connection, int commandTimeout = 5)
-            => DbClient.Create(connection);
+            => DbClient.Create(connection, commandTimeout);
 
         /// <summary>
         /// Возвращает среднее значение для указанной колонки.
