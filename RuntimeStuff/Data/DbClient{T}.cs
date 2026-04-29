@@ -17,7 +17,7 @@ namespace System.Data
         /// Создаёт новый экземпляр клиента и инициализирует строку подключения.
         /// </summary>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
-        public DbClient(int commandTimeout = 5)
+        public DbClient(int commandTimeout = 45)
             : base(commandTimeout)
         {
             this.Connection = new T();
@@ -28,7 +28,7 @@ namespace System.Data
         /// </summary>
         /// <param name="con">Соединение с базой данных.</param>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
-        public DbClient(T con, int commandTimeout = 5)
+        public DbClient(T con, int commandTimeout = 45)
             : base(con, null, commandTimeout)
         {
             this.Connection = con;
@@ -42,7 +42,7 @@ namespace System.Data
         /// <param name="database">Имя базы данных.</param>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
-        public DbClient(string server, string database, DbEntityMap map = null, int commandTimeout = 5)
+        public DbClient(string server, string database, DbEntityMap map = null, int commandTimeout = 45)
             : base(new T(), map, commandTimeout)
         {
             DbConnectionExtensions.Server(this.Connection, server);
@@ -60,7 +60,7 @@ namespace System.Data
         /// <param name="password">Пароль.</param>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
-        public DbClient(string server, string database, string userName, string password, DbEntityMap map = null, int commandTimeout = 5)
+        public DbClient(string server, string database, string userName, string password, DbEntityMap map = null, int commandTimeout = 45)
             : base(new T(), map, commandTimeout)
         {
             DbConnectionExtensions.Server(this.Connection, server);

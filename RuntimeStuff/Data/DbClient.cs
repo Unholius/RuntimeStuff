@@ -36,7 +36,7 @@ namespace System.Data
         /// Initializes a new instance of the <see cref="DbClient" /> class.
         /// </summary>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
-        public DbClient(int commandTimeout = 5)
+        public DbClient(int commandTimeout = 45)
         {
             this.CommandTimeout = commandTimeout;
         }
@@ -46,7 +46,7 @@ namespace System.Data
         /// </summary>
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
-        public DbClient(DbEntityMap map = null, int commandTimeout = 5)
+        public DbClient(DbEntityMap map = null, int commandTimeout = 45)
             : this(commandTimeout)
         {
             this.ValueConverter = (fieldName, fieldValue, propInfo, item) =>
@@ -62,7 +62,7 @@ namespace System.Data
         /// <param name="map">Сопоставление типов и имен сущностей в БД.</param>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <exception cref="System.ArgumentNullException">con.</exception>
-        public DbClient(IDbConnection con, DbEntityMap map = null, int commandTimeout = 5)
+        public DbClient(IDbConnection con, DbEntityMap map = null, int commandTimeout = 45)
             : this(map, commandTimeout)
         {
             this.Connection = con ?? throw new ArgumentNullException(nameof(con));
@@ -239,7 +239,7 @@ namespace System.Data
         /// <param name="con">Соединение с базой данных.</param>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Экземпляр <see cref="DbClient" />.</returns>
-        public static DbClient Create(IDbConnection con, int commandTimeout = 5)
+        public static DbClient Create(IDbConnection con, int commandTimeout = 45)
         {
             if (con == null)
             {
@@ -261,7 +261,7 @@ namespace System.Data
         /// <typeparam name="T">Тип соединения, наследующий от <see cref="IDbConnection" /> и имеющий конструктор без параметров.</typeparam>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Экземпляр <see cref="DbClient" />.</returns>
-        public static DbClient<T> Create<T>(int commandTimeout = 5)
+        public static DbClient<T> Create<T>(int commandTimeout = 45)
             where T : IDbConnection, new()
         {
             var con = new T();

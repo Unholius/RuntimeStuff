@@ -93,7 +93,7 @@ namespace System.Data
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Типизированный клиент базы данных.</returns>
-        public static DbClient<T> AsDbClient<T>(this T connection, int commandTimeout = 5)
+        public static DbClient<T> AsDbClient<T>(this T connection, int commandTimeout = 45)
             where T : IDbConnection, new()
             => (DbClient<T>)DbClient.Create(connection, commandTimeout);
 
@@ -103,7 +103,7 @@ namespace System.Data
         /// <param name="connection">Подключение к базе данных.</param>
         /// <param name="commandTimeout">Максимальное время исполнения команды.</param>
         /// <returns>Клиент базы данных.</returns>
-        public static DbClient AsDbClient(this IDbConnection connection, int commandTimeout = 5)
+        public static DbClient AsDbClient(this IDbConnection connection, int commandTimeout = 45)
             => DbClient.Create(connection, commandTimeout);
 
         /// <summary>
