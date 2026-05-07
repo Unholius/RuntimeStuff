@@ -15,7 +15,6 @@
             Assert.IsNotNull(x.Child);
             Assert.AreEqual(2, x.Child.Id);
             Assert.AreEqual("ChildName", x.Child.Name);
-            Obj.ClearCaches();
         }
     }
 }

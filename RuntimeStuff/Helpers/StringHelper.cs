@@ -10,8 +10,8 @@ namespace System.Helpers
     using System.IO.Compression;
     using System.Linq;
     using System.Reflection;
+    using System.Runtime.CompilerServices;
     using System.Text;
-    using System.Text.RegularExpressions;
 
     /// <summary>
     /// Предоставляет набор статических методов для работы со строками и токенами, включая удаление суффикса, замену и
@@ -24,6 +24,10 @@ namespace System.Helpers
     public static class StringHelper
     {
         private static readonly char[] Separator = ['_'];
+
+        private static char[] escapeCsvChars = new[] { ',', '"', '\n', '\r' };
+
+        private static char[] wordDelimiters = new[] { '-', '_', ' ', ',', '.', '/', '\\', '!', '?' };
 
         static StringHelper()
         {
@@ -266,11 +270,6 @@ namespace System.Helpers
         public static char[] AllQuotes { get; }
 
         /// <summary>
-        /// Коллекция символов.
-        /// </summary>
-        public static char[] SpecialChars { get; }
-
-        /// <summary>
         /// Коллекция закрывающих кавычек.
         /// </summary>
         public static char[] ClosingQuotes { get; }
@@ -294,6 +293,11 @@ namespace System.Helpers
         /// Коллекция открывающих кавычек.
         /// </summary>
         public static char[] OpeningQuotes { get; }
+
+        /// <summary>
+        /// Коллекция символов.
+        /// </summary>
+        public static char[] SpecialChars { get; }
 
         /// <summary>
         /// whitespace chars.
@@ -381,34 +385,6 @@ namespace System.Helpers
         }
 
         /// <summary>
-        /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
-        /// </summary>
-        /// <param name="str">
-        /// Исходная строка, проверяемая в первую очередь.
-        /// </param>
-        /// <param name="strings">
-        /// Дополнительные строки для проверки, используемые в случае,
-        /// если <paramref name="str"/> равна <c>null</c>, пуста или содержит только пробельные символы.
-        /// </param>
-        /// <returns>
-        /// Первую строку, которая не равна <c>null</c>, не пуста и не состоит только из пробельных символов;
-        /// либо <c>null</c>, если все переданные строки не удовлетворяют этому условию.
-        /// </returns>
-        /// <remarks>
-        /// Метод является строковым аналогом оператора <c>COALESCE</c>
-        /// и удобен для выбора значения по умолчанию из набора строк.
-        /// </remarks>
-        public static string Coalesce(string str, params string[] strings)
-        {
-            if (!string.IsNullOrWhiteSpace(str))
-            {
-                return str;
-            }
-
-            return strings.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
-        }
-
-        /// <summary>
         /// Проверяет, содержит ли исходная строка указанную подстроку,
         /// используя заданный способ сравнения строк.
         /// </summary>
@@ -442,12 +418,26 @@ namespace System.Helpers
         /// Также возвращает <c>false</c>, если <paramref name="source" /> или <paramref name="values" /> равны <c>null</c>.</returns>
         public static bool ContainsAny(string source, StringComparison comparison, params string[] values)
         {
-            if (source == null || values == null)
+            if (string.IsNullOrEmpty(source) || values == null || values.Length == 0)
             {
                 return false;
             }
 
-            return values.Any(x => source.IndexOf(x, comparison) >= 0);
+            for (int i = 0; i < values.Length; i++)
+            {
+                var v = values[i];
+                if (string.IsNullOrEmpty(v))
+                {
+                    continue;
+                }
+
+                if (source.IndexOf(v, comparison) >= 0)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -666,6 +656,43 @@ namespace System.Helpers
         }
 
         /// <summary>
+        /// Возвращает первую непустую строку, не состоящую только из пробельных символов.
+        /// </summary>
+        /// <param name="str">
+        /// Исходная строка, проверяемая в первую очередь.
+        /// </param>
+        /// <param name="strings">
+        /// Дополнительные строки для проверки, используемые в случае,
+        /// если <paramref name="str"/> равна <c>null</c>, пуста или содержит только пробельные символы.
+        /// </param>
+        /// <returns>
+        /// Первую строку, которая не равна <c>null</c>, не пуста и не состоит только из пробельных символов;
+        /// либо <c>null</c>, если все переданные строки не удовлетворяют этому условию.
+        /// </returns>
+        /// <remarks>
+        /// Метод является строковым аналогом оператора <c>COALESCE</c>
+        /// и удобен для выбора значения по умолчанию из набора строк.
+        /// </remarks>
+        public static string FirstNotEmpty(string str, params string[] strings)
+        {
+            if (!string.IsNullOrWhiteSpace(str))
+            {
+                return str;
+            }
+
+            for (int i = 0; i < strings.Length; i++)
+            {
+                var s = strings[i];
+                if (!string.IsNullOrWhiteSpace(s))
+                {
+                    return s;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Разворачивает иерархию токенов в плоский список.
         /// </summary>
         /// <param name="tokens">Корневые токены.</param>
@@ -796,12 +823,13 @@ namespace System.Helpers
                 return;
             }
 
-            var tokensArray = tokens.ToList();
-            foreach (var t in tokensArray)
+            var tokenList = tokens.ToList();
+
+            foreach (var t in tokenList)
             {
                 if (t.Parent == null)
                 {
-                    if (t.Children.Any())
+                    if (t.ChildrenInternal.Count > 0)
                     {
                         GetNotMatchedTokens(t.Children, setTag, transformer);
                     }
@@ -828,7 +856,7 @@ namespace System.Helpers
                 }
                 else
                 {
-                    if (t.Children.Any())
+                    if (t.ChildrenInternal.Count > 0)
                     {
                         GetNotMatchedTokens(t.Children, setTag, transformer);
                     }
@@ -1008,7 +1036,7 @@ namespace System.Helpers
                             }
                         }
 
-                        var prevToken = result.LastOrDefault();
+                        var prevToken = result.Count > 0 ? result[result.Count - 1] : null;
                         if (prevToken?.Mask?.AllowedNextMasks.Count > 0 &&
                             !prevToken.Mask.AllowedNextMasks.Contains(tm))
                         {
@@ -1279,6 +1307,42 @@ namespace System.Helpers
         }
 
         /// <summary>
+        /// Возвращает индекс первого вхождения любого символа из заданного набора в строке.
+        /// </summary>
+        /// <param name="s">Исходная строка для поиска.</param>
+        /// <param name="chars">Массив символов, которые необходимо найти.</param>
+        /// <returns>
+        /// Индекс первого найденного совпадения; если строка или массив символов равны <see langword="null"/>,
+        /// либо массив пуст, либо совпадений нет — возвращается <c>-1</c>.
+        /// </returns>
+        /// <remarks>
+        /// Реализация выполняет линейный поиск без использования встроенных методов
+        /// <see cref="string.IndexOfAny(char[])"/> для полного контроля над логикой сравнения.
+        /// </remarks>
+        public static int IndexOfAny(string s, char[] chars)
+        {
+            if (s == null || chars == null || chars.Length == 0)
+            {
+                return -1;
+            }
+
+            for (int i = 0; i < s.Length; i++)
+            {
+                char c = s[i];
+
+                for (int j = 0; j < chars.Length; j++)
+                {
+                    if (c == chars[j])
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Проверяет, является ли строка потенциально корректным JSON-фрагментом.
         /// </summary>
         /// <param name="s">
@@ -1344,13 +1408,51 @@ namespace System.Helpers
         }
 
         /// <summary>
+        /// Проверяет, является ли строка числовым значением и преобразует её в <see cref="decimal"/>.
+        /// </summary>
+        /// <param name="s">Строка для проверки.</param>
+        /// <param name="d">Выходной параметр, содержащий значение <see cref="decimal"/>, если строка является числом.</param>
+        /// <returns><c>true</c>, если строка успешно распознана как число; иначе <c>false</c>.</returns>
+        /// <remarks>
+        /// Используется <see cref="NumberStyles.Any"/> и <see cref="NumberFormatInfo.InvariantInfo"/>
+        /// для корректного парсинга чисел в стандартном формате.
+        /// </remarks>
+        public static bool IsNumber(this string s, out decimal d)
+        {
+            return decimal.TryParse(s, NumberStyles.Any, NumberFormatInfo.InvariantInfo, out d);
+        }
+
+        /// <summary>
+        /// Проверяет, является ли строка числовым значением.
+        /// </summary>
+        /// <param name="s">Строка для проверки.</param>
+        /// <returns><c>true</c>, если строка является числом; иначе <c>false</c>.</returns>
+        /// <remarks>
+        /// Метод является перегрузкой для удобства и игнорирует само значение числа.
+        /// </remarks>
+        public static bool IsNumber(this string s)
+        {
+            return s.IsNumber(out _);
+        }
+
+        /// <summary>
         /// Является ли символ непечатаемым.
         /// </summary>
         /// <param name="c">Символ.</param>
         /// <returns>Результат проверки.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsWhiteSpaceChar(char c)
         {
-            return char.IsWhiteSpace(c) || WhitespaceChars.Contains(c);
+            if (char.IsWhiteSpace(c))
+            {
+                return true;
+            }
+
+            return c switch
+            {
+                '\0' or '\u200B' or '\u200C' or '\u200D' or '\u2060' or '\uFEFF' => true,
+                _ => false,
+            };
         }
 
         /// <summary>
@@ -1808,7 +1910,7 @@ namespace System.Helpers
                     continue;
                 }
 
-                var item = typeCache.CreateInstance();
+                var item = typeCache.DefaultConstructor();
                 for (var i = 0; i < columns.Length; i++)
                 {
                     if (i >= props.Length)
@@ -1823,6 +1925,102 @@ namespace System.Helpers
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Разбивает входную строку на слова с учётом следующих правил:
+        /// <list type="bullet">
+        /// <item><description>Разделителями считаются символы <c>'-'</c>, <c>'_'</c>, пробел и пунктуация.</description></item>
+        /// <item><description>Поддерживается разбиение строк в формате PascalCase и camelCase.</description></item>
+        /// <item><description>Аббревиатуры (например, HTTPServer) корректно выделяются в отдельные слова.</description></item>
+        /// <item><description>Числовые последовательности выделяются как отдельные слова.</description></item>
+        /// </list>
+        /// Все возвращаемые слова приводятся к нижнему регистру.
+        /// </summary>
+        /// <param name="input">Исходная строка для разбиения.</param>
+        /// <param name="wordConverter">Обработчик отдельных слов.</param>
+        /// <param name="customWordDelimiters">Пользовательские разделители слов.</param>
+        /// <returns>
+        /// Массив слов.
+        /// Если входная строка равна <c>null</c>, пустая или состоит только из пробелов,
+        /// возвращается пустой массив.
+        /// </returns>
+        public static string[] SplitWords(string input, Func<string, int, string> wordConverter = null, char[] customWordDelimiters = null)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return Array.Empty<string>();
+            }
+
+            customWordDelimiters ??= wordDelimiters;
+            wordConverter ??= (s, i) => s;
+            var result = new List<string>(8);
+            int len = input.Length;
+
+            var buffer = new char[len];
+            int bufPos = 0;
+
+            for (int i = 0; i < len; i++)
+            {
+                char c = input[i];
+
+                if (c.In(customWordDelimiters, null))
+                {
+                    Flush();
+                    continue;
+                }
+
+                bool isUpper = char.IsUpper(c);
+                bool prevIsUpper = bufPos > 0 && char.IsUpper(buffer[bufPos - 1]);
+                bool prevIsLower = bufPos > 0 && char.IsLower(buffer[bufPos - 1]);
+                bool nextIsLower = i + 1 < len && char.IsLower(input[i + 1]);
+                bool isDigit = char.IsDigit(c);
+                bool prevIsDigit = bufPos > 0 && char.IsDigit(buffer[bufPos - 1]);
+
+                // граница: letter → digit
+                if (bufPos > 0 && isDigit && !prevIsDigit)
+                {
+                    Flush();
+                }
+
+                // граница: digit → letter
+                if (bufPos > 0 && !isDigit && prevIsDigit)
+                {
+                    Flush();
+                }
+
+                // CamelCase граница: Http|Request
+                if (bufPos > 0 && isUpper && prevIsLower)
+                {
+                    Flush();
+                }
+
+                // граница аббревиатуры: XML + Http
+                if (bufPos > 1 &&
+                    isUpper &&
+                    prevIsUpper &&
+                    nextIsLower)
+                {
+                    Flush();
+                }
+
+                buffer[bufPos++] = c;
+            }
+
+            Flush();
+
+            return result.ToArray();
+
+            void Flush()
+            {
+                if (bufPos == 0)
+                {
+                    return;
+                }
+
+                result.Add(wordConverter(new string(buffer, 0, bufPos), result.Count));
+                bufPos = 0;
+            }
         }
 
         /// <summary>
@@ -1871,17 +2069,41 @@ namespace System.Helpers
         /// Если входная строка пуста или не содержит слов, возвращается пустая строка.</returns>
         public static string ToCamelCase(string s)
         {
-            var words = SplitWords(s);
+            if (string.IsNullOrEmpty(s))
+            {
+                return string.Empty;
+            }
+
+            var words = SplitWords(s, (x, _) => x.ToLowerInvariant());
             if (words.Length == 0)
             {
                 return string.Empty;
             }
 
             var first = words[0];
-            var rest = words.Skip(1)
-                .Select(w => char.ToUpperInvariant(w[0]) + w.Substring(1));
+            var sb = new StringBuilder(s.Length);
 
-            return first + string.Concat(rest);
+            // первый — как есть
+            sb.Append(first);
+
+            // остальные — с заглавной буквы
+            for (int i = 1; i < words.Length; i++)
+            {
+                var w = words[i];
+                if (string.IsNullOrEmpty(w))
+                {
+                    continue;
+                }
+
+                sb.Append(char.ToUpperInvariant(w[0]));
+
+                if (w.Length > 1)
+                {
+                    sb.Append(w, 1, w.Length - 1);
+                }
+            }
+
+            return sb.ToString();
         }
 
         /// <summary>
@@ -1891,7 +2113,7 @@ namespace System.Helpers
         /// <returns>Строка в формате <c>kebab-case</c>.</returns>
         public static string ToKebabCase(string s)
         {
-            var words = SplitWords(s);
+            var words = SplitWords(s, (x, _) => x.ToLowerInvariant());
             return string.Join("-", words);
         }
 
@@ -2146,13 +2368,7 @@ namespace System.Helpers
 
         private static string EscapeCsv(string value)
         {
-            var mustQuote =
-                value.Contains(',') ||
-                value.Contains('"') ||
-                value.Contains('\n') ||
-                value.Contains('\r');
-
-            if (!mustQuote)
+            if (!MustQuoteCsv(value))
             {
                 return value;
             }
@@ -2434,6 +2650,19 @@ namespace System.Helpers
             return matrix[matrix.GetUpperBound(0), matrix.GetUpperBound(1)];
         }
 
+        private static bool MustQuoteCsv(string value)
+        {
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (value[i] == '"' || value[i] == ',' || value[i] == '\n' || value[i] == '\r')
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static string ReplaceInternal(
                     string source,
                     string search,
@@ -2461,48 +2690,6 @@ namespace System.Helpers
 
             sb.Append(source, lastIndex, source.Length - lastIndex);
             return sb.ToString();
-        }
-
-        /// <summary>
-        /// Разбивает входную строку на слова с учётом следующих правил:
-        /// <list type="bullet">
-        /// <item><description>Разделителями считаются символы <c>'-'</c>, <c>'_'</c> и пробел.</description></item>
-        /// <item><description>Поддерживается разбиение строк в формате PascalCase и camelCase.</description></item>
-        /// <item><description>Аббревиатуры (например, HTTPServer) корректно выделяются в отдельные слова.</description></item>
-        /// <item><description>Числовые последовательности выделяются как отдельные слова.</description></item>
-        /// </list>
-        /// Все возвращаемые слова приводятся к нижнему регистру.
-        /// </summary>
-        /// <param name="input">Исходная строка для разбиения.</param>
-        /// <returns>
-        /// Массив слов в нижнем регистре.
-        /// Если входная строка равна <c>null</c>, пустая или состоит только из пробелов,
-        /// возвращается пустой массив.
-        /// </returns>
-        private static string[] SplitWords(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                return [];
-            }
-
-            // Заменяем дефисы и пробелы на _
-            input = input.Replace("-", "_").Replace(" ", "_");
-
-            // Если уже есть разделители — просто делим
-            if (input.Contains("_"))
-            {
-                return [.. input
-                    .Split(Separator, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(w => w.ToLowerInvariant())];
-            }
-
-            // Разбиваем PascalCase / camelCase / аббревиатуры
-            var matches = Regex.Matches(
-                input,
-                @"([A-Z]+(?![a-z]))|([A-Z]?[a-z]+)|(\d+)");
-
-            return [.. matches.Cast<Match>().Select(m => m.Value.ToLowerInvariant())];
         }
 
         /// <summary>

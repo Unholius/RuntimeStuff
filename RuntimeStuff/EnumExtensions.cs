@@ -78,8 +78,9 @@ namespace System
                 return enumValue.ToString();
             }
 
-            var cache = MemberCache.Get(enumValue.GetType()).GetField(name);
-            return string.IsNullOrEmpty(cache.Description) ? name : cache.Description;
+            var mc = MemberCache.Get(enumValue.GetType());
+            var cache = mc[name, StringComparison.Ordinal, MemberTypes.Field];
+            return string.IsNullOrEmpty(cache?.Description) ? name : cache.Description;
         }
 
         /// <summary>
@@ -114,8 +115,9 @@ namespace System
                 return enumValue.ToString();
             }
 
-            var cache = MemberCache.Get(enumValue.GetType()).GetField(name);
-            return string.IsNullOrEmpty(cache.DisplayName) ? name : cache.DisplayName;
+            var enumTypeCache = MemberCache.Get(enumValue.GetType());
+            var valueCache = enumTypeCache[name, StringComparison.Ordinal, MemberTypes.Property, MemberTypes.Field];
+            return string.IsNullOrEmpty(valueCache?.DisplayName) ? name : valueCache.DisplayName;
         }
 
         /// <summary>

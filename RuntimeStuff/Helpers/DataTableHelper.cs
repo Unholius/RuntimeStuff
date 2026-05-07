@@ -39,7 +39,7 @@ namespace System.Helpers
         /// <remarks>Если колонка помечена как первичный ключ,
         /// она автоматически добавляется в массив
         /// <see cref="DataTable.PrimaryKey" />.</remarks>
-        public static DataColumn AddCol(
+        public static DataColumn GetOrAddCol(
             DataTable table,
             string columnName,
             Type columnType = null,
@@ -62,7 +62,7 @@ namespace System.Helpers
 
             if (table.Columns.Contains(columnName))
             {
-                throw new ArgumentException($"Column '{columnName}' already exists");
+                return table.Columns[columnName];
             }
 
             var column = new DataColumn(columnName, columnType)
@@ -194,7 +194,7 @@ namespace System.Helpers
                     {
                         if (addMissingColumns)
                         {
-                            col = AddCol(table, columnName, prop.PropertyType);
+                            col = GetOrAddCol(table, columnName, prop.PropertyType);
                         }
                         else
                         {
@@ -294,7 +294,7 @@ namespace System.Helpers
             foreach (var prop in props)
             {
                 var colType = Nullable.GetUnderlyingType(prop.Item1.PropertyType) ?? prop.Item1.PropertyType;
-                AddCol(table, prop.ColumnName ?? prop.Item1.ColumnName, colType);
+                GetOrAddCol(table, prop.ColumnName ?? prop.Item1.ColumnName, colType);
                 if (prop.Item1.IsPrimaryKey)
                 {
                     pks.Add(table.Columns[prop.ColumnName ?? prop.Item1.ColumnName]);

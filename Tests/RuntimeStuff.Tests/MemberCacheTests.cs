@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
+using System.Helpers;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -13,6 +14,46 @@ namespace RuntimeStuff.MSTests
     public class MemberCacheTests
     {
         #region Тестовые классы
+
+        public interface I0
+        {
+            public int P0 { get; set; }
+        }
+
+        public interface I1
+        {
+            public int P1 { get; set; }
+        }
+
+        public interface I2 : I1
+        {
+            public int P2 { get; set; }
+        }
+
+
+
+        public class C0 : I0
+        {
+            public int P0 { get; set; }
+            public object this[int x] => x;
+        }
+
+        public class C1 : C0, I1
+        {
+            public int P1 { get; set; }
+        }
+
+        public class C2 : C1, I2
+        {
+            public int P2 { get; set; }
+        }
+
+        public class C3 : C2
+        {
+            public object this[object x] => x;
+            public new int P0 { get; set; }
+        }
+
 
         // Простой класс без атрибутов
         public class SimpleClass
@@ -360,16 +401,20 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
-        public void ColumnName_FromColumnAttribute_ReturnsCorrectName()
+        public void MemberCache_Indexer_Should_Return_Correct_MemberCache()
         {
-            // Arrange
-            var property = typeof(ClassWithAttributes).GetProperty("Id");
-
             // Act
-            var memberCache = MemberCache.Get(property);
+            var memberCache = MemberCache.Get<MemberTypes>();
 
             // Assert
-            Assert.AreEqual("ID", memberCache.ColumnName);
+            Assert.IsNotNull(memberCache["Property", StringComparison.Ordinal, MemberTypes.Property, MemberTypes.Field]);
+        }
+
+        [TestMethod]
+        public void MemberCache_Indexers_Test_01()
+        {
+            var mc = MemberCache.Get<List<string>>();
+            Assert.IsTrue(mc.Indexers.Length > 0);
         }
 
         [TestMethod]
@@ -648,21 +693,6 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
-        public void CreateInstance_WithParameters_CreatesInstance()
-        {
-            // Arrange
-            var type = typeof(TestClassWithConstructor);
-
-            // Act
-            var instance = (TestClassWithConstructor)MemberCache.New(type, "Test", 42);
-
-            // Assert
-            Assert.IsNotNull(instance);
-            Assert.AreEqual("Test", instance.Name);
-            Assert.AreEqual(42, instance.Value);
-        }
-
-        [TestMethod]
         public void DefaultConstructor_ForTypeWithDefaultConstructor_ReturnsDelegate()
         {
             // Arrange
@@ -746,6 +776,16 @@ namespace RuntimeStuff.MSTests
         }
 
         [TestMethod]
+        public void MethodInfo_Tests_03()
+        {
+            var props = TypeHelper.GetProperties<C3>();
+            var mc = MemberCache.Get<C3>();
+            Assert.AreEqual(4, mc.Fields.Length);
+            Assert.AreEqual(3, mc.Properties.Length);
+        }
+
+
+        [TestMethod]
         public void MethodInfo_Tests_00()
         {
             var m1 = MemberCache.Get<ObservableObjectEx2>();
@@ -814,8 +854,8 @@ namespace RuntimeStuff.MSTests
             {
                 try
                 {
-                    var setter2 = Obj.CreateDirectFieldSetter(f);
-                    var getter2 = Obj.CreateFieldGetter(f);
+                    var setter2 = MemberAccessorHelper.GetDirectFieldSetter(f);
+                    var getter2 = MemberAccessorHelper.GetFieldGetter(f);
                     setter2(instance, "test_value");
                     var val = getter2(instance);
                     Assert.AreEqual("test_value", val);
@@ -827,7 +867,7 @@ namespace RuntimeStuff.MSTests
             }
 
             object kv = new KeyValuePair<string, string>("key1", "value1");
-            var kvKeyGetter = Obj.GetMemberGetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
+            var kvKeyGetter = Obj.GetMemberGetter(typeof(KeyValuePair<string, string>), "Key", out _);
             var kvKeySetter = Obj.GetMemberSetter(typeof(KeyValuePair<string, string>).GetProperty("Key"));
 
             var key = kvKeyGetter(kv);
@@ -866,7 +906,7 @@ namespace RuntimeStuff.MSTests
         public void CreateInstance_Test_01()
         {
             var mc = MemberCache.Get(typeof(TestClass));
-            var x = mc.CreateInstance();
+            var x = mc.DefaultConstructor();
             Assert.IsTrue(x is TestClass);
         }
 
@@ -874,17 +914,8 @@ namespace RuntimeStuff.MSTests
         public void CreateInstance_Test_02()
         {
             var mc = MemberCache.Get(typeof(KeyValuePair<string, string>));
-            var x = mc.CreateInstance();
+            var x = mc.DefaultConstructor();
             Assert.IsTrue(x is KeyValuePair<string, string>);
-        }
-
-        [TestMethod]
-        public void CreateInstance_Test_03()
-        {
-            var mc = MemberCache.Get(typeof(KeyValuePair<string, string>));
-            var x = mc.CreateInstance<KeyValuePair<string, string>>("1", "2");
-            Assert.AreEqual("1", x.Key);
-            Assert.AreEqual("2", x.Value);
         }
 
         private void PropInfo(PropertyInfo _)

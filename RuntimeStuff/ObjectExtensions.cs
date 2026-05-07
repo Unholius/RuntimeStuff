@@ -4,6 +4,7 @@
 
 namespace System
 {
+    using System.Collections.Generic;
     using System.Helpers;
 
     /// <summary>
@@ -79,16 +80,17 @@ namespace System
         /// <typeparam name="TTarget">Тип целевого объекта, в который копируются значения. Должен быть ссылочным типом.</typeparam>
         /// <param name="source">Исходный объект, значения членов которого будут скопированы. Не может быть равен null.</param>
         /// <param name="target">Целевой объект, в который будут скопированы значения членов. Не может быть равен null.</param>
+        /// <param name="comparison">Способ сравнения имен членов. По умолчанию используется строгое сравнение.</param>
         /// <param name="memberNames">Массив имен членов, которые необходимо скопировать. Если не указан или пуст, копируются все доступные
         /// свойства исходного объекта.</param>
         /// <remarks>Если оба параметра <paramref name="source" /> и <paramref name="target" />
         /// являются коллекциями (кроме строк), метод копирует значения для каждого соответствующего элемента коллекции.
         /// При необходимости новые элементы добавляются в целевую коллекцию. Копирование выполняется только по
         /// указанным именам членов или по всем свойствам, если имена не заданы.</remarks>
-        public static void Copy<TSource, TTarget>(this TSource source, TTarget target, params string[] memberNames)
+        public static void Copy<TSource, TTarget>(this TSource source, TTarget target, StringComparison comparison = StringComparison.Ordinal, params string[] memberNames)
             where TSource : class
             where TTarget : class
-                => Obj.Copy(source, target, memberNames);
+                => Obj.Copy(source, target, comparison, memberNames);
 
         /// <summary>
         /// Получает значения указанных свойств объекта.
@@ -120,11 +122,25 @@ namespace System
         /// Массив значений свойств, приведённых к типу <typeparamref name="TValue"/>.
         /// </returns>
         /// <remarks>
-        /// Для преобразования используется вспомогательный метод <c>Obj.ChangeType&lt;T&gt;</c>.
+        /// Для преобразования используется вспомогательный метод <c>TypeHelper.ChangeType&lt;T&gt;</c>.
         /// Если преобразование невозможно, может возникнуть исключение.
         /// </remarks>
         public static TValue[] GetPropertyValues<TObject, TValue>(this TObject source, params string[] memberNames)
             where TObject : class
                 => Obj.GetValues<TObject, TValue>(source, memberNames);
+
+        /// <summary>
+        /// Получает значения всех публичных свойств объекта в виде словаря.
+        /// </summary>
+        /// <typeparam name="TObject">Тип исходного объекта.</typeparam>
+        /// <param name="source">Объект, из которого извлекаются значения свойств.</param>
+        /// <returns>
+        /// Словарь, где ключом является имя свойства, а значением — его текущее значение.
+        /// Если <paramref name="source"/> равен <see langword="null"/>,
+        /// возвращается пустой словарь.
+        /// </returns>
+        public static Dictionary<string, object> GetAllPropertyValues<TObject>(this TObject source)
+            where TObject : class
+                => Obj.GetValues(source);
     }
 }

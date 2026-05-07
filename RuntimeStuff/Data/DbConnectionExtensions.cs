@@ -9,6 +9,7 @@ namespace System.Data
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Data.Common;
+    using System.Helpers;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -259,6 +260,16 @@ namespace System.Data
         /// <returns>Созданная команда.</returns>
         public static DbCommand CreateCommand(this IDbConnection connection, string query, object cmdParams, IDbTransaction dbTransaction = null, int commandTimeOut = 30, CommandType commandType = CommandType.Text, string paramPrefix = "@")
         {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                throw new ArgumentException("Query cannot be null or whitespace.", nameof(query));
+            }
+
+            if (cmdParams is IDbTransaction)
+            {
+                throw new ArgumentException("cmdParams cannot be of type IDbTransaction. Use dbTransaction parameter for transactions.", nameof(cmdParams));
+            }
+
             var queryParamNames = cmdParams == null ? Array.Empty<string>() : ParamRegex.Matches(query).Cast<Match>().Select(m => m.Groups[1].Value).Distinct().ToArray();
             var cmd = connection.CreateCommand();
             cmd.CommandText = query;
@@ -276,7 +287,7 @@ namespace System.Data
                         {
                             p.Value = dt;
                             Obj.Set(p, "SqlDbType", SqlDbType.Structured);
-                            Obj.Set(p, "TypeName", dt.TableName.Coalesce(p.ParameterName));
+                            Obj.Set(p, "TypeName", StringHelper.FirstNotEmpty(dt.TableName, p.ParameterName));
                         }
 
                         break;

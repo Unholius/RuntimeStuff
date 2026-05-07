@@ -46,42 +46,43 @@ namespace System.Linq
             Forward = 1,
         }
 
+#if !NET6_0_OR_GREATER
         /// <summary>
         /// Разбивает коллекцию на части (страницы) указанного размера.
         /// </summary>
         /// <typeparam name="T">Тип элементов коллекции.</typeparam>
         /// <param name="source">Исходная коллекция.</param>
-        /// <param name="pageSize">Размер страницы.</param>
+        /// <param name="size">Размер страницы.</param>
         /// <returns>Последовательность страниц.</returns>
         /// <exception cref="ArgumentNullException">Если source равен null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Если pageSize меньше 1.</exception>
-        public static IEnumerable<T[]> ChunkBy<T>(this IEnumerable<T> source, int pageSize)
+        public static IEnumerable<T[]> Chunk<T>(this IEnumerable<T> source, int size)
         {
             if (source == null)
             {
                 throw new ArgumentNullException(nameof(source));
             }
 
-            if (pageSize < 1)
+            if (size < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(pageSize));
+                throw new ArgumentOutOfRangeException(nameof(size));
             }
 
             using var enumerator = source.GetEnumerator();
 
             while (enumerator.MoveNext())
             {
-                var buffer = new T[pageSize];
+                var buffer = new T[size];
                 buffer[0] = enumerator.Current;
 
                 int count = 1;
 
-                while (count < pageSize && enumerator.MoveNext())
+                while (count < size && enumerator.MoveNext())
                 {
                     buffer[count++] = enumerator.Current;
                 }
 
-                if (count == pageSize)
+                if (count == size)
                 {
                     yield return buffer;
                 }
@@ -93,6 +94,7 @@ namespace System.Linq
                 }
             }
         }
+#endif
 
         /// <summary>
         /// Возвращает количество элементов в негeneric-последовательности <see cref="IEnumerable"/>.
@@ -412,15 +414,34 @@ namespace System.Linq
         /// <typeparam name="TValue">Тип значения словаря.</typeparam>
         /// <param name="dictionary1">Целевой словарь, в который выполняется объединение.</param>
         /// <param name="dictionary2">Исходный словарь, элементы которого будут добавлены.</param>
+        /// <param name="overwrite">Если ключ уже существует в первом словаре перезаписывать ли значением из второго словаря.</param>
         /// <exception cref="ArgumentNullException">
         /// Возникает, если <paramref name="dictionary1"/> или <paramref name="dictionary2"/> равен <c>null</c>.
         /// </exception>
-        public static void Merge<TKey, TValue>(this IDictionary<TKey, TValue> dictionary1, IEnumerable<KeyValuePair<TKey, TValue>> dictionary2)
+        /// <returns>Текущий словарь.</returns>
+        public static IDictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> dictionary1, IEnumerable<KeyValuePair<TKey, TValue>> dictionary2, bool overwrite = true)
         {
-            foreach (var kvp in dictionary2)
+            if (overwrite)
             {
-                dictionary1[kvp.Key] = kvp.Value;
+                foreach (var kvp in dictionary2)
+                {
+                    dictionary1[kvp.Key] = kvp.Value;
+                }
             }
+            else
+            {
+                foreach (var kvp in dictionary2)
+                {
+                    if (dictionary1.ContainsKey(kvp.Key))
+                    {
+                        continue;
+                    }
+
+                    dictionary1[kvp.Key] = kvp.Value;
+                }
+            }
+
+            return dictionary1;
         }
 
         /// <summary>
@@ -1711,6 +1732,56 @@ namespace System.Linq
         }
 
         /// <summary>
+        /// Пытается получить значение из словаря по ключу с использованием
+        /// указанного способа сравнения строк.
+        /// </summary>
+        /// <typeparam name="TValue">Тип значения словаря.</typeparam>
+        /// <param name="collection">Словарь, в котором выполняется поиск.</param>
+        /// <param name="key">Ключ для поиска.</param>
+        /// <param name="stringComparison">
+        /// Правило сравнения строк, используемое при сопоставлении ключей.
+        /// </param>
+        /// <param name="result">
+        /// Значение, возвращаемое если ключ не найден.
+        /// </param>
+        /// <returns>
+        /// Найденное значение по указанному ключу либо
+        /// <paramref name="result"/>, если совпадение отсутствует.
+        /// </returns>
+        /// <remarks>
+        /// Метод выполняет последовательный перебор элементов словаря,
+        /// поскольку стандартный <see cref="IDictionary{TKey,TValue}"/> не поддерживает
+        /// поиск с произвольным <see cref="StringComparison"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="collection"/> равен <see langword="null"/>.
+        /// </exception>
+        public static bool TryGetValue<TValue>(this IEnumerable<KeyValuePair<string, TValue>> collection, string key, StringComparison stringComparison, out TValue result)
+        {
+            if (collection == null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
+
+            if (collection is IDictionary<string, TValue> dict && stringComparison == StringComparison.Ordinal)
+            {
+                return dict.TryGetValue(key, out result);
+            }
+
+            foreach (var kvp in collection)
+            {
+                if (string.Equals(kvp.Key, key, stringComparison))
+                {
+                    result = kvp.Value;
+                    return true;
+                }
+            }
+
+            result = default;
+            return false;
+        }
+
+        /// <summary>
         /// Добавляет элемент в коллекцию.
         /// </summary>
         /// <param name="e">Коллекция, в которую необходимо добавить элемент.</param>
@@ -1719,7 +1790,7 @@ namespace System.Linq
         /// Если значение равно <c>-1</c>, элемент добавляется в конец коллекции.</param>
         /// <exception cref="ArgumentNullException">e.</exception>
         /// <exception cref="InvalidOperationException">Коллекция не поддерживает добавление элементов.</exception>
-        public static void TryAdd(this IEnumerable e, object item, int index = -1)
+        public static void TryAddElement(this IEnumerable e, object item, int index = -1)
         {
             if (e == null)
             {
@@ -1774,7 +1845,7 @@ namespace System.Linq
         /// В противном случае последовательность перебирается до достижения
         /// указанного индекса.
         /// </remarks>
-        public static T TryGet<T>(this IEnumerable<T> e, int index)
+        public static T TryGetElement<T>(this IEnumerable<T> e, int index)
         {
             if (e == null)
             {

@@ -538,7 +538,7 @@ namespace System.Helpers
                 // --- Авто-приведение константы к типу свойства ---
                 if (b.Op != "Like" && right is ConstantExpression rc && left.Type != rc.Type)
                 {
-                    var converted = Obj.ChangeType(rc.Value, left.Type);
+                    var converted = TypeHelper.ChangeType(rc.Value, left.Type);
                     right = Expression.Constant(converted, left.Type);
                 }
 
@@ -674,13 +674,13 @@ namespace System.Helpers
                 // Приводим типы нижней и верхней границы
                 if (lower is ConstantExpression lc && left.Type != lc.Type)
                 {
-                    var converted = Obj.ChangeType(lc.Value, left.Type);
+                    var converted = TypeHelper.ChangeType(lc.Value, left.Type);
                     lower = Expression.Constant(converted, left.Type);
                 }
 
                 if (upper is ConstantExpression uc && left.Type != uc.Type)
                 {
-                    var converted = Obj.ChangeType(uc.Value, left.Type);
+                    var converted = TypeHelper.ChangeType(uc.Value, left.Type);
                     upper = Expression.Constant(converted, left.Type);
                 }
 

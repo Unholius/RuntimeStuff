@@ -104,7 +104,7 @@ public class ObjCopyTests
         var target = new TargetClass();
 
         // Act
-        Obj.Copy(source, target, "Name", "Age");
+        Obj.Copy(source, target, StringComparison.OrdinalIgnoreCase, "Name", "Age");
 
         // Assert
         Assert.AreEqual(source.Name, target.Name);
@@ -126,7 +126,7 @@ public class ObjCopyTests
         var employee = new Employee();
 
         // Act
-        Obj.Copy(person, employee, "FirstName", "LastName");
+        Obj.Copy(person, employee, StringComparison.OrdinalIgnoreCase, "FirstName", "LastName");
 
         // Assert
         Assert.AreEqual(person.FirstName, employee.FirstName);

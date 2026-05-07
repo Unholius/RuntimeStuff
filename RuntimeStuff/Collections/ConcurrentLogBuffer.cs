@@ -28,7 +28,7 @@ namespace System.Collections
     /// полагаясь на атомарные операции <see cref="Interlocked"/>.
     /// </remarks>
     public sealed class ConcurrentLogBuffer<T> : IEnumerable<T>
-    where T : class
+        where T : class
     {
         private readonly T[] buffer;
         private int index;

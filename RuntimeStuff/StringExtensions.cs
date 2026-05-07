@@ -129,7 +129,7 @@ namespace System
         /// Метод является строковым аналогом оператора <c>COALESCE</c>
         /// и удобен для выбора значения по умолчанию из набора строк.
         /// </remarks>
-        public static string Coalesce(this string str, params string[] strings) => StringHelper.Coalesce(str, strings);
+        public static string FirstNotEmpty(this string str, params string[] strings) => StringHelper.FirstNotEmpty(str, strings);
 
         /// <summary>
         /// Проверяет, содержит ли исходная строка указанную подстроку,
@@ -399,9 +399,7 @@ namespace System
         /// для корректного парсинга чисел в стандартном формате.
         /// </remarks>
         public static bool IsNumber(this string s, out decimal d)
-        {
-            return decimal.TryParse(s, NumberStyles.Any, NumberFormatInfo.InvariantInfo, out d);
-        }
+            => StringHelper.IsNumber(s, out d);
 
         /// <summary>
         /// Проверяет, является ли строка числовым значением.
@@ -412,9 +410,7 @@ namespace System
         /// Метод является перегрузкой для удобства и игнорирует само значение числа.
         /// </remarks>
         public static bool IsNumber(this string s)
-        {
-            return s.IsNumber(out _);
-        }
+            => StringHelper.IsNumber(s);
 
         /// <summary>
         /// Проверяет, является ли строка потенциально корректным XML-фрагментом.

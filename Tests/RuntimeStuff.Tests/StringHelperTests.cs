@@ -6,6 +6,12 @@ namespace RuntimeStuff.MSTests
     public class StringHelperTests
     {
         [TestMethod]
+        public void IsNumber_Test01()
+        {
+            Assert.IsTrue(StringHelper.IsNumber("12345-", out var d));
+        }
+
+        [TestMethod]
         public void SplitToList_Test_03()
         {
             var text = "2006310001105 95118164\r\n2007130000002 95114600\r\n2007130000003 95112930\r\n2001620007444 99017320\r\n2005600005426 96213874\r\n2004160004233 122220\r\n2006300001465 95117496\r\n2006300001467 95043926\r\n2005450004856 8180047903\r\n2004970017754 0\r\n2004090005388 0\r\n2004610008220 0";
@@ -18,7 +24,7 @@ namespace RuntimeStuff.MSTests
         public void SplitToList_Test_01()
         {
             var s = "E01-WIN-2513DI\tE01-WIN-2513PR\r\n";
-            var list = s.SplitToList<KeyValuePair<string, string>>();
+            var list = StringHelper.SplitToList<KeyValuePair<string, string>>(s);
 
             Assert.AreEqual(1, list.Count);
             Assert.AreEqual("E01-WIN-2513DI", list[0].Key);
@@ -29,7 +35,7 @@ namespace RuntimeStuff.MSTests
         public void SplitToList_Test_02()
         {
             var s = "E01-WIN-2513DI\tE01-WIN-2513PR\r\n";
-            var list = s.SplitToList<(string, string)>();
+            var list = StringHelper.SplitToList<(string, string)>(s);
 
             Assert.AreEqual(1, list.Count);
             Assert.AreEqual("E01-WIN-2513DI", list[0].Item1);
@@ -104,6 +110,26 @@ namespace RuntimeStuff.MSTests
 
             // Assert
             Assert.AreEqual(expected, result);
+        }
+
+        [TestMethod]
+        public void SplitWords_Test_01()
+        {
+            var words = StringHelper.SplitWords("XMLHttpRequest");
+            Assert.AreEqual(3, words.Length);
+            Assert.AreEqual("XML", words[0]);
+            Assert.AreEqual("Http", words[1]);
+            Assert.AreEqual("Request", words[2]);
+        }
+
+        [TestMethod]
+        public void SplitWords_Test_02()
+        {
+            var words = StringHelper.SplitWords("XML.Http-Request?");
+            Assert.AreEqual(3, words.Length);
+            Assert.AreEqual("XML", words[0]);
+            Assert.AreEqual("Http", words[1]);
+            Assert.AreEqual("Request", words[2]);
         }
 
         [TestMethod]

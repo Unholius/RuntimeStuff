@@ -708,12 +708,12 @@ namespace System.ComponentModel
 
             if (sourcePropertyValueToTargetPropertyValueConverter == null && !typeof(TTargetProp).IsAssignableFrom(typeof(TSourceProp)))
             {
-                sourcePropertyValueToTargetPropertyValueConverter = (v) => Obj.ChangeType<TTargetProp>(v);
+                sourcePropertyValueToTargetPropertyValueConverter = (v) => TypeHelper.ChangeType<TTargetProp>(v);
             }
 
             if (targetPropertyValueToSourcePropertyValueConverter == null && !typeof(TSourceProp).IsAssignableFrom(typeof(TTargetProp)))
             {
-                targetPropertyValueToSourcePropertyValueConverter = (v) => Obj.ChangeType<TSourceProp>(v);
+                targetPropertyValueToSourcePropertyValueConverter = (v) => TypeHelper.ChangeType<TSourceProp>(v);
             }
 
             return EventHelper.BindProperties(source, srcProp, srcEvent, canAcceptSourceEvent, target, targetProp, targetEvent, canAcceptTargetEvent, sourcePropertyValueToTargetPropertyValueConverter, targetPropertyValueToSourcePropertyValueConverter, onPropertyChanged);

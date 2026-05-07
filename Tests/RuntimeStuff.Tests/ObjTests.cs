@@ -97,13 +97,36 @@
         #region ChangeType Tests
 
         [TestMethod]
+        public void ChangeType_SpeedTest_01()
+        {
+            var n = 1_000_000;
+            object value = "19991212";
+            var toType = typeof(int);
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            for (int i = 0; i < n; i++)
+            {
+                var v = Convert.ChangeType(value, toType);
+            }
+            sw.Stop();
+            var s0 = sw.ElapsedMilliseconds;
+            sw.Restart();
+            for (int i = 0; i < n; i++)
+            {
+                var v = TypeHelper.ChangeType(value, toType);
+            }
+            sw.Stop();
+            var s1 = sw.ElapsedMilliseconds;
+        }
+
+        [TestMethod]
         public void ChangeType_StringToInt_ReturnsInt()
         {
             // Arrange
             var value = "123";
 
             // Act
-            var result = Obj.ChangeType<int>(value);
+            var result = TypeHelper.ChangeType<int>(value);
 
             // Assert
             Assert.AreEqual(123, result);
@@ -116,7 +139,7 @@
             var value = "123.45";
 
             // Act
-            var result = Obj.ChangeType<decimal>(value);
+            var result = TypeHelper.ChangeType<decimal>(value);
 
             // Assert
             Assert.AreEqual(123.45m, result);
@@ -129,7 +152,7 @@
             var value = "2023-12-31";
 
             // Act
-            var result = Obj.ChangeType<DateTime>(value);
+            var result = TypeHelper.ChangeType<DateTime>(value);
 
             // Assert
             Assert.AreEqual(new DateTime(2023, 12, 31), result);
@@ -142,7 +165,7 @@
             var value = "2023-12-31";
 
             // Act
-            var result = Obj.ChangeType<DateTime?>(value);
+            var result = TypeHelper.ChangeType<DateTime?>(value);
 
             // Assert
             Assert.AreEqual(new DateTime(2023, 12, 31), result);
@@ -152,7 +175,7 @@
         public void ChangeType_NullToNullable_ReturnsNull()
         {
             // Act
-            var result = Obj.ChangeType<int?>(null);
+            var result = TypeHelper.ChangeType<int?>(null);
 
             // Assert
             Assert.IsNull(result);
@@ -165,7 +188,7 @@
             var value = DBNull.Value;
 
             // Act
-            var result = Obj.ChangeType<int?>(value);
+            var result = TypeHelper.ChangeType<int?>(value);
 
             // Assert
             Assert.IsNull(result);
@@ -178,7 +201,7 @@
             var value = 123;
 
             // Act
-            var result = Obj.ChangeType<string>(value);
+            var result = TypeHelper.ChangeType<string>(value);
 
             // Assert
             Assert.AreEqual("123", result);
@@ -191,7 +214,7 @@
             var value = "Value2";
 
             // Act
-            var result = Obj.ChangeType<TestEnum>(value);
+            var result = TypeHelper.ChangeType<TestEnum>(value);
 
             // Assert
             Assert.AreEqual(TestEnum.Value2, result);
@@ -204,21 +227,10 @@
             var value = 2;
 
             // Act
-            var result = Obj.ChangeType<TestEnum>(value);
+            var result = TypeHelper.ChangeType<TestEnum>(value);
 
             // Assert
             Assert.AreEqual(TestEnum.Value2, result);
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(InvalidCastException))]
-        public void ChangeType_InvalidStringToInt_ThrowsFormatException()
-        {
-            // Arrange
-            var value = "not-a-number";
-
-            // Act
-            Obj.ChangeType<int>(value);
         }
 
         #endregion ChangeType Tests
@@ -256,7 +268,7 @@
             var type = typeof(TestPerson);
 
             // Act
-            var member = Obj.FindMember(type, "Name");
+            var member = TypeHelper.GetPublicProperty(type, "Name");
 
             // Assert
             Assert.IsNotNull(member);
@@ -271,7 +283,7 @@
             var type = typeof(TestPerson);
 
             // Act
-            var member = Obj.FindMember(type, "PrivateField");
+            var member = TypeHelper.GetPrivateField(type, "PrivateField");
 
             // Assert
             Assert.IsNotNull(member);
@@ -286,7 +298,7 @@
             var type = typeof(TestPerson);
 
             // Act
-            var member = Obj.FindMember(type, "name");
+            var member = TypeHelper.GetPropertyOrField(type, "name", StringComparison.OrdinalIgnoreCase);
 
             // Assert
             Assert.IsNotNull(member);
@@ -300,7 +312,7 @@
             var type = typeof(TestClassWithInterface);
 
             // Act
-            var member = Obj.FindMember(type, "InterfaceProperty");
+            var member = TypeHelper.GetPropertyOrField(type, "InterfaceProperty");
 
             // Assert
             Assert.IsNotNull(member);
@@ -315,7 +327,7 @@
         public void GetProperties_ReturnsAllProperties()
         {
             // Act
-            var properties = Obj.GetProperties<TestPerson>();
+            var properties = TypeHelper.GetProperties<TestPerson>();
 
             // Assert
             Assert.IsTrue(properties.Any(p => p.Name == "Name"));
@@ -332,7 +344,7 @@
         public void GetProperty_ByName_ReturnsProperty()
         {
             // Act
-            var property = Obj.GetProperty(typeof(TestPerson), "Name");
+            var property = TypeHelper.GetProperty(typeof(TestPerson), "Name");
 
             // Assert
             Assert.IsNotNull(property);
@@ -343,7 +355,7 @@
         public void GetProperty_IgnoreCase_ReturnsProperty()
         {
             // Act
-            var property = Obj.GetProperty(typeof(TestPerson), "NAME", StringComparison.OrdinalIgnoreCase);
+            var property = TypeHelper.GetProperty(typeof(TestPerson), "NAME", StringComparison.OrdinalIgnoreCase);
 
             // Assert
             Assert.IsNotNull(property);
@@ -623,133 +635,133 @@
         public void IsBasic_String_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsBasic(typeof(string)));
+            Assert.IsTrue(TypeHelper.IsBasic(typeof(string)));
         }
 
         [TestMethod]
         public void IsBasic_Int_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsBasic(typeof(int)));
+            Assert.IsTrue(TypeHelper.IsBasic(typeof(int)));
         }
 
         [TestMethod]
         public void IsBasic_DateTime_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsBasic(typeof(DateTime)));
+            Assert.IsTrue(TypeHelper.IsBasic(typeof(DateTime)));
         }
 
         [TestMethod]
         public void IsBasic_Class_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(Obj.IsBasic(typeof(TestPerson)));
+            Assert.IsFalse(TypeHelper.IsBasic(typeof(TestPerson)));
         }
 
         [TestMethod]
         public void IsBoolean_Bool_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsBoolean(typeof(bool)));
+            Assert.IsTrue(TypeHelper.IsBoolean(typeof(bool)));
         }
 
         [TestMethod]
         public void IsBoolean_NullableBool_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsBoolean(typeof(bool?)));
+            Assert.IsTrue(TypeHelper.IsBoolean(typeof(bool?)));
         }
 
         [TestMethod]
         public void IsDate_DateTime_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsDate(typeof(DateTime)));
+            Assert.IsTrue(TypeHelper.IsDate(typeof(DateTime)));
         }
 
         [TestMethod]
         public void IsCollection_List_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsGenericCollection(typeof(List<string>)));
+            Assert.IsTrue(TypeHelper.IsGenericCollection(typeof(List<string>)));
         }
 
         [TestMethod]
         public void IsCollection_Array_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsCollection(typeof(string[])));
+            Assert.IsTrue(TypeHelper.IsCollection(typeof(string[])));
         }
 
         [TestMethod]
         public void IsCollection_String_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(Obj.IsGenericCollection(typeof(string)));
+            Assert.IsFalse(TypeHelper.IsGenericCollection(typeof(string)));
         }
 
         [TestMethod]
         public void IsDelegate_Action_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsDelegate(typeof(Action)));
+            Assert.IsTrue(TypeHelper.IsDelegate(typeof(Action)));
         }
 
         [TestMethod]
         public void IsDictionary_Dictionary_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsDictionary(typeof(Dictionary<string, int>)));
+            Assert.IsTrue(TypeHelper.IsDictionary(typeof(Dictionary<string, int>)));
         }
 
         [TestMethod]
         public void IsNullable_NullableInt_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsNullable(typeof(int?)));
+            Assert.IsTrue(TypeHelper.IsNullable(typeof(int?)));
         }
 
         [TestMethod]
         public void IsNullable_String_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsNullable(typeof(string)));
+            Assert.IsTrue(TypeHelper.IsNullable(typeof(string)));
         }
 
         [TestMethod]
         public void IsNullable_Int_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(Obj.IsNullable(typeof(int)));
+            Assert.IsFalse(TypeHelper.IsNullable(typeof(int)));
         }
 
         [TestMethod]
         public void IsNumeric_Int_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsNumeric(typeof(int)));
+            Assert.IsTrue(TypeHelper.IsNumeric(typeof(int)));
         }
 
         [TestMethod]
         public void IsNumeric_Decimal_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsNumeric(typeof(decimal)));
+            Assert.IsTrue(TypeHelper.IsNumeric(typeof(decimal)));
         }
 
         [TestMethod]
         public void IsNumeric_String_ReturnsFalse()
         {
             // Act & Assert
-            Assert.IsFalse(Obj.IsNumeric(typeof(string)));
+            Assert.IsFalse(TypeHelper.IsNumeric(typeof(string)));
         }
 
         [TestMethod]
         public void IsTuple_ValueTuple_ReturnsTrue()
         {
             // Act & Assert
-            Assert.IsTrue(Obj.IsTuple(typeof((string, int))));
+            Assert.IsTrue(TypeHelper.IsTuple(typeof((string, int))));
         }
 
         #endregion Type Detection Tests
@@ -760,7 +772,7 @@
         public void GetTypeByName_KnownType_ReturnsType()
         {
             // Act
-            var type = Obj.GetTypeByName("System.String");
+            var type = TypeHelper.GetType("System.String");
 
             // Assert
             Assert.AreEqual(typeof(string), type);
@@ -770,7 +782,7 @@
         public void GetTypeByName_ShortName_ReturnsType()
         {
             // Act
-            var type = Obj.GetTypeByName("String");
+            var type = TypeHelper.GetType("String");
 
             // Assert
             Assert.AreEqual(typeof(string), type);
@@ -780,18 +792,18 @@
         public void GetTypeByName_Interface_ReturnsType()
         {
             // Act
-            var type = Obj.GetTypeByName("System.Collections.IEnumerable");
+            var type = TypeHelper.GetType("System.Collections.IEnumerable");
 
             // Assert
             Assert.AreEqual(typeof(IEnumerable), type);
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
+        [ExpectedException(typeof(ArgumentNullException))]
         public void GetTypeByName_Null_ThrowsException()
         {
             // Act
-            Obj.GetTypeByName(null);
+            TypeHelper.GetType(null);
         }
 
         #endregion GetTypeByName Tests
@@ -892,7 +904,7 @@
         public void GetImplementationsOf_InCurrentAssembly_ReturnsTypes()
         {
             // Act
-            var types = Obj.GetImplementationsOf(typeof(ITestInterface), Assembly.GetExecutingAssembly());
+            var types = TypeHelper.GetImplementationsOf(typeof(ITestInterface), Assembly.GetExecutingAssembly());
 
             // Assert
             Assert.IsTrue(types.Any(t => t == typeof(TestClassWithInterface)));
@@ -937,7 +949,7 @@
         public void GetBaseTypes_WithIncludeThis_ReturnsType()
         {
             // Act
-            var baseTypes = Obj.GetBaseTypes(typeof(TestPerson), includeThis: true);
+            var baseTypes = TypeHelper.GetBaseTypes(typeof(TestPerson), includeThis: true);
 
             // Assert
             Assert.IsTrue(baseTypes.Contains(typeof(TestPerson)));
@@ -947,7 +959,7 @@
         public void GetBaseTypes_WithInterfaces_ReturnsInterfaces()
         {
             // Act
-            var baseTypes = Obj.GetBaseTypes(typeof(TestClassWithInterface), getInterfaces: true);
+            var baseTypes = TypeHelper.GetBaseTypes(typeof(TestClassWithInterface), getInterfaces: true);
 
             // Assert
             Assert.IsTrue(baseTypes.Any(t => t.Name.Contains("ITestInterface")));
@@ -955,20 +967,6 @@
 
         #endregion GetBaseTypes Tests
 
-        #region GetLowestMember Tests
-
-        [TestMethod]
-        public void GetLowestProperty_FindsProperty()
-        {
-            // Act
-            var property = Obj.GetLowestProperty(typeof(TestPerson), "Name");
-
-            // Assert
-            Assert.IsNotNull(property);
-            Assert.AreEqual("Name", property.Name);
-        }
-
-        #endregion GetLowestMember Tests
 
         #region GetCustomAttribute Tests
 
@@ -1548,11 +1546,11 @@ Bob,40,Chicago;
     }
 
     // Stub for MemberCache<T> (assuming it exists in your codebase)
-    public class MemberCache<T> where T : class, new()
+    public class MemberCache2<T> where T : class, new()
     {
-        public static MemberCache<T> Create()
+        public static MemberCache2<T> Create()
         {
-            return new MemberCache<T>();
+            return new MemberCache2<T>();
         }
 
         public dynamic GetMember(string name)

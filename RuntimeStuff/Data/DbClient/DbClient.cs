@@ -73,7 +73,7 @@ namespace System.Data
         /// <remarks>Вызывается сборщиком мусора, если объект не был явно освобождён.</remarks>
         ~DbClient()
         {
-            this.Dispose(false);
+            this.Dispose(true);
         }
 
         /// <summary>
@@ -489,7 +489,7 @@ namespace System.Data
         {
             if (this.tr.Value != null)
             {
-                throw new InvalidOperationException("Транзакция уже была начата.");
+                return this.tr.Value;
             }
 
             this.BeginConnection();
@@ -500,9 +500,10 @@ namespace System.Data
         /// <summary>
         /// Завершается текущая транзакция и закрывает соединение с базой данных.
         /// </summary>
+        /// <param name="closeConnection">Закрыть соединение после подтверждения транзакции.</param>
         /// <remarks>Этот метод коммитит текущую транзакцию и очищает ресурсы, связанные с ней.
         /// После завершения транзакции соединение с базой данных закрывается.</remarks>
-        public void CommitTransaction()
+        public void CommitTransaction(bool closeConnection = true)
         {
             if (this.tr.Value == null)
             {
@@ -512,7 +513,10 @@ namespace System.Data
             this.tr.Value.Commit();
             this.tr.Value.Dispose();
             this.tr.Value = null;
-            this.CloseConnection();
+            if (closeConnection)
+            {
+                this.CloseConnection();
+            }
         }
 
         /// <summary>
@@ -674,8 +678,9 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип сущности, из таблицы которой выполняется удаление.</typeparam>
         /// <param name="whereExpression">Лямбда-выражение, задающее условие отбора записей для удаления.</param>
+        /// <param name="dbTransaction">Транзакция.</param>
         /// <returns>Количество удалённых строк.</returns>
-        public int Delete<T>(Expression<Func<T, bool>> whereExpression)
+        public int Delete<T>(Expression<Func<T, bool>> whereExpression, IDbTransaction dbTransaction = null)
             where T : class
         {
             var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " + SqlQueryHelper.GetWhereClause(
@@ -684,7 +689,7 @@ namespace System.Data
                     true,
                     out var cmdParam))
                 .Trim();
-            return this.ExecuteNonQuery(query, cmdParam);
+            return this.ExecuteNonQuery(query, cmdParam, dbTransaction);
         }
 
         /// <summary>
@@ -692,13 +697,14 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип сущности, из таблицы которой выполняется удаление.</typeparam>
         /// <param name="item">Объект, содержащий значения ключевых полей, используемых в условии удаления.</param>
+        /// <param name="dbTransaction">Транзакция.</param>
         /// <returns>Количество удалённых строк.</returns>
-        public int Delete<T>(T item)
+        public int Delete<T>(T item, IDbTransaction dbTransaction = null)
             where T : class
         {
             var query = (SqlQueryHelper.GetDeleteQuery<T>(this.Options) + " " +
                          SqlQueryHelper.GetWhereClause<T>(this.Options, out _)).Trim();
-            return this.ExecuteNonQuery(query, Obj.GetValues(item));
+            return this.ExecuteNonQuery(query, Obj.GetValues(item), dbTransaction);
         }
 
         /// <summary>
@@ -741,6 +747,48 @@ namespace System.Data
         }
 
         /// <summary>
+        /// Синхронно удаляет несколько записей из базы данных в рамках одной транзакции.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности, из таблицы которой выполняется удаление.</typeparam>
+        /// <param name="list">Коллекция объектов, содержащих значения ключевых полей удаляемых записей.</param>
+        /// <param name="dbTransaction">Транзакция, в рамках которой выполняется удаление. Если <c>null</c>, создаётся новая транзакция.</param>
+        /// <param name="token">Токен отмены асинхронной операции.</param>
+        /// <returns>Задача, результатом которой является общее количество удалённых строк.</returns>
+        /// <remarks>Все операции удаления выполняются в одной транзакции.
+        /// В случае возникновения ошибки транзакция откатывается.</remarks>
+        public int DeleteRange<T>(
+            IEnumerable<T> list,
+            IDbTransaction dbTransaction = null,
+            CancellationToken token = default)
+            where T : class
+        {
+            try
+            {
+                var count = 0;
+                var autoCommit = dbTransaction == null && this.tr.Value == null;
+                dbTransaction ??= this.BeginTransaction();
+                {
+                    foreach (var item in list)
+                    {
+                        count += this.Delete(item, dbTransaction);
+                    }
+
+                    if (autoCommit)
+                    {
+                        this.CommitTransaction();
+                    }
+                }
+
+                return count;
+            }
+            catch (Exception ex)
+            {
+                this.RollbackTransaction();
+                throw this.HandleDbException(ex, null);
+            }
+        }
+
+        /// <summary>
         /// Асинхронно удаляет несколько записей из базы данных в рамках одной транзакции.
         /// </summary>
         /// <typeparam name="T">Тип сущности, из таблицы которой выполняется удаление.</typeparam>
@@ -752,21 +800,25 @@ namespace System.Data
         /// В случае возникновения ошибки транзакция откатывается.</remarks>
         public async Task<int> DeleteRangeAsync<T>(
             IEnumerable<T> list,
-            IDbTransaction dbTransaction,
+            IDbTransaction dbTransaction = null,
             CancellationToken token = default)
             where T : class
         {
             try
             {
                 var count = 0;
-                using (dbTransaction ?? this.BeginTransaction())
+                var autoCommit = dbTransaction == null && this.tr.Value == null;
+                dbTransaction ??= this.BeginTransaction();
                 {
                     foreach (var item in list)
                     {
                         count += await this.DeleteAsync(item, dbTransaction, token).ConfigureAwait(this.ConfigureAwait);
                     }
 
-                    this.CommitTransaction();
+                    if (autoCommit)
+                    {
+                        this.CommitTransaction();
+                    }
                 }
 
                 return count;
@@ -775,10 +827,6 @@ namespace System.Data
             {
                 this.RollbackTransaction();
                 throw this.HandleDbException(ex, null);
-            }
-            finally
-            {
-                this.CloseConnection();
             }
         }
 
@@ -807,6 +855,7 @@ namespace System.Data
             var attempt = 0;
             while (true)
             {
+                dbTransaction ??= this.tr?.Value;
                 using (var cmd = this.CreateCommand(query, queryParams, dbTransaction))
                 {
                     try
@@ -862,6 +911,7 @@ namespace System.Data
             CancellationToken token = default)
         {
             var attempt = 0;
+            dbTransaction ??= this.tr?.Value;
             while (true)
             {
                 token.ThrowIfCancellationRequested();
@@ -960,6 +1010,7 @@ namespace System.Data
         /// <remarks>Этот метод выполняет запрос синхронно и преобразует результат в указанный тип.</remarks>
         public T ExecuteScalar<T>(string query, object cmdParams = null, IDbTransaction dbTransaction = null)
         {
+            dbTransaction ??= this.tr?.Value;
             var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
             return this.ExecuteScalar<T>(cmd);
         }
@@ -1067,6 +1118,7 @@ namespace System.Data
             IDbTransaction dbTransaction = null,
             CancellationToken token = default)
         {
+            dbTransaction ??= this.tr?.Value;
             var cmd = this.CreateCommand(query, cmdParams, dbTransaction);
             return this.ExecuteScalarAsync<T>(cmd, token);
         }
@@ -1518,16 +1570,16 @@ namespace System.Data
         /// <param name="values">Значения, которые будут вставлены в строку таблицы.</param>
         public void Insert(string tableName, params object[] values)
         {
-            this.Insert(tableName, (IDbTransaction)null, values);
+            this.Insert(tableName, values, (IDbTransaction)null);
         }
 
         /// <summary>
         /// Выполняет вставку строки в указанную таблицу с возможностью использования транзакции.
         /// </summary>
         /// <param name="tableName">Имя таблицы, в которую выполняется вставка.</param>
-        /// <param name="dbTransaction">Транзакция базы данных. Если <c>null</c>, вставка выполняется без транзакции.</param>
         /// <param name="values">Значения, которые будут вставлены в строку таблицы. Порядок значений должен соответствовать порядку столбцов таблицы.</param>
-        public void Insert(string tableName, IDbTransaction dbTransaction, params object[] values)
+        /// <param name="dbTransaction">Транзакция базы данных. Если <c>null</c>, вставка выполняется без транзакции.</param>
+        public void Insert(string tableName, object[] values, IDbTransaction dbTransaction = null)
         {
             var sql = $"INSERT INTO {tableName} VALUES ({string.Join(", ", values.Select((x, i) => this.Options.ParamPrefix + i))})";
             this.ExecuteNonQuery(sql, values, dbTransaction);
@@ -1719,37 +1771,41 @@ namespace System.Data
             IDbCommand cmd = null;
             while (true)
             {
+                var autoCommit = dbTransaction == null && this.tr.Value == null;
+
                 try
                 {
                     var ids = new List<object>();
-                    using (dbTransaction ?? this.BeginTransaction())
-                    {
-                        var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
-                        if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
-                        {
-                            query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
-                        }
+                    dbTransaction ??= this.BeginTransaction();
 
-                        var typeCache = MemberCache.Get(typeof(T));
-                        var pk = typeCache.PrimaryKeys.FirstOrDefault();
-                        var queryParams = new Dictionary<string, object>();
-                        using (cmd = this.CreateCommand(query, dbTransaction))
+                    var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
+                    if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
+                    {
+                        query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
+                    }
+
+                    var typeCache = MemberCache.Get(typeof(T));
+                    var pk = typeCache.PrimaryKeys.FirstOrDefault();
+                    var queryParams = new Dictionary<string, object>();
+                    using (cmd = this.CreateCommand(query, null, dbTransaction))
+                    {
+                        foreach (var item in list)
                         {
-                            foreach (var item in list)
+                            typeCache.ToDictionary(item, queryParams);
+                            SetParameterCollection(cmd, queryParams);
+                            var id = cmd.ExecuteScalar();
+                            ids.Add(id);
+                            this.CommandExecuted?.Invoke(cmd);
+                            this.Log(cmd);
+                            if (pk != null && id != null)
                             {
-                                typeCache.ToDictionary(item, queryParams);
-                                SetParameterCollection(cmd, queryParams);
-                                var id = cmd.ExecuteScalar();
-                                ids.Add(id);
-                                this.CommandExecuted?.Invoke(cmd);
-                                this.Log(cmd);
-                                if (pk != null && id != null)
-                                {
-                                    pk.SetValue(item, ChangeType(id, pk.PropertyType));
-                                }
+                                pk.SetValue(item, ChangeType(id, pk.PropertyType));
                             }
                         }
+                    }
 
+                    if (autoCommit)
+                    {
                         this.CommitTransaction();
                     }
 
@@ -1765,13 +1821,6 @@ namespace System.Data
                 {
                     this.RollbackTransaction();
                     throw this.HandleDbException(ex, null);
-                }
-                finally
-                {
-                    if (dbTransaction == null)
-                    {
-                        this.CloseConnection();
-                    }
                 }
             }
         }
@@ -1825,7 +1874,8 @@ namespace System.Data
                 try
                 {
                     var ids = new List<object>();
-                    using (dbTransaction ?? this.BeginTransaction())
+                    var autoCommit = dbTransaction == null && this.tr.Value == null;
+                    dbTransaction ??= this.BeginTransaction();
                     {
                         var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
                         if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
@@ -1836,7 +1886,7 @@ namespace System.Data
                         var typeCache = MemberCache.Get(typeof(T));
                         var pk = typeCache.PrimaryKeys.FirstOrDefault();
                         var queryParams = new Dictionary<string, object>();
-                        using (cmd = this.CreateCommand(query, dbTransaction))
+                        using (cmd = this.CreateCommand(query, null, dbTransaction))
                         {
                             if (cmd is not DbCommand dbCmd)
                             {
@@ -1859,7 +1909,10 @@ namespace System.Data
                             }
                         }
 
-                        this.CommitTransaction();
+                        if (autoCommit)
+                        {
+                            this.CommitTransaction();
+                        }
                     }
 
                     return [.. ids];
@@ -1874,13 +1927,6 @@ namespace System.Data
                 {
                     this.RollbackTransaction();
                     throw this.HandleDbException(ex, null);
-                }
-                finally
-                {
-                    if (dbTransaction == null)
-                    {
-                        this.CloseConnection();
-                    }
                 }
             }
         }
@@ -1948,6 +1994,15 @@ namespace System.Data
                 .ConfigureAwait(this.ConfigureAwait)).Values.FirstOrDefault());
 
         /// <summary>
+        /// Открывает соединение с базой данных.
+        /// </summary>
+        /// <returns>True, если соединение удалось открыть, false - иначе.</returns>
+        public bool OpenConnection()
+        {
+            return this.Connection.TryOpen();
+        }
+
+        /// <summary>
         /// Выполняет SQL-запрос и возвращает результат в виде коллекции объектов.
         /// </summary>
         /// <typeparam name="TList">Тип коллекции, которая будет возвращена (например, <see cref="List{T}" />).</typeparam>
@@ -1981,7 +2036,7 @@ namespace System.Data
             }
 
             query = SqlQueryHelper.AddLimitOffsetClauseToQuery(this.Options, fetchRows, offsetRows, query, typeof(T));
-
+            dbTransaction ??= this.tr?.Value;
             var cache = MemberCache.Get(typeof(T));
             itemFactory ??= BuildItemFactory<T>(cache, columnToPropertyMap);
 
@@ -2157,7 +2212,7 @@ namespace System.Data
                 query,
                 returnTypeCache.ElementType);
             itemFactory ??= BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
-
+            dbTransaction ??= this.tr?.Value;
             var attempt = 0;
             while (true)
             {
@@ -2324,7 +2379,7 @@ namespace System.Data
                 query,
                 returnTypeCache.ElementType);
             itemFactory ??= BuildItemFactory<object>(returnTypeCache.ElementType, columnToPropertyMap);
-
+            dbTransaction ??= this.tr?.Value;
             var attempt = 0;
             while (true)
             {
@@ -2429,7 +2484,7 @@ namespace System.Data
 
             var cache = MemberCache.Get(typeof(T));
             itemFactory ??= BuildItemFactory<T>(cache, columnToPropertyMap);
-
+            dbTransaction ??= this.tr?.Value;
             var attempt = 0;
             while (true)
             {
@@ -2999,7 +3054,7 @@ namespace System.Data
 
             var result = new List<DataTable>(2);
             var stringPool = this.EnableStringPool ? new StringPool() : null;
-            using var cmd = this.CreateCommand(query, cmdParams);
+            using var cmd = this.CreateCommand(query, cmdParams, null);
             try
             {
                 this.BeginConnection();
@@ -3117,7 +3172,7 @@ namespace System.Data
 
             var result = new List<DataTable>(2);
             var stringPool = this.EnableStringPool ? new StringPool() : null;
-            using var cmd = this.CreateCommand(query, cmdParams);
+            using var cmd = this.CreateCommand(query, cmdParams, null);
             try
             {
                 this.BeginConnection();
@@ -3561,44 +3616,12 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="item">Объект, содержащий обновляемые значения.</param>
-        /// <param name="dbTransaction">Активная транзакция базы данных.
-        /// Если не указана, используется текущая транзакция или соединение.</param>
-        /// <param name="token">Токен отмены.</param>
-        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
-        /// Если не указан, обновляются все сопоставленные свойства,
-        /// за исключением первичных ключей.</param>
-        /// <returns>Количество строк, затронутых операцией обновления.</returns>
-        public Task<int> UpdateAsync<T>(
-            T item,
-            IDbTransaction dbTransaction,
-            CancellationToken token = default,
-            params Expression<Func<T, object>>[] updateColumns)
-            where T : class => this.UpdateAsync(item, null, null, dbTransaction, token, updateColumns);
-
-        /// <summary>
-        /// Обновляет запись в базе данных на основе значений свойств объекта.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="item">Объект, содержащий обновляемые значения.</param>
         /// <param name="updateColumns">Список колонок, которые необходимо обновить.
         /// Если не указан, обновляются все сопоставленные свойства,
         /// за исключением первичных ключей.</param>
         /// <returns>Количество строк, затронутых операцией обновления.</returns>
         public int Update<T>(T item, params Expression<Func<T, object>>[] updateColumns)
             where T : class => this.Update(item, null, null, null, updateColumns);
-
-        /// <summary>
-        /// Обновляет запись в базе данных на основе значений свойств объекта.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="item">Объект, содержащий обновляемые значения.</param>
-        /// <param name="token">Токен отмены.</param>
-        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
-        /// Если не указан, обновляются все сопоставленные свойства,
-        /// за исключением первичных ключей.</param>
-        /// <returns>Количество строк, затронутых операцией обновления.</returns>
-        public Task<int> UpdateAsync<T>(T item, CancellationToken token = default, params Expression<Func<T, object>>[] updateColumns)
-            where T : class => this.UpdateAsync(item, null, null, null, token, updateColumns);
 
         /// <summary>
         /// Обновляет записи в указанной таблице, используя объекты со значениями
@@ -3641,6 +3664,129 @@ namespace System.Data
 
             return this.ExecuteNonQuery(sql, mergedMap);
         }
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущая транзакция или соединение.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public int Update<T>(
+            T item,
+            string tableName,
+            IDbTransaction dbTransaction,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.Update(item, tableName, null, dbTransaction, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public int Update<T>(T item, string tableName, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.Update(item, tableName, null, null, updateColumns);
+
+        /// <summary>
+        /// Обновляет записи в базе данных на основе указанного условия.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий значения для обновления колонок.</param>
+        /// <param name="whereExpression">Лямбда-выражение, определяющее условие <c>WHERE</c>.
+        /// Если указано, первичный ключ объекта не используется.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущее соединение или транзакция.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public int Update<T>(
+            T item,
+            Expression<Func<T, bool>> whereExpression,
+            IDbTransaction dbTransaction = null,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class
+        {
+            return this.Update(item, null, whereExpression, dbTransaction, updateColumns);
+        }
+
+        /// <summary>
+        /// Обновляет записи в базе данных на основе указанного условия.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий значения для обновления колонок.</param>
+        /// <param name="tableName">Имя таблицы в которую вставлять записи.</param>
+        /// <param name="whereExpression">Лямбда-выражение, определяющее условие <c>WHERE</c>.
+        /// Если указано, первичный ключ объекта не используется.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущее соединение или транзакция.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public int Update<T>(
+            T item,
+            string tableName,
+            Expression<Func<T, bool>> whereExpression,
+            IDbTransaction dbTransaction = null,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class
+        {
+            if (!string.IsNullOrWhiteSpace(tableName))
+            {
+                this.Options.Map.Table<T>(tableName);
+            }
+
+            var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
+            var cmdParams = Obj.GetValues(item);
+            query += " " + (whereExpression != null
+                ? SqlQueryHelper.GetWhereClause(this.Options, whereExpression, true, out cmdParams)
+                : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
+
+            return this.ExecuteNonQuery(query, cmdParams, dbTransaction);
+        }
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="dbTransaction">Активная транзакция базы данных.
+        /// Если не указана, используется текущая транзакция или соединение.</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public Task<int> UpdateAsync<T>(
+            T item,
+            IDbTransaction dbTransaction,
+            CancellationToken token = default,
+            params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.UpdateAsync(item, null, null, dbTransaction, token, updateColumns);
+
+        /// <summary>
+        /// Обновляет запись в базе данных на основе значений свойств объекта.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="item">Объект, содержащий обновляемые значения.</param>
+        /// <param name="token">Токен отмены.</param>
+        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
+        /// Если не указан, обновляются все сопоставленные свойства,
+        /// за исключением первичных ключей.</param>
+        /// <returns>Количество строк, затронутых операцией обновления.</returns>
+        public Task<int> UpdateAsync<T>(T item, CancellationToken token = default, params Expression<Func<T, object>>[] updateColumns)
+            where T : class => this.UpdateAsync(item, null, null, null, token, updateColumns);
 
         /// <summary>
         /// Обновляет записи в указанной таблице, используя объекты со значениями
@@ -3694,25 +3840,6 @@ namespace System.Data
         /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
         /// <param name="dbTransaction">Активная транзакция базы данных.
         /// Если не указана, используется текущая транзакция или соединение.</param>
-        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
-        /// Если не указан, обновляются все сопоставленные свойства,
-        /// за исключением первичных ключей.</param>
-        /// <returns>Количество строк, затронутых операцией обновления.</returns>
-        public int Update<T>(
-            T item,
-            string tableName,
-            IDbTransaction dbTransaction,
-            params Expression<Func<T, object>>[] updateColumns)
-            where T : class => this.Update(item, tableName, null, dbTransaction, updateColumns);
-
-        /// <summary>
-        /// Обновляет запись в базе данных на основе значений свойств объекта.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="item">Объект, содержащий обновляемые значения.</param>
-        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
-        /// <param name="dbTransaction">Активная транзакция базы данных.
-        /// Если не указана, используется текущая транзакция или соединение.</param>
         /// <param name="token">Токен отмены.</param>
         /// <param name="updateColumns">Список колонок, которые необходимо обновить.
         /// Если не указан, обновляются все сопоставленные свойства,
@@ -3725,19 +3852,6 @@ namespace System.Data
             CancellationToken token,
             params Expression<Func<T, object>>[] updateColumns)
             where T : class => this.UpdateAsync(item, tableName, null, dbTransaction, token, updateColumns);
-
-        /// <summary>
-        /// Обновляет запись в базе данных на основе значений свойств объекта.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="item">Объект, содержащий обновляемые значения.</param>
-        /// <param name="tableName">Имя таблицы в которую вставляьб записи.</param>
-        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
-        /// Если не указан, обновляются все сопоставленные свойства,
-        /// за исключением первичных ключей.</param>
-        /// <returns>Количество строк, затронутых операцией обновления.</returns>
-        public int Update<T>(T item, string tableName, params Expression<Func<T, object>>[] updateColumns)
-            where T : class => this.Update(item, tableName, null, null, updateColumns);
 
         /// <summary>
         /// Обновляет запись в базе данных на основе значений свойств объекта.
@@ -3762,29 +3876,6 @@ namespace System.Data
         /// Если указано, первичный ключ объекта не используется.</param>
         /// <param name="dbTransaction">Активная транзакция базы данных.
         /// Если не указана, используется текущее соединение или транзакция.</param>
-        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
-        /// Если не указан, обновляются все сопоставленные свойства,
-        /// за исключением первичных ключей.</param>
-        /// <returns>Количество строк, затронутых операцией обновления.</returns>
-        public int Update<T>(
-            T item,
-            Expression<Func<T, bool>> whereExpression,
-            IDbTransaction dbTransaction = null,
-            params Expression<Func<T, object>>[] updateColumns)
-            where T : class
-        {
-            return this.Update(item, null, whereExpression, dbTransaction, updateColumns);
-        }
-
-        /// <summary>
-        /// Обновляет записи в базе данных на основе указанного условия.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="item">Объект, содержащий значения для обновления колонок.</param>
-        /// <param name="whereExpression">Лямбда-выражение, определяющее условие <c>WHERE</c>.
-        /// Если указано, первичный ключ объекта не используется.</param>
-        /// <param name="dbTransaction">Активная транзакция базы данных.
-        /// Если не указана, используется текущее соединение или транзакция.</param>
         /// <param name="token">Токен отмены.</param>
         /// <param name="updateColumns">Список колонок, которые необходимо обновить.
         /// Если не указан, обновляются все сопоставленные свойства,
@@ -3799,42 +3890,6 @@ namespace System.Data
             where T : class
         {
             return this.UpdateAsync(item, null, whereExpression, dbTransaction, token, updateColumns);
-        }
-
-        /// <summary>
-        /// Обновляет записи в базе данных на основе указанного условия.
-        /// </summary>
-        /// <typeparam name="T">Тип сущности.</typeparam>
-        /// <param name="item">Объект, содержащий значения для обновления колонок.</param>
-        /// <param name="tableName">Имя таблицы в которую вставлять записи.</param>
-        /// <param name="whereExpression">Лямбда-выражение, определяющее условие <c>WHERE</c>.
-        /// Если указано, первичный ключ объекта не используется.</param>
-        /// <param name="dbTransaction">Активная транзакция базы данных.
-        /// Если не указана, используется текущее соединение или транзакция.</param>
-        /// <param name="updateColumns">Список колонок, которые необходимо обновить.
-        /// Если не указан, обновляются все сопоставленные свойства,
-        /// за исключением первичных ключей.</param>
-        /// <returns>Количество строк, затронутых операцией обновления.</returns>
-        public int Update<T>(
-            T item,
-            string tableName,
-            Expression<Func<T, bool>> whereExpression,
-            IDbTransaction dbTransaction = null,
-            params Expression<Func<T, object>>[] updateColumns)
-            where T : class
-        {
-            if (!string.IsNullOrWhiteSpace(tableName))
-            {
-                this.Options.Map.Table<T>(tableName);
-            }
-
-            var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
-            var cmdParams = Obj.GetValues(item);
-            query += " " + (whereExpression != null
-                ? SqlQueryHelper.GetWhereClause(this.Options, whereExpression, true, out cmdParams)
-                : SqlQueryHelper.GetWhereClause<T>(this.Options, out _));
-
-            return this.ExecuteNonQuery(query, cmdParams, dbTransaction);
         }
 
         /// <summary>
@@ -3926,24 +3981,27 @@ namespace System.Data
             try
             {
                 var count = 0;
-                using (dbTransaction ?? this.BeginTransaction())
+                var autoCommit = dbTransaction == null && this.tr.Value == null;
+                dbTransaction ??= this.BeginTransaction();
                 {
-                    var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
+                    var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns) + " " + SqlQueryHelper.GetWhereClause<T>(this.Options, out var d);
                     var typeCache = MemberCache.Get(typeof(T));
-                    var queryParams = new Dictionary<string, object>();
-                    using (var cmd = this.CreateCommand(query, dbTransaction))
+                    using (var cmd = this.CreateCommand(query, d, dbTransaction))
                     {
                         foreach (var item in list)
                         {
-                            typeCache.ToDictionary(item, queryParams);
-                            SetParameterCollection(cmd, queryParams);
+                            typeCache.ToDictionary(item, d);
+                            SetParameterCollection(cmd, d);
                             count += cmd.ExecuteNonQuery();
                             this.CommandExecuted?.Invoke(cmd);
                             this.Log(cmd);
                         }
                     }
 
-                    this.CommitTransaction();
+                    if (autoCommit)
+                    {
+                        this.CommitTransaction();
+                    }
                 }
 
                 return count;
@@ -3952,10 +4010,6 @@ namespace System.Data
             {
                 this.RollbackTransaction();
                 throw this.HandleDbException(ex, null);
-            }
-            finally
-            {
-                this.CloseConnection();
             }
         }
 
@@ -4010,12 +4064,13 @@ namespace System.Data
             try
             {
                 var count = 0;
-                using (dbTransaction ?? this.BeginTransaction())
+                var autoCommit = dbTransaction == null && this.tr.Value == null;
+                dbTransaction ??= this.BeginTransaction();
                 {
                     var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
                     var typeCache = MemberCache.Get(typeof(T));
                     var queryParams = new Dictionary<string, object>();
-                    using (var cmd = this.CreateCommand(query, dbTransaction))
+                    using (var cmd = this.CreateCommand(query, null, dbTransaction))
                     {
                         if (cmd is not DbCommand dbCmd)
                         {
@@ -4032,7 +4087,10 @@ namespace System.Data
                         }
                     }
 
-                    this.CommitTransaction();
+                    if (autoCommit)
+                    {
+                        this.CommitTransaction();
+                    }
                 }
 
                 return count;
@@ -4042,10 +4100,6 @@ namespace System.Data
                 this.RollbackTransaction();
                 throw this.HandleDbException(ex, null);
             }
-            finally
-            {
-                this.CloseConnection();
-            }
         }
 
         /// <summary>
@@ -4054,12 +4108,22 @@ namespace System.Data
         /// <param name="disposing"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
         protected virtual void Dispose(bool disposing)
         {
-            if (!this.IsDisposed && disposing)
+            if (this.IsDisposed)
             {
-                this.CloseConnection();
-                this.Connection?.Dispose();
-                this.IsDisposed = true;
+                return;
             }
+
+            try
+            {
+                this.Connection?.Dispose();
+                this.Connection = null;
+            }
+            catch
+            {
+                // ignore
+            }
+
+            this.IsDisposed = true;
         }
 
         /// <summary>
@@ -4163,7 +4227,7 @@ namespace System.Data
         /// <param name="value">The value.</param>
         /// <param name="targetType">Type of the target.</param>
         /// <returns>System.Object.</returns>
-        private static object ChangeType(object value, Type targetType) => Obj.ChangeType(value, targetType);
+        private static object ChangeType(object value, Type targetType) => TypeHelper.ChangeType(value, targetType);
 
         /// <summary>
         /// the reader field to property map.
@@ -4217,18 +4281,6 @@ namespace System.Data
             return result;
         }
 
-        private static string TrimIfNeeded(string value)
-        {
-            if (value.Length == 0)
-            {
-                return value;
-            }
-
-            return Array.IndexOf(StringHelper.SpecialChars, value[0]) >= 0
-                ? value.TrimStart(StringHelper.SpecialChars)
-                : value;
-        }
-
         /// <summary>
         /// Logs the command.
         /// </summary>
@@ -4256,6 +4308,18 @@ namespace System.Data
                 $@"(?<==\s*){Regex.Escape(token)}(?!\w)",
                 replacement,
                 RegexOptions.CultureInvariant);
+
+        private static string TrimIfNeeded(string value)
+        {
+            if (value.Length == 0)
+            {
+                return value;
+            }
+
+            return Array.IndexOf(StringHelper.SpecialChars, value[0]) >= 0
+                ? value.TrimStart(StringHelper.SpecialChars)
+                : value;
+        }
 
         /// <summary>
         /// Begins the connection.
@@ -4327,19 +4391,21 @@ namespace System.Data
         /// <exception cref="System.NullReferenceException">con.</exception>
         private void CloseConnection(IDbConnection con)
         {
-            if (this.tr.Value != null)
+            try
             {
-                return;
-            }
+                if (con == null)
+                {
+                    throw new ArgumentNullException(nameof(con));
+                }
 
-            if (con == null)
-            {
-                throw new ArgumentNullException(nameof(con));
+                if (con.State != ConnectionState.Closed)
+                {
+                    con.Close();
+                }
             }
-
-            if (con.State != ConnectionState.Closed)
+            catch (Exception ex)
             {
-                con.Close();
+                Debug.WriteLine(ex.ToString());
             }
         }
 
@@ -4730,7 +4796,7 @@ namespace System.Data
             StringPool stringPool = this.EnableStringPool ? new StringPool() : null;
             var usePool = stringPool != null;
 
-            using var cmd = this.CreateCommand(query, cmdParams);
+            using var cmd = this.CreateCommand(query, cmdParams, null);
 
             try
             {

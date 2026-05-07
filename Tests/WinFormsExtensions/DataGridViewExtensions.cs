@@ -77,7 +77,7 @@
                 try
                 {
                     var fields = grid.Columns[e.ColumnIndex].DataPropertyName.Split('_').Skip(1).Take(4).ToArray();
-                    var cellDate = Obj.ChangeType<DateTime?>(fields[3]);
+                    var cellDate = TypeHelper.ChangeType<DateTime?>(fields[3]);
                     var fromDate = row.Cells[fields[0]].Value as DateTime?;
                     var toDate = row.Cells[fields[1]].Value as DateTime?;
                     var ranges = new List<DateTimeHelper.DateRange>();

@@ -4,6 +4,8 @@
 
 namespace System
 {
+    using System.Helpers;
+
     /// <summary>
     /// Предоставляет методы расширения для преобразования между делегатами Action с разными сигнатурами.
     /// Основное назначение - конвертация между строго типизированными делегатами и делегатами, работающими с object.
@@ -50,7 +52,7 @@ namespace System
                     {
                         try
                         {
-                            callArgs[i] = Obj.ChangeType(value, targetType);
+                            callArgs[i] = TypeHelper.ChangeType(value, targetType);
                         }
                         catch
                         {

@@ -27,11 +27,17 @@ namespace System
                 return false;
             }
 
-            var set = values is ISet<T> s && (comparer == null || (s is HashSet<T> hs && hs.Comparer.Equals(comparer)))
-                ? s
-                : new HashSet<T>(values, comparer);
+            comparer ??= EqualityComparer<T>.Default;
 
-            return set.Contains(item);
+            foreach (var v in values)
+            {
+                if (comparer.Equals(item, v))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
