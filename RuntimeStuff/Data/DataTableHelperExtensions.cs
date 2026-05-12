@@ -193,7 +193,40 @@ namespace System.Data
         /// <remarks>Если колонка помечена как первичный ключ,
         /// она автоматически добавляется в массив
         /// <see cref="DataTable.PrimaryKey" />.</remarks>
-        public static DataColumn AddCol(this DataTable table, string columnName, Type columnType = null, bool isPrimaryKey = false) => DataTableHelper.AddCol(table, columnName, columnType, isPrimaryKey);
+        public static DataColumn GetOrAddCol(this DataTable table, string columnName, Type columnType = null, bool isPrimaryKey = false) => DataTableHelper.GetOrAddCol(table, columnName, columnType, isPrimaryKey);
+
+        /// <summary>
+        /// Добавляет колонку в таблицу данных.
+        /// </summary>
+        /// <param name="table">Таблица, в которую добавляется колонка.</param>
+        /// <param name="columnName">Имя добавляемой колонки.</param>
+        /// <param name="columnType">Тип данных колонки.</param>
+        /// <param name="isPrimaryKey">Указывает, должна ли колонка быть частью первичного ключа.</param>
+        /// <returns>Созданный экземпляр <see cref="DataColumn" />.</returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="table" /> или
+        /// <paramref name="columnType" /> равны <see langword="null" />.</exception>
+        /// <exception cref="ArgumentException">Выбрасывается, если имя колонки пустое
+        /// или колонка с таким именем уже существует.</exception>
+        /// <remarks>Если колонка помечена как первичный ключ,
+        /// она автоматически добавляется в массив
+        /// <see cref="DataTable.PrimaryKey" />.</remarks>
+        public static DataTable AddCol(this DataTable table, string columnName, Type columnType = null, bool isPrimaryKey = false) => DataTableHelper.GetOrAddCol(table, columnName, columnType, isPrimaryKey).Table;
+
+        /// <summary>
+        /// Добавляет колонку в таблицу данных.
+        /// </summary>
+        /// <typeparam name="T">Тип данных колонки.</typeparam>
+        /// <param name="table">Таблица, в которую добавляется колонка.</param>
+        /// <param name="columnName">Имя добавляемой колонки.</param>
+        /// <param name="isPrimaryKey">Указывает, должна ли колонка быть частью первичного ключа.</param>
+        /// <returns>Созданный экземпляр <see cref="DataColumn" />.</returns>
+        /// <exception cref="ArgumentNullException">Выбрасывается, если <paramref name="table" /> равен <see langword="null" />.</exception>
+        /// <exception cref="ArgumentException">Выбрасывается, если имя колонки пустое
+        /// или колонка с таким именем уже существует.</exception>
+        /// <remarks>Если колонка помечена как первичный ключ,
+        /// она автоматически добавляется в массив
+        /// <see cref="DataTable.PrimaryKey" />.</remarks>
+        public static DataTable AddCol<T>(this DataTable table, string columnName, bool isPrimaryKey = false) => DataTableHelper.GetOrAddCol(table, columnName, typeof(T), isPrimaryKey).Table;
 
         /// <summary>
         /// Добавляет строку в таблицу данных из массива значений.

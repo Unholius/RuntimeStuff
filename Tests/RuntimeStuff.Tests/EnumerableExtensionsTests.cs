@@ -72,6 +72,13 @@ public class EnumerableExtensionsTests
 
         // Assert
         Assert.AreEqual(3, result);
+
+        var chunks = collection.Chunk(1).ToList();
+        Assert.AreEqual(collection.Count, chunks.Count);
+        chunks = collection.Chunk(3).ToList();
+        Assert.AreEqual(2, chunks.Count);
+        chunks = collection.Chunk(6).ToList();
+        Assert.AreEqual(1, chunks.Count);
     }
 
     [TestMethod]

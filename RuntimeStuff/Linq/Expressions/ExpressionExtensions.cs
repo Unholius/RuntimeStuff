@@ -5,6 +5,7 @@
 namespace System.Linq.Expressions
 {
     using System;
+    using System.Helpers;
     using System.Reflection;
 
     /// <summary>

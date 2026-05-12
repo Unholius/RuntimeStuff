@@ -16,7 +16,7 @@ public class DataTableHelperTests
             var table = new DataTable();
 
             // Act
-            var column = DataTableHelper.AddCol(table, "TestColumn", typeof(string));
+            var column = DataTableHelper.GetOrAddCol(table, "TestColumn", typeof(string));
 
             // Assert
             Assert.AreEqual(1, table.Columns.Count);
@@ -33,7 +33,7 @@ public class DataTableHelperTests
             var table = new DataTable();
 
             // Act
-            var column = DataTableHelper.AddCol(table, "Id", typeof(int), true);
+            var column = DataTableHelper.GetOrAddCol(table, "Id", typeof(int), true);
 
             // Assert
             Assert.AreEqual(1, table.PrimaryKey.Length);
@@ -46,10 +46,10 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            var col1 = DataTableHelper.AddCol(table, "Id1", typeof(int), true);
+            var col1 = DataTableHelper.GetOrAddCol(table, "Id1", typeof(int), true);
 
             // Act
-            var col2 = DataTableHelper.AddCol(table, "Id2", typeof(string), true);
+            var col2 = DataTableHelper.GetOrAddCol(table, "Id2", typeof(string), true);
 
             // Assert
             Assert.AreEqual(2, table.PrimaryKey.Length);
@@ -65,7 +65,7 @@ public class DataTableHelperTests
             DataTable? table = null;
 
             // Act
-            DataTableHelper.AddCol(table, "Test", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Test", typeof(string));
         }
 
         [TestMethod]
@@ -76,7 +76,7 @@ public class DataTableHelperTests
             var table = new DataTable();
 
             // Act
-            DataTableHelper.AddCol(table, "", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "", typeof(string));
         }
 
         [TestMethod]
@@ -87,19 +87,7 @@ public class DataTableHelperTests
             var table = new DataTable();
 
             // Act
-            DataTableHelper.AddCol(table, "   ", typeof(string));
-        }
-
-        [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
-        public void AddCol_DuplicateColumnName_ThrowsArgumentException()
-        {
-            // Arrange
-            var table = new DataTable();
-            DataTableHelper.AddCol(table, "Test", typeof(string));
-
-            // Act
-            DataTableHelper.AddCol(table, "Test", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "   ", typeof(string));
         }
     }
 
@@ -111,8 +99,8 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
             var rowData = new object[] { 1, "Test" };
 
             // Act
@@ -129,8 +117,8 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
             var rowData = new object?[] { 1, null };
 
             // Act
@@ -170,7 +158,7 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
             var rowData = new object[] { 1, "Extra" };
 
             // Act
@@ -193,9 +181,9 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
-            DataTableHelper.AddCol(table, "Date", typeof(DateTime));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Date", typeof(DateTime));
 
             var entity = new TestEntity
             {
@@ -219,8 +207,8 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
 
             var entity = new TestEntity
             {
@@ -253,9 +241,9 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
-            DataTableHelper.AddCol(table, "ExtraColumn", typeof(string)); // No property for this
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "ExtraColumn", typeof(string)); // No property for this
 
             var entity = new TestEntity
             {
@@ -281,8 +269,8 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
 
             DataTableHelper.AddRow(table, [1, "A"]);
             DataTableHelper.AddRow(table, [2, "B"]);
@@ -301,8 +289,8 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
 
             DataTableHelper.AddRow(table, [1, "A"]);
             DataTableHelper.AddRow(table, [DBNull.Value, "B"]);
@@ -344,7 +332,7 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
 
             // Act
             DataTableHelper.ToList<int>(table, "NonExistent");
@@ -366,9 +354,9 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
-            DataTableHelper.AddCol(table, "Created", typeof(DateTime));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Created", typeof(DateTime));
 
             var date = new DateTime(2024, 1, 1);
             DataTableHelper.AddRow(table, [1, "A", date]);
@@ -392,9 +380,9 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
-            DataTableHelper.AddCol(table, "Created", typeof(DateTime));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Created", typeof(DateTime));
 
             DataTableHelper.AddRow(table, [1, DBNull.Value, DateTime.Now]);
 
@@ -413,9 +401,9 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
-            DataTableHelper.AddCol(table, "ExtraColumn", typeof(string)); // No property for this
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "ExtraColumn", typeof(string)); // No property for this
 
             DataTableHelper.AddRow(table, [1, "Test", "ExtraValue"]);
 
@@ -447,8 +435,8 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
 
             // Act
             var result = DataTableHelper.ToList<TestEntity>(table);
@@ -476,10 +464,10 @@ public class DataTableHelperTests
             // Arrange - Get table structure
             var table = new DataTable();
 
-            DataTableHelper.AddCol(table, "Id", typeof(int), true);
-            DataTableHelper.AddCol(table, "Name", typeof(string));
-            DataTableHelper.AddCol(table, "Price", typeof(decimal));
-            DataTableHelper.AddCol(table, "InStock", typeof(bool));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int), true);
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Price", typeof(decimal));
+            DataTableHelper.GetOrAddCol(table, "InStock", typeof(bool));
 
             // Act - Add rows using different methods
             var products = new List<Product>
@@ -521,8 +509,8 @@ public class DataTableHelperTests
         {
             // Arrange
             var table = new DataTable();
-            DataTableHelper.AddCol(table, "Id", typeof(int));
-            DataTableHelper.AddCol(table, "Name", typeof(string));
+            DataTableHelper.GetOrAddCol(table, "Id", typeof(int));
+            DataTableHelper.GetOrAddCol(table, "Name", typeof(string));
 
             var products = new List<Product>
             {

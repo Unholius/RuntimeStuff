@@ -102,7 +102,7 @@ namespace System.Data
 
                 tmi.TableName = nameMapper(entityType.Name);
 
-                foreach (var p in Obj.GetProperties(entityType))
+                foreach (var p in TypeHelper.GetPublicProperties(entityType))
                 {
                     var pmi = new PropertyMappingInfo(p)
                     {

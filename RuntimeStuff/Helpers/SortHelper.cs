@@ -111,21 +111,23 @@ namespace System.Helpers
 
             IOrderedEnumerable<T> result = null;
 
-            var accessor = sorts.Select((x, i) => Obj.GetMemberGetter(Obj.FindMember(typeof(T), sorts[i].PropertyName) as PropertyInfo)).ToArray<Func<T, object>>();
+            var memberCache = MemberCache.Get<T>();
+
+            var accessors = sorts.Select((x, i) => memberCache[sorts[i].PropertyName].Getter).ToArray<Func<T, object>>();
 
             for (var i = 0; i < sorts.Length; i++)
             {
                 if (i == 0 && source is not IOrderedEnumerable<T>)
                 {
                     result = sorts[i].Order == ListSortDirection.Ascending
-                        ? source.OrderBy(accessor[i])
-                        : source.OrderByDescending(accessor[i]);
+                        ? source.OrderBy(accessors[i])
+                        : source.OrderByDescending(accessors[i]);
                 }
                 else
                 {
                     result = sorts[i].Order == ListSortDirection.Ascending
-                        ? (result ?? (IOrderedEnumerable<T>)source).ThenBy(accessor[i])
-                        : (result ?? (IOrderedEnumerable<T>)source).ThenByDescending(accessor[i]);
+                        ? (result ?? (IOrderedEnumerable<T>)source).ThenBy(accessors[i])
+                        : (result ?? (IOrderedEnumerable<T>)source).ThenByDescending(accessors[i]);
                 }
             }
 

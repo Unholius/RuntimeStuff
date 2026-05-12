@@ -9,6 +9,7 @@ namespace System.Data
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.Data.Common;
+    using System.Helpers;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -261,9 +262,17 @@ namespace System.Data
         /// <returns>Созданная команда.</returns>
         public static DbCommand CreateCommand(this IDbConnection connection, string query, object cmdParams, IDbTransaction dbTransaction = null, int commandTimeOut = 30, CommandType commandType = CommandType.Text, string paramPrefix = "@")
         {
-            var paramPrefixMask = "[@:?$]";
-            var pattern = @$"(?<!{paramPrefixMask}){paramPrefixMask}([A-Za-z0-9_]+)\b";
-            Lazy<string[]> queryParamNames = new Lazy<string[]>(() => ParamRegex.Matches(query).Cast<Match>().Select(m => m.Groups[1].Value).Distinct().ToArray());
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                throw new ArgumentException("Query cannot be null or whitespace.", nameof(query));
+            }
+
+            if (cmdParams is IDbTransaction)
+            {
+                throw new ArgumentException("cmdParams cannot be of type IDbTransaction. Use dbTransaction parameter for transactions.", nameof(cmdParams));
+            }
+
+            var queryParamNames = cmdParams == null ? Array.Empty<string>() : ParamRegex.Matches(query).Cast<Match>().Select(m => m.Groups[1].Value).Distinct().ToArray();
             var cmd = connection.CreateCommand();
             cmd.CommandText = query;
             cmd.CommandTimeout = commandTimeOut;
@@ -280,7 +289,7 @@ namespace System.Data
                         {
                             p.Value = dt;
                             Obj.Set(p, "SqlDbType", SqlDbType.Structured);
-                            Obj.Set(p, "TypeName", dt.TableName.Coalesce(p.ParameterName));
+                            Obj.Set(p, "TypeName", StringHelper.FirstNotEmpty(dt.TableName, p.ParameterName));
                         }
 
                         break;
@@ -295,7 +304,7 @@ namespace System.Data
 
             if (cmdParams != null)
             {
-                var cmdParamsType = cmdParams.GetType().GetMemberCache();
+                var cmdParamsType = cmdParams.GetType();
                 switch (cmdParams)
                 {
                     case DbParameter dbp:
@@ -334,7 +343,7 @@ namespace System.Data
 
                         break;
 
-                    case IEnumerable e when cmdParamsType.ElementType?.Name.Contains("Tuple`") == true:
+                    case IEnumerable e when cmdParamsType.GetElementType()?.Name.Contains("Tuple`") == true:
                         {
                             foreach (var i in e)
                             {
@@ -351,43 +360,43 @@ namespace System.Data
 
                         break;
 
-                    case IEnumerable e when e is not string && e.Count() == queryParamNames.Value.Length:
+                    case IEnumerable e when e is not string && e.Count() == queryParamNames.Length:
                         {
-                            int i = 0;
+                            var i = 0;
                             foreach (var x in e)
                             {
-                                cmd.Parameters.Add(CreateParameter(cmd, queryParamNames.Value[i], x));
+                                cmd.Parameters.Add(CreateParameter(cmd, queryParamNames[i], x));
                                 i++;
                             }
                         }
 
                         break;
 
-                    case DataTable dt when queryParamNames.Value.Length == 1:
-                        cmd.Parameters.Add(CreateParameter(cmd, queryParamNames.Value[0], dt));
+                    case DataTable dt when queryParamNames.Length == 1:
+                        cmd.Parameters.Add(CreateParameter(cmd, queryParamNames[0], dt));
                         break;
 
-                    case object o when queryParamNames.Value.Length == 1 && cmdParamsType.IsBasic:
-                        cmd.Parameters.Add(CreateParameter(cmd, queryParamNames.Value[0], cmdParams));
+                    case object o when queryParamNames.Length == 1 && cmdParamsType.IsBasic():
+                        cmd.Parameters.Add(CreateParameter(cmd, queryParamNames[0], cmdParams));
                         break;
 
                     default:
                         var objValues = Obj.GetValues(cmdParams);
 
-                        if (queryParamNames.Value.Length == 1 && objValues.Count == 0)
+                        if (queryParamNames.Length == 1 && objValues.Count == 0)
                         {
-                            objValues = new Dictionary<string, object>() { { queryParamNames.Value[0], cmdParams } };
+                            objValues = new Dictionary<string, object>() { { queryParamNames[0], cmdParams } };
                         }
 
-                        if (queryParamNames.Value.Length == 0 && objValues.Count > 0)
+                        if (queryParamNames.Length == 0 && objValues.Count > 0)
                         {
                             cmd.CommandText += " " + string.Join(", ", objValues.Select(x => paramPrefix + x.Key + " = " + paramPrefix + x.Key));
                         }
 
-                        if (queryParamNames.Value.Length == 1 && objValues.Count > 1)
+                        if (queryParamNames.Length == 1 && objValues.Count > 1)
                         {
-                            objValues = objValues.ToDictionary((x, i) => $"{queryParamNames.Value[0]}_{i}", v => v.Value);
-                            cmd.CommandText = Regex.Replace(cmd.CommandText, paramPrefixMask + queryParamNames.Value[0], string.Join(", ", objValues.Keys.Select(x => paramPrefix + x)));
+                            objValues = objValues.ToDictionary((x, i) => $"{queryParamNames[0]}_{i}", v => v.Value);
+                            cmd.CommandText = Regex.Replace(cmd.CommandText, "[@:?$]" + queryParamNames[0], string.Join(", ", objValues.Keys.Select(x => paramPrefix + x)));
                         }
 
                         foreach (var v in objValues)
@@ -396,8 +405,8 @@ namespace System.Data
                             if (arr != null && v.Value is not string)
                             {
                                 var inParams = arr.Select((x, i) => $"{v.Key}_{i}").ToArray();
-                                cmd.CommandText = Regex.Replace(cmd.CommandText, paramPrefixMask + v.Key, string.Join(", ", inParams.Select(x => paramPrefix + x)));
-                                for (int i = 0; i < arr.Length; i++)
+                                cmd.CommandText = Regex.Replace(cmd.CommandText, "[@:?$]" + v.Key, string.Join(", ", inParams.Select(x => paramPrefix + x)));
+                                for (var i = 0; i < arr.Length; i++)
                                 {
                                     cmd.Parameters.Add(CreateParameter(cmd, inParams[i], arr[i]));
                                 }

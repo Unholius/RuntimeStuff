@@ -8,6 +8,7 @@ namespace System.Data
     using System.Collections;
     using System.Collections.Generic;
     using System.Data;
+    using System.Helpers;
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
@@ -112,7 +113,7 @@ namespace System.Data
             where T : class
         {
             var mi = MemberCache.Get(typeof(T));
-            var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.ParamPrefix, options.NameSuffix));
+            var query = new StringBuilder("DELETE FROM ").Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.NamePrefix, options.NameSuffix));
             return query.ToString();
         }
 

@@ -13,8 +13,11 @@ namespace DebugTests
     public class RSSqlServerTests
     {
         [TestMethod]
-        public async Task LoadDataTable_Test_01()
+        public void LoadDataTable_Test_01()
         {
+            var sw = new Stopwatch();
+            sw.Start();
+
             var db = new DbClient<System.Data.SqlClient.SqlConnection>("NAS\\RSSQLSERVER", "musiclib");
             var dt = db.ToDataTable("SELECT * FROM files");
             dt = null; // Убираем ссылку
@@ -22,8 +25,10 @@ namespace DebugTests
             GC.WaitForPendingFinalizers();
             GC.Collect();
             dt = db.ToDataTable("SELECT * FROM files");
+            sw.Stop();
             var rowCount = dt.Rows.Count;
             var mem = GC.GetTotalMemory(true) / 1024 / 1024;
+            var s = sw.ElapsedMilliseconds;
         }
 
         [TestMethod]

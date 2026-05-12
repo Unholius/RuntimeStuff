@@ -414,15 +414,34 @@ namespace System.Linq
         /// <typeparam name="TValue">Тип значения словаря.</typeparam>
         /// <param name="dictionary1">Целевой словарь, в который выполняется объединение.</param>
         /// <param name="dictionary2">Исходный словарь, элементы которого будут добавлены.</param>
+        /// <param name="overwrite">Если ключ уже существует в первом словаре перезаписывать ли значением из второго словаря.</param>
         /// <exception cref="ArgumentNullException">
         /// Возникает, если <paramref name="dictionary1"/> или <paramref name="dictionary2"/> равен <c>null</c>.
         /// </exception>
-        public static void Merge<TKey, TValue>(this IDictionary<TKey, TValue> dictionary1, IEnumerable<KeyValuePair<TKey, TValue>> dictionary2)
+        /// <returns>Текущий словарь.</returns>
+        public static IDictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> dictionary1, IEnumerable<KeyValuePair<TKey, TValue>> dictionary2, bool overwrite = true)
         {
-            foreach (var kvp in dictionary2)
+            if (overwrite)
             {
-                dictionary1[kvp.Key] = kvp.Value;
+                foreach (var kvp in dictionary2)
+                {
+                    dictionary1[kvp.Key] = kvp.Value;
+                }
             }
+            else
+            {
+                foreach (var kvp in dictionary2)
+                {
+                    if (dictionary1.ContainsKey(kvp.Key))
+                    {
+                        continue;
+                    }
+
+                    dictionary1[kvp.Key] = kvp.Value;
+                }
+            }
+
+            return dictionary1;
         }
 
         /// <summary>
@@ -1520,6 +1539,39 @@ namespace System.Linq
             Func<TSource, int, TKey> keySelector,
             Func<TSource, TValue> valueSelector)
         {
+            return source.ToDictionary(keySelector, (item, index) => valueSelector(item));
+        }
+
+        /// <summary>
+        /// Преобразует последовательность в словарь, используя функции выбора ключа и значения.
+        /// </summary>
+        /// <typeparam name="TSource">Тип элементов исходной последовательности.</typeparam>
+        /// <typeparam name="TKey">Тип ключей словаря.</typeparam>
+        /// <typeparam name="TValue">Тип значений словаря.</typeparam>
+        /// <param name="source">Исходная последовательность элементов.</param>
+        /// <param name="keySelector">
+        /// Функция получения ключа на основе элемента и его индекса.
+        /// </param>
+        /// <param name="valueSelector">
+        /// Функция получения значения на основе элемента.
+        /// </param>
+        /// <returns>
+        /// Словарь, содержащий элементы исходной последовательности,
+        /// преобразованные в пары ключ-значение.
+        /// </returns>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="source"/>,
+        /// <paramref name="keySelector"/> или <paramref name="valueSelector"/>
+        /// равны <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Выбрасывается при попытке добавить дублирующийся ключ.
+        /// </exception>
+        public static Dictionary<TKey, TValue> ToDictionary<TSource, TKey, TValue>(
+            this IEnumerable<TSource> source,
+            Func<TSource, int, TKey> keySelector,
+            Func<TSource, int, TValue> valueSelector)
+        {
             if (source == null)
             {
                 throw new ArgumentNullException(nameof(source));
@@ -1542,7 +1594,7 @@ namespace System.Linq
             foreach (TSource item in source)
             {
                 TKey key = keySelector(item, index);
-                TValue value = valueSelector(item);
+                TValue value = valueSelector(item, index);
 
                 dictionary.Add(key, value);
 
@@ -1680,6 +1732,56 @@ namespace System.Linq
         }
 
         /// <summary>
+        /// Пытается получить значение из словаря по ключу с использованием
+        /// указанного способа сравнения строк.
+        /// </summary>
+        /// <typeparam name="TValue">Тип значения словаря.</typeparam>
+        /// <param name="collection">Словарь, в котором выполняется поиск.</param>
+        /// <param name="key">Ключ для поиска.</param>
+        /// <param name="stringComparison">
+        /// Правило сравнения строк, используемое при сопоставлении ключей.
+        /// </param>
+        /// <param name="result">
+        /// Значение, возвращаемое если ключ не найден.
+        /// </param>
+        /// <returns>
+        /// Найденное значение по указанному ключу либо
+        /// <paramref name="result"/>, если совпадение отсутствует.
+        /// </returns>
+        /// <remarks>
+        /// Метод выполняет последовательный перебор элементов словаря,
+        /// поскольку стандартный <see cref="IDictionary{TKey,TValue}"/> не поддерживает
+        /// поиск с произвольным <see cref="StringComparison"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException">
+        /// Выбрасывается, если <paramref name="collection"/> равен <see langword="null"/>.
+        /// </exception>
+        public static bool TryGetValue<TValue>(this IEnumerable<KeyValuePair<string, TValue>> collection, string key, StringComparison stringComparison, out TValue result)
+        {
+            if (collection == null)
+            {
+                throw new ArgumentNullException(nameof(collection));
+            }
+
+            if (collection is IDictionary<string, TValue> dict && stringComparison == StringComparison.Ordinal)
+            {
+                return dict.TryGetValue(key, out result);
+            }
+
+            foreach (var kvp in collection)
+            {
+                if (string.Equals(kvp.Key, key, stringComparison))
+                {
+                    result = kvp.Value;
+                    return true;
+                }
+            }
+
+            result = default;
+            return false;
+        }
+
+        /// <summary>
         /// Добавляет элемент в коллекцию.
         /// </summary>
         /// <param name="e">Коллекция, в которую необходимо добавить элемент.</param>
@@ -1688,7 +1790,7 @@ namespace System.Linq
         /// Если значение равно <c>-1</c>, элемент добавляется в конец коллекции.</param>
         /// <exception cref="ArgumentNullException">e.</exception>
         /// <exception cref="InvalidOperationException">Коллекция не поддерживает добавление элементов.</exception>
-        public static void TryAdd(this IEnumerable e, object item, int index = -1)
+        public static void TryAddElement(this IEnumerable e, object item, int index = -1)
         {
             if (e == null)
             {
@@ -1743,7 +1845,7 @@ namespace System.Linq
         /// В противном случае последовательность перебирается до достижения
         /// указанного индекса.
         /// </remarks>
-        public static T TryGet<T>(this IEnumerable<T> e, int index)
+        public static T TryGetElement<T>(this IEnumerable<T> e, int index)
         {
             if (e == null)
             {

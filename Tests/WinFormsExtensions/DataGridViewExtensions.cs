@@ -77,7 +77,7 @@
                 try
                 {
                     var fields = grid.Columns[e.ColumnIndex].DataPropertyName.Split('_').Skip(1).Take(4).ToArray();
-                    var cellDate = Obj.ChangeType<DateTime?>(fields[3]);
+                    var cellDate = TypeHelper.ChangeType<DateTime?>(fields[3]);
                     var fromDate = row.Cells[fields[0]].Value as DateTime?;
                     var toDate = row.Cells[fields[1]].Value as DateTime?;
                     var ranges = new List<DateTimeHelper.DateRange>();
@@ -245,7 +245,13 @@
 
         public static DataGridViewExtender GetExtender(this DataGridView grid)
         {
-            return Obj.GetOrAdd(gridExtenders,grid.GetHashCode(), () => new DataGridViewExtender(grid));
+            var gridHashCode = grid.GetHashCode();
+            if (gridExtenders.TryGetValue(gridHashCode, out var dge))
+                return dge;
+
+            dge = new DataGridViewExtender(grid);
+            gridExtenders[gridHashCode] = dge;
+            return dge;
         }
 
         private static Color bg = Color.FromArgb(100, Color.DimGray);

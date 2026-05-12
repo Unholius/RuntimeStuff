@@ -6,10 +6,10 @@ namespace RuntimeStuff.MSTests
     [TestClass]
     public class DbClientTests
     {
-        private static string dbName() => $".\\Databases\\DB{DateTime.Now.Ticks}.db";
+        private static string dbName() => $".\\Databases\\DB{DateTime.Now.ExactTicks()}.db";
         private DbClient getdb()
         {
-            var sql = $"CREATE TEMP TABLE Tmp (column1 int, column2 text);";
+            var sql = $"CREATE TEMP TABLE Tmp (id INTEGER PRIMARY KEY AUTOINCREMENT, column1 INTEGER, column2 TEXT);";
             var con = new SqliteConnection().Database(dbName());
             var db = new DbClient(con);
             db.EnableLogging = true;
@@ -42,18 +42,24 @@ namespace RuntimeStuff.MSTests
         [TestMethod]
         public void Insert_Test_01()
         {
-            var tmpTableName = $"T" + DateTime.Now.Ticks;
-            var sql = $"CREATE TEMP TABLE {tmpTableName} (column1 int, column2 text);";
-            var con = new SqliteConnection().Database(dbName());
-            con.ExecuteNonQuery(sql);
-            con.Insert(tmpTableName, 1, "one");
-            con.Insert(tmpTableName, 2, "two");
-            var dt = con.ToDataTable($"select * from {tmpTableName}");
+
+            var db = getdb();
+            var list = new List<Tmp>() { new Tmp() { Column1 = 3, Column2 = "three" }, new Tmp() { Column1 = 4, Column2 = "four" } };
+            db.InsertRange(list);
+            var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(2, dt.Rows.Count);
-            Assert.AreEqual(1L, dt.Rows[0]["column1"]);
-            Assert.AreEqual("one", dt.Rows[0]["column2"]);
-            Assert.AreEqual(2L, dt.Rows[1]["column1"]);
-            Assert.AreEqual("two", dt.Rows[1]["column2"]);
+
+            list[0].Column1 = 333;
+            list[1].Column1 = 444;
+            db.UpdateRange(list);
+            dt = db.ToDataTable($"select * from Tmp");
+
+            Assert.AreEqual(333L, dt.Rows[0]["column1"]);
+            Assert.AreEqual(444L, dt.Rows[1]["column1"]);
+
+            db.DeleteRange(list);
+            dt = db.ToDataTable($"select * from Tmp");
+            Assert.AreEqual(0, dt.Rows.Count);
         }
 
         [TestMethod]
@@ -61,12 +67,45 @@ namespace RuntimeStuff.MSTests
         {
             var db = getdb();
             var tr = db.BeginTransaction();
-            db.Insert("Tmp", 1, "one");
-            db.Insert("Tmp", 2, "two");
+            db.Insert("Tmp", null, 1, "one");
+            db.Insert("Tmp", null, 2, "two");
             db.RollbackTransaction();
             var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(0, dt.Rows.Count);
         }
+
+        private class Tmp
+        {
+            public int Id { get; set; }
+            public int Column1 { get; set; }
+            public string Column2 { get; set; }
+        }
+
+        [TestMethod]
+        public void Insert_Test_03()
+        {
+            {
+                var db = getdb();
+                var tr = db.BeginTransaction();
+                db.Insert("Tmp", null, 1, "one");
+                db.Insert("Tmp", null, 2, "two");
+                var list = new List<Tmp>() { new Tmp() { Column1 = 3, Column2 = "three" }, new Tmp() { Column1 = 4, Column2 = "four" } };
+                db.InsertRange(list);
+                db.RollbackTransaction();
+                var dt = db.ToDataTable($"select * from Tmp");
+                Assert.AreEqual(0, dt.Rows.Count);
+            }
+        }
+
+        [TestMethod]
+        public void AutoCloseConnection_Test_01()
+        {
+            {
+                var db = getdb();
+                db.OpenConnection();
+            }
+        }
+
 
         [TestMethod]
         public void Select_Test_01()
@@ -83,7 +122,7 @@ namespace RuntimeStuff.MSTests
         public void Update_Test_01()
         {
             var db = getdb();
-            db.Insert("Tmp", 1, "one");
+            db.Insert("Tmp", null, 1, "one");
             db.Update("Tmp", new { column2 = "one-updated" }, new { column1 = 1 });
             var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(1, dt.Rows.Count);
@@ -94,7 +133,7 @@ namespace RuntimeStuff.MSTests
         public void Update_Test_02()
         {
             var db = getdb();
-            db.Insert("Tmp", 1, "one");
+            db.Insert("Tmp", null, 1, "one");
             db.ExecuteNonQuery($"update Tmp set column2=:p1 where column1 in (:ids)", new { p1 = "one-updated", ids = new[] { 1 } });
             var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(1, dt.Rows.Count);
@@ -105,8 +144,8 @@ namespace RuntimeStuff.MSTests
         public void Update_Test_03()
         {
             var db = getdb();
-            db.Insert("Tmp", 1, "one");
-            db.Insert("Tmp", 2, "two");
+            db.Insert("Tmp", null, 1, "one");
+            db.Insert("Tmp", null, 2, "two");
             db.ExecuteNonQuery($"update Tmp set column2='one-updated' where column1 in (:ids)", new[] { 1 });
             var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(2, dt.Rows.Count);
@@ -118,8 +157,8 @@ namespace RuntimeStuff.MSTests
         public void Update_Test_04()
         {
             var db = getdb();
-            db.Insert("Tmp", 1, "one");
-            db.Insert("Tmp", 2, "two");
+            db.Insert("Tmp", null, 1, "one");
+            db.Insert("Tmp", null, 2, "two");
             db.ExecuteNonQuery($"update Tmp set column2='updated' where column1 in (:ids)", new List<int>(new[] { 1, 2 }));
             var dt = db.ToDataTable($"select * from Tmp");
             Assert.AreEqual(2, dt.Rows.Count);
