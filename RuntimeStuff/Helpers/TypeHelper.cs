@@ -1756,6 +1756,11 @@ namespace System.Helpers
                 return Guid.Parse(s);
             }
 
+            if (toType == typeof(Uri))
+            {
+                return new Uri(s);
+            }
+
             if (toType == typeof(TimeSpan))
             {
                 return TimeSpan.Parse(s, provider);

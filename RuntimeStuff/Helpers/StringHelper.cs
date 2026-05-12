@@ -1417,7 +1417,7 @@ namespace System.Helpers
         /// Используется <see cref="NumberStyles.Any"/> и <see cref="NumberFormatInfo.InvariantInfo"/>
         /// для корректного парсинга чисел в стандартном формате.
         /// </remarks>
-        public static bool IsNumber(this string s, out decimal d)
+        public static bool IsNumber(string s, out decimal d)
         {
             return decimal.TryParse(s, NumberStyles.Any, NumberFormatInfo.InvariantInfo, out d);
         }
@@ -1430,9 +1430,9 @@ namespace System.Helpers
         /// <remarks>
         /// Метод является перегрузкой для удобства и игнорирует само значение числа.
         /// </remarks>
-        public static bool IsNumber(this string s)
+        public static bool IsNumber(string s)
         {
-            return s.IsNumber(out _);
+            return IsNumber(s, out _);
         }
 
         /// <summary>

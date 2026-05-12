@@ -693,7 +693,7 @@ namespace System.Data
             int? commandTimeout = null,
             CommandType commandType = CommandType.Text)
         {
-            var cmd = this.Connection.CreateCommand(query, cmdParams, dbTransaction ?? this.tr?.Value, commandTimeOut, commandType, this.Options.ParamPrefix);
+            var cmd = DbConnectionExtensions.CreateCommand(this.Connection, query, cmdParams, dbTransaction ?? this.tr?.Value, commandTimeout ?? this.CommandTimeout ?? 30, commandType, this.Options.ParamPrefix);
             return (DbCommand)cmd;
         }
 
@@ -4684,11 +4684,8 @@ namespace System.Data
         {
             var type = typeof(T);
             var itemTypeCache = MemberCache.Get(type);
-
             var fieldCount = reader.FieldCount;
             var readerValues = new object[fieldCount];
-
-            // ❗ кеш имён колонок (без IEnumerable LINQ)
             var readerColumns = new string[fieldCount];
             for (int i = 0; i < fieldCount; i++)
             {
@@ -4696,8 +4693,6 @@ namespace System.Data
             }
 
             var rowCount = 0;
-
-            // ❗ string pool создаём только если реально нужен
             StringPool stringPool = this.EnableStringPool ? new StringPool() : null;
 
             if (itemTypeCache.IsBasic)
@@ -4708,7 +4703,7 @@ namespace System.Data
 
                 while (await reader.ReadAsync(ct).ConfigureAwait(this.ConfigureAwait))
                 {
-                    if ((uint)fetchRows > 0 && rowCount >= fetchRows)
+                    if (fetchRows > 0 && rowCount >= fetchRows)
                     {
                         break;
                     }

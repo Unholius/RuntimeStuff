@@ -18,7 +18,7 @@ namespace System.Helpers
     /// к значениям или метаданным членов объектов через выражения. Поддерживаются распространённые типы узлов выражений,
     /// включая бинарные, унарные, лямбда- и условные выражения, а также вызовы методов. Методы класса могут быть полезны
     /// при построении динамических запросов, реализации привязки данных или рефлексии на основе выражений. Все методы
-    /// являются статическими и потокобезопасны.</remarks>
+    /// являются статическими и потокобезопасными.</remarks>
     public static class ExpressionHelper
     {
         private static object sync = new object();
@@ -329,6 +329,11 @@ namespace System.Helpers
 
                 if (member is UnaryExpression ue)
                 {
+                    if (ue.NodeType == ExpressionType.Convert)
+                    {
+                        return GetValue(ue.Operand);
+                    }
+
                     return ue.NodeType == ExpressionType.Not ? false : (bool?)null;
                 }
 

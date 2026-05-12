@@ -213,6 +213,11 @@ namespace System
         /// <exception cref="InvalidOperationException">Выбрасывается, если подходящий конструктор не найден.</exception>
         public static ConstructorInfo FindConstructor(Type type, object[] args)
         {
+            if (args == null || args.Length == 0)
+            {
+                return type.GetConstructor(Type.EmptyTypes);
+            }
+
             var argTypes = args.Select(a => a?.GetType() ?? typeof(object)).ToArray();
 
             return type.GetConstructors()
@@ -769,7 +774,7 @@ namespace System
 
             if (type == typeof(string))
             {
-                return null;
+                return string.Empty;
             }
 
             var ctor = FindConstructor(type, args) ??

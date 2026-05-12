@@ -88,7 +88,7 @@ namespace System.Data
         public static string GetAggSelectClause<TFrom>(SqlOptions options, params (Expression<Func<TFrom, object>> Column, string AggFunction)[] columnSelectors)
             where TFrom : class
         {
-            var query = "SELECT " + (columnSelectors.Length == 0
+            var query = "SELECT " + (columnSelectors.Length == 0 || columnSelectors.Any(x => x.Column == null)
                           ? "COUNT(*)"
                           : string.Join(
                                 ", ",
@@ -651,7 +651,7 @@ namespace System.Data
             if (be.Left is MemberExpression me && useParams)
             {
                 var paramName = me.Member.GetColumnName() + "_" + (cmdParams.Count + 1);
-                if (be.Right.NodeType == ExpressionType.Constant)
+                if (be.Right.NodeType == ExpressionType.Constant || be.Right.NodeType == ExpressionType.Convert)
                 {
                     right = options.ParamPrefix + paramName;
                     cmdParams[paramName] = ExpressionHelper.GetValue(be.Right);

@@ -258,7 +258,7 @@ namespace System.Data
         /// <param name="dbTransaction">Транзакция (опционально).</param>
         /// <param name="commandTimeOut">Таймаут команды в секундах.</param>
         /// <param name="commandType">Тип команды.</param>
-        /// <param name="paramPrefix">Префик для параметров.</param>
+        /// <param name="paramPrefix">Префикс для параметров.</param>
         /// <returns>Созданная команда.</returns>
         public static DbCommand CreateCommand(this IDbConnection connection, string query, object cmdParams, IDbTransaction dbTransaction = null, int commandTimeOut = 30, CommandType commandType = CommandType.Text, string paramPrefix = "@")
         {
@@ -292,6 +292,14 @@ namespace System.Data
                             Obj.Set(p, "TypeName", StringHelper.FirstNotEmpty(dt.TableName, p.ParameterName));
                         }
 
+                        break;
+
+                    case Guid guid:
+                        p.Value = guid.ToString();
+                        break;
+
+                    case Uri uri:
+                        p.Value = uri.ToString();
                         break;
 
                     default:
