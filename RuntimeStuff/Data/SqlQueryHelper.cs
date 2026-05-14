@@ -241,7 +241,7 @@ namespace System.Data
                 return string.Empty;
             }
 
-            var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetMemberCache(), x.Item2)).ToArray();
+            var props = orderBy.Select(x => (ExpressionHelper.GetMemberInfo(x.Item1).GetMemberCache<T>(), x.Item2)).ToArray();
             return GetOrderBy(options, props);
         }
 
@@ -333,7 +333,7 @@ namespace System.Data
         /// <returns>Строка SQL-запроса SELECT.</returns>
         public static string GetSelectQuery(SqlOptions options, bool useFullNames, Type type, params PropertyInfo[] selectColumns)
         {
-            return GetSelectQuery(options, useFullNames, type.GetMemberCache(), selectColumns?.Select(x => x.GetMemberCache())?.ToArray());
+            return GetSelectQuery(options, useFullNames, type.GetMemberCache(), selectColumns?.Select(x => x.GetMemberCache(type))?.ToArray());
         }
 
         /// <summary>
@@ -660,7 +660,7 @@ namespace System.Data
                 {
                     if (be.Right is MemberExpression rme)
                     {
-                        if (rme.Member.GetMemberCache()?.IsProperty == true)
+                        if (rme.Member.GetMemberCache(rme.Type)?.IsProperty == true)
                         {
                             right = options.NamePrefix + rme.Member.GetColumnName() + options.NameSuffix;
                         }
@@ -680,7 +680,7 @@ namespace System.Data
 
         private static string VisitMember(MemberExpression me, SqlOptions options, bool useParams, Dictionary<string, object> cmdParams)
         {
-            var mi = MemberCache.Get(me.Member);
+            var mi = MemberCache.Get(me.Member.DeclaringType, me.Member);
             if (me.Expression != null && me.Expression.NodeType == ExpressionType.Parameter)
             {
                 return options.GetColumnName(mi);

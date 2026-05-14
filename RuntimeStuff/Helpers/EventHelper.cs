@@ -168,7 +168,7 @@ namespace System.Helpers
             where TSourceEventArgs : EventArgs
             where TTargetEventArgs : EventArgs
         {
-            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, [(MemberCache)sourceProperty], sourceEvent, canAcceptSourceEvent, target, [(MemberCache)targetProperty], targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter, onPropertyChanged);
+            var pb = new PropertiesBinding<TSource, TSourceProp, TSourceEventArgs, TTarget, TTargetProp, TTargetEventArgs>(source, [MemberCache.Get(source.GetType(), sourceProperty)], sourceEvent, canAcceptSourceEvent, target, [MemberCache.Get(target.GetType(), targetProperty)], targetEvent, canAcceptTargetEvent, sourceValueToTargetValueConverter, targetValueToSourceValueConverter, onPropertyChanged);
             if (sourceEvent != null)
             {
                 var eventHandlerType = sourceEvent.EventHandlerType;
@@ -185,13 +185,13 @@ namespace System.Helpers
                 pb.DstEventHandler = eventHandler;
             }
 
-            var sourceValue = ((MemberCache)sourceProperty).GetValue(source);
+            var sourceValue = MemberCache.Get(source.GetType(), sourceProperty).GetValue(source);
             if (sourceValueToTargetValueConverter != null)
             {
                 sourceValue = sourceValueToTargetValueConverter((TSourceProp)sourceValue);
             }
 
-            ((MemberCache)targetProperty).SetValue(target, sourceValue);
+            MemberCache.Get(target.GetType(), targetProperty).SetValue(target, sourceValue);
             pb.OnTargetEvent(target, new PropertyChangedEventArgs(targetProperty.Name));
             return pb;
         }

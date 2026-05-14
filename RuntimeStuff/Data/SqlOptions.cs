@@ -224,12 +224,12 @@ namespace System.Data
         /// <summary>
         /// Получает имя таблицы для указанного члена, учитывая отображение и синтаксис СУБД.
         /// </summary>
-        /// <param name="memberInfo">Свойство или тип.</param>
+        /// <param name="type">Свойство или тип.</param>
         /// <param name="alias">Добавить к имени псевдоним через AS.</param>
         /// <returns>Форматированное имя таблицы.</returns>
-        public string GetTableName(MemberInfo memberInfo, string alias = null)
+        public string GetTableName(Type type, string alias = null)
         {
-            var mc = memberInfo.GetMemberCache();
+            var mc = type.GetMemberCache();
             var mappedTableName = this.Map.ResolveTableName(mc, this.NamePrefix, this.NameSuffix);
             var tableName = mappedTableName ?? mc.GetTableName(this.NamePrefix, this.NameSuffix);
             return string.IsNullOrWhiteSpace(alias) ? tableName : tableName + $" AS {this.NamePrefix}{alias}{this.NameSuffix}";
@@ -238,13 +238,13 @@ namespace System.Data
         /// <summary>
         /// Получает имя колонки для указанного свойства, учитывая отображение и синтаксис СУБД.
         /// </summary>
-        /// <param name="memberInfo">Свойство класса.</param>
+        /// <param name="propertyInfo">Свойство класса.</param>
         /// <param name="alias">Добавить к имени псевдоним через AS.</param>
         /// <param name="fullName">Возвращать полное имя включая имя таблицы.</param>
         /// <returns>Форматированное имя колонки.</returns>
-        public string GetColumnName(MemberInfo memberInfo, string alias = null, bool fullName = false)
+        public string GetColumnName(PropertyInfo propertyInfo, string alias = null, bool fullName = false)
         {
-            var mc = memberInfo.GetMemberCache();
+            var mc = propertyInfo.GetMemberCache(propertyInfo.DeclaringType);
             var mappedColumnName = this.Map.ResolveColumnName(mc, this.NamePrefix, this.NameSuffix, fullName);
             var columnName = mappedColumnName ?? mc.GetColumnName(this.NamePrefix, this.NameSuffix, fullName);
             return string.IsNullOrWhiteSpace(alias) ? columnName : columnName + $" AS {this.NamePrefix}{alias}{this.NameSuffix}";

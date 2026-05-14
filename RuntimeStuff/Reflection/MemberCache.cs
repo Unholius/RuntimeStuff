@@ -5,15 +5,68 @@
 namespace System.Reflection
 {
     using System;
-    using System.Collections;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.Collections.Specialized;
     using System.ComponentModel;
+    using System.Diagnostics;
     using System.Helpers;
     using System.Linq;
-    using System.Linq.Expressions;
+
+    public sealed class TypeCache : MemberCache
+    {
+        private Type[] baseTypes;
+        private MemberCache collectionChanged;
+        private MemberCache[] columns;
+        private Dictionary<string, MemberCache> eventMap;
+        private MemberCache[] events;
+        private Dictionary<string, MemberCache> fieldMap;
+        private MemberCache[] fields;
+        private MemberCache[] fks;
+        private bool? hasCollectionChanged;
+        private bool? hasOnCollectionChanged;
+        private bool? hasOnPropertyChanged;
+        private bool? hasOnPropertyChanging;
+        private bool? hasPropertyChanged;
+        private MemberCache[] indexers;
+        private Dictionary<string, MemberCache> methodMap;
+        private MemberCache[] methods;
+        private MethodInfo onCollectionChanged;
+        private MethodInfo onPropertyChanged;
+        private MethodInfo onPropertyChanging;
+        private MemberCache[] pks;
+        private MemberCache[] properties;
+        private MemberCache propertyChanged;
+        private Dictionary<string, MemberCache> propMap = new Dictionary<string, MemberCache>();
+        private MemberCache[] publicBasicEnumerableProperties;
+        private MemberCache[] publicBasicProperties;
+        private MemberCache[] publicEnumerableProperties;
+        private MemberCache[] publicFields;
+        private MemberCache[] publicProperties;
+        private MemberCache[] tables;
+        private ConstructorInfo[] typeConstructors;
+        private EventInfo[] typeEvents;
+        private FieldInfo[] typeFields;
+        private MethodInfo[] typeMethods;
+        private PropertyInfo[] typeProperties;
+
+        /// <summary>
+        /// Получает все базовые типы и интерфейсы для текущего типа.
+        /// </summary>
+        public Type[] BaseTypes
+        {
+            get
+            {
+                if (this.baseTypes != null)
+                {
+                    return this.baseTypes;
+                }
+
+                this.baseTypes = TypeHelper.GetBaseTypes(this.type, getInterfaces: true);
+                return this.baseTypes;
+            }
+        }
+    }
 
     /// <summary>
     /// Предоставляет кэшированную информацию о членах типа (класса, структуры, интерфейса) и их метаданных.
@@ -37,46 +90,13 @@ namespace System.Reflection
         ];
 
         private static readonly char[] NamesSeparator = ['.'];
-        private readonly Type type;
+        private static long ElapsedMilliseconds;
+        protected readonly Type type;
         private readonly MemberCache typeCache;
-        private Type[] baseTypes;
-        private MemberCache collectionChanged;
-        private MemberCache[] columns;
-        private Dictionary<string, MemberCache> eventMap;
-        private MemberCache[] events;
-        private Dictionary<string, MemberCache> fieldMap;
-        private MemberCache[] fields;
-        private MemberCache[] fks;
-        private bool? hasCollectionChanged;
-        private bool? hasOnCollectionChanged;
-        private bool? hasOnPropertyChanged;
-        private bool? hasOnPropertyChanging;
-        private bool? hasPropertyChanged;
-        private MemberCache[] indexers;
         private string jsonName;
         private Attribute[] memberAttributes;
-        private Dictionary<string, MemberCache> methodMap;
-        private MemberCache[] methods;
-        private MethodInfo onCollectionChanged;
-        private MethodInfo onPropertyChanged;
-        private MethodInfo onPropertyChanging;
-        private MemberCache[] pks;
-        private MemberCache[] properties;
         private FieldInfo propertyBackingField;
         private bool? propertyBackingFieldExists;
-        private MemberCache propertyChanged;
-        private Dictionary<string, MemberCache> propMap;
-        private MemberCache[] publicBasicEnumerableProperties;
-        private MemberCache[] publicBasicProperties;
-        private MemberCache[] publicEnumerableProperties;
-        private MemberCache[] publicFields;
-        private MemberCache[] publicProperties;
-        private MemberCache[] tables;
-        private ConstructorInfo[] typeConstructors;
-        private EventInfo[] typeEvents;
-        private FieldInfo[] typeFields;
-        private MethodInfo[] typeMethods;
-        private PropertyInfo[] typeProperties;
         private string xmlAttr;
         private string xmlElem;
 
@@ -92,6 +112,8 @@ namespace System.Reflection
 
         private MemberCache(MemberInfo memberInfo, MemberCache parent)
         {
+            var sw = Stopwatch.StartNew();
+
             if (memberInfo == null)
             {
                 throw new ArgumentNullException(nameof(memberInfo));
@@ -325,6 +347,10 @@ namespace System.Reflection
                     }
                 }
             }
+
+            sw.Stop();
+            ElapsedMilliseconds += sw.ElapsedMilliseconds;
+            Debug.WriteLine($"MEMBERCACHE: {memberInfo} ({sw.ElapsedMilliseconds} ms. / {ElapsedMilliseconds})");
         }
 
         /// <summary>
@@ -338,38 +364,9 @@ namespace System.Reflection
         public bool? AutoGenerateFilter { get; }
 
         /// <summary>
-        /// Получает все базовые типы и интерфейсы для текущего типа.
-        /// </summary>
-        public Type[] BaseTypes
-        {
-            get
-            {
-                if (this.baseTypes != null)
-                {
-                    return this.baseTypes;
-                }
-
-                this.baseTypes = TypeHelper.GetBaseTypes(this.type, getInterfaces: true);
-                return this.baseTypes;
-            }
-        }
-
-        /// <summary>
         /// Возвращает массив атрибутов, примененных к этому члену типа.
         /// </summary>
         public Attribute[] Attributes => this.GetAttributes();
-
-        /// <summary>
-        /// Количество закешированных членов типа (базовые типы, свойства, поля, методы, события, атрибуты, конструкторы).
-        /// </summary>
-        public int CachedMembersCount =>
-            (this.baseTypes?.Length ?? 0) +
-            (this.properties?.Length ?? 0) +
-            (this.fields?.Length ?? 0) +
-            (this.typeMethods?.Length ?? 0) +
-            (this.typeEvents?.Length ?? 0) +
-            (this.memberAttributes?.Length ?? 0) +
-            (this.typeConstructors?.Length ?? 0);
 
         /// <summary>
         /// Получает значение, указывающее, можно ли читать значение члена (свойство или поле).
@@ -1292,55 +1289,56 @@ namespace System.Reflection
                 $"Cannot cast MemberCache of type '{mc.MemberType}' to FieldInfo. Member is a {mc.MemberType}.");
         }
 
-        /// <summary>
-        /// Неявное преобразование PropertyInfo в MemberCache.
-        /// </summary>
-        /// <param name="memberInfo">Информация о свойстве.</param>
-        /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
-        public static implicit operator MemberCache(PropertyInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
-        }
+        ///// <summary>
+        ///// Неявное преобразование PropertyInfo в MemberCache.
+        ///// </summary>
+        ///// <param name="type">Тип в котором искать PropertyInfo.</param>
+        ///// <param name="propertyInfo">Информация о свойстве.</param>
+        ///// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
+        //public static implicit operator MemberCache(Type type, PropertyInfo propertyInfo)
+        //{
+        //    return propertyInfo == null ? throw new ArgumentNullException(nameof(propertyInfo)) : Get(type, propertyInfo);
+        //}
 
-        /// <summary>
-        /// Неявное преобразование FieldInfo в MemberCache.
-        /// </summary>
-        /// <param name="memberInfo">Информация о поле.</param>
-        /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
-        public static implicit operator MemberCache(FieldInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
-        }
+        ///// <summary>
+        ///// Неявное преобразование FieldInfo в MemberCache.
+        ///// </summary>
+        ///// <param name="memberInfo">Информация о поле.</param>
+        ///// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
+        //public static implicit operator MemberCache(FieldInfo memberInfo)
+        //{
+        //    return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
+        //}
 
-        /// <summary>
-        /// Неявное преобразование MethodInfo в MemberCache.
-        /// </summary>
-        /// <param name="memberInfo">Информация о методе.</param>
-        /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
-        public static implicit operator MemberCache(MethodInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
-        }
+        ///// <summary>
+        ///// Неявное преобразование MethodInfo в MemberCache.
+        ///// </summary>
+        ///// <param name="memberInfo">Информация о методе.</param>
+        ///// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
+        //public static implicit operator MemberCache(MethodInfo memberInfo)
+        //{
+        //    return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
+        //}
 
-        /// <summary>
-        /// Неявное преобразование EventInfo в MemberCache.
-        /// </summary>
-        /// <param name="memberInfo">Информация о событии.</param>
-        /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
-        public static implicit operator MemberCache(EventInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
-        }
+        ///// <summary>
+        ///// Неявное преобразование EventInfo в MemberCache.
+        ///// </summary>
+        ///// <param name="memberInfo">Информация о событии.</param>
+        ///// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
+        //public static implicit operator MemberCache(EventInfo memberInfo)
+        //{
+        //    return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
+        //}
 
-        /// <summary>
-        /// Неявное преобразование ConstructorInfo в MemberCache.
-        /// </summary>
-        /// <param name="memberInfo">Информация о конструкторе.</param>
-        /// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
-        public static implicit operator MemberCache(ConstructorInfo memberInfo)
-        {
-            return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
-        }
+        ///// <summary>
+        ///// Неявное преобразование ConstructorInfo в MemberCache.
+        ///// </summary>
+        ///// <param name="memberInfo">Информация о конструкторе.</param>
+        ///// <exception cref="ArgumentNullException">Выбрасывается, если memberInfo равен null.</exception>
+        //public static implicit operator MemberCache(ConstructorInfo memberInfo)
+        //{
+        //    return memberInfo == null ? throw new ArgumentNullException(nameof(memberInfo)) : Get(memberInfo);
+        //}
 
         /// <summary>
         /// Неявное преобразование Type в MemberCache.
@@ -1399,17 +1397,46 @@ namespace System.Reflection
         /// <summary>
         /// Создает или получает из кэша экземпляр MemberCache для указанного MemberInfo.
         /// </summary>
-        /// <param name="memberInfo">Информация о члене типа.</param>
+        /// <typeparam name="T">Тип.</typeparam>
+        /// <param name="memberInfo">Член типа.</param>
+        /// <returns>Кэшированная информация о типе.</returns>
+        /// <exception cref="InvalidOperationException">Выбрасывается, если DeclaringType равен null.</exception>
+        public static MemberCache Get<T>(MemberInfo memberInfo)
+        {
+            return Get(typeof(T), memberInfo);
+        }
+
+        /// <summary>
+        /// Создает или получает из кэша экземпляр MemberCache для указанного MemberInfo.
+        /// </summary>
+        /// <param name="type">Информация о члене типа.</param>
         /// <returns>Кэшированная информация о члене.</returns>
         /// <exception cref="InvalidOperationException">Выбрасывается, если DeclaringType равен null.</exception>
-        public static MemberCache Get(MemberInfo memberInfo)
+        public static MemberCache Get(Type type)
         {
-            if (memberInfo == null)
+            if (type == null)
             {
-                throw new ArgumentNullException(nameof(memberInfo));
+                throw new ArgumentNullException(nameof(type));
             }
 
-            switch (memberInfo)
+            return TypeCache.GetOrAdd(type, x => new MemberCache(x, null));
+        }
+
+        /// <summary>
+        /// Создает или получает из кэша экземпляр MemberCache для указанного MemberInfo.
+        /// </summary>
+        /// <param name="type">Тип которому принадлежит member.</param>
+        /// <param name="member">Член типа.</param>
+        /// <returns>Кэшированная информация о члене.</returns>
+        /// <exception cref="InvalidOperationException">Выбрасывается, если DeclaringType равен null.</exception>
+        public static MemberCache Get(Type type, MemberInfo member)
+        {
+            if (type == null)
+            {
+                throw new ArgumentNullException(nameof(type));
+            }
+
+            switch (member)
             {
                 case MemberCache me:
                     return me;
@@ -1419,8 +1446,8 @@ namespace System.Reflection
 
                 default:
                     {
-                        var declaringTypeCache = TypeCache.GetOrAdd(memberInfo.DeclaringType ?? throw new InvalidOperationException(), x => new MemberCache(x, null));
-                        return declaringTypeCache[memberInfo.Name, StringComparison.Ordinal, memberInfo.MemberType];
+                        var declaringTypeCache = TypeCache.GetOrAdd(type ?? throw new InvalidOperationException(), x => new MemberCache(x, null));
+                        return declaringTypeCache[member.Name, StringComparison.Ordinal, member.MemberType];
                     }
             }
         }
@@ -1652,30 +1679,6 @@ namespace System.Reflection
         public T ConvertValue<T>(object instance) => TypeHelper.ChangeType<T>(this.Getter(instance));
 
         /// <summary>
-        /// Создать внутренний кеш для всех дочерних членов. В обычном режиме кеш создается по мере обращения.
-        /// </summary>
-        public void CreateInternalCaches()
-        {
-            _ = this.BaseTypes;
-            _ = this.Properties;
-            _ = this.PublicProperties;
-            _ = this.PublicBasicEnumerableProperties;
-            _ = this.PublicBasicProperties;
-            _ = this.PublicEnumerableProperties;
-            _ = this.ColumnProperties;
-            _ = this.PrimaryKeys;
-            _ = this.ForeignKeys;
-            _ = this.Fields;
-            _ = this.PublicFields;
-            _ = this.GetMethods();
-            _ = this.GetEvents();
-            _ = this.GetConstructors();
-            _ = this.JsonName;
-            _ = this.XmlAttributeName;
-            _ = this.XmlElementName;
-        }
-
-        /// <summary>
         /// Получает атрибут указанного типа по имени типа атрибута.
         /// </summary>
         /// <typeparam name="TAttribute">Тип атрибута (должен быть производным от Attribute).</typeparam>
@@ -1718,9 +1721,9 @@ namespace System.Reflection
                 return this.memberAttributes;
             }
 
-            this.memberAttributes = TypeHelper.GetAttributes(this.MemberInfo)
-                .Concat(this.BaseTypes.SelectMany(x => TypeHelper.GetAttributes(x)))
-                .ToArray();
+            this.memberAttributes = TypeHelper.GetAttributes(this.MemberInfo);
+                //.Concat(this.BaseTypes.SelectMany(x => TypeHelper.GetAttributes(x)))
+                ///.ToArray();
 
             return this.memberAttributes;
         }

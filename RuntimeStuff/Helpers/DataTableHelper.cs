@@ -289,7 +289,7 @@ namespace System.Helpers
             }
 
             var table = new DataTable(tableName ?? typeof(T).Name);
-            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(x.PropertySelector), x.ColumnName)).ToArray() : [.. MemberCache.Get(typeof(T)).Properties.Select(x => (x, x.ColumnName))];
+            var props = propertySelectors.Any() ? propertySelectors.Select(x => (ExpressionHelper.GetMemberCache(typeof(T), x.PropertySelector), x.ColumnName)).ToArray() : [.. MemberCache.Get(typeof(T)).Properties.Select(x => (x, x.ColumnName))];
             var pks = new List<DataColumn>();
             foreach (var prop in props)
             {

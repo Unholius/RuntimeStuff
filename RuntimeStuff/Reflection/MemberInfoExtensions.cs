@@ -12,15 +12,30 @@ namespace System.Reflection
         /// <summary>
         /// Получить расширенную информацию о члене класса.
         /// </summary>
-        /// <param name="memberInfo">Информация о члене класса.</param>
-        /// <returns>Расширенная информация о члене класса.</returns>
-        public static MemberCache GetMemberCache(this MemberInfo memberInfo) => MemberCache.Get(memberInfo);
+        /// <param name="type">Тип.</param>
+        /// <returns>Расширенная информация о типе.</returns>
+        public static MemberCache GetMemberCache(this Type type) => MemberCache.Get(type);
+
+        /// <summary>
+        /// Получить расширенную информацию о члене класса.
+        /// </summary>
+        /// <param name="typeMember">Член типа.</param>
+        /// <returns>Расширенная информация о типе.</returns>
+        public static MemberCache GetMemberCache<T>(this MemberInfo typeMember) => MemberCache.Get<T>(typeMember);
+
+        /// <summary>
+        /// Получить расширенную информацию о члене класса.
+        /// </summary>
+        /// <param name="typeMember">Член типа.</param>
+        /// <param name="type">Тип которому принадлежит член.</param>
+        /// <returns>Расширенная информация о типе.</returns>
+        public static MemberCache GetMemberCache(this MemberInfo typeMember, Type type) => MemberCache.Get(type, typeMember);
 
         /// <summary>
         /// Получить имя колонки из метаданных свойства.
         /// </summary>
-        /// <param name="memberInfo">Свойство.</param>
+        /// <param name="propertyInfo">Свойство.</param>
         /// <returns>Имя колонки.</returns>
-        public static string GetColumnName(this MemberInfo memberInfo) => GetMemberCache(memberInfo)?.ColumnName;
+        public static string GetColumnName(this MemberInfo propertyInfo) => MemberCache.Get(propertyInfo.DeclaringType, propertyInfo)?.ColumnName;
     }
 }

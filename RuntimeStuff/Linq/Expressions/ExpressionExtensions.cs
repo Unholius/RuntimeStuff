@@ -137,7 +137,7 @@ namespace System.Linq.Expressions
         /// <param name="expr">Выражение, содержащее ссылку на член, для которого требуется получить кэш сведений. Не должно быть равно
         /// null.</param>
         /// <returns>Объект MemberCache, содержащий сведения о члене, извлечённом из выражения.</returns>
-        public static MemberCache GetMemberCache(this Expression expr) => ExpressionHelper.GetMemberCache(expr);
+        public static MemberCache GetMemberCache(this Expression expr) => ExpressionHelper.GetMemberCache(ExpressionHelper.GetPropertyInfo(expr).DeclaringType, expr);
 
         /// <summary>
         /// Возвращает имя свойства, представленного указанным выражением.

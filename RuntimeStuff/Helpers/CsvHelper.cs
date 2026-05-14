@@ -168,7 +168,7 @@ namespace System.Helpers
             }
             else
             {
-                columnNames = objectProperties.Length > 0 ? [.. objectProperties.Select(x => (MemberCache)x)] : [.. typeCache.PublicBasicProperties];
+                columnNames = objectProperties.Length > 0 ? [.. objectProperties.Select(x => MemberCache.Get<T>(x))] : [.. typeCache.PublicBasicProperties];
             }
 
             var result = new List<T>();
