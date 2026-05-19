@@ -1021,9 +1021,9 @@ namespace RuntimeStuff.MSTests
             Assert.IsFalse(memberInfo.IsGetterPrivate);
             Assert.IsTrue(memberInfo.IsGetterPublic);
 
-            Assert.IsNotNull(memberInfo.Parent);
+            Assert.IsNotNull(memberInfo.ParentType);
 
-            memberInfo = memberInfo.Parent[nameof(TestAccessModifiersClass.PublicPropPrivateGetPublicSet)];
+            memberInfo = memberInfo.ParentType[nameof(TestAccessModifiersClass.PublicPropPrivateGetPublicSet)];
             Assert.IsFalse(memberInfo.IsSetterPrivate);
             Assert.IsTrue(memberInfo.IsSetterPublic);
             Assert.IsTrue(memberInfo.IsGetterPrivate);

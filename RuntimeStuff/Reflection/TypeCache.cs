@@ -9,62 +9,42 @@ namespace System.Reflection
     using System.Collections.Generic;
     using System.Collections.Specialized;
     using System.ComponentModel;
-    using System.Diagnostics;
-    using System.Helpers;
     using System.Linq;
+    using StandardExtensions;
 
-    public sealed class TypeCache : MemberCache
+    public sealed class TypeCache
     {
-        private Type[] baseTypes;
-        private MemberCache collectionChanged;
-        private MemberCache[] columns;
-        private Dictionary<string, MemberCache> eventMap;
-        private MemberCache[] events;
-        private ConcurrentDictionary<string, MemberCache> fieldMap;
-        private ConcurrentDictionary<string, MemberCache> membersMap = new();
-        private MemberCache[] fields;
-        private MemberCache[] fks;
-        private bool? hasCollectionChanged;
-        private bool? hasOnCollectionChanged;
-        private bool? hasOnPropertyChanged;
-        private bool? hasOnPropertyChanging;
-        private bool? hasPropertyChanged;
-        private MemberCache[] indexers;
-        private Dictionary<string, MemberCache> methodMap;
-        private MemberCache[] methods;
-        private MethodInfo onCollectionChanged;
+        private static readonly ConcurrentDictionary<Type, TypeCache> Cache = new();
+        private Type type;
         private MethodInfo onPropertyChanged;
         private MethodInfo onPropertyChanging;
-        private MemberCache[] pks;
-        private MemberCache[] properties;
+        private MemberInfo onCollectionChanged;
+        private bool hasOnCollectionChanged;
+        private bool hasOnPropertyChanged;
+        private bool hasOnPropertyChanging;
+        private bool hasPropertyChanged;
         private MemberCache propertyChanged;
-        private Dictionary<string, MemberCache> propMap = new Dictionary<string, MemberCache>();
+        private MemberCache[] indexers;
+        private MemberCache[] methods;
+        private MemberCache[] events;
+        private MemberCache[] properties;
+        private MemberCache[] fields;
+        private MemberCache[] columns;
+        private MemberCache[] fks;
+        private MemberCache[] pks;
         private MemberCache[] publicBasicEnumerableProperties;
-        private MemberCache[] publicBasicProperties;
         private MemberCache[] publicEnumerableProperties;
         private MemberCache[] publicFields;
         private MemberCache[] publicProperties;
-        private MemberCache[] tables;
-        private ConstructorInfo[] typeConstructors;
-        private EventInfo[] typeEvents;
-        private FieldInfo[] typeFields;
-        private MethodInfo[] typeMethods;
-        private PropertyInfo[] typeProperties;
-        private static readonly BindingFlags AllBindingFlags =
-    BindingFlags.Public |
-    BindingFlags.NonPublic |
-    BindingFlags.Instance |
-    BindingFlags.Static |
-    BindingFlags.FlattenHierarchy;
+        private MemberCache[] publicBasicProperties;
 
         /// <summary>
-        /// Статический кэш экземпляров MemberCache для типов.
+        /// Initializes a new instance of the <see cref="TypeCache"/> class.
         /// </summary>
-        private static readonly ConcurrentDictionary<Type, TypeCache> typeCache = new();
-
+        /// <param name="type">Тип.</param>
         public TypeCache(Type type)
-            : base(type, null)
         {
+            this.type = type;
         }
 
         /// <summary>
@@ -80,7 +60,7 @@ namespace System.Reflection
                 throw new ArgumentNullException(nameof(type));
             }
 
-            return typeCache.GetOrAdd(type, x => new TypeCache(x));
+            return Cache.GetOrAdd(type, x => new TypeCache(x));
         }
 
         /// <summary>
@@ -93,46 +73,26 @@ namespace System.Reflection
             return this.GetProperties(StringComparison.Ordinal, propertyNames);
         }
 
-        /// <summary>
-        /// Получает все навигационные свойства (таблицы) текущего типа.
-        /// </summary>
-        /// <returns>Массив навигационных свойств.</returns>
-        public MemberCache[] GetTables()
-        {
-            if (this.tables != null)
-            {
-                return this.tables;
-            }
+        ///// <summary>
+        ///// Получает все навигационные свойства (таблицы) текущего типа.
+        ///// </summary>
+        ///// <returns>Массив навигационных свойств.</returns>
+        //public TypeCache[] GetTables()
+        //{
+        //    if (this.tables != null)
+        //    {
+        //        return this.tables;
+        //    }
 
-            this.tables = [.. this.Properties.Where(x =>
-                x.IsProperty &&
-                x.IsPublic &&
-                ((x.IsCollection &&
-                !x.IsBasicCollection) || !x.IsBasic) &&
-                !x.HasAnyAttributeOfType("ColumnAttribute", "NotMappedAttribute", "KeyAttribute"))];
+        //    this.tables = [.. this.Properties.Where(x =>
+        //        x.IsProperty &&
+        //        x.IsPublic &&
+        //        ((x.IsCollection &&
+        //        !x.IsBasicCollection) || !x.IsBasic) &&
+        //        !x.HasAnyAttributeOfType("ColumnAttribute", "NotMappedAttribute", "KeyAttribute"))];
 
-            return this.tables;
-        }
-
-        /// <summary>
-        /// Карта событий по имени для быстрого доступа к кешу событий по их именам. Ключом является имя события, а значением — соответствующий объект <see cref="MemberCache"/>. Кешируется при первом доступе для оптимизации производительности при последующих запросах.
-        /// </summary>
-        private IReadOnlyDictionary<string, MemberCache> EventMap => this.eventMap ??= this.Events.ToDictionaryDistinct(p => p.Name, p => p);
-
-        /// <summary>
-        /// Карта полей по имени для быстрого доступа к полям по их именам. Ключом является имя поля, а значением — соответствующий объект <see cref="MemberCache"/>. Кешируется при первом доступе для оптимизации производительности при последующих запросах.
-        /// </summary>
-        private IReadOnlyDictionary<string, MemberCache> FieldMap => this.fieldMap ??= this.Fields.ToDictionaryDistinct(p => p.Name, p => p);
-
-        /// <summary>
-        /// Карта методов по имени для быстрого доступа к кешу методов по их именам. Ключом является имя метода (только уникальные значения), а значением — соответствующий объект <see cref="MemberCache"/>. Кешируется при первом доступе для оптимизации производительности при последующих запросах.
-        /// </summary>
-        private IReadOnlyDictionary<string, MemberCache> MethodMap => this.methodMap ??= this.Methods.ToDictionaryDistinct(p => p.Name, p => p);
-
-        /// <summary>
-        /// Карта свойств по имени для быстрого доступа к свойствам по их именам. Ключом является имя свойства, а значением — соответствующий объект <see cref="MemberCache"/>. Кешируется при первом доступе для оптимизации производительности при последующих запросах.
-        /// </summary>
-        private IReadOnlyDictionary<string, MemberCache> PropertyMap => this.propMap ??= this.Properties.ToDictionaryDistinct(p => p.Name, p => p);
+        //    return this.tables;
+        //}
 
         /// <summary>
         /// Получает или задает значение члена по имени для указанного исходного объекта.
@@ -326,114 +286,6 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Получает метод по имени.
-        /// </summary>
-        /// <param name="predicate">Имя метода.</param>
-        /// <returns>MethodInfo или null, если метод не найден.</returns>
-        public MethodInfo GetMethod(Func<MethodInfo, bool> predicate)
-        {
-            return this.GetMethods().FirstOrDefault(predicate);
-        }
-
-        /// <summary>
-        /// Возвращает массив методов типа, которые соответствуют указанным типам параметров.
-        /// </summary>
-        /// <param name="args">Массив типов параметров для поиска подходящих методов.
-        /// Если массив пуст или равен <c>null</c>, возвращаются все методы типа.</param>
-        /// <returns>
-        /// Массив <see cref="MethodInfo"/> методов, у которых параметры совместимы с указанными типами.
-        /// </returns>
-        /// <remarks>
-        /// Метод использует <see cref="GetMethods()"/> для получения всех методов типа, включая методы базовых классов.
-        /// Совпадение параметров проверяется с помощью <see cref="Type.IsAssignableFrom"/>.
-        /// </remarks>
-        public MethodInfo[] GetMethods(params Type[] args)
-        {
-            if (args == null || args.Length == 0)
-            {
-                return this.GetMethods();
-            }
-
-            var methods = new List<MethodInfo>();
-
-            foreach (var method in this.GetMethods())
-            {
-                var skipMethod = false;
-                var methodParams = method.GetParameters();
-                if (methodParams.Length != args.Length)
-                {
-                    continue;
-                }
-
-                for (var i = 0; i < methodParams.Length; i++)
-                {
-                    if ((args[i] != null && !methodParams[i].ParameterType.IsAssignableFrom(args[i])) || methodParams[i].ParameterType == typeof(object))
-                    {
-                        skipMethod = true;
-                        break;
-                    }
-                }
-
-                if (skipMethod)
-                {
-                    continue;
-                }
-
-                methods.Add(method);
-            }
-
-            return [.. methods];
-        }
-
-        /// <summary>
-        /// Устанавливает значение члена для указанного экземпляра.<br/>
-        /// Если конвертер значений не указан, то используется <see cref="TypeHelper.ChangeType(object,System.Type,IFormatProvider)"/>.
-        /// </summary>
-        /// <param name="source">Экземпляр объекта.</param>
-        /// <param name="value">Значение для установки.</param>
-        /// <param name="valueConverter">Конвертер значения (необязательный).</param>
-        public void SetValue(object source, object value, Func<object, object> valueConverter = null)
-        {
-            if (this.IsField && this.DeclaringType?.IsValueType == true)
-            {
-                this.AsFieldInfo().SetValueDirect(__makeref(source), value);
-            }
-            else
-            {
-                this.Setter(source, valueConverter == null ? TypeHelper.ChangeType(value, this.Type) : valueConverter(value));
-                this.OnPropertyChanged?.Invoke(source, [new PropertyChangedEventArgs(this.Name)]);
-            }
-        }
-
-        /// <summary>
-        /// Устанавливает значение члена для указанного экземпляра.<br/>
-        /// Если конвертер значений не указан, то используется <see cref="TypeHelper.ChangeType(object,System.Type,IFormatProvider)"/>.
-        /// </summary>
-        /// <typeparam name="T">Тип объекта.</typeparam>
-        /// <param name="source">Экземпляр объекта.</param>
-        /// <param name="value">Значение для установки.</param>
-        /// <param name="valueConverter">Конвертер значения (необязательный).</param>
-        public void SetValueByRef<T>(ref T source, object value, Func<object, object> valueConverter = null)
-        {
-            if (this.IsField && this.DeclaringType?.IsValueType == true)
-            {
-                this.AsFieldInfo().SetValueDirect(__makeref(source), value);
-            }
-            else if (this.IsProperty)
-            {
-                object boxedSource = source;
-                if (this.Setter == null)
-                {
-                    throw new InvalidOperationException($"Свойство {this.Name} не имеет сеттера.");
-                }
-
-                this.AsPropertyInfo().SetValue(boxedSource, valueConverter == null ? TypeHelper.ChangeType(value, this.Type) : valueConverter(value));
-                source = (T)boxedSource;
-                this.OnPropertyChanged?.Invoke(source, [new PropertyChangedEventArgs(this.Name)]);
-            }
-        }
-
-        /// <summary>
         /// Преобразует экземпляр объекта в словарь имен и значений свойств.
         /// </summary>
         /// <typeparam name="T">Тип объекта.</typeparam>
@@ -531,7 +383,7 @@ namespace System.Reflection
                     return this.methods;
                 }
 
-                this.methods = [.. this.GetMethods().Select(x => new MemberCache(x, this))];
+                this.methods = [.. this.type.GetMethods().Select(x => MemberCache.Get(this.type, x))];
                 return this.methods;
             }
         }
@@ -548,7 +400,7 @@ namespace System.Reflection
                     return this.indexers;
                 }
 
-                this.indexers = [.. TypeHelper.GetIndexers(this.Type).Select(x => new MemberCache(x, this))];
+                this.indexers = [.. this.type.GetIndexers().Select(x => MemberCache.Get(this.type, x))];
                 return this.indexers;
             }
         }
@@ -570,21 +422,6 @@ namespace System.Reflection
             var comparer = nameComparison.ToStringComparer();
             return [.. this.GetProperties().Where(x => propertyNames.Contains(x.Name, comparer))];
         }
-
-        ///// <summary>
-        ///// Находит внешний ключ, который ссылается на текущий тип из указанного типа-потомка.
-        ///// </summary>
-        ///// <param name="children">Тип-потомок, содержащий внешний ключ.</param>
-        ///// <returns>MemberCache внешнего ключа или null, если не найден.</returns>
-        //public MemberCache GetForeignKey(Type children)
-        //{
-        //    var childrenCache = Get(children);
-        //    return childrenCache.ForeignKeys.FirstOrDefault(fk =>
-        //    {
-        //        var nav = childrenCache.GetProperty(x => x.Name == fk.ForeignKeyName);
-        //        return nav?.PropertyType == this.Type;
-        //    });
-        //}
 
         /// <summary>
         /// Получает массив публичных полей.
@@ -653,47 +490,6 @@ namespace System.Reflection
         public MemberCache GetProperty(Func<MemberCache, bool> predicate) => this.Properties.FirstOrDefault(predicate);
 
         /// <summary>
-        /// Возвращает массив методов типа, включая методы базовых классов, кроме интерфейсов.
-        /// </summary>
-        /// <returns>
-        /// Массив <see cref="MethodInfo"/> всех методов типа и его базовых типов,
-        /// без дубликатов.
-        /// </returns>
-        /// <remarks>
-        /// Результат кэшируется в поле <c>memberMethods</c> для последующих вызовов.
-        /// </remarks>
-        public MethodInfo[] GetMethods()
-        {
-            if (this.typeMethods != null)
-            {
-                return this.typeMethods;
-            }
-
-            this.typeMethods = TypeHelper.GetMethods(this.type)
-                .Concat(this.BaseTypes.Where(x => !x.IsInterface)
-                    .SelectMany(x => TypeHelper.GetMethods(x)))
-                .Distinct().ToArray();
-
-            return this.typeMethods;
-        }
-
-        /// <summary>
-        /// Получает все внешние ключи текущего типа.
-        /// </summary>
-        /// <returns>Массив внешних ключей.</returns>
-        public MemberCache[] GetForeignKeys()
-        {
-            if (this.fks != null)
-            {
-                return this.fks;
-            }
-
-            this.fks = [.. this.GetColumns().Where(x => x.IsForeignKey)];
-
-            return this.fks;
-        }
-
-        /// <summary>
         /// Получает события с уникальными именами (включая непубличные) текущего типа и базовых типов.
         /// </summary>
         public MemberCache[] Events
@@ -705,86 +501,9 @@ namespace System.Reflection
                     return this.events;
                 }
 
-                this.events = [.. this.GetEvents().Select(x => new MemberCache(x, this))];
+                this.events = [.. this.type.GetEvents().Select(x => MemberCache.Get(this.type, x))];
                 return this.events;
             }
-        }
-
-        /// <summary>
-        /// Возвращает первое событие текущего типа, удовлетворяющее указанному условию.
-        /// </summary>
-        /// <param name="predicate">
-        /// Условие отбора события. Функция должна возвращать <see langword="true"/>,
-        /// если событие подходит под критерий поиска.
-        /// </param>
-        /// <returns>
-        /// Объект <see cref="EventInfo"/>, удовлетворяющий условию,
-        /// либо <see langword="null"/>, если подходящее событие не найдено.
-        /// </returns>
-        public EventInfo GetEvent(Func<EventInfo, bool> predicate)
-        {
-            return this.GetEvents().FirstOrDefault(predicate);
-        }
-
-        /// <summary>
-        /// Получает все события текущего типа.
-        /// </summary>
-        /// <returns>Массив событий.</returns>
-        public EventInfo[] GetEvents()
-        {
-            if (this.typeEvents != null)
-            {
-                return this.typeEvents;
-            }
-
-            this.typeEvents = TypeHelper.GetEvents(this.type)
-                .Concat(
-                    this.BaseTypes
-                        .Where(x => !x.IsInterface)
-                        .SelectMany(x => TypeHelper.GetEvents(x)))
-                .Distinct()
-                .ToArray();
-            return this.typeEvents;
-        }
-
-        /// <summary>
-        /// Получает все первичные ключи текущего типа.
-        /// </summary>
-        /// <returns>Массив первичных ключей.</returns>
-        public MemberCache[] GetPrimaryKeys()
-        {
-            if (this.pks != null)
-            {
-                return this.pks;
-            }
-
-            this.pks = [.. this.GetColumns().Where(x => x.IsPrimaryKey)];
-
-            return this.pks;
-        }
-
-        /// <summary>
-        /// Возвращает массив всех уникальных свойств текущего типа и его базовых типов (исключая интерфейсы) кроме индексаторов (this[]).
-        /// Результаты кэшируются во внутреннем поле для последующего использования.
-        /// </summary>
-        /// <returns>Массив объектов <see cref="PropertyInfo"/>, представляющих свойства типа.</returns>
-        public PropertyInfo[] GetProperties()
-        {
-            if (this.typeProperties != null)
-            {
-                return this.typeProperties;
-            }
-
-            var props = TypeHelper.GetProperties(this.type)
-                .Concat(
-                    this.BaseTypes
-                        .Where(x => !x.IsInterface)
-                        .SelectMany(x => TypeHelper.GetProperties(x)))
-                ;
-
-            var seen = new HashSet<string>();
-            this.typeProperties = [.. props.Where(p => seen.Add(p.Name))];
-            return this.typeProperties;
         }
 
         /// <summary>
@@ -839,86 +558,6 @@ namespace System.Reflection
         }
 
         /// <summary>
-        /// Находит конструктор, соответствующий предоставленным аргументам.
-        /// </summary>
-        /// <param name="ctorArgs">Аргументы конструктора (могут быть изменены при наличии параметров со значениями по умолчанию).</param>
-        /// <returns>ConstructorInfo или null, если подходящий конструктор не найден.</returns>
-        public ConstructorInfo GetConstructorByArgs(ref object[] ctorArgs)
-        {
-            var args = ctorArgs;
-            foreach (var c in this.GetConstructors())
-            {
-                var pAll = c.GetParameters();
-                if (pAll.Length == ctorArgs.Length && All(ctorArgs, (_, i) =>
-                        TypeHelper.IsImplements(args[i]?.GetType(), pAll[i].ParameterType)))
-                {
-                    return c;
-                }
-
-                var pNoDef = c.GetParameters().Where(p => !p.HasDefaultValue).ToArray();
-
-                if (pNoDef.Length == ctorArgs.Length && All(ctorArgs, (_, i) => TypeHelper.IsImplements(args[i]?.GetType(), pNoDef[i].ParameterType)))
-                {
-                    Array.Resize(ref ctorArgs, pAll.Length);
-                    for (var i = pNoDef.Length; i < pAll.Length; i++)
-                    {
-                        ctorArgs[i] = pAll[i].DefaultValue;
-                    }
-
-                    return c;
-                }
-            }
-
-            var ctor = this.Constructors.FirstOrDefault(x => x.GetParameters().Length == args.Length);
-            if (ctor != null)
-            {
-                var ctorParameters = ctor.GetParameters();
-                ctorArgs = [.. ctorParameters.Select((x, i) => TypeHelper.ChangeType(args[i], x.ParameterType))];
-                return ctor;
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Получает все конструкторы текущего типа.
-        /// </summary>
-        /// <returns>Массив конструкторов.</returns>
-        public ConstructorInfo[] GetConstructors()
-        {
-            if (this.typeConstructors != null)
-            {
-                return this.typeConstructors;
-            }
-
-            this.typeConstructors = TypeHelper.GetConstructors(this.type)
-                .Concat(this.BaseTypes.Where(x => !x.IsInterface)
-                    .SelectMany(x => TypeHelper.GetConstructors(x))
-                .OrderBy(c => c.GetParameters().Length)
-                .Distinct().ToArray());
-            return this.typeConstructors;
-        }
-
-        /// <summary>
-        /// Получает все поля текущего типа.
-        /// </summary>
-        /// <returns>Массив полей.</returns>
-        public FieldInfo[] GetFields()
-        {
-            if (this.typeFields != null)
-            {
-                return this.typeFields;
-            }
-
-            this.typeFields = [.. TypeHelper.GetFields(this.type)
-                .Concat(this.BaseTypes.Where(x => !x.IsInterface)
-                    .SelectMany(x => TypeHelper.GetFields(x)))
-                .Distinct()];
-
-            return this.typeFields;
-        }
-
-        /// <summary>
         /// Получает все свойства (включая приватные) текущего типа и базовых типов, кроме индексаторов.
         /// </summary>
         public MemberCache[] Properties
@@ -930,7 +569,7 @@ namespace System.Reflection
                     return this.properties;
                 }
 
-                this.properties = [.. this.GetProperties().Select(x => new MemberCache(x, this))];
+                this.properties = [.. this.type.GetProperties().Select(x => MemberCache.Get(this.type, x))];
                 return this.properties;
             }
         }
@@ -1001,7 +640,7 @@ namespace System.Reflection
                     return this.fields;
                 }
 
-                this.fields = [.. this.GetFields().Select(x => new MemberCache(x, this))];
+                this.fields = [.. this.type.GetFields().Select(x => MemberCache.Get(this.type, x))];
                 return this.fields;
             }
         }
@@ -1034,117 +673,59 @@ namespace System.Reflection
             }
         }
 
-        /// <summary>
-        /// Получает все конструкторы для текущего типа.
-        /// </summary>
-        public ConstructorInfo[] Constructors => this.GetConstructors();
+        //private MemberCache? GetMemberCache(string memberName, MemberTypes memberType)
+        //{
+        //    if (string.IsNullOrWhiteSpace(memberName))
+        //    {
+        //        throw new ArgumentNullException(nameof(memberName));
+        //    }
 
-        /// <summary>
-        /// Получает все базовые типы и интерфейсы для текущего типа.
-        /// </summary>
-        public Type[] BaseTypes
-        {
-            get
-            {
-                if (this.baseTypes != null)
-                {
-                    return this.baseTypes;
-                }
+        //    if (this.membersMap.TryGetValue(memberName, out var member))
+        //    {
+        //        return member;
+        //    }
+        //    else
+        //    {
+        //        Func<string, MemberInfo> memberGetter = null;
+        //        switch (memberType)
+        //        {
+        //            case MemberTypes.Property:
+        //                memberGetter = (x) => TypeHelper.GetProperty(this.type, x);
+        //                break;
 
-                this.baseTypes = TypeHelper.GetBaseTypes(this.type, getInterfaces: true);
-                return this.baseTypes;
-            }
-        }
+        //            case MemberTypes.Field:
+        //                memberGetter = (x) => TypeHelper.GetField(this.type, x);
+        //                break;
 
-        /// <summary>
-        /// Возвращает кешированную информацию о поле <c>CollectionChanged</c>.
-        /// </summary>
-        /// <remarks>
-        /// Свойство выполняет ленивый поиск члена с именем <c>CollectionChanged</c>
-        /// среди полей типа (<see cref="MemberTypes.Field"/>). Результат поиска
-        /// кешируется, чтобы избежать повторного использования рефлексии.
-        ///
-        /// Если поле найдено, оно сохраняется в <see cref="collectionChanged"/>.
-        /// Флаг <see cref="hasCollectionChanged"/> используется для того, чтобы
-        /// запомнить факт выполнения поиска и не выполнять его повторно.
-        /// </remarks>
-        /// <value>
-        /// Экземпляр <see cref="MemberCache"/>, представляющий поле
-        /// <c>CollectionChanged</c>, если оно найдено; иначе — <see langword="null"/>.
-        /// </value>
-        public MemberCache CollectionChanged
-        {
-            get
-            {
-                if (this.collectionChanged != null || this.hasCollectionChanged == false)
-                {
-                    return this.collectionChanged;
-                }
+        //            case MemberTypes.Event:
+        //                memberGetter = (x) => TypeHelper.GetEvents(this.type).FirstOrDefault(e => e.Name == x);
+        //                break;
 
-                this.hasCollectionChanged = this.fieldMap.GetO("CollectionChanged", out var f);
+        //            case MemberTypes.Method:
+        //                memberGetter = (x) => TypeHelper.GetMethods(this.type).FirstOrDefault(e => e.Name == x);
+        //                break;
 
-                if (this.hasCollectionChanged.Value)
-                {
-                    this.collectionChanged = f;
-                }
+        //            case MemberTypes.Constructor:
+        //                memberGetter = (x) => TypeHelper.GetConstructors(this.type).FirstOrDefault();
+        //                break;
 
-                return this.collectionChanged;
-            }
-        }
+        //            default:
+        //                return null;
+        //        }
 
-        private MemberCache GetMemberCache(string memberName, MemberTypes memberType)
-        {
-            if (string.IsNullOrWhiteSpace(memberName))
-            {
-                throw new ArgumentNullException(nameof(memberName));
-            }
+        //        var memberInfo = memberGetter(memberName); // this.type.GetProperty(propertyName, AllBindingFlags);
+        //        if (memberInfo != null)
+        //        {
+        //            member = new MemberCache(memberInfo, this);
+        //            this.membersMap[memberName] = member;
+        //        } else
+        //        {
+        //            this.membersMap[memberName] = null;
+        //        }
 
-            if (this.membersMap.TryGetValue(memberName, out var member))
-            {
-                return member;
-            }
-            else
-            {
-                Func<string, MemberInfo> memberGetter = null;
-                switch (memberType)
-                {
-                    case MemberTypes.Property:
-                        memberGetter = (x) => TypeHelper.GetProperty(this.type, x);
-                        break;
-
-                    case MemberTypes.Field:
-                        memberGetter = (x) => TypeHelper.GetField(this.type, x);
-                        break;
-
-                    case MemberTypes.Event:
-                        memberGetter = (x) => TypeHelper.GetEvents(this.type).FirstOrDefault(e => e.Name == x);
-                        break;
-
-                    case MemberTypes.Method:
-                        memberGetter = (x) => TypeHelper.GetMethods(this.type).FirstOrDefault(e => e.Name == x);
-                        break;
-
-                    case MemberTypes.Constructor:
-                        memberGetter = (x) => TypeHelper.GetConstructors(this.type).FirstOrDefault();
-                        break;
-
-                    default:
-                        return null;
-                }
-
-                var memberInfo = memberGetter(memberName); // this.type.GetProperty(propertyName, AllBindingFlags);
-                if (memberInfo != null)
-                {
-                    member = new MemberCache(memberInfo, this);
-                    this.membersMap[memberName] = member;
-                } else
-                {
-                    this.membersMap[memberName] = null;
-                }
-
-                return member;
-            }
-        }
+        //        return member;
+        //    }
+        //}
 
         /// <summary>
         /// Метод, вызываемый при изменении коллекции (добавление, удаление, обновление элементов).
@@ -1158,7 +739,7 @@ namespace System.Reflection
                     return this.onCollectionChanged;
                 }
 
-                this.onCollectionChanged = this.GetMethods(typeof(NotifyCollectionChangedEventArgs)).FirstOrDefault();
+                this.onCollectionChanged = this.type.GetMethods(typeof(NotifyCollectionChangedEventArgs)).FirstOrDefault();
                 this.hasOnCollectionChanged = this.hasOnCollectionChanged != null;
                 return this.onCollectionChanged;
             }
@@ -1176,7 +757,7 @@ namespace System.Reflection
                     return this.onPropertyChanged;
                 }
 
-                this.onPropertyChanged = this.GetMethods(typeof(PropertyChangedEventArgs)).FirstOrDefault() ?? this.GetMethods(typeof(object), typeof(PropertyChangedEventArgs)).FirstOrDefault();
+                this.onPropertyChanged = this.type.GetMethods(typeof(PropertyChangedEventArgs)).FirstOrDefault() ?? this.type.GetMethods(typeof(object), typeof(PropertyChangedEventArgs)).FirstOrDefault();
                 this.hasOnPropertyChanged = this.onPropertyChanged != null;
                 return this.onPropertyChanged;
             }
@@ -1194,7 +775,7 @@ namespace System.Reflection
                     return this.onPropertyChanged;
                 }
 
-                this.onPropertyChanging = this.GetMethods(typeof(PropertyChangingEventArgs)).FirstOrDefault();
+                this.onPropertyChanging = this.type.GetMethods(typeof(PropertyChangingEventArgs)).FirstOrDefault();
                 this.hasOnPropertyChanging = this.onPropertyChanging != null;
                 return this.onPropertyChanging;
             }
