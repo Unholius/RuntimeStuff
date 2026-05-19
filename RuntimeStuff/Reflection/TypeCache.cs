@@ -21,6 +21,7 @@ namespace System.Reflection
         private Dictionary<string, MemberCache> eventMap;
         private MemberCache[] events;
         private ConcurrentDictionary<string, MemberCache> fieldMap;
+        private ConcurrentDictionary<string, MemberCache> membersMap = new();
         private MemberCache[] fields;
         private MemberCache[] fks;
         private bool? hasCollectionChanged;
@@ -49,6 +50,12 @@ namespace System.Reflection
         private FieldInfo[] typeFields;
         private MethodInfo[] typeMethods;
         private PropertyInfo[] typeProperties;
+        private static readonly BindingFlags AllBindingFlags =
+    BindingFlags.Public |
+    BindingFlags.NonPublic |
+    BindingFlags.Instance |
+    BindingFlags.Static |
+    BindingFlags.FlattenHierarchy;
 
         /// <summary>
         /// Статический кэш экземпляров MemberCache для типов.
@@ -1082,6 +1089,60 @@ namespace System.Reflection
                 }
 
                 return this.collectionChanged;
+            }
+        }
+
+        private MemberCache GetMemberCache(string memberName, MemberTypes memberType)
+        {
+            if (string.IsNullOrWhiteSpace(memberName))
+            {
+                throw new ArgumentNullException(nameof(memberName));
+            }
+
+            if (this.membersMap.TryGetValue(memberName, out var member))
+            {
+                return member;
+            }
+            else
+            {
+                Func<string, MemberInfo> memberGetter = null;
+                switch (memberType)
+                {
+                    case MemberTypes.Property:
+                        memberGetter = (x) => TypeHelper.GetProperty(this.type, x);
+                        break;
+
+                    case MemberTypes.Field:
+                        memberGetter = (x) => TypeHelper.GetField(this.type, x);
+                        break;
+
+                    case MemberTypes.Event:
+                        memberGetter = (x) => TypeHelper.GetEvents(this.type).FirstOrDefault(e => e.Name == x);
+                        break;
+
+                    case MemberTypes.Method:
+                        memberGetter = (x) => TypeHelper.GetMethods(this.type).FirstOrDefault(e => e.Name == x);
+                        break;
+
+                    case MemberTypes.Constructor:
+                        memberGetter = (x) => TypeHelper.GetConstructors(this.type).FirstOrDefault();
+                        break;
+
+                    default:
+                        return null;
+                }
+
+                var memberInfo = memberGetter(memberName); // this.type.GetProperty(propertyName, AllBindingFlags);
+                if (memberInfo != null)
+                {
+                    member = new MemberCache(memberInfo, this);
+                    this.membersMap[memberName] = member;
+                } else
+                {
+                    this.membersMap[memberName] = null;
+                }
+
+                return member;
             }
         }
 

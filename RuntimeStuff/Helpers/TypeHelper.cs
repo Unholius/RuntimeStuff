@@ -241,7 +241,7 @@ namespace System.Helpers
         /// <returns>Массив конструкторов.</returns>
         public static ConstructorInfo[] GetConstructors(Type type)
         {
-            return TypeConstructorsCache.GetOrAdd(type, t => t.GetConstructors(AllBindingFlags));
+            return TypeConstructorsCache.GetOrAdd(type, t => t.GetConstructors(AllBindingFlags).OrderBy(x => x.Name).ThenBy(x => x.GetParameters().Length).ToArray());
         }
 
         /// <summary>
@@ -277,7 +277,7 @@ namespace System.Helpers
         /// <returns>Массив методов.</returns>
         public static MethodInfo[] GetMethods(Type type)
         {
-            return TypeMethodsCache.GetOrAdd(type, t => t.GetMethods(AllBindingFlags));
+            return TypeMethodsCache.GetOrAdd(type, t => t.GetMethods(AllBindingFlags).OrderBy(x => x.Name).ThenBy(x => x.GetParameters().Length).ToArray());
         }
 
         /// <summary>
