@@ -38,6 +38,11 @@ namespace System.Reflection
         private MemberCache[] publicProperties;
         private MemberCache[] publicBasicProperties;
 
+        public IReadOnlyDictionary<string, MemberCache> EventMap { get; }
+        public IReadOnlyDictionary<string, MemberCache> PropertyMap { get; }
+        public IReadOnlyDictionary<string, MemberCache> FieldMap { get; }
+        public IReadOnlyDictionary<string, MemberCache> MethodMap { get; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="TypeCache"/> class.
         /// </summary>
@@ -171,6 +176,11 @@ namespace System.Reflection
                 return this.publicBasicProperties;
             }
         }
+
+        private static readonly MemberTypes[] DefaultMemberTypes =
+{
+            MemberTypes.Property, MemberTypes.Field,
+        };
 
         /// <summary>
         /// Получает массив публичных свойств, которые являются коллекциями.
@@ -574,6 +584,8 @@ namespace System.Reflection
             }
         }
 
+        public string TableName { get; private set; }
+
         /// <summary>
         /// Получает массив свойств, которые являются первичными ключами.
         /// </summary>
@@ -730,20 +742,20 @@ namespace System.Reflection
         /// <summary>
         /// Метод, вызываемый при изменении коллекции (добавление, удаление, обновление элементов).
         /// </summary>
-        public MethodInfo OnCollectionChanged
-        {
-            get
-            {
-                if (this.onCollectionChanged != null || this.hasOnCollectionChanged == false)
-                {
-                    return this.onCollectionChanged;
-                }
+        //public MethodInfo OnCollectionChanged
+        //{
+        //    get
+        //    {
+        //        if (this.onCollectionChanged != null || this.hasOnCollectionChanged == false)
+        //        {
+        //            return this.onCollectionChanged;
+        //        }
 
-                this.onCollectionChanged = this.type.GetMethods(typeof(NotifyCollectionChangedEventArgs)).FirstOrDefault();
-                this.hasOnCollectionChanged = this.hasOnCollectionChanged != null;
-                return this.onCollectionChanged;
-            }
-        }
+        //        this.onCollectionChanged = this.type.GetMethods(typeof(NotifyCollectionChangedEventArgs)).FirstOrDefault();
+        //        this.hasOnCollectionChanged = this.hasOnCollectionChanged != null;
+        //        return this.onCollectionChanged;
+        //    }
+        //}
 
         /// <summary>
         /// Метод, вызываемый после изменения значения свойства.
