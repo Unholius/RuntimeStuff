@@ -159,6 +159,35 @@ namespace System.Linq
         /// Возвращает первый элемент последовательности, удовлетворяющий условию,
         /// либо значение по умолчанию, если такой элемент не найден.
         /// </summary>
+        /// <param name="list">Исходная последовательность.</param>
+        /// <returns>
+        /// Первый элемент, либо <see langword="default"/>.
+        /// </returns>
+        public static object FirstOrDefault(this IEnumerable list)
+        {
+            if (list == null)
+            {
+                return null;
+            }
+
+            var enumerator = list.GetEnumerator();
+
+            try
+            {
+                return enumerator.MoveNext()
+                    ? enumerator.Current
+                    : null;
+            }
+            finally
+            {
+                (enumerator as IDisposable)?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Возвращает первый элемент последовательности, удовлетворяющий условию,
+        /// либо значение по умолчанию, если такой элемент не найден.
+        /// </summary>
         /// <typeparam name="T">Тип элементов последовательности.</typeparam>
         /// <param name="list">Исходная последовательность.</param>
         /// <param name="predicate">

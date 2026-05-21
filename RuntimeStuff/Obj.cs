@@ -1035,7 +1035,7 @@ namespace System
         {
             var argTypes = args.Select(a => a?.GetType() ?? typeof(object)).ToArray();
 
-            return type.GetConstructors()
+            return type.GetConstructors(DefaultBindingFlags)
                 .FirstOrDefault(c =>
                 {
                     var ps = c.GetParameters();

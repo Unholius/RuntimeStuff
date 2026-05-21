@@ -232,6 +232,11 @@ KeyB=ValueB
             var updatedValue = ini["Section1", "Key1"];
             Assert.AreEqual("UpdatedValue", updatedValue);
             Assert.IsTrue(ini.Content.Contains("Key1=UpdatedValue"));
+
+            ini.RemoveSection("Section1");
+            ini.TrimContent();
+            var content = ini.ToString();
+            Assert.AreEqual("; Глобальный ключ (без секции)\r\nGlobalKey=GlobalValue\r\n\r\n; Комментарий\r\n[Section2]\r\nKeyA=ValueA\r\nKeyB=ValueB\r\n", content);
         }
 
         [TestMethod]
@@ -325,7 +330,7 @@ Key1=ThirdValue
         {
             // Arrange
             var ini = new IniFile(TestContent);
-            var newContent = "[NewSection]\nNewKey=NewValue";
+            var newContent = "[NewSection]\r\nNewKey=NewValue";
 
             // Act
             ini.Content = newContent;

@@ -246,6 +246,17 @@ namespace System.IO
         }
 
         /// <summary>
+        /// Удалить лишние пробелы и дубликаты пустых строк.
+        /// </summary>
+        public void TrimContent()
+        {
+            this.content = this.content.Trim(' ', '\r', '\n', '\t');
+            this.content = this.content.RemoveDuplicateEmptyLines() ?? string.Empty;
+            this.content += "\r\n";
+            this.cacheDirty = true;
+        }
+
+        /// <summary>
         /// Возвращает перечисление ключей в указанной секции.
         /// </summary>
         /// <param name="section">Имя секции. Если null, возвращаются ключи глобальной секции.</param>
@@ -315,6 +326,7 @@ namespace System.IO
         public void Save(Encoding encoding = null)
         {
             var fullPath = GetFullPath(this.FileName);
+            this.TrimContent();
             File.WriteAllText(fullPath, this.Content, encoding ?? Encoding.UTF8);
         }
 
@@ -324,6 +336,7 @@ namespace System.IO
         /// <param name="writer">TextWriter для записи.</param>
         public void SaveAs(TextWriter writer)
         {
+            this.TrimContent();
             writer.Write(this.Content);
         }
 
@@ -334,6 +347,7 @@ namespace System.IO
         /// <param name="encoding">Кодировка для записи. Если null, используется UTF-8.</param>
         public void SaveAs(Stream stream, Encoding encoding = null)
         {
+            this.TrimContent();
             using (var writer = new StreamWriter(stream, encoding ?? Encoding.UTF8))
             {
                 writer.Write(this.Content);
@@ -348,6 +362,7 @@ namespace System.IO
         /// <exception cref="ArgumentException">Если fileName некорректен.</exception>
         public void SaveAs(string newFileName, Encoding encoding = null)
         {
+            this.TrimContent();
             var fullPath = GetFullPath(newFileName);
             File.WriteAllText(fullPath, this.Content, encoding ?? Encoding.UTF8);
         }
@@ -386,6 +401,139 @@ namespace System.IO
 
             // если ключа нет — fallback
             this.SetValueSlow(section, key, value);
+        }
+
+        /// <summary>
+        /// Удаляет ключ из секции.
+        /// </summary>
+        /// <param name="section">Имя секции. Может быть null для глобальной секции.</param>
+        /// <param name="key">Имя ключа.</param>
+        /// <param name="removeSectionIfEmpty">
+        /// Автоматически удалить секцию, если после удаления ключа в ней не осталось ключей.
+        /// </param>
+        /// <returns>true, если ключ был найден и удалён.</returns>
+        public bool RemoveKey(string section, string key, bool removeSectionIfEmpty = true)
+        {
+            if (key == null)
+            {
+                throw new ArgumentNullException(nameof(key));
+            }
+
+            this.EnsureCache();
+
+            section ??= string.Empty;
+
+            if (!this.writeIndex.TryGetValue(section, out var keys) ||
+                !keys.TryGetValue(key, out var positions) ||
+                positions.Count == 0)
+            {
+                return false;
+            }
+
+            var sb = new StringBuilder(this.Content);
+
+            // удаляем все вхождения ключа с целой строкой
+            for (var i = positions.Count - 1; i >= 0; i--)
+            {
+                var (valueIndex, valueLength) = positions[i];
+
+                var start = valueIndex;
+                var end = valueIndex + valueLength;
+
+                // идем к началу строки
+                while (start > 0 && !IsNewLine(sb[start - 1]))
+                {
+                    start--;
+                }
+
+                // идем к концу строки
+                while (end < sb.Length && !IsNewLine(sb[end]))
+                {
+                    end++;
+                }
+
+                // захватываем перенос строки
+                while (end < sb.Length && IsNewLine(sb[end]))
+                {
+                    end++;
+                }
+
+                sb.Remove(start, end - start);
+            }
+
+            this.Content = sb.ToString();
+
+            if (removeSectionIfEmpty && !string.IsNullOrEmpty(section))
+            {
+                this.EnsureCache();
+
+                if (!this.keyCache.TryGetValue(section, out var remainingKeys) ||
+                    remainingKeys.Count == 0)
+                {
+                    this.RemoveSection(section);
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Удаляет секцию вместе со всеми ключами.
+        /// </summary>
+        /// <param name="section">Имя секции.</param>
+        /// <returns>true, если секция была найдена и удалена.</returns>
+        public bool RemoveSection(string section)
+        {
+            if (string.IsNullOrEmpty(section))
+            {
+                return false;
+            }
+
+            var sb = new StringBuilder(this.Content);
+
+            Match sectionMatch = null;
+            Match nextSectionMatch = null;
+
+            for (var match = IniFile.Regex.Match(this.Content); match.Success; match = match.NextMatch())
+            {
+                if (!match.Groups["section"].Success)
+                {
+                    continue;
+                }
+
+                var sectionName = match.Groups["value"].Value;
+
+                if (sectionMatch == null)
+                {
+                    if (sectionName.Equals(section, this.comparison))
+                    {
+                        sectionMatch = match;
+                    }
+                }
+                else
+                {
+                    nextSectionMatch = match;
+                    break;
+                }
+            }
+
+            if (sectionMatch == null)
+            {
+                return false;
+            }
+
+            var start = sectionMatch.Index;
+            var end = nextSectionMatch?.Index ?? sb.Length;
+
+            while (end < sb.Length && IsNewLine(sb[end]))
+            {
+                end++;
+            }
+
+            sb.Remove(start, end - start);
+
+            this.Content = sb.ToString();
+            return true;
         }
 
         /// <summary>

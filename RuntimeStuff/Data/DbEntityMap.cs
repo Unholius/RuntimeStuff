@@ -296,8 +296,9 @@ namespace System.Data
         /// </summary>
         /// <typeparam name="T">Тип сущности.</typeparam>
         /// <param name="tableName">Имя таблицы.</param>
+        /// <param name="schema">Имя схемы.</param>
         /// <returns>Экземпляр <see cref="EntityMapBuilder{T}"/>.</returns>
-        public EntityMapBuilder<T> Table<T>(string tableName)
+        public EntityMapBuilder<T> Table<T>(string tableName, string schema = null)
             where T : class
         {
             var entityMapping = this.GetOrAdd(typeof(T));

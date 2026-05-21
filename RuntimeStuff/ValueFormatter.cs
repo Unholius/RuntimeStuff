@@ -96,6 +96,40 @@ namespace System
         }
 
         /// <summary>
+        /// Сериализатор значений в Json формате.
+        /// </summary>
+        public static ValueFormatter JsonValueFormatter { get; } = new()
+        {
+            StringPrefix = "\"",
+            StringSuffix = "\"",
+            DatePrefix = "\"",
+            DateSuffix = "\"",
+            DateFormat = "yyyy-MM-dd",
+            DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ",
+            EnumerablePrefix = "[",
+            EnumerableSuffix = "]",
+            ObjectPrefix = "{",
+            ObjectSuffix = "}",
+            EnumAsString = false,
+        };
+
+        /// <summary>
+        /// Сериализатор значений в SQL формате.
+        /// </summary>
+        public static ValueFormatter SqlValueFormatter { get; } = new()
+        {
+            StringPrefix = "'",
+            StringSuffix = "'",
+            DatePrefix = "'",
+            DateSuffix = "'",
+            EscapeMode = StringHelper.EscapeMode.Sql,
+            TrueValue = "1",
+            FalseValue = "0",
+            DateFormat = "yyyy-MM-dd",
+            DateTimeFormat = "yyyy-MM-ddTHH:mm:ss.fff",
+        };
+
+        /// <summary>
         /// Префикс, добавляемый перед представлением логического значения (<c>true</c> / <c>false</c>) при сериализации.
         /// Например, можно использовать "(" для обрамления значения.
         /// </summary>

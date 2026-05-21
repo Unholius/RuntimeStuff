@@ -125,9 +125,21 @@ namespace System.Data
         /// <returns>SQL-запрос INSERT.</returns>
         public static string GetInsertQuery<T>(SqlOptions options, params Expression<Func<T, object>>[] insertColumns)
             where T : class
+            => GetInsertQuery<T>(typeof(T), options, insertColumns);
+
+        /// <summary>
+        /// Генерирует SQL-запрос INSERT для указанной сущности и колонок.
+        /// </summary>
+        /// <typeparam name="T">Тип сущности.</typeparam>
+        /// <param name="type">Тип.</param>
+        /// <param name="options">Параметры SQL-провайдера.</param>
+        /// <param name="insertColumns">Колонки для вставки. Если не указаны, вставляются все публичные свойства с сеттером.</param>
+        /// <returns>SQL-запрос INSERT.</returns>
+        public static string GetInsertQuery<T>(Type type, SqlOptions options, params Expression<Func<T, object>>[] insertColumns)
+            where T : class
         {
             var query = new StringBuilder("INSERT INTO ");
-            var mi = MemberCache.Get(typeof(T));
+            var mi = MemberCache.Get(type);
             query
                 .Append(options.Map?.ResolveTableName(mi, options.NamePrefix, options.NameSuffix) ?? mi.GetTableName(options.NamePrefix, options.NameSuffix))
                 .Append(" (");

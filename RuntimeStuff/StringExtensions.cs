@@ -179,6 +179,19 @@ namespace System
         public static string Cut(this string s, int startIndex, int endIndex) => StringHelper.Cut(s, startIndex, endIndex);
 
         /// <summary>
+        /// Удаляет повторяющиеся пустые строки из текста, оставляя не более одной подряд.
+        /// </summary>
+        /// <param name="s">Исходная строка текста.</param>
+        /// <returns>
+        /// Текст без последовательных пустых строк.
+        /// В конце строки удаляются завершающие символы перевода строки.
+        /// </returns>
+        /// <remarks>
+        /// Пустыми считаются строки, содержащие только пробелы или не содержащие символов.
+        /// </remarks>
+        public static string RemoveDuplicateEmptyLines(this string s) => StringHelper.RemoveDuplicateEmptyLines(s);
+
+        /// <summary>
         /// Преобразует строку Base64 обратно в обычную строку с использованием кодировки UTF-8.
         /// </summary>
         /// <param name="s">Строка в формате Base64.</param>
