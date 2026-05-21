@@ -542,6 +542,53 @@ namespace System.Helpers
         }
 
         /// <summary>
+        /// Удаляет повторяющиеся пустые строки из текста, оставляя не более одной подряд.
+        /// </summary>
+        /// <param name="s">Исходная строка текста.</param>
+        /// <returns>
+        /// Текст без последовательных пустых строк.
+        /// В конце строки удаляются завершающие символы перевода строки.
+        /// </returns>
+        /// <remarks>
+        /// Пустыми считаются строки, содержащие только пробелы или не содержащие символов.
+        /// </remarks>
+        public static string RemoveDuplicateEmptyLines(string s)
+        {
+            if (string.IsNullOrEmpty(s))
+            {
+                return s;
+            }
+
+            var lines = s.Split(new[] { "\r\n", "\n", "\r" }, StringSplitOptions.None);
+
+            var sb = new StringBuilder(s.Length);
+            bool previousWasEmpty = false;
+
+            foreach (var line in lines)
+            {
+                bool isEmpty = string.IsNullOrWhiteSpace(line);
+
+                if (isEmpty)
+                {
+                    if (previousWasEmpty)
+                    {
+                        continue;
+                    }
+
+                    sb.AppendLine();
+                    previousWasEmpty = true;
+                }
+                else
+                {
+                    sb.AppendLine(line);
+                    previousWasEmpty = false;
+                }
+            }
+
+            return sb.ToString().TrimEnd('\r', '\n');
+        }
+
+        /// <summary>
         /// Выполняет экранирование строки в соответствии с указанным режимом.
         /// </summary>
         /// <param name="value">

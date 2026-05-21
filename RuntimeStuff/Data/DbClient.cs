@@ -1668,7 +1668,7 @@ namespace System.Data
             where T : class
         {
             object id = null;
-            var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
+            var query = SqlQueryHelper.GetInsertQuery(item.GetType(), this.Options, insertColumns);
             if (string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
             {
                 this.ExecuteNonQuery(query, Obj.GetValues(item), dbTransaction);
@@ -1734,7 +1734,7 @@ namespace System.Data
             where T : class
         {
             object id = null;
-            var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
+            var query = SqlQueryHelper.GetInsertQuery(item.GetType(), this.Options, insertColumns);
             if (string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
             {
                 await this.ExecuteNonQueryAsync(query, Obj.GetValues(item), dbTransaction, token)
@@ -1800,33 +1800,38 @@ namespace System.Data
                 try
                 {
                     var ids = new List<object>();
-                    dbTransaction ??= this.BeginTransaction();
-
-                    var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
-                    if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
+                    using (dbTransaction ?? this.BeginTransaction())
                     {
-                        query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
-                    }
-
-                    var typeCache = MemberCache.Get(typeof(T));
-                    var pk = typeCache.PrimaryKeys.FirstOrDefault();
-                    var queryParams = new Dictionary<string, object>();
-                    using (cmd = this.CreateCommand(query, null, dbTransaction))
-                    {
-                        foreach (var item in list)
+                        var query = SqlQueryHelper.GetInsertQuery(list.FirstOrDefault()?.GetType() ?? typeof(T), this.Options, insertColumns);
+                        if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
                         {
-                            typeCache.ToDictionary(item, queryParams);
-                            SetParameterCollection(cmd, queryParams);
-                            var id = cmd.ExecuteScalar();
-                            ids.Add(id);
-                            this.CommandExecuted?.Invoke(cmd);
-                            this.Log(cmd);
-                            if (pk != null && id != null)
+                            query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
+                        }
+
+                        var typeCache = MemberCache.Get(list.FirstOrDefault()?.GetType() ?? typeof(T));
+                        var pk = typeCache.PrimaryKeys.FirstOrDefault();
+                        var queryParams = new Dictionary<string, object>();
+                        using (cmd = this.CreateCommand(query, dbTransaction))
+                        {
+                            if (cmd is not DbCommand dbCmd)
                             {
-                                pk.SetValue(item, ChangeType(id, pk.PropertyType));
+                                throw new InvalidCastException($"Cannot cast argument '{nameof(cmd)}' to type '{typeof(DbCommand).FullName}'.");
+                            }
+
+                            foreach (var item in list)
+                            {
+                                typeCache.ToDictionary(item, queryParams);
+                                SetParameterCollection(cmd, queryParams);
+                                var id = cmd.ExecuteScalar();
+                                ids.Add(id);
+                                this.CommandExecuted?.Invoke(cmd);
+                                this.Log(cmd);
+                                if (pk != null && id != null)
+                                {
+                                    pk.SetValue(item, ChangeType(id, pk.PropertyType));
+                                }
                             }
                         }
-                    }
 
                     if (autoCommit)
                     {
@@ -1901,13 +1906,13 @@ namespace System.Data
                     var autoCommit = dbTransaction == null && this.tr.Value == null;
                     dbTransaction ??= this.BeginTransaction();
                     {
-                        var query = SqlQueryHelper.GetInsertQuery(this.Options, insertColumns);
+                        var query = SqlQueryHelper.GetInsertQuery(list.FirstOrDefault()?.GetType() ?? typeof(T), this.Options, insertColumns);
                         if (!string.IsNullOrWhiteSpace(this.Options.GetInsertedIdQuery))
                         {
                             query += $"{this.Options.StatementTerminator} {this.Options.GetInsertedIdQuery}";
                         }
 
-                        var typeCache = MemberCache.Get(typeof(T));
+                        var typeCache = MemberCache.Get(list.FirstOrDefault()?.GetType() ?? typeof(T));
                         var pk = typeCache.PrimaryKeys.FirstOrDefault();
                         var queryParams = new Dictionary<string, object>();
                         using (cmd = this.CreateCommand(query, null, dbTransaction))
@@ -4008,9 +4013,10 @@ namespace System.Data
                 var autoCommit = dbTransaction == null && this.tr.Value == null;
                 dbTransaction ??= this.BeginTransaction();
                 {
-                    var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns) + " " + SqlQueryHelper.GetWhereClause<T>(this.Options, out var d);
-                    var typeCache = MemberCache.Get(typeof(T));
-                    using (var cmd = this.CreateCommand(query, d, dbTransaction))
+                    var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
+                    var typeCache = MemberCache.Get(list.FirstOrDefault()?.GetType() ?? typeof(T));
+                    var queryParams = new Dictionary<string, object>();
+                    using (var cmd = this.CreateCommand(query, dbTransaction))
                     {
                         foreach (var item in list)
                         {
@@ -4092,7 +4098,7 @@ namespace System.Data
                 dbTransaction ??= this.BeginTransaction();
                 {
                     var query = SqlQueryHelper.GetUpdateQuery(this.Options, updateColumns);
-                    var typeCache = MemberCache.Get(typeof(T));
+                    var typeCache = MemberCache.Get(list.FirstOrDefault()?.GetType() ?? typeof(T));
                     var queryParams = new Dictionary<string, object>();
                     using (var cmd = this.CreateCommand(query, null, dbTransaction))
                     {
@@ -4569,7 +4575,7 @@ namespace System.Data
             Func<object[], string[], T> itemFactory,
             CancellationToken ct)
         {
-            var itemTypeCache = MemberCache.Get(typeof(T));
+            var itemTypeCache = MemberCache.Get(list.FirstOrDefault()?.GetType() ?? typeof(T));
             var readerValues = new object[reader.FieldCount];
             var readerColumns = Enumerable.Range(0, reader.FieldCount)
                 .Select(reader.GetName)
@@ -4608,7 +4614,7 @@ namespace System.Data
             }
 
             var map = this.GetReaderFieldToPropertyMap(
-                typeof(T),
+                list.FirstOrDefault()?.GetType() ?? typeof(T),
                 reader,
                 columnToPropertyMap,
                 columns);
@@ -4682,7 +4688,7 @@ namespace System.Data
     Func<object[], string[], T> itemFactory,
     CancellationToken ct)
         {
-            var type = typeof(T);
+            var type = list.FirstOrDefault()?.GetType() ?? typeof(T);
             var itemTypeCache = MemberCache.Get(type);
             var fieldCount = reader.FieldCount;
             var readerValues = new object[fieldCount];

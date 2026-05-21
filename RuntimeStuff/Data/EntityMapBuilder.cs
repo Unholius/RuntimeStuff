@@ -91,26 +91,29 @@ namespace System.Data
         /// Имя схемы базы данных. Может быть <c>null</c>.
         /// </param>
         /// <returns>Текущий экземпляр билдера для продолжения конфигурации.</returns>
-        /// <exception cref="ArgumentException">
-        /// Выбрасывается, если <paramref name="tableName"/> пустое или состоит только из пробелов.
-        /// </exception>
         public EntityMapBuilder<T> Table(string tableName, string schema = null)
         {
-            if (string.IsNullOrWhiteSpace(tableName))
-            {
-                throw new ArgumentException(null, nameof(tableName));
-            }
+            return this.Map.Table<T>(tableName, schema);
+        }
 
-            this.EntityMapping.TableName = tableName;
-            this.EntityMapping.Schema = schema;
-            return this;
+        /// <summary>
+        /// Задаёт имя таблицы и схему базы данных для сущности из атрибутов типа.
+        /// </summary>
+        /// <returns>Текущий экземпляр билдера для продолжения конфигурации.</returns>
+        public EntityMapBuilder<T> Table()
+        {
+            return this.Map.Table<T>();
         }
 
         /// <summary>
         /// Устанавливает имя таблицы без изменения схемы.
         /// </summary>
         /// <param name="tableName">Имя таблицы.</param>
-        internal void MapTableName(string tableName) =>
+        /// <param name="schema">Имя схемы.</param>
+        internal void MapTableName(string tableName, string schema = null)
+        {
             this.EntityMapping.TableName = tableName;
+            this.EntityMapping.Schema = schema;
+        }
     }
 }

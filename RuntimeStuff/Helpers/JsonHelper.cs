@@ -633,6 +633,11 @@ namespace System.Helpers
 
         private static string SerializeInternal(object obj, ValueFormatter formatter)
         {
+            if (formatter == null)
+            {
+                formatter = defaultValueFormatter;
+            }
+
             return formatter.Format(obj);
         }
 
