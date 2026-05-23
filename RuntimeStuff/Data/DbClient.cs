@@ -1833,12 +1833,13 @@ namespace System.Data
                             }
                         }
 
-                    if (autoCommit)
-                    {
-                        this.CommitTransaction();
-                    }
+                        if (autoCommit)
+                        {
+                            this.CommitTransaction();
+                        }
 
-                    return [.. ids];
+                        return [.. ids];
+                    }
                 }
                 catch (Exception ex) when (IsTimeoutException(ex) && attempt < DbClient.RetryCount && dbTransaction == null)
                 {
